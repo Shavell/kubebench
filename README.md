@@ -1,32 +1,76 @@
-# React + TypeScript + Vite
+# KubeBench
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A VSCode-style dashboard & workbench for Kubernetes. **Visual-only phase**: every
+screen runs against deterministic mock data — no cluster connection yet. The UI is
+written entirely against typed provider interfaces so the real Kubernetes / Helm /
+Prometheus clients can be dropped in later without touching any screen.
 
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+npm run dev     # http://localhost:5173
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## Layout
+
+VSCode Dark+ chrome: activity bar → per-module sidebar → tabbed editor area →
+bottom panel (Problems / Logs / Terminal) → status bar (cluster context +
+namespace filter on the left, module contributions on the right).
+
+Navigation is tab-based like VSCode (no router): opening a resource opens a tab;
+reopening it focuses the existing tab.
+
+## Architecture
+
+```
+src/
+├─ core/
+│  ├─ shell/      Shell, ActivityBar, SideBar, EditorArea+TabStrip, BottomPanel, StatusBar
+│  ├─ plugin/     PluginManifest types + PluginRegistry
+│  ├─ store/      layoutStore (tabs/panels), contextStore (cluster ctx + namespace)
+│  └─ theme/      theme.css — all VSCode Dark+ tokens (single source of truth)
+├─ shared/        UI kit: Table, Tree, Badge, Icon, Toolbar, ResizeHandle, charts/
+├─ data/
+│  ├─ types.ts       K8s-shaped domain types
+│  ├─ providers.ts   Provider interfaces — the future real-API contract
+│  ├─ DataContext    useProviders() / useProviderQuery() hooks
+│  └─ mock/          seeded, deterministic fake cluster + YAML + metrics
+└─ plugins/       one folder per module, wired only in plugins/index.ts
+   ├─ workloads/  nodes, namespaces, pods, deployments, services
+   ├─ crd/        CRD discovery + custom resource lists
+   ├─ helm/       releases, revision history, values editor, repos
+   ├─ metrics/    cluster overview + per-node charts, status bar CPU/Mem
+   └─ terminal/   bottom-panel tabs + the shared Monaco "yaml" tab renderer
+```
+
+### Plugin model
+
+Everything a module contributes is declared in one `PluginManifest`
+(`src/core/plugin/types.ts`): activity bar entry, sidebar view, editor tab
+renderers, bottom panel tabs, status bar items. The shell composes manifests from
+the registry and never imports plugin internals. Cross-plugin actions go through
+tab *kinds* — e.g. any plugin opens a YAML view with
+`openTab({ kind: "yaml", props: { text } })`; the renderer for `yaml` happens to
+be registered by the terminal plugin.
+
+**Pluggability check:** comment out any entry in `src/plugins/index.ts` — its
+icon, sidebar, tabs, panels, and status items all vanish with no other changes.
+
+### Swapping mock for real data
+
+`src/data/providers.ts` defines `ClusterProvider`, `CrdProvider`, `HelmProvider`
+and `MetricsProvider` (all async). The mocks implement them in `src/data/mock/`.
+When the backend lands, implement the same interfaces (e.g. `src/data/api/`) and
+change one line in `main.tsx`:
+
+```ts
+const providers = createApiProviders(baseUrl) // was: createMockProviders()
+```
+
+Mock data is seeded (mulberry32) so lists and charts are identical across
+reloads. Simulated 150–300 ms latency keeps loading states honest.
+
+## Roadmap
+
+- v1.1: command palette (`commands` contribution), URL sync, tab persistence
+- v2: real cluster connectivity behind the provider interfaces, Electron/Tauri
+  wrapper if a desktop build is wanted

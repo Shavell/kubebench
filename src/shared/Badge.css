@@ -1,0 +1,41 @@
+.kb-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px;
+  border-radius: 8px;
+  font-size: 11px;
+  line-height: 16px;
+  white-space: nowrap;
+  background: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+}
+
+.kb-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.kb-badge--success {
+  background: rgba(137, 209, 133, 0.15);
+  color: var(--status-running);
+}
+.kb-badge--warning {
+  background: rgba(204, 167, 0, 0.15);
+  color: var(--status-pending);
+}
+.kb-badge--error {
+  background: rgba(241, 76, 76, 0.15);
+  color: var(--status-failed);
+}
+.kb-badge--info {
+  background: rgba(55, 148, 255, 0.15);
+  color: var(--vscode-charts-blue);
+}
+.kb-badge--neutral {
+  background: rgba(157, 157, 157, 0.15);
+  color: var(--status-unknown);
+}

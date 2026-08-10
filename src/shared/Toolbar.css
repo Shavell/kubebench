@@ -1,0 +1,41 @@
+.kb-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  flex-shrink: 0;
+}
+
+.kb-toolbar__title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.kb-toolbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kb-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  font-size: 12px;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+.kb-button:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+.kb-button--secondary {
+  background: var(--vscode-button-secondaryBackground);
+}
+.kb-button--secondary:hover {
+  background: #45494e;
+}

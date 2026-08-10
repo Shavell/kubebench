@@ -1,0 +1,74 @@
+.tab-strip {
+  display: flex;
+  height: 35px;
+  flex-shrink: 0;
+  background: var(--vscode-editorGroupHeader-tabsBackground);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tab-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px 0 12px;
+  min-width: 0;
+  max-width: 220px;
+  cursor: pointer;
+  white-space: nowrap;
+  position: relative;
+  background: var(--vscode-tab-inactiveBackground);
+  color: var(--vscode-tab-inactiveForeground);
+  border-right: 1px solid var(--vscode-tab-border);
+  font-size: 13px;
+}
+
+.tab--active {
+  background: var(--vscode-tab-activeBackground);
+  color: var(--vscode-tab-activeForeground);
+}
+.tab--active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--vscode-tab-activeBorderTop);
+}
+
+.tab__icon {
+  flex-shrink: 0;
+  color: var(--vscode-charts-blue);
+}
+
+.tab__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tab__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0;
+  padding: 0;
+}
+.tab:hover .tab__close,
+.tab--active .tab__close {
+  opacity: 1;
+}
+.tab__close:hover {
+  background: rgba(255, 255, 255, 0.12);
+}

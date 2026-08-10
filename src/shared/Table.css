@@ -1,0 +1,48 @@
+.kb-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.kb-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  text-align: left;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--vscode-descriptionForeground);
+  background: var(--vscode-editor-background);
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  white-space: nowrap;
+}
+
+.kb-table__th--sortable {
+  cursor: pointer;
+}
+.kb-table__th--sortable:hover {
+  color: var(--vscode-editor-foreground);
+}
+.kb-table__th--sortable .codicon {
+  vertical-align: middle;
+  margin-left: 3px;
+}
+
+.kb-table td {
+  padding: 5px 12px;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.08);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 340px;
+}
+
+.kb-table__row--clickable {
+  cursor: pointer;
+}
+.kb-table__row--clickable:hover {
+  background: var(--vscode-list-hoverBackground);
+}

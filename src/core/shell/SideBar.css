@@ -1,0 +1,27 @@
+.sidebar {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-width: 170px;
+}
+
+.sidebar__header {
+  height: 35px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  flex-shrink: 0;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--vscode-sideBarTitle-foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar__content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+}

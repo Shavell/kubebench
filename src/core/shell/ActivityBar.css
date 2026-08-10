@@ -1,0 +1,41 @@
+.activity-bar {
+  width: 48px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--vscode-activityBar-background);
+}
+
+.activity-bar__item {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--vscode-activityBar-inactiveForeground);
+  cursor: pointer;
+}
+
+.activity-bar__item:hover {
+  color: var(--vscode-activityBar-foreground);
+}
+
+.activity-bar__item--active {
+  color: var(--vscode-activityBar-foreground);
+}
+.activity-bar__item--active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--vscode-activityBar-activeBorder);
+}
+
+.activity-bar__spacer {
+  flex: 1;
+}

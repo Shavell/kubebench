@@ -1,0 +1,46 @@
+.status-bar {
+  height: 22px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--vscode-statusBar-background);
+  color: var(--vscode-statusBar-foreground);
+  font-size: 12px;
+  padding: 0 6px;
+}
+
+.status-bar__side {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.status-bar__item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 100%;
+  padding: 0 8px;
+  white-space: nowrap;
+}
+.status-bar__item:hover {
+  background: var(--vscode-statusBarItem-hoverBackground);
+}
+
+.status-bar__select {
+  appearance: none;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+}
+.status-bar__select:focus {
+  outline: none;
+}
+.status-bar__select option {
+  background: var(--vscode-dropdown-background);
+  color: var(--vscode-input-foreground);
+}

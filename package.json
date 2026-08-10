@@ -1,5 +1,5 @@
 {
-  "name": "kb-scaffold",
+  "name": "kube-bench",
   "private": true,
   "version": "0.0.0",
   "type": "module",

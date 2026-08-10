@@ -1,0 +1,84 @@
+.term {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--vscode-terminal-foreground);
+  user-select: text;
+}
+
+.term__prompt {
+  color: var(--vscode-terminal-ansiGreen);
+}
+
+.term__cmd {
+  color: var(--vscode-terminal-ansiCyan);
+}
+
+.term__cursor {
+  display: inline-block;
+  width: 7px;
+  height: 14px;
+  vertical-align: text-bottom;
+  background: var(--vscode-terminal-foreground);
+  animation: term-blink 1.06s steps(1) infinite;
+}
+
+@keyframes term-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.log__ts {
+  color: var(--vscode-descriptionForeground);
+}
+.log__level--info {
+  color: var(--vscode-terminal-ansiCyan);
+}
+.log__level--warn {
+  color: var(--vscode-terminal-ansiYellow);
+}
+.log__level--error {
+  color: var(--vscode-terminal-ansiRed);
+}
+.log__source {
+  color: var(--vscode-charts-purple);
+}
+
+.problems {
+  font-size: 13px;
+  padding-top: 2px;
+}
+
+.problems__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 4px;
+  border-radius: 3px;
+}
+.problems__row:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.problems__icon--error {
+  color: var(--status-failed);
+  flex-shrink: 0;
+}
+.problems__icon--warning {
+  color: var(--status-pending);
+  flex-shrink: 0;
+}
+
+.problems__message {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.problems__source {
+  color: var(--vscode-descriptionForeground);
+  font-size: 11px;
+}
