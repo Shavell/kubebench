@@ -1,0 +1,68 @@
+.palette-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.palette {
+  margin-top: 6px;
+  width: 560px;
+  max-width: calc(100vw - 80px);
+  background: var(--vscode-editorWidget-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 5px;
+  box-shadow: 0 4px 16px var(--vscode-widget-shadow);
+  overflow: hidden;
+}
+
+.palette__input {
+  width: calc(100% - 12px);
+  margin: 6px;
+  padding: 4px 8px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-focusBorder);
+  border-radius: 2px;
+  outline: none;
+}
+
+.palette__list {
+  max-height: 330px;
+  overflow-y: auto;
+  padding-bottom: 4px;
+}
+
+.palette__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 24px;
+  padding: 0 10px;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.palette__row--selected {
+  background: var(--vscode-list-activeSelectionBackground);
+  color: var(--vscode-list-activeSelectionForeground);
+}
+
+.palette__icon {
+  flex-shrink: 0;
+  color: var(--vscode-descriptionForeground);
+}
+.palette__row--selected .palette__icon {
+  color: inherit;
+}
+
+.palette__empty {
+  padding: 10px;
+  font-size: 13px;
+  color: var(--vscode-descriptionForeground);
+}

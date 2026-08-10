@@ -1,4 +1,5 @@
 import type { PluginManifest } from '@/core/plugin/types'
+import { useLayoutStore } from '@/core/store/layoutStore'
 import { MetricsSidebar } from './MetricsSidebar'
 import { ClusterOverviewPage } from './pages/ClusterOverviewPage'
 import { NodeMetricsPage } from './pages/NodeMetricsPage'
@@ -15,5 +16,19 @@ export const metricsPlugin: PluginManifest = {
   ],
   statusBarItems: [
     { id: 'metrics-usage', alignment: 'right', priority: 10, component: StatusBarMetrics },
+  ],
+  commands: [
+    {
+      id: 'metrics.openOverview',
+      title: 'Metrics: Open Cluster Overview',
+      icon: 'dashboard',
+      run: () =>
+        useLayoutStore.getState().openTab({
+          id: 'metrics-overview',
+          title: 'Cluster Overview',
+          icon: 'dashboard',
+          kind: 'metrics-overview',
+        }),
+    },
   ],
 }

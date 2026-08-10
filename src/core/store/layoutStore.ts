@@ -11,8 +11,10 @@ interface LayoutState {
   activePanelTabId: string
   tabs: TabDescriptor[]
   activeTabId: string | null
+  paletteOpen: boolean
 
   setActivePlugin: (id: string) => void
+  setPaletteOpen: (open: boolean) => void
   setSidebarWidth: (width: number) => void
   setPanelHeight: (height: number) => void
   togglePanel: () => void
@@ -38,6 +40,9 @@ export const useLayoutStore = create<LayoutState>((set) => ({
   activePanelTabId: 'terminal',
   tabs: [],
   activeTabId: null,
+  paletteOpen: false,
+
+  setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
 
   setActivePlugin: (id) =>
     set((s) =>

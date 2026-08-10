@@ -1,5 +1,7 @@
+import { useEffect } from 'react'
 import { useLayoutStore } from '@/core/store/layoutStore'
 import { ActivityBar } from './ActivityBar'
+import { CommandPalette } from './CommandPalette'
 import { SideBar } from './SideBar'
 import { EditorArea } from './EditorArea'
 import { BottomPanel } from './BottomPanel'
@@ -12,6 +14,19 @@ export function Shell() {
   const panelVisible = useLayoutStore((s) => s.panelVisible)
   const panelHeight = useLayoutStore((s) => s.panelHeight)
   const panelMaximized = useLayoutStore((s) => s.panelMaximized)
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const paletteChord = (e.metaKey || e.ctrlKey) && e.shiftKey && e.code === 'KeyP'
+      if (paletteChord || e.key === 'F1') {
+        e.preventDefault()
+        const s = useLayoutStore.getState()
+        s.setPaletteOpen(!s.paletteOpen)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => window.removeEventListener('keydown', onKeyDown, true)
+  }, [])
 
   return (
     <div className="shell">
@@ -35,6 +50,7 @@ export function Shell() {
         </div>
       </div>
       <StatusBar />
+      <CommandPalette />
     </div>
   )
 }

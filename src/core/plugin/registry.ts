@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react'
 import type {
   BottomPanelTabContribution,
+  CommandContribution,
   PluginManifest,
   SidebarViewContribution,
   StatusBarItemContribution,
@@ -47,6 +48,10 @@ class PluginRegistry {
     return this.all()
       .flatMap((p) => p.bottomPanelTabs ?? [])
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+  }
+
+  commands(): CommandContribution[] {
+    return this.all().flatMap((p) => p.commands ?? [])
   }
 
   statusBarItems(alignment: 'left' | 'right'): StatusBarItemContribution[] {

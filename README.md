@@ -19,6 +19,10 @@ namespace filter on the left, module contributions on the right).
 Navigation is tab-based like VSCode (no router): opening a resource opens a tab;
 reopening it focuses the existing tab.
 
+Command palette: `Cmd/Ctrl+Shift+P` or `F1`. Core `View:` commands are generated
+from registered plugins; each plugin can contribute its own commands via the
+`commands` field of its manifest.
+
 ## Architecture
 
 ```
@@ -71,6 +75,6 @@ reloads. Simulated 150–300 ms latency keeps loading states honest.
 
 ## Roadmap
 
-- v1.1: command palette (`commands` contribution), URL sync, tab persistence
+- v1.1: URL sync, tab persistence
 - v2: real cluster connectivity behind the provider interfaces, Electron/Tauri
   wrapper if a desktop build is wanted

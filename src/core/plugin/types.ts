@@ -45,6 +45,15 @@ export interface TabRendererContribution {
   component: ComponentType<{ tab: TabDescriptor }>
 }
 
+export interface CommandContribution {
+  id: string
+  /** Shown in the palette, e.g. "Helm: Open Releases". */
+  title: string
+  /** Codicon name shown next to the title. */
+  icon?: string
+  run: () => void
+}
+
 /**
  * Everything a module contributes to the shell. The shell only knows
  * this shape — never plugin internals.
@@ -58,4 +67,5 @@ export interface PluginManifest {
   tabRenderers?: TabRendererContribution[]
   bottomPanelTabs?: BottomPanelTabContribution[]
   statusBarItems?: StatusBarItemContribution[]
+  commands?: CommandContribution[]
 }
