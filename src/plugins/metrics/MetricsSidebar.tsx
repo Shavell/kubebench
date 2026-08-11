@@ -6,6 +6,7 @@ export function MetricsSidebar() {
   const openTab = useLayoutStore((s) => s.openTab)
   const activeTabId = useLayoutStore((s) => s.activeTabId)
   const { data: nodes } = useProviderQuery((p) => p.cluster.listNodes(), [])
+  const { data: sources } = useProviderQuery((p) => p.metrics.listSources(), [])
 
   const tree: TreeNode[] = [
     { id: 'metrics-overview', label: 'Cluster Overview', icon: 'dashboard' },
@@ -23,10 +24,11 @@ export function MetricsSidebar() {
       id: 'metrics-sources',
       label: 'Sources',
       icon: 'plug',
-      children: [
-        { id: 'src-metrics-server', label: 'metrics-server', icon: 'check', suffix: undefined },
-        { id: 'src-prometheus', label: 'prometheus (monitoring)', icon: 'check' },
-      ],
+      children: (sources ?? []).map((s) => ({
+        id: `src-${s.id}`,
+        label: s.detail && s.available ? `${s.name} · ${s.detail}` : s.name,
+        icon: s.available ? 'check' : 'circle-slash',
+      })),
     },
   ]
 

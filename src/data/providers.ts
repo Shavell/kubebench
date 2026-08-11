@@ -11,6 +11,7 @@ import type {
   K8sNode,
   MetricKind,
   MetricPoint,
+  MetricsSourceInfo,
   Namespace,
   Pod,
   Service,
@@ -53,6 +54,7 @@ export interface HelmProvider {
 }
 
 export interface MetricsProvider {
+  listSources(): Promise<MetricsSourceInfo[]>
   clusterOverview(): Promise<ClusterStats>
   clusterAllocation(): Promise<ClusterAllocation>
   nodeSeries(node: string, metric: MetricKind, minutes: number): Promise<MetricPoint[]>

@@ -1,7 +1,8 @@
 import type { DataProviders } from '../providers'
-import type { MetricKind, MetricPoint } from '../types'
+import type { MetricKind, MetricPoint, MetricsSourceInfo } from '../types'
 import { createMockProviders } from '../mock'
 import { generateSeries } from '../mock/mockMetrics'
+import { useSettingsStore } from '@/core/store/settingsStore'
 
 /**
  * Real providers backed by the local proxy server (server/index.mjs),
@@ -22,16 +23,24 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T
 }
 
-function liveOrMockSeries(
+/**
+ * Fetches a series from the selected source (auto | metrics-server |
+ * prometheus). When the source can't provide a metric (metrics-server
+ * has no network/fs), falls back to the seeded mock series so charts
+ * stay populated.
+ */
+async function liveOrMockSeries(
   metric: MetricKind,
   mockKey: string,
   minutes: number,
   livePath: string,
 ): Promise<MetricPoint[]> {
-  if (metric === 'network' || metric === 'fs') {
-    return Promise.resolve(generateSeries(mockKey, metric, minutes))
+  const source = useSettingsStore.getState().metricsSource
+  try {
+    return await api<MetricPoint[]>(`${livePath}&source=${source}`)
+  } catch {
+    return generateSeries(mockKey, metric, minutes)
   }
-  return api<MetricPoint[]>(livePath)
 }
 
 export function createApiProviders(): DataProviders {
@@ -83,6 +92,21 @@ export function createApiProviders(): DataProviders {
       },
     },
     metrics: {
+      listSources: async (): Promise<MetricsSourceInfo[]> => {
+        const s = await api<{
+          metricsServer: { available: boolean }
+          prometheus: { available: boolean; location: string | null }
+        }>('/metrics/sources')
+        return [
+          { id: 'metrics-server', name: 'metrics-server', available: s.metricsServer.available },
+          {
+            id: 'prometheus',
+            name: 'Prometheus',
+            available: s.prometheus.available,
+            detail: s.prometheus.location ?? 'not discovered',
+          },
+        ]
+      },
       clusterOverview: () => api('/metrics/overview'),
       clusterAllocation: () => api('/metrics/allocation'),
       clusterSeries: (metric, minutes) =>

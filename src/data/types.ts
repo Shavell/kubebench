@@ -18,6 +18,13 @@ export interface K8sNode {
 
 export type MetricKind = 'cpu' | 'memory' | 'network' | 'fs'
 
+export interface MetricsSourceInfo {
+  id: string
+  name: string
+  available: boolean
+  detail?: string
+}
+
 export interface ClusterEntry {
   name: string
   kubeconfigPath?: string

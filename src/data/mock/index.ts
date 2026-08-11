@@ -180,6 +180,11 @@ export function createMockProviders(): DataProviders {
       },
     },
     metrics: {
+      listSources: () =>
+        delay([
+          { id: 'metrics-server', name: 'metrics-server', available: true, detail: 'mock' },
+          { id: 'prometheus', name: 'Prometheus', available: true, detail: 'monitoring/prometheus-server (mock)' },
+        ]),
       clusterOverview: () => delay(clusterStats()),
       clusterAllocation: () => delay(clusterAllocation()),
       nodeSeries: (node, metric, minutes) => delay(generateSeries(node, metric, minutes)),

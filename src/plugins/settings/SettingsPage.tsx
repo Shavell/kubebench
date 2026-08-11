@@ -1,4 +1,5 @@
 import { useSettingsStore } from '@/core/store/settingsStore'
+import { useProviderQuery } from '@/data/DataContext'
 import { dataMode } from '@/data/mode'
 import { Toolbar } from '@/shared/Toolbar'
 import '@/plugins/workloads/pages/pages.css'
@@ -24,6 +25,8 @@ function SettingRow({ title, description, children }: RowProps) {
 
 export function SettingsPage() {
   const settings = useSettingsStore()
+  const { data: sources } = useProviderQuery((p) => p.metrics.listSources(), [])
+  const prometheus = sources?.find((s) => s.id === 'prometheus')
 
   return (
     <div className="page">
@@ -37,6 +40,27 @@ export function SettingsPage() {
         </SettingRow>
 
         <div className="detail__section">Data</div>
+        <SettingRow
+          title="Metrics Source"
+          description={
+            prometheus?.available
+              ? `Where utilization series come from. Prometheus discovered at ${prometheus.detail}; it also provides network & filesystem metrics and full history.`
+              : 'Where utilization series come from. Prometheus was not discovered in this cluster — metrics-server is used, and network/filesystem charts fall back to mock data.'
+          }
+        >
+          <select
+            value={settings.metricsSource}
+            onChange={(e) =>
+              settings.set('metricsSource', e.target.value as typeof settings.metricsSource)
+            }
+          >
+            <option value="auto">Auto (prefer Prometheus)</option>
+            <option value="prometheus" disabled={prometheus ? !prometheus.available : false}>
+              Prometheus{prometheus && !prometheus.available ? ' (unavailable)' : ''}
+            </option>
+            <option value="metrics-server">metrics-server</option>
+          </select>
+        </SettingRow>
         <SettingRow
           title="Metrics Window"
           description="How much utilization history charts show, in minutes."

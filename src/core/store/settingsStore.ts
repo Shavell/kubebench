@@ -11,6 +11,8 @@ interface SettingsState {
   theme: 'dark'
   /** Refetch interval for list pages, in seconds (0 = off). */
   autoRefreshSeconds: number
+  /** Where utilization series come from in live mode. */
+  metricsSource: 'auto' | 'metrics-server' | 'prometheus'
   set: <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => void
 }
 
@@ -21,6 +23,7 @@ export const useSettingsStore = create<SettingsState>()(
       terminalFontSize: 12.5,
       theme: 'dark',
       autoRefreshSeconds: 0,
+      metricsSource: 'auto',
       set: (key, value) => set({ [key]: value }),
     }),
     { name: 'kubebench.settings' },

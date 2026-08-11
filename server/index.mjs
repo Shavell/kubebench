@@ -18,6 +18,7 @@ const round1 = (n) => Math.round(n * 10) / 10
 
 import { readFileSync } from 'node:fs'
 import { inventoryPath, loadInventory, saveInventory } from './inventory.mjs'
+import { discoverPrometheus } from './prometheus.mjs'
 
 const PORT = Number(process.env.PORT ?? 9876)
 
@@ -46,10 +47,15 @@ function activateCluster(name) {
   }
   const kube = createKubeClient(entry.kubeconfigPath)
   active?.metrics?.stop()
-  active = { name, kube, metrics: startMetricsSampler(kube) }
+  active = { name, kube, metrics: startMetricsSampler(kube), prom: null }
   inventory.active = name
   saveInventory(inventory)
   console.log(`[kube] active=${name} context=${kube.contextName} server=${kube.server}`)
+  const current = active
+  discoverPrometheus(kube).then((prom) => {
+    if (active === current) active.prom = prom
+    if (!prom) console.log('[prometheus] not found or not reachable — using metrics-server only')
+  })
 }
 
 // Seed the inventory from KUBECONFIG on first run.
@@ -79,6 +85,28 @@ function requireActive() {
 
 const kube = new Proxy({}, { get: (_t, prop) => requireActive().kube[prop] })
 const metrics = new Proxy({}, { get: (_t, prop) => requireActive().metrics[prop] })
+
+/**
+ * Picks the metrics backend for a request. source=prometheus |
+ * metrics-server | auto (default: prometheus when discovered).
+ * Returns {source} for prometheus, {sampler} for metrics-server.
+ * metrics-server has no network/fs data, so those 501 for client fallback.
+ */
+function resolveMetricsSource(q) {
+  const wanted = q.get('source') ?? 'auto'
+  const { prom, metrics: sampler } = requireActive()
+  const metric = q.get('metric')
+
+  if (wanted === 'prometheus') {
+    if (!prom) throw Object.assign(new Error('prometheus source not available'), { status: 503 })
+    return { source: prom, sampler }
+  }
+  const useProm = wanted === 'auto' && prom
+  if (!useProm && (metric === 'network' || metric === 'fs')) {
+    throw Object.assign(new Error(`metrics-server has no "${metric}" data`), { status: 501 })
+  }
+  return { source: useProm ? prom : null, sampler }
+}
 
 const KIND_PATHS = {
   Pod: (ns, name) => `/api/v1/namespaces/${ns}/pods/${name}`,
@@ -183,12 +211,32 @@ const routes = {
       })
   },
 
-  'GET /api/metrics/cluster': async (q) =>
-    metrics.clusterSeries(q.get('metric'), Number(q.get('minutes') ?? 60)),
-  'GET /api/metrics/node': async (q) =>
-    metrics.nodeSeries(q.get('node'), q.get('metric'), Number(q.get('minutes') ?? 60)),
-  'GET /api/metrics/pod': async (q) =>
-    metrics.podSeries(q.get('ns'), q.get('pod'), q.get('metric'), Number(q.get('minutes') ?? 60)),
+  'GET /api/metrics/sources': async () => ({
+    metricsServer: { available: true },
+    prometheus: {
+      available: Boolean(requireActive().prom),
+      location: requireActive().prom?.location ?? null,
+    },
+  }),
+
+  'GET /api/metrics/cluster': async (q) => {
+    const { source, sampler } = resolveMetricsSource(q)
+    return source
+      ? source.clusterSeries(q.get('metric'), Number(q.get('minutes') ?? 60))
+      : sampler.clusterSeries(q.get('metric'), Number(q.get('minutes') ?? 60))
+  },
+  'GET /api/metrics/node': async (q) => {
+    const { source, sampler } = resolveMetricsSource(q)
+    return source
+      ? source.nodeSeries(q.get('node'), q.get('metric'), Number(q.get('minutes') ?? 60))
+      : sampler.nodeSeries(q.get('node'), q.get('metric'), Number(q.get('minutes') ?? 60))
+  },
+  'GET /api/metrics/pod': async (q) => {
+    const { source, sampler } = resolveMetricsSource(q)
+    return source
+      ? source.podSeries(q.get('ns'), q.get('pod'), q.get('metric'), Number(q.get('minutes') ?? 60))
+      : sampler.podSeries(q.get('ns'), q.get('pod'), q.get('metric'), Number(q.get('minutes') ?? 60))
+  },
   'GET /api/metrics/allocation': async () => {
     const [nodes, pods] = await Promise.all([
       kube.getJSON('/api/v1/nodes'),
