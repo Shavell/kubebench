@@ -146,43 +146,45 @@ export function ResourceListPage({ tab }: { tab: TabDescriptor }) {
     <ListFilterBar
       search={search}
       onSearch={setSearch}
+      filtersActive={Boolean(localNs || statusFilter)}
       summary={`${rows.length} of ${all.length}`}
     >
       {isNamespaced && (
-        <>
-          <span className="list-filters__label">Namespace</span>
-          <select value={localNs} onChange={(e) => setLocalNs(e.target.value)}>
-            <option value="">
-              {globalNamespace === ALL_NAMESPACES ? 'all namespaces' : `global (${globalNamespace})`}
+        <select
+          title="Namespace filter (this tab)"
+          value={localNs}
+          onChange={(e) => setLocalNs(e.target.value)}
+        >
+          <option value="">
+            {globalNamespace === ALL_NAMESPACES ? 'ns: all' : `ns: global (${globalNamespace})`}
+          </option>
+          {(namespaces ?? []).map((ns) => (
+            <option key={ns.name} value={ns.name}>
+              {ns.name}
             </option>
-            {(namespaces ?? []).map((ns) => (
-              <option key={ns.name} value={ns.name}>
-                {ns.name}
-              </option>
-            ))}
-          </select>
-        </>
+          ))}
+        </select>
       )}
       {resource === 'Pods' && (
-        <>
-          <span className="list-filters__label">Status</span>
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <option value="">all</option>
-            {PODS_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-        </>
+        <select
+          title="Status filter"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
+          <option value="">status: all</option>
+          {PODS_STATUSES.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
       )}
     </ListFilterBar>
   )
 
   return (
     <div className="page">
-      <Toolbar title={scopedTitle} />
-      {filterBar}
+      <Toolbar title={scopedTitle}>{filterBar}</Toolbar>
       {rows.length === 0 ? (
         <EmptyState
           icon="inbox"
