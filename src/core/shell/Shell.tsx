@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useLayoutStore } from '@/core/store/layoutStore'
 import { ActivityBar } from './ActivityBar'
 import { CommandPalette } from './CommandPalette'
+import { ContextMenuHost } from '@/shared/contextMenu'
 import { SideBar } from './SideBar'
 import { EditorArea } from './EditorArea'
 import { BottomPanel } from './BottomPanel'
@@ -51,6 +52,7 @@ export function Shell() {
       </div>
       <StatusBar />
       <CommandPalette />
+      <ContextMenuHost />
     </div>
   )
 }

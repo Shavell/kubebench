@@ -1,0 +1,59 @@
+.ctx-menu {
+  position: fixed;
+  z-index: 200;
+  min-width: 190px;
+  padding: 4px;
+  background: var(--vscode-editorWidget-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 5px;
+  box-shadow: 0 4px 12px var(--vscode-widget-shadow);
+}
+
+.ctx-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 24px;
+  padding: 0 10px 0 6px;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--vscode-editor-foreground);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ctx-menu__item:hover {
+  background: var(--vscode-list-activeSelectionBackground);
+  color: var(--vscode-list-activeSelectionForeground);
+}
+
+.ctx-menu__item--danger:hover {
+  background: #6e2b2b;
+}
+
+.ctx-menu__item--disabled,
+.ctx-menu__item--disabled:hover {
+  opacity: 0.45;
+  cursor: default;
+  background: transparent;
+  color: var(--vscode-editor-foreground);
+}
+
+.ctx-menu__icon {
+  width: 16px;
+  display: inline-flex;
+  justify-content: center;
+  color: var(--vscode-descriptionForeground);
+}
+.ctx-menu__item:hover .ctx-menu__icon {
+  color: inherit;
+}
+
+.ctx-menu__separator {
+  height: 1px;
+  margin: 4px 8px;
+  background: var(--vscode-panel-border);
+}

@@ -22,6 +22,9 @@ interface LayoutState {
   setActivePanelTab: (id: string) => void
   openTab: (tab: TabDescriptor) => void
   closeTab: (id: string) => void
+  closeOtherTabs: (id: string) => void
+  closeTabsToRight: (id: string) => void
+  closeAllTabs: () => void
   setActiveTab: (id: string) => void
 }
 
@@ -85,6 +88,23 @@ export const useLayoutStore = create<LayoutState>((set) => ({
       }
       return { tabs, activeTabId }
     }),
+
+  closeOtherTabs: (id) =>
+    set((s) => ({
+      tabs: s.tabs.filter((t) => t.id === id),
+      activeTabId: s.tabs.some((t) => t.id === id) ? id : null,
+    })),
+
+  closeTabsToRight: (id) =>
+    set((s) => {
+      const index = s.tabs.findIndex((t) => t.id === id)
+      if (index === -1) return s
+      const tabs = s.tabs.slice(0, index + 1)
+      const activeTabId = tabs.some((t) => t.id === s.activeTabId) ? s.activeTabId : id
+      return { tabs, activeTabId }
+    }),
+
+  closeAllTabs: () => set({ tabs: [], activeTabId: null }),
 
   setActiveTab: (id) => set({ activeTabId: id }),
 }))

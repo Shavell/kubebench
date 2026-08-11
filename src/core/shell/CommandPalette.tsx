@@ -31,6 +31,12 @@ function coreCommands(): CommandContribution[] {
         if (s.activeTabId) s.closeTab(s.activeTabId)
       },
     },
+    {
+      id: 'core.closeAllTabs',
+      title: 'View: Close All Tabs',
+      icon: 'close-all',
+      run: () => layout().closeAllTabs(),
+    },
     ...registry.activityBarEntries().map((p) => ({
       id: `core.show.${p.id}`,
       title: `View: Show ${p.name}`,
