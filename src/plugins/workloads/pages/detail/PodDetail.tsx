@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useLayoutStore } from '@/core/store/layoutStore'
 import { refreshData, useProviderQuery, useProviders } from '@/data/DataContext'
 import type { Pod } from '@/data/types'
@@ -15,6 +16,7 @@ export function PodDetail({ pod, tabId }: { pod: Pod; tabId: string }) {
   const providers = useProviders()
   const openTab = useLayoutStore((s) => s.openTab)
   const closeTab = useLayoutStore((s) => s.closeTab)
+  const [opError, setOpError] = useState<string | null>(null)
   const container = pod.containers[0]
 
   const { data: cpu } = useProviderQuery(
@@ -61,9 +63,13 @@ export function PodDetail({ pod, tabId }: { pod: Pod; tabId: string }) {
   }
 
   const killPod = async () => {
-    await providers.cluster.deletePod(pod.namespace, pod.name)
-    refreshData()
-    closeTab(tabId)
+    try {
+      await providers.cluster.deletePod(pod.namespace, pod.name)
+      refreshData()
+      closeTab(tabId)
+    } catch (err) {
+      setOpError(err instanceof Error ? err.message : String(err))
+    }
   }
 
   return (
@@ -81,6 +87,11 @@ export function PodDetail({ pod, tabId }: { pod: Pod; tabId: string }) {
         <ConfirmButton icon="trash" label="Delete" confirmLabel="Confirm delete?" onConfirm={killPod} />
       </Toolbar>
       <div className="detail">
+        {opError && (
+          <div className="detail__error">
+            <Icon name="error" size={14} /> {opError}
+          </div>
+        )}
         <div className="detail__grid">
           <DetailRow label="Status" value={<Badge>{pod.status}</Badge>} />
           <DetailRow label="Ready" value={`${pod.readyContainers}/${pod.totalContainers}`} />

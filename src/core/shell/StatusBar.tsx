@@ -1,6 +1,7 @@
 import { registry } from '@/core/plugin/registry'
 import { ALL_NAMESPACES, useContextStore } from '@/core/store/contextStore'
 import { useProviderQuery } from '@/data/DataContext'
+import { dataMode } from '@/data/mode'
 import { Icon } from '@/shared/Icon'
 import './StatusBar.css'
 
@@ -65,9 +66,16 @@ export function StatusBar() {
         {registry.statusBarItems('right').map((item) => (
           <item.component key={item.id} />
         ))}
-        <div className="status-bar__item" title="Mock data — no cluster connected">
-          <Icon name="beaker" size={13} />
-          <span>mock</span>
+        <div
+          className="status-bar__item"
+          title={
+            dataMode.mode === 'live'
+              ? `Connected to ${dataMode.server}`
+              : 'Mock data — no cluster connected (start the proxy: npm run server)'
+          }
+        >
+          <Icon name={dataMode.mode === 'live' ? 'broadcast' : 'beaker'} size={13} />
+          <span>{dataMode.mode}</span>
         </div>
       </div>
     </div>

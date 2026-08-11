@@ -1,14 +1,24 @@
 # KubeBench
 
-A VSCode-style dashboard & workbench for Kubernetes. **Visual-only phase**: every
-screen runs against deterministic mock data — no cluster connection yet. The UI is
-written entirely against typed provider interfaces so the real Kubernetes / Helm /
-Prometheus clients can be dropped in later without touching any screen.
+A VSCode-style dashboard & workbench for Kubernetes. The UI is written entirely
+against typed provider interfaces; it runs **live** against a real cluster when
+the local proxy is up, and falls back to a deterministic **mock** cluster when
+it isn't (the status bar shows which mode you're in).
 
 ```bash
 npm install
-npm run dev     # http://localhost:5173
+npm run dev                                  # http://localhost:5173 (mock mode)
+
+# live mode: start the proxy with a kubeconfig, then (re)load the app
+KUBECONFIG=~/path/to/kubeconfig npm run server   # http://localhost:9876
 ```
+
+The proxy (`server/`) reads a token-based kubeconfig and translates the app's
+provider API to the Kubernetes API: resource lists, object YAML, events, pod
+logs, metrics-server sampling (15s ring buffer for utilization history), and
+mutations (delete pod, scale/restart deployment). RBAC errors surface in the UI
+as inline banners. With the current read-mostly credentials, Helm and CRD
+modules and network/fs metrics remain mock.
 
 ## Layout
 

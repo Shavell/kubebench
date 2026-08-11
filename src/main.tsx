@@ -5,14 +5,31 @@ import '@/core/theme/theme.css'
 import { registry } from '@/core/plugin/registry'
 import { allPlugins } from '@/plugins'
 import { DataContext } from '@/data/DataContext'
+import type { DataProviders } from '@/data/providers'
 import { createMockProviders } from '@/data/mock'
+import { createApiProviders } from '@/data/api'
+import { setDataMode } from '@/data/mode'
+import { useContextStore } from '@/core/store/contextStore'
 import { Shell } from '@/core/shell/Shell'
 
 allPlugins.forEach((plugin) => registry.register(plugin))
 
-// Swap createMockProviders() for the real API client bundle when the
-// backend lands — the UI is written against the provider interfaces only.
-const providers = createMockProviders()
+/** Use the live proxy when it responds, otherwise fall back to mocks. */
+async function createProviders(): Promise<DataProviders> {
+  try {
+    const res = await fetch('/api/info', { signal: AbortSignal.timeout(1500) })
+    if (!res.ok) throw new Error(String(res.status))
+    const info = (await res.json()) as { context: string; server: string }
+    setDataMode({ mode: 'live', context: info.context, server: info.server })
+    useContextStore.setState({ contexts: [info.context], activeContext: info.context })
+    return createApiProviders()
+  } catch {
+    setDataMode({ mode: 'mock', context: 'kind-dev-cluster (mock)' })
+    return createMockProviders()
+  }
+}
+
+const providers = await createProviders()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
