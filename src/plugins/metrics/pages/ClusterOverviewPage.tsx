@@ -1,6 +1,7 @@
 import { useProviderQuery } from '@/data/DataContext'
 import { useSettingsStore } from '@/core/store/settingsStore'
 import { StatTile } from '@/shared/charts/StatTile'
+import { UsageBar } from '@/shared/charts/UsageBar'
 import { TimeSeriesChart } from '@/shared/charts/TimeSeriesChart'
 import { chartColor } from '@/shared/charts/chartTheme'
 import { Toolbar } from '@/shared/Toolbar'
@@ -10,6 +11,7 @@ import './metrics.css'
 export function ClusterOverviewPage() {
   const WINDOW_MINUTES = useSettingsStore((s) => s.metricsWindow)
   const { data: stats } = useProviderQuery((p) => p.metrics.clusterOverview(), [])
+  const { data: allocation } = useProviderQuery((p) => p.metrics.clusterAllocation(), [])
   const { data: cpu } = useProviderQuery(
     (p) => p.metrics.clusterSeries('cpu', WINDOW_MINUTES),
     [WINDOW_MINUTES],
@@ -60,7 +62,67 @@ export function ClusterOverviewPage() {
             detail={`of ${stats.memoryCapacityGi} Gi`}
             accent={chartColor('purple')}
           />
+          <StatTile
+            icon="save"
+            label="Disk"
+            value={`${(fs?.[fs.length - 1]?.value ?? 0).toFixed(0)}%`}
+            detail="filesystem usage"
+            accent={chartColor('yellow')}
+          />
         </div>
+
+        {allocation && (
+          <div className="metrics-allocation">
+            <div className="metrics-allocation__col">
+              <div className="metrics-allocation__title">CPU Allocation</div>
+              <UsageBar
+                label="Usage"
+                value={allocation.cpu.usage}
+                total={allocation.cpu.allocatable}
+                unit={allocation.cpu.unit}
+                color={chartColor('blue')}
+              />
+              <UsageBar
+                label="Requests"
+                value={allocation.cpu.requests}
+                total={allocation.cpu.allocatable}
+                unit={allocation.cpu.unit}
+                color={chartColor('blue')}
+              />
+              <UsageBar
+                label="Limits"
+                value={allocation.cpu.limits}
+                total={allocation.cpu.allocatable}
+                unit={allocation.cpu.unit}
+                color={chartColor('blue')}
+              />
+            </div>
+            <div className="metrics-allocation__col">
+              <div className="metrics-allocation__title">Memory Allocation</div>
+              <UsageBar
+                label="Usage"
+                value={allocation.memory.usage}
+                total={allocation.memory.allocatable}
+                unit={allocation.memory.unit}
+                color={chartColor('purple')}
+              />
+              <UsageBar
+                label="Requests"
+                value={allocation.memory.requests}
+                total={allocation.memory.allocatable}
+                unit={allocation.memory.unit}
+                color={chartColor('purple')}
+              />
+              <UsageBar
+                label="Limits"
+                value={allocation.memory.limits}
+                total={allocation.memory.allocatable}
+                unit={allocation.memory.unit}
+                color={chartColor('purple')}
+              />
+            </div>
+          </div>
+        )}
         <div className="metrics-charts">
           <TimeSeriesChart
             title={`Cluster CPU · last ${WINDOW_MINUTES}m`}

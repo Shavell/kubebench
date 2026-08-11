@@ -84,6 +84,7 @@ export function createApiProviders(): DataProviders {
     },
     metrics: {
       clusterOverview: () => api('/metrics/overview'),
+      clusterAllocation: () => api('/metrics/allocation'),
       clusterSeries: (metric, minutes) =>
         liveOrMockSeries(metric, 'cluster', minutes, `/metrics/cluster?metric=${metric}&minutes=${minutes}`),
       nodeSeries: (node, metric, minutes) =>

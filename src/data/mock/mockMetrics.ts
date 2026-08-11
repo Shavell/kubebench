@@ -1,4 +1,4 @@
-import type { ClusterStats, MetricKind, MetricPoint } from '../types'
+import type { ClusterAllocation, ClusterStats, MetricKind, MetricPoint } from '../types'
 import { mulberry32 } from './rng'
 import { nodes, pods, namespaces } from './mockCluster'
 
@@ -56,6 +56,52 @@ export function generateSeries(key: string, metric: MetricKind, minutes: number)
     points.push({ time: `${hh}:${mm}`, value: Math.round(value * 10) / 10 })
   }
   return points
+}
+
+function parseCpuStr(v: string): number {
+  if (v.endsWith('m')) return parseInt(v) / 1000
+  const n = parseFloat(v)
+  return Number.isNaN(n) ? 0 : n
+}
+
+function parseMemGiStr(v: string): number {
+  const m = v.match(/^(\d+(?:\.\d+)?)(\w*)$/)
+  if (!m) return 0
+  const factor: Record<string, number> = { Mi: 1 / 1024, Gi: 1, Ki: 1 / (1024 * 1024) }
+  return parseFloat(m[1]) * (factor[m[2]] ?? 0)
+}
+
+export function clusterAllocation(): ClusterAllocation {
+  let reqCpu = 0
+  let limCpu = 0
+  let reqMem = 0
+  let limMem = 0
+  for (const pod of pods) {
+    for (const c of pod.containers) {
+      reqCpu += parseCpuStr(c.requests.cpu)
+      limCpu += parseCpuStr(c.limits.cpu)
+      reqMem += parseMemGiStr(c.requests.memory)
+      limMem += parseMemGiStr(c.limits.memory)
+    }
+  }
+  const stats = clusterStats()
+  const round1 = (n: number) => Math.round(n * 10) / 10
+  return {
+    cpu: {
+      unit: 'cores',
+      allocatable: stats.cpuCapacityCores,
+      requests: round1(reqCpu),
+      limits: round1(limCpu),
+      usage: round1((stats.cpuUsagePercent / 100) * stats.cpuCapacityCores),
+    },
+    memory: {
+      unit: 'Gi',
+      allocatable: stats.memoryCapacityGi,
+      requests: round1(reqMem),
+      limits: round1(limMem),
+      usage: round1((stats.memoryUsagePercent / 100) * stats.memoryCapacityGi),
+    },
+  }
 }
 
 export function clusterStats(): ClusterStats {

@@ -4,7 +4,7 @@ import { crds, customResources } from './mockCrds'
 import { eventsFor } from './mockEvents'
 import { podLogs } from './mockLogs'
 import { releases, repositories, valuesYaml } from './mockHelm'
-import { clusterStats, generateSeries } from './mockMetrics'
+import { clusterAllocation, clusterStats, generateSeries } from './mockMetrics'
 import {
   customResourceYaml,
   deploymentYaml,
@@ -181,6 +181,7 @@ export function createMockProviders(): DataProviders {
     },
     metrics: {
       clusterOverview: () => delay(clusterStats()),
+      clusterAllocation: () => delay(clusterAllocation()),
       nodeSeries: (node, metric, minutes) => delay(generateSeries(node, metric, minutes)),
       clusterSeries: (metric, minutes) => delay(generateSeries('cluster', metric, minutes)),
       podSeries: (ns, pod, metric, minutes) =>

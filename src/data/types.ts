@@ -150,6 +150,19 @@ export interface MetricPoint {
   value: number
 }
 
+export interface ResourceAllocation {
+  unit: string
+  allocatable: number
+  requests: number
+  limits: number
+  usage: number
+}
+
+export interface ClusterAllocation {
+  cpu: ResourceAllocation
+  memory: ResourceAllocation
+}
+
 export interface ClusterStats {
   nodeCount: number
   readyNodes: number

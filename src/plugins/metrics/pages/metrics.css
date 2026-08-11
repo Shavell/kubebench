@@ -14,6 +14,30 @@
   gap: 12px;
 }
 
+.metrics-allocation {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 12px;
+}
+
+.metrics-allocation__col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--vscode-editorWidget-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+}
+
+.metrics-allocation__title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--vscode-descriptionForeground);
+}
+
 .metrics-charts {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));

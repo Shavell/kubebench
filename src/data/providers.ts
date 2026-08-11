@@ -1,4 +1,5 @@
 import type {
+  ClusterAllocation,
   ClusterEntry,
   ClusterStats,
   K8sEvent,
@@ -53,6 +54,7 @@ export interface HelmProvider {
 
 export interface MetricsProvider {
   clusterOverview(): Promise<ClusterStats>
+  clusterAllocation(): Promise<ClusterAllocation>
   nodeSeries(node: string, metric: MetricKind, minutes: number): Promise<MetricPoint[]>
   clusterSeries(metric: MetricKind, minutes: number): Promise<MetricPoint[]>
   podSeries(

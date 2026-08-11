@@ -10,7 +10,11 @@ import {
   mapNode,
   mapPod,
   mapService,
+  parseCpu as parseCpuQty,
+  parseMemoryMi as parseMemQty,
 } from './mappers.mjs'
+
+const round1 = (n) => Math.round(n * 10) / 10
 
 import { readFileSync } from 'node:fs'
 import { inventoryPath, loadInventory, saveInventory } from './inventory.mjs'
@@ -185,6 +189,49 @@ const routes = {
     metrics.nodeSeries(q.get('node'), q.get('metric'), Number(q.get('minutes') ?? 60)),
   'GET /api/metrics/pod': async (q) =>
     metrics.podSeries(q.get('ns'), q.get('pod'), q.get('metric'), Number(q.get('minutes') ?? 60)),
+  'GET /api/metrics/allocation': async () => {
+    const [nodes, pods] = await Promise.all([
+      kube.getJSON('/api/v1/nodes'),
+      kube.getJSON('/api/v1/pods'),
+    ])
+    let allocatableCpu = 0
+    let allocatableMemMi = 0
+    for (const n of nodes.items) {
+      allocatableCpu += parseCpuQty(n.status.allocatable?.cpu)
+      allocatableMemMi += parseMemQty(n.status.allocatable?.memory)
+    }
+    let reqCpu = 0
+    let limCpu = 0
+    let reqMemMi = 0
+    let limMemMi = 0
+    for (const p of pods.items) {
+      if (p.status?.phase === 'Succeeded' || p.status?.phase === 'Failed') continue
+      for (const c of p.spec?.containers ?? []) {
+        reqCpu += parseCpuQty(c.resources?.requests?.cpu)
+        limCpu += parseCpuQty(c.resources?.limits?.cpu)
+        reqMemMi += parseMemQty(c.resources?.requests?.memory)
+        limMemMi += parseMemQty(c.resources?.limits?.memory)
+      }
+    }
+    const usage = metrics.latestClusterUsage()
+    return {
+      cpu: {
+        unit: 'cores',
+        allocatable: round1(allocatableCpu),
+        requests: round1(reqCpu),
+        limits: round1(limCpu),
+        usage: round1((usage.cpuUsagePercent / 100) * usage.cpuCapacityCores),
+      },
+      memory: {
+        unit: 'Gi',
+        allocatable: round1(allocatableMemMi / 1024),
+        requests: round1(reqMemMi / 1024),
+        limits: round1(limMemMi / 1024),
+        usage: round1((usage.memoryUsagePercent / 100) * usage.memoryCapacityGi),
+      },
+    }
+  },
+
   'GET /api/metrics/overview': async () => {
     const [nodes, pods, namespaces] = await Promise.all([
       kube.getJSON('/api/v1/nodes'),
