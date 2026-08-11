@@ -1,90 +1,85 @@
 # KubeBench
 
-A VSCode-style dashboard & workbench for Kubernetes. The UI is written entirely
-against typed provider interfaces; it runs **live** against a real cluster when
-the local proxy is up, and falls back to a deterministic **mock** cluster when
-it isn't (the status bar shows which mode you're in).
+A VSCode-style dashboard & workbench for Kubernetes: activity bar, tabbed
+editor area, bottom panel and command palette — with pluggable modules for
+workloads, CRDs, Helm, metrics and cluster inventory.
+
+The UI is written entirely against typed provider interfaces. It runs **live**
+against a real cluster through a small local proxy, and falls back to a
+deterministic **mock** cluster when the proxy is down. The status bar always
+shows which mode you are in.
+
+## Quick start
 
 ```bash
 npm install
-npm run dev                                  # http://localhost:5173 (mock mode)
 
-# live mode: start the proxy with a kubeconfig, then (re)load the app
-KUBECONFIG=~/path/to/kubeconfig npm run server   # http://localhost:9876
+# Mock mode (no cluster needed)
+npm run dev                                      # http://localhost:5173
+
+# Live mode: start the proxy with a token-based kubeconfig, then reload
+KUBECONFIG=/path/to/kubeconfig npm run server    # http://localhost:9876
+npm run dev
 ```
 
-The proxy (`server/`) reads a token-based kubeconfig and translates the app's
-provider API to the Kubernetes API: resource lists, object YAML, events, pod
-logs, metrics-server sampling (15s ring buffer for utilization history), and
-mutations (delete pod, scale/restart deployment). RBAC errors surface in the UI
-as inline banners. With the current read-mostly credentials, Helm and CRD
-modules and network/fs metrics remain mock.
+The proxy seeds the **cluster inventory** (`~/.kubebench/clusters.json`) from
+`KUBECONFIG` on first run; afterwards manage clusters from the UI (Clusters
+module, top of the activity bar).
 
-## Layout
+## Modules
 
-VSCode Dark+ chrome: activity bar → per-module sidebar → tabbed editor area →
-bottom panel (Problems / Logs / Terminal) → status bar (cluster context +
-namespace filter on the left, module contributions on the right).
+| Module | What it does |
+|---|---|
+| **Clusters** | Inventory of kubeconfig paths / API addresses; add, remove, activate (switches the proxy and reloads the app) |
+| **Workloads** | Nodes, namespaces, pods, deployments, services: lists with in-page filters (name / namespace / status) and sortable columns; rich detail pages with utilization charts, resources (requests/limits), env, labels/annotations, events; actions: logs viewer, exec shell (mock), delete pod, scale & restart deployment, YAML view |
+| **CRDs** | CRD discovery grouped by API group, custom resource lists with CRD-specific columns *(mock until RBAC allows)* |
+| **Helm** | Releases with revision history, per-revision rollback, uninstall, editable values, repositories *(mock until RBAC allows)* |
+| **Metrics** | Cluster Overview: usage tiles (CPU/Mem/Disk), **allocation panels** (requests/limits/usage vs allocatable, with overcommit marker), utilization charts (CPU, memory, network, filesystem); per-node metric pages; status bar CPU/Mem item |
+| **Settings** | Gear icon (activity bar bottom): theme, **metrics source**, metrics window, auto refresh, terminal font size — persisted in localStorage |
 
-Navigation is tab-based like VSCode (no router): opening a resource opens a tab;
-reopening it focuses the existing tab.
+Shell features: command palette (`Cmd/Ctrl+Shift+P` or `F1`), tab context menu
+(Close / Close Others / Close to the Right / Close All), resizable sidebar and
+bottom panel (Problems / Logs / Terminal), namespace filter in the status bar.
 
-Command palette: `Cmd/Ctrl+Shift+P` or `F1`. Core `View:` commands are generated
-from registered plugins; each plugin can contribute its own commands via the
-`commands` field of its manifest.
+## Metrics sources
 
-## Architecture
+Utilization series come from one of two backends, selectable in Settings:
 
-```
-src/
-├─ core/
-│  ├─ shell/      Shell, ActivityBar, SideBar, EditorArea+TabStrip, BottomPanel, StatusBar
-│  ├─ plugin/     PluginManifest types + PluginRegistry
-│  ├─ store/      layoutStore (tabs/panels), contextStore (cluster ctx + namespace)
-│  └─ theme/      theme.css — all VSCode Dark+ tokens (single source of truth)
-├─ shared/        UI kit: Table, Tree, Badge, Icon, Toolbar, ResizeHandle, charts/
-├─ data/
-│  ├─ types.ts       K8s-shaped domain types
-│  ├─ providers.ts   Provider interfaces — the future real-API contract
-│  ├─ DataContext    useProviders() / useProviderQuery() hooks
-│  └─ mock/          seeded, deterministic fake cluster + YAML + metrics
-└─ plugins/       one folder per module, wired only in plugins/index.ts
-   ├─ workloads/  nodes, namespaces, pods, deployments, services
-   ├─ crd/        CRD discovery + custom resource lists
-   ├─ helm/       releases, revision history, values editor, repos
-   ├─ metrics/    cluster overview + per-node charts, status bar CPU/Mem
-   └─ terminal/   bottom-panel tabs + the shared Monaco "yaml" tab renderer
-```
+- **Prometheus** (preferred, auto-discovered): queried through the Kubernetes
+  API server's `services/proxy`. Supports full history and network +
+  filesystem metrics (node-exporter). Discovery matches common service names
+  (`prometheus`, `prometheus-server`, `kube-prometheus-stack-prometheus`, …).
+- **metrics-server**: instant usage only; the proxy samples it every 15s into
+  a ring buffer, so history accumulates while the proxy runs. No network/fs
+  data (those charts fall back to mock series).
 
-### Plugin model
+## Live-mode capability matrix
 
-Everything a module contributes is declared in one `PluginManifest`
-(`src/core/plugin/types.ts`): activity bar entry, sidebar view, editor tab
-renderers, bottom panel tabs, status bar items. The shell composes manifests from
-the registry and never imports plugin internals. Cross-plugin actions go through
-tab *kinds* — e.g. any plugin opens a YAML view with
-`openTab({ kind: "yaml", props: { text } })`; the renderer for `yaml` happens to
-be registered by the terminal plugin.
+What is real depends on the kubeconfig's RBAC. With a read-mostly service
+account (the current demo credentials):
 
-**Pluggability check:** comment out any entry in `src/plugins/index.ts` — its
-icon, sidebar, tabs, panels, and status items all vanish with no other changes.
+| Capability | Needs | Status with demo credentials |
+|---|---|---|
+| Resource lists / detail / YAML / events | `list`, `get` | ✅ live |
+| Pod logs | `pods/log` | ✅ live |
+| Usage & allocation metrics | metrics-server, or `services/proxy` + Prometheus | ✅ live |
+| Delete pod, scale/restart deployment | `delete pods`, `patch deployments` | ⚠️ endpoint wired; RBAC errors shown as inline banners |
+| Helm releases | `secrets` | ❌ mock |
+| CRD browsing | `customresourcedefinitions` | ❌ mock |
+| Exec into container | `pods/exec` | ❌ mock shell |
 
-### Swapping mock for real data
+## Documentation
 
-`src/data/providers.ts` defines `ClusterProvider`, `CrdProvider`, `HelmProvider`
-and `MetricsProvider` (all async). The mocks implement them in `src/data/mock/`.
-When the backend lands, implement the same interfaces (e.g. `src/data/api/`) and
-change one line in `main.tsx`:
+- [`docs/architecture.md`](docs/architecture.md) — layers, plugin API, data
+  providers, how to add a module
+- [`docs/backend.md`](docs/backend.md) — proxy endpoints, inventory format,
+  metrics sources, RBAC requirements
 
-```ts
-const providers = createApiProviders(baseUrl) // was: createMockProviders()
-```
+## Scripts
 
-Mock data is seeded (mulberry32) so lists and charts are identical across
-reloads. Simulated 150–300 ms latency keeps loading states honest.
-
-## Roadmap
-
-- v1.1: URL sync, tab persistence
-- v2: real cluster connectivity behind the provider interfaces, Electron/Tauri
-  wrapper if a desktop build is wanted
+| Command | |
+|---|---|
+| `npm run dev` | Vite dev server (proxies `/api` to `:9876`) |
+| `npm run server` | Cluster proxy (reads `KUBECONFIG`, port `9876`) |
+| `npm run build` | Type-check + production build |
+| `npm run lint` | Oxlint |
