@@ -1,0 +1,26 @@
+.kb-events__empty {
+  padding: 8px 0;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.kb-events__warning {
+  color: var(--status-pending);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.kb-events__normal {
+  color: var(--vscode-descriptionForeground);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.kb-events__message {
+  max-width: 520px;
+  user-select: text;
+}

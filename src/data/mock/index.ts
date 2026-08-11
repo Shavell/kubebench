@@ -1,6 +1,8 @@
 import type { DataProviders } from '../providers'
-import { deployments, namespaces, nodes, pods, services } from './mockCluster'
+import { deployments, namespaces, nodes, pods, services, syncDeploymentPods } from './mockCluster'
 import { crds, customResources } from './mockCrds'
+import { eventsFor } from './mockEvents'
+import { podLogs } from './mockLogs'
 import { releases, repositories, valuesYaml } from './mockHelm'
 import { clusterStats, generateSeries } from './mockMetrics'
 import {
@@ -61,6 +63,42 @@ export function createMockProviders(): DataProviders {
           }
         }
       },
+      listEvents: (kind, ns, name) => delay(eventsFor(kind, ns, name)),
+      getPodLogs: (_ns, pod, container) => delay(podLogs(pod, container)),
+      deletePod: (ns, name) => {
+        const idx = pods.findIndex((p) => p.namespace === ns && p.name === name)
+        if (idx >= 0) pods.splice(idx, 1)
+        return delay(undefined)
+      },
+      scaleDeployment: (ns, name, replicas) => {
+        const d = deployments.find((x) => x.namespace === ns && x.name === name)
+        if (d) {
+          syncDeploymentPods(d, replicas)
+          d.replicas = replicas
+          d.upToDate = replicas
+          d.readyReplicas = Math.min(replicas, d.readyReplicas + (replicas - d.available))
+          d.readyReplicas = Math.max(0, Math.min(replicas, d.readyReplicas))
+          d.available = d.readyReplicas
+        }
+        return delay(undefined)
+      },
+      restartDeployment: (ns, name) => {
+        const d = deployments.find((x) => x.namespace === ns && x.name === name)
+        if (d) {
+          const app = d.labels.app ?? d.labels['k8s-app'] ?? d.name
+          for (const p of pods) {
+            if (p.namespace === ns && p.labels.app === app) {
+              p.age = '5s'
+              p.restarts = 0
+              p.status = 'Running'
+              p.readyContainers = p.totalContainers
+            }
+          }
+          d.readyReplicas = d.replicas
+          d.available = d.replicas
+        }
+        return delay(undefined)
+      },
     },
     crd: {
       listCrds: () => delay(crds),
@@ -76,6 +114,8 @@ export function createMockProviders(): DataProviders {
       clusterOverview: () => delay(clusterStats()),
       nodeSeries: (node, metric, minutes) => delay(generateSeries(node, metric, minutes)),
       clusterSeries: (metric, minutes) => delay(generateSeries('cluster', metric, minutes)),
+      podSeries: (ns, pod, metric, minutes) =>
+        delay(generateSeries(`pod:${ns}/${pod}`, metric, minutes)),
     },
   }
 }

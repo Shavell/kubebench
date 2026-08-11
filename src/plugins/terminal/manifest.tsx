@@ -3,6 +3,8 @@ import { TerminalPanel } from './panels/TerminalPanel'
 import { LogsPanel } from './panels/LogsPanel'
 import { ProblemsPanel } from './panels/ProblemsPanel'
 import { YamlEditorTab } from './YamlEditorTab'
+import { PodLogsTab } from './PodLogsTab'
+import { PodExecTab } from './PodExecTab'
 
 /**
  * Contributes the bottom panel tabs and the shared "yaml" editor tab
@@ -16,5 +18,9 @@ export const terminalPlugin: PluginManifest = {
     { id: 'logs', title: 'Logs', component: LogsPanel, order: 2 },
     { id: 'terminal', title: 'Terminal', component: TerminalPanel, order: 3 },
   ],
-  tabRenderers: [{ kind: 'yaml', component: YamlEditorTab }],
+  tabRenderers: [
+    { kind: 'yaml', component: YamlEditorTab },
+    { kind: 'pod-logs', component: PodLogsTab },
+    { kind: 'pod-exec', component: PodExecTab },
+  ],
 }

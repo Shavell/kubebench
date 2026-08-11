@@ -24,15 +24,23 @@ spec:
   nodeName: ${pod.node || '~'}
   containers:
 ${pod.containers
-  .map(
-    (c) => `    - name: ${c.name}
+  .map((c) => {
+    const command = c.command ? `\n      command: [${c.command.map((x) => `"${x}"`).join(', ')}]` : ''
+    const args = c.args ? `\n      args: [${c.args.map((x) => `"${x}"`).join(', ')}]` : ''
+    const env = c.env.length
+      ? `\n      env:\n${c.env.map((e) => `        - name: ${e.name}\n          value: "${e.value}"`).join('\n')}`
+      : ''
+    return `    - name: ${c.name}
       image: ${c.image}
-      imagePullPolicy: IfNotPresent
+      imagePullPolicy: IfNotPresent${command}${args}${env}
       resources:
         requests:
-          cpu: 50m
-          memory: 64Mi`,
-  )
+          cpu: ${c.requests.cpu}
+          memory: ${c.requests.memory}
+        limits:
+          cpu: ${c.limits.cpu}
+          memory: ${c.limits.memory}`
+  })
   .join('\n')}
   restartPolicy: Always
   dnsPolicy: ClusterFirst

@@ -26,6 +26,22 @@ export type PodPhase =
   | 'CrashLoopBackOff'
   | 'ContainerCreating'
 
+export interface ResourceAmounts {
+  cpu: string
+  memory: string
+}
+
+export interface ContainerSpec {
+  name: string
+  image: string
+  command?: string[]
+  args?: string[]
+  env: { name: string; value: string }[]
+  requests: ResourceAmounts
+  limits: ResourceAmounts
+  ports?: string
+}
+
 export interface Pod {
   name: string
   namespace: string
@@ -36,8 +52,18 @@ export interface Pod {
   age: string
   node: string
   podIP: string
+  controlledBy?: string
   labels: Record<string, string>
-  containers: { name: string; image: string }[]
+  containers: ContainerSpec[]
+}
+
+export interface K8sEvent {
+  type: 'Normal' | 'Warning'
+  reason: string
+  message: string
+  age: string
+  count: number
+  source: string
 }
 
 export interface Deployment {

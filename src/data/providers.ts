@@ -1,5 +1,6 @@
 import type {
   ClusterStats,
+  K8sEvent,
   CrdDefinition,
   CustomResource,
   Deployment,
@@ -26,6 +27,12 @@ export interface ClusterProvider {
   listDeployments(namespace?: string): Promise<Deployment[]>
   listServices(namespace?: string): Promise<Service[]>
   getResourceYaml(kind: string, namespace: string | null, name: string): Promise<string>
+  listEvents(kind: string, namespace: string | null, name: string): Promise<K8sEvent[]>
+  getPodLogs(namespace: string, pod: string, container: string): Promise<string[]>
+  /** Mutations are visual-only: they mutate the mock dataset in memory. */
+  deletePod(namespace: string, name: string): Promise<void>
+  scaleDeployment(namespace: string, name: string, replicas: number): Promise<void>
+  restartDeployment(namespace: string, name: string): Promise<void>
 }
 
 export interface CrdProvider {
@@ -43,6 +50,12 @@ export interface MetricsProvider {
   clusterOverview(): Promise<ClusterStats>
   nodeSeries(node: string, metric: 'cpu' | 'memory', minutes: number): Promise<MetricPoint[]>
   clusterSeries(metric: 'cpu' | 'memory', minutes: number): Promise<MetricPoint[]>
+  podSeries(
+    namespace: string,
+    pod: string,
+    metric: 'cpu' | 'memory',
+    minutes: number,
+  ): Promise<MetricPoint[]>
 }
 
 export interface DataProviders {

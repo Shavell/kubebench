@@ -3,9 +3,30 @@ import {
   useContext,
   useEffect,
   useState,
+  useSyncExternalStore,
   type DependencyList,
 } from 'react'
 import type { DataProviders } from './providers'
+
+// Simple invalidation bus: mutations call refreshData() and every
+// useProviderQuery re-runs. Swappable for TanStack Query invalidation later.
+let dataVersion = 0
+const versionListeners = new Set<() => void>()
+
+export function refreshData(): void {
+  dataVersion++
+  versionListeners.forEach((listener) => listener())
+}
+
+function useDataVersion(): number {
+  return useSyncExternalStore(
+    (onChange) => {
+      versionListeners.add(onChange)
+      return () => versionListeners.delete(onChange)
+    },
+    () => dataVersion,
+  )
+}
 
 export const DataContext = createContext<DataProviders | null>(null)
 
@@ -30,6 +51,7 @@ export function useProviderQuery<T>(
   deps: DependencyList,
 ): QueryState<T> {
   const providers = useProviders()
+  const version = useDataVersion()
   const [state, setState] = useState<QueryState<T>>({ data: null, loading: true, error: null })
 
   useEffect(() => {
@@ -46,7 +68,7 @@ export function useProviderQuery<T>(
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps)
+  }, [...deps, version])
 
   return state
 }

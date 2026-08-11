@@ -1,4 +1,4 @@
-import type { Deployment, K8sNode, Namespace, Pod, Service } from '../types'
+import type { ContainerSpec, Deployment, K8sNode, Namespace, Pod, Service } from '../types'
 
 export const nodes: K8sNode[] = [
   {
@@ -88,7 +88,102 @@ const podSeeds: PodSeed[] = [
   { name: 'shop-postgres-0', namespace: 'shop', age: '45d', node: 'kb-worker-1', ip: '10.244.1.25', app: 'postgres', image: 'postgres:16.2-alpine' },
 ]
 
-export const pods: Pod[] = podSeeds.map((seed) => {
+/** Per-app container details; anything not listed gets sensible defaults. */
+const APP_SPECS: Record<string, Partial<ContainerSpec>> = {
+  'shop-frontend': {
+    command: ['node', 'server.js'],
+    env: [
+      { name: 'PORT', value: '8080' },
+      { name: 'API_BASE_URL', value: 'http://shop-cart:8080' },
+      { name: 'NODE_ENV', value: 'production' },
+      { name: 'FEATURE_NEW_CHECKOUT', value: 'true' },
+    ],
+    requests: { cpu: '100m', memory: '128Mi' },
+    limits: { cpu: '500m', memory: '256Mi' },
+    ports: '8080/TCP',
+  },
+  'shop-cart': {
+    command: ['/app/cart'],
+    args: ['--redis=redis://shop-redis:6379'],
+    env: [
+      { name: 'PORT', value: '8080' },
+      { name: 'SESSION_TTL', value: '3600' },
+    ],
+    requests: { cpu: '50m', memory: '96Mi' },
+    limits: { cpu: '250m', memory: '192Mi' },
+    ports: '8080/TCP',
+  },
+  'shop-payments': {
+    command: ['/app/payments'],
+    args: ['--config=/etc/payments/config.yaml'],
+    env: [
+      { name: 'PAYMENT_GATEWAY_URL', value: 'https://gw.pay.example.com' },
+      { name: 'TIMEOUT_MS', value: '3000' },
+      { name: 'LOG_LEVEL', value: 'debug' },
+    ],
+    requests: { cpu: '100m', memory: '128Mi' },
+    limits: { cpu: '500m', memory: '256Mi' },
+    ports: '9102/TCP',
+  },
+  postgres: {
+    command: ['docker-entrypoint.sh'],
+    args: ['postgres'],
+    env: [
+      { name: 'POSTGRES_DB', value: 'shop' },
+      { name: 'POSTGRES_USER', value: 'shop' },
+      { name: 'PGDATA', value: '/var/lib/postgresql/data/pgdata' },
+    ],
+    requests: { cpu: '250m', memory: '512Mi' },
+    limits: { cpu: '1', memory: '1Gi' },
+    ports: '5432/TCP',
+  },
+  prometheus: {
+    args: ['--config.file=/etc/prometheus/prometheus.yml', '--storage.tsdb.retention.time=15d'],
+    requests: { cpu: '200m', memory: '1Gi' },
+    limits: { cpu: '1', memory: '2Gi' },
+    ports: '9090/TCP',
+  },
+  coredns: {
+    args: ['-conf', '/etc/coredns/Corefile'],
+    requests: { cpu: '100m', memory: '70Mi' },
+    limits: { cpu: '100m', memory: '170Mi' },
+    ports: '53/UDP',
+  },
+}
+
+const CONTROLLERS: Record<string, string> = {
+  'shop-frontend': 'Deployment/shop-frontend',
+  'shop-cart': 'Deployment/shop-cart',
+  'shop-payments': 'Deployment/shop-payments',
+  postgres: 'StatefulSet/shop-postgres',
+  coredns: 'Deployment/coredns',
+  'cert-manager': 'Deployment/cert-manager',
+  cainjector: 'Deployment/cert-manager-cainjector',
+  webhook: 'Deployment/cert-manager-webhook',
+  prometheus: 'Deployment/prometheus-server',
+  'node-exporter': 'DaemonSet/prometheus-node-exporter',
+  'metrics-server': 'Deployment/metrics-server',
+  'kube-proxy': 'DaemonSet/kube-proxy',
+}
+
+function containerFor(app: string, image: string): ContainerSpec {
+  const spec = APP_SPECS[app] ?? {}
+  return {
+    name: app,
+    image,
+    command: spec.command,
+    args: spec.args,
+    env: spec.env ?? [
+      { name: 'POD_NAMESPACE', value: 'metadata.namespace (fieldRef)' },
+      { name: 'POD_NAME', value: 'metadata.name (fieldRef)' },
+    ],
+    requests: spec.requests ?? { cpu: '50m', memory: '64Mi' },
+    limits: spec.limits ?? { cpu: '200m', memory: '128Mi' },
+    ports: spec.ports,
+  }
+}
+
+function buildPod(seed: PodSeed): Pod {
   const [ready, total] = seed.ready ?? [1, 1]
   return {
     name: seed.name,
@@ -100,10 +195,47 @@ export const pods: Pod[] = podSeeds.map((seed) => {
     age: seed.age,
     node: seed.node,
     podIP: seed.ip,
+    controlledBy: CONTROLLERS[seed.app],
     labels: { app: seed.app },
-    containers: [{ name: seed.app, image: seed.image }],
+    containers: [containerFor(seed.app, seed.image)],
   }
-})
+}
+
+export const pods: Pod[] = podSeeds.map(buildPod)
+
+let scaleCounter = 0
+
+/** Visual-only mutation: add or remove pods to match a deployment's scale. */
+export function syncDeploymentPods(deployment: Deployment, replicas: number): void {
+  const app = deployment.labels.app ?? deployment.labels['k8s-app'] ?? deployment.name
+  const owned = pods.filter((p) => p.namespace === deployment.namespace && p.labels.app === app)
+  const template = owned[0]
+  for (let i = owned.length; i < replicas; i++) {
+    const suffix = ((scaleCounter++ * 2654435761 + 0x9e3779b9) >>> 8).toString(36).slice(0, 5)
+    pods.push({
+      ...(template ?? buildPod({
+        name: deployment.name,
+        namespace: deployment.namespace,
+        age: '5s',
+        node: 'kb-worker-1',
+        ip: '10.244.1.99',
+        app,
+        image: `registry.example.com/${app}:latest`,
+      })),
+      name: `${deployment.name}-${suffix}`,
+      status: 'Running',
+      readyContainers: 1,
+      restarts: 0,
+      age: '5s',
+      node: i % 2 === 0 ? 'kb-worker-1' : 'kb-worker-2',
+    })
+  }
+  for (let i = owned.length; i > replicas; i--) {
+    const victim = owned[i - 1]
+    const idx = pods.findIndex((p) => p === victim)
+    if (idx >= 0) pods.splice(idx, 1)
+  }
+}
 
 export const deployments: Deployment[] = [
   { name: 'coredns', namespace: 'kube-system', readyReplicas: 2, replicas: 2, upToDate: 2, available: 2, age: '92d', labels: { 'k8s-app': 'kube-dns' } },

@@ -55,7 +55,53 @@
   color: var(--vscode-descriptionForeground);
   border-bottom: 1px solid var(--vscode-panel-border);
   padding-bottom: 4px;
-  max-width: 640px;
+  max-width: 980px;
+}
+
+.detail__charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 12px;
+  max-width: 980px;
+}
+
+.detail__subheading {
+  margin: 12px 0 6px;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.detail__env {
+  max-width: 980px;
+}
+
+.detail__code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: var(--vscode-input-background);
+  padding: 1px 5px;
+  border-radius: 3px;
+  user-select: text;
+}
+
+.detail__scale {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.detail__scale-count {
+  min-width: 26px;
+  text-align: center;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.kb-button:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .detail__chip {
