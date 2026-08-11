@@ -58,6 +58,11 @@
   max-width: 980px;
 }
 
+.detail__grid--wide {
+  grid-template-columns: minmax(200px, 420px) 1fr;
+  max-width: 980px;
+}
+
 .detail__charts {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));

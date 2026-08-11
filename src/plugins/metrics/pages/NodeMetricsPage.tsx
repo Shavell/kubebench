@@ -18,6 +18,14 @@ export function NodeMetricsPage({ tab }: { tab: TabDescriptor }) {
     (p) => p.metrics.nodeSeries(node, 'memory', WINDOW_MINUTES),
     [node],
   )
+  const { data: network } = useProviderQuery(
+    (p) => p.metrics.nodeSeries(node, 'network', WINDOW_MINUTES),
+    [node],
+  )
+  const { data: fs } = useProviderQuery(
+    (p) => p.metrics.nodeSeries(node, 'fs', WINDOW_MINUTES),
+    [node],
+  )
 
   if (!cpu || !memory) return <div className="page-loading">Loading {node} metrics…</div>
 
@@ -36,6 +44,20 @@ export function NodeMetricsPage({ tab }: { tab: TabDescriptor }) {
             title={`Memory · last ${WINDOW_MINUTES}m`}
             data={memory}
             color={chartColor('purple')}
+            height={220}
+          />
+          <TimeSeriesChart
+            title={`Network I/O · last ${WINDOW_MINUTES}m`}
+            data={network ?? []}
+            color={chartColor('green')}
+            unit=" MB/s"
+            domain={[0, 60]}
+            height={220}
+          />
+          <TimeSeriesChart
+            title={`Filesystem · last ${WINDOW_MINUTES}m`}
+            data={fs ?? []}
+            color={chartColor('yellow')}
             height={220}
           />
         </div>

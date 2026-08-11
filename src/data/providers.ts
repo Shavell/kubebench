@@ -7,6 +7,7 @@ import type {
   HelmRelease,
   HelmRepo,
   K8sNode,
+  MetricKind,
   MetricPoint,
   Namespace,
   Pod,
@@ -44,16 +45,19 @@ export interface HelmProvider {
   listReleases(): Promise<HelmRelease[]>
   listRepositories(): Promise<HelmRepo[]>
   getReleaseValuesYaml(name: string): Promise<string>
+  /** Creates a new revision that restores the given one, like `helm rollback`. */
+  rollbackRelease(name: string, revision: number): Promise<void>
+  uninstallRelease(name: string): Promise<void>
 }
 
 export interface MetricsProvider {
   clusterOverview(): Promise<ClusterStats>
-  nodeSeries(node: string, metric: 'cpu' | 'memory', minutes: number): Promise<MetricPoint[]>
-  clusterSeries(metric: 'cpu' | 'memory', minutes: number): Promise<MetricPoint[]>
+  nodeSeries(node: string, metric: MetricKind, minutes: number): Promise<MetricPoint[]>
+  clusterSeries(metric: MetricKind, minutes: number): Promise<MetricPoint[]>
   podSeries(
     namespace: string,
     pod: string,
-    metric: 'cpu' | 'memory',
+    metric: MetricKind,
     minutes: number,
   ): Promise<MetricPoint[]>
 }

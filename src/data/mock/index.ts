@@ -109,6 +109,30 @@ export function createMockProviders(): DataProviders {
       listReleases: () => delay(releases),
       listRepositories: () => delay(repositories),
       getReleaseValuesYaml: (name) => delay(valuesYaml[name] ?? `# no values for ${name}`),
+      rollbackRelease: (name, revision) => {
+        const release = releases.find((r) => r.name === name)
+        if (release) {
+          const newRevision = release.revision + 1
+          for (const h of release.history) {
+            if (h.status === 'deployed' || h.status === 'failed') h.status = 'superseded'
+          }
+          release.history.unshift({
+            revision: newRevision,
+            status: 'deployed',
+            updated: '2026-08-11 09:15',
+            description: `Rollback to ${revision}`,
+          })
+          release.revision = newRevision
+          release.status = 'deployed'
+          release.updated = '2026-08-11 09:15'
+        }
+        return delay(undefined)
+      },
+      uninstallRelease: (name) => {
+        const idx = releases.findIndex((r) => r.name === name)
+        if (idx >= 0) releases.splice(idx, 1)
+        return delay(undefined)
+      },
     },
     metrics: {
       clusterOverview: () => delay(clusterStats()),

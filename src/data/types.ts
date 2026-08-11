@@ -6,11 +6,17 @@ export interface K8sNode {
   status: 'Ready' | 'NotReady'
   version: string
   os: string
+  kernelVersion: string
+  containerRuntime: string
   cpuCapacity: number
   memoryCapacityGi: number
   age: string
   internalIP: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
 }
+
+export type MetricKind = 'cpu' | 'memory' | 'network' | 'fs'
 
 export interface Namespace {
   name: string

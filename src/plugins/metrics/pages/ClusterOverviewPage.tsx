@@ -18,6 +18,14 @@ export function ClusterOverviewPage() {
     (p) => p.metrics.clusterSeries('memory', WINDOW_MINUTES),
     [],
   )
+  const { data: network } = useProviderQuery(
+    (p) => p.metrics.clusterSeries('network', WINDOW_MINUTES),
+    [],
+  )
+  const { data: fs } = useProviderQuery(
+    (p) => p.metrics.clusterSeries('fs', WINDOW_MINUTES),
+    [],
+  )
 
   if (!stats) return <div className="page-loading">Loading cluster metrics…</div>
 
@@ -63,6 +71,18 @@ export function ClusterOverviewPage() {
             title={`Cluster Memory · last ${WINDOW_MINUTES}m`}
             data={memory ?? []}
             color={chartColor('purple')}
+          />
+          <TimeSeriesChart
+            title={`Network I/O · last ${WINDOW_MINUTES}m`}
+            data={network ?? []}
+            color={chartColor('green')}
+            unit=" MB/s"
+            domain={[0, 60]}
+          />
+          <TimeSeriesChart
+            title={`Filesystem · last ${WINDOW_MINUTES}m`}
+            data={fs ?? []}
+            color={chartColor('yellow')}
           />
         </div>
       </div>

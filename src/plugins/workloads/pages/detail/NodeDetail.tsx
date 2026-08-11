@@ -48,11 +48,27 @@ export function NodeDetail({ node }: { node: K8sNode }) {
           <DetailRow label="Status" value={<Badge>{node.status}</Badge>} />
           <DetailRow label="Roles" value={node.roles.join(', ')} />
           <DetailRow label="Kubelet version" value={node.version} />
+          <DetailRow label="Container runtime" value={node.containerRuntime} />
           <DetailRow label="OS image" value={node.os} />
+          <DetailRow label="Kernel version" value={node.kernelVersion} />
           <DetailRow label="CPU capacity" value={`${node.cpuCapacity} cores`} />
           <DetailRow label="Memory capacity" value={`${node.memoryCapacityGi} Gi`} />
           <DetailRow label="Internal IP" value={node.internalIP} />
           <DetailRow label="Age" value={node.age} />
+        </div>
+
+        <DetailSection title="Labels" />
+        {Object.entries(node.labels).map(([k, v]) => (
+          <span key={k} className="detail__chip">
+            {v ? `${k}=${v}` : k}
+          </span>
+        ))}
+
+        <DetailSection title="Annotations" />
+        <div className="detail__grid detail__grid--wide">
+          {Object.entries(node.annotations).map(([k, v]) => (
+            <DetailRow key={k} label={k} value={<code className="detail__code">{v}</code>} />
+          ))}
         </div>
 
         <DetailSection title="Utilization · last 60m" />

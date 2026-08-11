@@ -1,5 +1,23 @@
 import type { ContainerSpec, Deployment, K8sNode, Namespace, Pod, Service } from '../types'
 
+function nodeMeta(name: string, role: string): Pick<K8sNode, 'labels' | 'annotations'> {
+  return {
+    labels: {
+      'kubernetes.io/hostname': name,
+      'kubernetes.io/os': 'linux',
+      'kubernetes.io/arch': 'amd64',
+      [`node-role.kubernetes.io/${role}`]: '',
+      'topology.kubernetes.io/zone': role === 'control-plane' ? 'zone-a' : 'zone-b',
+    },
+    annotations: {
+      'kubeadm.alpha.kubernetes.io/cri-socket': 'unix:///run/containerd/containerd.sock',
+      'node.alpha.kubernetes.io/ttl': '0',
+      'volumes.kubernetes.io/controller-managed-attach-detach': 'true',
+      'flannel.alpha.coreos.com/backend-type': 'vxlan',
+    },
+  }
+}
+
 export const nodes: K8sNode[] = [
   {
     name: 'kb-control-plane',
@@ -7,10 +25,13 @@ export const nodes: K8sNode[] = [
     status: 'Ready',
     version: 'v1.30.2',
     os: 'Ubuntu 22.04.4 LTS',
+    kernelVersion: '6.6.16-linuxkit',
+    containerRuntime: 'containerd://1.7.15',
     cpuCapacity: 4,
     memoryCapacityGi: 8,
     age: '92d',
     internalIP: '172.18.0.2',
+    ...nodeMeta('kb-control-plane', 'control-plane'),
   },
   {
     name: 'kb-worker-1',
@@ -18,10 +39,13 @@ export const nodes: K8sNode[] = [
     status: 'Ready',
     version: 'v1.30.2',
     os: 'Ubuntu 22.04.4 LTS',
+    kernelVersion: '6.6.16-linuxkit',
+    containerRuntime: 'containerd://1.7.15',
     cpuCapacity: 4,
     memoryCapacityGi: 8,
     age: '92d',
     internalIP: '172.18.0.3',
+    ...nodeMeta('kb-worker-1', 'worker'),
   },
   {
     name: 'kb-worker-2',
@@ -29,10 +53,13 @@ export const nodes: K8sNode[] = [
     status: 'Ready',
     version: 'v1.30.2',
     os: 'Ubuntu 22.04.4 LTS',
+    kernelVersion: '6.6.16-linuxkit',
+    containerRuntime: 'containerd://1.7.15',
     cpuCapacity: 4,
     memoryCapacityGi: 8,
     age: '61d',
     internalIP: '172.18.0.4',
+    ...nodeMeta('kb-worker-2', 'worker'),
   },
 ]
 

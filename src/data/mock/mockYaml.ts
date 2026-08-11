@@ -108,13 +108,16 @@ kind: Node
 metadata:
   name: ${n.name}
   labels:
-    kubernetes.io/os: linux
-    node-role.kubernetes.io/${n.roles[0]}: ""
+${Object.entries(n.labels).map(([k, v]) => `    ${k}: "${v}"`).join('\n')}
+  annotations:
+${Object.entries(n.annotations).map(([k, v]) => `    ${k}: "${v}"`).join('\n')}
 spec: {}
 status:
   nodeInfo:
     kubeletVersion: ${n.version}
     osImage: ${n.os}
+    kernelVersion: ${n.kernelVersion}
+    containerRuntimeVersion: ${n.containerRuntime}
   capacity:
     cpu: "${n.cpuCapacity}"
     memory: ${n.memoryCapacityGi}Gi
