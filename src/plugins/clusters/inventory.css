@@ -1,0 +1,61 @@
+.inventory__server {
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--vscode-descriptionForeground);
+}
+
+.inventory__actions {
+  display: flex;
+  gap: 6px;
+}
+
+.inventory__form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 480px;
+}
+
+.inventory__form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.inventory__form input {
+  padding: 5px 8px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 2px;
+  outline: none;
+}
+.inventory__form input:focus {
+  border-color: var(--vscode-focusBorder);
+}
+
+.inventory__form .kb-button {
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+.inventory__hint {
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0.7;
+}
+
+.inventory__note {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 22px;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  max-width: 720px;
+}

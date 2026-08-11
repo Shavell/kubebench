@@ -1,4 +1,5 @@
 import { useProviderQuery } from '@/data/DataContext'
+import { useSettingsStore } from '@/core/store/settingsStore'
 import { StatTile } from '@/shared/charts/StatTile'
 import { TimeSeriesChart } from '@/shared/charts/TimeSeriesChart'
 import { chartColor } from '@/shared/charts/chartTheme'
@@ -6,25 +7,24 @@ import { Toolbar } from '@/shared/Toolbar'
 import '@/plugins/workloads/pages/pages.css'
 import './metrics.css'
 
-const WINDOW_MINUTES = 60
-
 export function ClusterOverviewPage() {
+  const WINDOW_MINUTES = useSettingsStore((s) => s.metricsWindow)
   const { data: stats } = useProviderQuery((p) => p.metrics.clusterOverview(), [])
   const { data: cpu } = useProviderQuery(
     (p) => p.metrics.clusterSeries('cpu', WINDOW_MINUTES),
-    [],
+    [WINDOW_MINUTES],
   )
   const { data: memory } = useProviderQuery(
     (p) => p.metrics.clusterSeries('memory', WINDOW_MINUTES),
-    [],
+    [WINDOW_MINUTES],
   )
   const { data: network } = useProviderQuery(
     (p) => p.metrics.clusterSeries('network', WINDOW_MINUTES),
-    [],
+    [WINDOW_MINUTES],
   )
   const { data: fs } = useProviderQuery(
     (p) => p.metrics.clusterSeries('fs', WINDOW_MINUTES),
-    [],
+    [WINDOW_MINUTES],
   )
 
   if (!stats) return <div className="page-loading">Loading cluster metrics…</div>

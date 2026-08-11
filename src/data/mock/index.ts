@@ -25,6 +25,30 @@ function delay<T>(value: T): Promise<T> {
 const byNamespace = <T extends { namespace: string }>(items: T[], namespace?: string) =>
   namespace ? items.filter((i) => i.namespace === namespace) : items
 
+/** Mock inventory persists to localStorage; activation is visual-only. */
+const INVENTORY_KEY = 'kubebench.mock.clusters'
+
+interface StoredCluster {
+  name: string
+  kubeconfigPath?: string
+  address?: string
+  active: boolean
+}
+
+function loadStoredClusters(): StoredCluster[] {
+  try {
+    const raw = localStorage.getItem(INVENTORY_KEY)
+    if (raw) return JSON.parse(raw) as StoredCluster[]
+  } catch {
+    /* fall through */
+  }
+  return [{ name: 'kind-dev-cluster', kubeconfigPath: '~/.kube/config (mock)', active: true }]
+}
+
+function saveStoredClusters(clusters: StoredCluster[]): void {
+  localStorage.setItem(INVENTORY_KEY, JSON.stringify(clusters))
+}
+
 export function createMockProviders(): DataProviders {
   return {
     cluster: {
@@ -131,6 +155,27 @@ export function createMockProviders(): DataProviders {
       uninstallRelease: (name) => {
         const idx = releases.findIndex((r) => r.name === name)
         if (idx >= 0) releases.splice(idx, 1)
+        return delay(undefined)
+      },
+    },
+    inventory: {
+      listClusters: () =>
+        delay(loadStoredClusters().map((c) => ({ ...c, context: c.name, server: c.address }))),
+      addCluster: (entry) => {
+        const clusters = loadStoredClusters()
+        if (clusters.some((c) => c.name === entry.name)) {
+          return Promise.reject(new Error(`cluster "${entry.name}" already exists`))
+        }
+        clusters.push({ ...entry, active: false })
+        saveStoredClusters(clusters)
+        return delay(undefined)
+      },
+      removeCluster: (name) => {
+        saveStoredClusters(loadStoredClusters().filter((c) => c.name !== name))
+        return delay(undefined)
+      },
+      activateCluster: (name) => {
+        saveStoredClusters(loadStoredClusters().map((c) => ({ ...c, active: c.name === name })))
         return delay(undefined)
       },
     },

@@ -1,4 +1,5 @@
 import { useProviderQuery } from '@/data/DataContext'
+import { useSettingsStore } from '@/core/store/settingsStore'
 import type { TabDescriptor } from '@/core/plugin/types'
 import { TimeSeriesChart } from '@/shared/charts/TimeSeriesChart'
 import { chartColor } from '@/shared/charts/chartTheme'
@@ -6,25 +7,24 @@ import { Toolbar } from '@/shared/Toolbar'
 import '@/plugins/workloads/pages/pages.css'
 import './metrics.css'
 
-const WINDOW_MINUTES = 60
-
 export function NodeMetricsPage({ tab }: { tab: TabDescriptor }) {
   const node = tab.props?.node as string
+  const WINDOW_MINUTES = useSettingsStore((s) => s.metricsWindow)
   const { data: cpu } = useProviderQuery(
     (p) => p.metrics.nodeSeries(node, 'cpu', WINDOW_MINUTES),
-    [node],
+    [node, WINDOW_MINUTES],
   )
   const { data: memory } = useProviderQuery(
     (p) => p.metrics.nodeSeries(node, 'memory', WINDOW_MINUTES),
-    [node],
+    [node, WINDOW_MINUTES],
   )
   const { data: network } = useProviderQuery(
     (p) => p.metrics.nodeSeries(node, 'network', WINDOW_MINUTES),
-    [node],
+    [node, WINDOW_MINUTES],
   )
   const { data: fs } = useProviderQuery(
     (p) => p.metrics.nodeSeries(node, 'fs', WINDOW_MINUTES),
-    [node],
+    [node, WINDOW_MINUTES],
   )
 
   if (!cpu || !memory) return <div className="page-loading">Loading {node} metrics…</div>

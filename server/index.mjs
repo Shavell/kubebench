@@ -12,11 +12,69 @@ import {
   mapService,
 } from './mappers.mjs'
 
+import { readFileSync } from 'node:fs'
+import { inventoryPath, loadInventory, saveInventory } from './inventory.mjs'
+
 const PORT = Number(process.env.PORT ?? 9876)
 
-const kube = createKubeClient()
-const metrics = startMetricsSampler(kube)
-console.log(`[kube] context=${kube.contextName} server=${kube.server}`)
+/** Active-cluster state; rebuilt when the inventory activates another entry. */
+let active = null // { name, kube, metrics }
+const inventory = loadInventory()
+
+function describeKubeconfig(path) {
+  try {
+    const config = yaml.load(readFileSync(path, 'utf8'))
+    const cluster = config.clusters?.[0]?.cluster
+    return { context: config['current-context'] ?? config.contexts?.[0]?.name, server: cluster?.server }
+  } catch (err) {
+    return { error: err.code === 'ENOENT' ? 'kubeconfig file not found' : err.message }
+  }
+}
+
+function activateCluster(name) {
+  const entry = inventory.clusters.find((c) => c.name === name)
+  if (!entry) throw Object.assign(new Error(`unknown cluster "${name}"`), { status: 404 })
+  if (!entry.kubeconfigPath) {
+    throw Object.assign(
+      new Error(`cluster "${name}" has no kubeconfig — address-only entries cannot be activated`),
+      { status: 400 },
+    )
+  }
+  const kube = createKubeClient(entry.kubeconfigPath)
+  active?.metrics?.stop()
+  active = { name, kube, metrics: startMetricsSampler(kube) }
+  inventory.active = name
+  saveInventory(inventory)
+  console.log(`[kube] active=${name} context=${kube.contextName} server=${kube.server}`)
+}
+
+// Seed the inventory from KUBECONFIG on first run.
+if (inventory.clusters.length === 0 && process.env.KUBECONFIG) {
+  try {
+    const probe = createKubeClient(process.env.KUBECONFIG)
+    inventory.clusters.push({ name: probe.contextName, kubeconfigPath: process.env.KUBECONFIG })
+    inventory.active = probe.contextName
+    saveInventory(inventory)
+  } catch (err) {
+    console.error(`[inventory] could not seed from KUBECONFIG: ${err.message}`)
+  }
+}
+if (inventory.active) {
+  try {
+    activateCluster(inventory.active)
+  } catch (err) {
+    console.error(`[kube] could not activate "${inventory.active}": ${err.message}`)
+  }
+}
+console.log(`[inventory] ${inventory.clusters.length} cluster(s) in ${inventoryPath()}`)
+
+function requireActive() {
+  if (!active) throw Object.assign(new Error('no active cluster'), { status: 503 })
+  return active
+}
+
+const kube = new Proxy({}, { get: (_t, prop) => requireActive().kube[prop] })
+const metrics = new Proxy({}, { get: (_t, prop) => requireActive().metrics[prop] })
 
 const KIND_PATHS = {
   Pod: (ns, name) => `/api/v1/namespaces/${ns}/pods/${name}`,
@@ -37,6 +95,44 @@ const routes = {
     server: kube.server,
     namespace: kube.namespace ?? null,
   }),
+
+  'GET /api/clusters': async () =>
+    inventory.clusters.map((c) => ({
+      name: c.name,
+      kubeconfigPath: c.kubeconfigPath,
+      address: c.address,
+      active: c.name === inventory.active,
+      ...(c.kubeconfigPath ? describeKubeconfig(c.kubeconfigPath) : { server: c.address }),
+    })),
+  'POST /api/clusters': async (q) => {
+    const name = q.get('name')?.trim()
+    const path = q.get('path')?.trim()
+    const address = q.get('address')?.trim()
+    if (!name) throw Object.assign(new Error('name is required'), { status: 400 })
+    if (!path && !address)
+      throw Object.assign(new Error('kubeconfig path or API address is required'), { status: 400 })
+    if (inventory.clusters.some((c) => c.name === name))
+      throw Object.assign(new Error(`cluster "${name}" already exists`), { status: 409 })
+    if (path) createKubeClient(path) // validate before saving
+    inventory.clusters.push({ name, kubeconfigPath: path || undefined, address: address || undefined })
+    saveInventory(inventory)
+    return { ok: true }
+  },
+  'DELETE /api/clusters': async (q) => {
+    const name = q.get('name')
+    inventory.clusters = inventory.clusters.filter((c) => c.name !== name)
+    if (inventory.active === name) {
+      inventory.active = null
+      active?.metrics?.stop()
+      active = null
+    }
+    saveInventory(inventory)
+    return { ok: true }
+  },
+  'POST /api/clusters/activate': async (q) => {
+    activateCluster(q.get('name'))
+    return { ok: true }
+  },
 
   'GET /api/nodes': async () => (await kube.getJSON('/api/v1/nodes')).items.map(mapNode),
   'GET /api/namespaces': async () => (await kube.getJSON('/api/v1/namespaces')).items.map(mapNamespace),

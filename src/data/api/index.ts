@@ -67,6 +67,21 @@ export function createApiProviders(): DataProviders {
     },
     crd: mock.crd,
     helm: mock.helm,
+    inventory: {
+      listClusters: () => api('/clusters'),
+      addCluster: async ({ name, kubeconfigPath, address }) => {
+        const params = new URLSearchParams({ name })
+        if (kubeconfigPath) params.set('path', kubeconfigPath)
+        if (address) params.set('address', address)
+        await api(`/clusters?${params}`, { method: 'POST' })
+      },
+      removeCluster: async (name) => {
+        await api(`/clusters?name=${encodeURIComponent(name)}`, { method: 'DELETE' })
+      },
+      activateCluster: async (name) => {
+        await api(`/clusters/activate?name=${encodeURIComponent(name)}`, { method: 'POST' })
+      },
+    },
     metrics: {
       clusterOverview: () => api('/metrics/overview'),
       clusterSeries: (metric, minutes) =>

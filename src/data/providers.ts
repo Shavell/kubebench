@@ -1,4 +1,5 @@
 import type {
+  ClusterEntry,
   ClusterStats,
   K8sEvent,
   CrdDefinition,
@@ -62,9 +63,18 @@ export interface MetricsProvider {
   ): Promise<MetricPoint[]>
 }
 
+export interface InventoryProvider {
+  listClusters(): Promise<ClusterEntry[]>
+  addCluster(entry: { name: string; kubeconfigPath?: string; address?: string }): Promise<void>
+  removeCluster(name: string): Promise<void>
+  /** Switches the backend to another cluster; the app reloads afterwards. */
+  activateCluster(name: string): Promise<void>
+}
+
 export interface DataProviders {
   cluster: ClusterProvider
   crd: CrdProvider
   helm: HelmProvider
   metrics: MetricsProvider
+  inventory: InventoryProvider
 }

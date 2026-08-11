@@ -9,6 +9,12 @@ export function ActivityBar() {
   const sidebarCollapsed = useLayoutStore((s) => s.sidebarCollapsed)
   const setActivePlugin = useLayoutStore((s) => s.setActivePlugin)
   const togglePanel = useLayoutStore((s) => s.togglePanel)
+  const openTab = useLayoutStore((s) => s.openTab)
+
+  // The gear opens the settings tab; its renderer is contributed by the
+  // settings plugin under the "settings" kind — no direct plugin import.
+  const openSettings = () =>
+    openTab({ id: 'settings', title: 'Settings', icon: 'settings-gear', kind: 'settings' })
 
   return (
     <div className="activity-bar">
@@ -29,7 +35,7 @@ export function ActivityBar() {
       <button className="activity-bar__item" title="Toggle Panel" onClick={togglePanel}>
         <Icon name="layout-panel" size={24} />
       </button>
-      <button className="activity-bar__item" title="Settings (mock)">
+      <button className="activity-bar__item" title="Settings" onClick={openSettings}>
         <Icon name="settings-gear" size={24} />
       </button>
     </div>

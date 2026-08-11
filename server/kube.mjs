@@ -9,8 +9,8 @@ import { Agent, fetch as undiciFetch } from 'undici'
  * No cloud-provider exec plugins — the kubeconfig must carry a bearer
  * token, which is what service-account kubeconfigs do.
  */
-export function createKubeClient() {
-  const kubeconfigPath = process.env.KUBECONFIG ?? join(homedir(), '.kube', 'config')
+export function createKubeClient(path) {
+  const kubeconfigPath = path ?? process.env.KUBECONFIG ?? join(homedir(), '.kube', 'config')
   const config = yaml.load(readFileSync(kubeconfigPath, 'utf8'))
 
   const contextName = config['current-context'] ?? config.contexts?.[0]?.name

@@ -1,4 +1,5 @@
 import { useLayoutStore } from '@/core/store/layoutStore'
+import { useSettingsStore } from '@/core/store/settingsStore'
 import { useProviderQuery, useProviders } from '@/data/DataContext'
 import type { K8sNode } from '@/data/types'
 import { Badge } from '@/shared/Badge'
@@ -13,14 +14,15 @@ import '../pages.css'
 export function NodeDetail({ node }: { node: K8sNode }) {
   const providers = useProviders()
   const openTab = useLayoutStore((s) => s.openTab)
+  const windowMinutes = useSettingsStore((s) => s.metricsWindow)
 
   const { data: cpu } = useProviderQuery(
-    (p) => p.metrics.nodeSeries(node.name, 'cpu', 60),
-    [node.name],
+    (p) => p.metrics.nodeSeries(node.name, 'cpu', windowMinutes),
+    [node.name, windowMinutes],
   )
   const { data: memory } = useProviderQuery(
-    (p) => p.metrics.nodeSeries(node.name, 'memory', 60),
-    [node.name],
+    (p) => p.metrics.nodeSeries(node.name, 'memory', windowMinutes),
+    [node.name, windowMinutes],
   )
   const { data: pods } = useProviderQuery((p) => p.cluster.listPods(), [])
   const nodePods = (pods ?? []).filter((p) => p.node === node.name)
@@ -71,7 +73,7 @@ export function NodeDetail({ node }: { node: K8sNode }) {
           ))}
         </div>
 
-        <DetailSection title="Utilization · last 60m" />
+        <DetailSection title={`Utilization · last ${windowMinutes}m`} />
         <div className="detail__charts">
           <TimeSeriesChart title="CPU" data={cpu ?? []} color={chartColor('blue')} height={150} />
           <TimeSeriesChart title="Memory" data={memory ?? []} color={chartColor('purple')} height={150} />

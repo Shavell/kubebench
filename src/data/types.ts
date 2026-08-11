@@ -18,6 +18,17 @@ export interface K8sNode {
 
 export type MetricKind = 'cpu' | 'memory' | 'network' | 'fs'
 
+export interface ClusterEntry {
+  name: string
+  kubeconfigPath?: string
+  address?: string
+  active: boolean
+  /** Context/server resolved from the kubeconfig, when readable. */
+  context?: string
+  server?: string
+  error?: string
+}
+
 export interface Namespace {
   name: string
   status: 'Active' | 'Terminating'

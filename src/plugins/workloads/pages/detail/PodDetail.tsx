@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useLayoutStore } from '@/core/store/layoutStore'
+import { useSettingsStore } from '@/core/store/settingsStore'
 import { refreshData, useProviderQuery, useProviders } from '@/data/DataContext'
 import type { Pod } from '@/data/types'
 import { Badge } from '@/shared/Badge'
@@ -17,15 +18,16 @@ export function PodDetail({ pod, tabId }: { pod: Pod; tabId: string }) {
   const openTab = useLayoutStore((s) => s.openTab)
   const closeTab = useLayoutStore((s) => s.closeTab)
   const [opError, setOpError] = useState<string | null>(null)
+  const windowMinutes = useSettingsStore((s) => s.metricsWindow)
   const container = pod.containers[0]
 
   const { data: cpu } = useProviderQuery(
-    (p) => p.metrics.podSeries(pod.namespace, pod.name, 'cpu', 60),
-    [pod.namespace, pod.name],
+    (p) => p.metrics.podSeries(pod.namespace, pod.name, 'cpu', windowMinutes),
+    [pod.namespace, pod.name, windowMinutes],
   )
   const { data: memory } = useProviderQuery(
-    (p) => p.metrics.podSeries(pod.namespace, pod.name, 'memory', 60),
-    [pod.namespace, pod.name],
+    (p) => p.metrics.podSeries(pod.namespace, pod.name, 'memory', windowMinutes),
+    [pod.namespace, pod.name, windowMinutes],
   )
 
   const openLogs = () =>
@@ -102,7 +104,7 @@ export function PodDetail({ pod, tabId }: { pod: Pod; tabId: string }) {
           <DetailRow label="Age" value={pod.age} />
         </div>
 
-        <DetailSection title="Utilization · last 60m" />
+        <DetailSection title={`Utilization · last ${windowMinutes}m`} />
         <div className="detail__charts">
           <TimeSeriesChart title="CPU" data={cpu ?? []} color={chartColor('blue')} height={150} />
           <TimeSeriesChart title="Memory" data={memory ?? []} color={chartColor('purple')} height={150} />

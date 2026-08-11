@@ -78,6 +78,7 @@ export function startMetricsSampler(kube) {
   }
 
   return {
+    stop: () => clearInterval(timer),
     clusterSeries: (metric, minutes) =>
       series(minutes, (s) =>
         metric === 'cpu' ? pct(s.clusterCpu, capacities.cpuCores) : pct(s.clusterMem, capacities.memoryMi),
