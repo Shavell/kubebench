@@ -1,0 +1,20 @@
+KubeBench is installed.
+
+1. Reach the UI:
+{{- if .Values.ingress.enabled }}
+   http{{ if .Values.ingress.tls }}s{{ end }}://{{ (index .Values.ingress.hosts 0).host }}
+{{- else }}
+   kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "kubebench.fullname" . }} 8080:{{ .Values.service.port }}
+   open http://localhost:8080
+{{- end }}
+
+2. Sign in as "admin". Password:
+{{- if .Values.auth.existingSecret }}
+   from your existing secret {{ .Values.auth.existingSecret }} (key admin-password)
+{{- else }}
+   kubectl -n {{ .Release.Namespace }} get secret {{ include "kubebench.secretName" . }} -o jsonpath='{.data.admin-password}' | base64 -d
+{{- end }}
+
+This release manages the current cluster through its ServiceAccount
+({{ .Values.rbac.clusterRole | default "custom ClusterRole" }}). Add more
+clusters from the Clusters module, and manage users from the Users module.

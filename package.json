@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "server": "node server/index.mjs"
+    "server": "node server/index.mjs",
+    "server:go": "cd backend && go run ."
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",

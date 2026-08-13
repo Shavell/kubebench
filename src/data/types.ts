@@ -18,6 +18,13 @@ export interface K8sNode {
 
 export type MetricKind = 'cpu' | 'memory' | 'network' | 'fs'
 
+export interface AppUser {
+  id: number
+  username: string
+  role: 'admin' | 'user'
+  clusters: string[]
+}
+
 export interface MetricsSourceInfo {
   id: string
   name: string
@@ -26,6 +33,7 @@ export interface MetricsSourceInfo {
 }
 
 export interface ClusterEntry {
+  id?: number
   name: string
   kubeconfigPath?: string
   address?: string

@@ -1,4 +1,5 @@
 import type {
+  AppUser,
   ClusterAllocation,
   ClusterEntry,
   ClusterStats,
@@ -71,10 +72,23 @@ export interface MetricsProvider {
 
 export interface InventoryProvider {
   listClusters(): Promise<ClusterEntry[]>
-  addCluster(entry: { name: string; kubeconfigPath?: string; address?: string }): Promise<void>
+  addCluster(entry: {
+    name: string
+    kubeconfigPath?: string
+    content?: string
+    address?: string
+    context?: string
+  }): Promise<void>
   removeCluster(name: string): Promise<void>
   /** Switches the backend to another cluster; the app reloads afterwards. */
   activateCluster(name: string): Promise<void>
+}
+
+export interface UsersProvider {
+  listUsers(): Promise<AppUser[]>
+  createUser(username: string, password: string, role: 'admin' | 'user'): Promise<void>
+  deleteUser(id: number): Promise<void>
+  assignClusters(id: number, clusterIds: number[]): Promise<void>
 }
 
 export interface DataProviders {
@@ -83,4 +97,5 @@ export interface DataProviders {
   helm: HelmProvider
   metrics: MetricsProvider
   inventory: InventoryProvider
+  users: UsersProvider
 }

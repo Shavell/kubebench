@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Go backend state
+kubebench.db*
+backend/internal/web/dist/
+!backend/internal/web/dist/.gitkeep

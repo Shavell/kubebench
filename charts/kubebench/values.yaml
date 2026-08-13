@@ -1,0 +1,75 @@
+# Default values for kubebench.
+
+image:
+  repository: ghcr.io/your-org/kubebench
+  tag: "" # defaults to .Chart.AppVersion
+  pullPolicy: IfNotPresent
+
+replicaCount: 1 # SQLite on an RWO PVC → keep at 1
+
+# Bootstrap admin credentials. The password is written to a Secret and
+# consumed on first start only (change it in-app afterwards).
+auth:
+  adminPassword: "admin"
+  # Use an existing secret with key "admin-password" instead of the value above.
+  existingSecret: ""
+
+# The in-cluster service account is registered automatically and manages
+# THIS cluster. Additional clusters can be added at runtime from the UI.
+rbac:
+  create: true
+  # cluster-admin lets the workbench manage everything (helm, exec,
+  # delete, CRDs). Narrow this for least privilege — see the commented
+  # rules below for a read-mostly baseline.
+  clusterRole: cluster-admin
+  # When clusterRole is empty, these rules are used to build a ClusterRole:
+  rules: []
+  #  - apiGroups: [""]
+  #    resources: [pods, services, nodes, namespaces, events, pods/log, secrets]
+  #    verbs: [get, list]
+  #  - apiGroups: [apps]
+  #    resources: [deployments]
+  #    verbs: [get, list]
+
+serviceAccount:
+  create: true
+  name: ""
+
+# State (SQLite: users, sessions, cluster inventory) on a PVC.
+persistence:
+  enabled: true
+  storageClass: local-path # k3s default; set "" for the cluster default
+  size: 1Gi
+  accessMode: ReadWriteOnce
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: kubebench.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 96Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  fsGroup: 65532
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

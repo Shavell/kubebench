@@ -6,6 +6,8 @@ export interface DataMode {
   mode: 'live' | 'mock'
   context: string
   server?: string
+  user?: string
+  role?: 'admin' | 'user'
 }
 
 export const dataMode: DataMode = { mode: 'mock', context: 'kind-dev-cluster (mock)' }

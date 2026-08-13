@@ -108,17 +108,38 @@ export function createApiProviders(capabilities: LiveCapabilities): DataProvider
       : mock.helm,
     inventory: {
       listClusters: () => api('/clusters'),
-      addCluster: async ({ name, kubeconfigPath, address }) => {
-        const params = new URLSearchParams({ name })
-        if (kubeconfigPath) params.set('path', kubeconfigPath)
-        if (address) params.set('address', address)
-        await api(`/clusters?${params}`, { method: 'POST' })
+      addCluster: async ({ name, kubeconfigPath, content, address, context }) => {
+        await api('/clusters', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, path: kubeconfigPath, content, address, context }),
+        })
       },
       removeCluster: async (name) => {
         await api(`/clusters?name=${encodeURIComponent(name)}`, { method: 'DELETE' })
       },
       activateCluster: async (name) => {
         await api(`/clusters/activate?name=${encodeURIComponent(name)}`, { method: 'POST' })
+      },
+    },
+    users: {
+      listUsers: () => api('/users'),
+      createUser: async (username, password, role) => {
+        await api('/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password, role }),
+        })
+      },
+      deleteUser: async (id) => {
+        await api(`/users/${id}`, { method: 'DELETE' })
+      },
+      assignClusters: async (id, clusterIds) => {
+        await api(`/users/${id}/clusters`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clusterIds }),
+        })
       },
     },
     metrics: {

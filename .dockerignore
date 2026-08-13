@@ -1,0 +1,10 @@
+node_modules
+dist
+backend/internal/web/dist
+.git
+.claude
+server
+*.md
+docs
+charts
+kubebench.db*

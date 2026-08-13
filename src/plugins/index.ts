@@ -6,6 +6,7 @@ import { helmPlugin } from './helm/manifest'
 import { metricsPlugin } from './metrics/manifest'
 import { terminalPlugin } from './terminal/manifest'
 import { settingsPlugin } from './settings/manifest'
+export { usersPlugin } from './users/manifest'
 
 /**
  * The single place modules are wired in. Comment one out and its

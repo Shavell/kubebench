@@ -44,6 +44,21 @@
   margin-top: 4px;
 }
 
+.inventory__textarea {
+  padding: 6px 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 2px;
+  outline: none;
+  resize: vertical;
+}
+.inventory__textarea:focus {
+  border-color: var(--vscode-focusBorder);
+}
+
 .inventory__hint {
   text-transform: none;
   letter-spacing: 0;

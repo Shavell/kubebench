@@ -13,6 +13,7 @@ export function InventoryPage() {
   const providers = useProviders()
   const { data: clusters, loading } = useProviderQuery((p) => p.inventory.listClusters(), [])
   const [name, setName] = useState('')
+  const [content, setContent] = useState('')
   const [path, setPath] = useState('')
   const [address, setAddress] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -37,10 +38,12 @@ export function InventoryPage() {
     run(async () => {
       await providers.inventory.addCluster({
         name,
+        content: content || undefined,
         kubeconfigPath: path || undefined,
         address: address || undefined,
       })
       setName('')
+      setContent('')
       setPath('')
       setAddress('')
     })
@@ -123,7 +126,18 @@ export function InventoryPage() {
             />
           </label>
           <label>
-            Kubeconfig path
+            Kubeconfig <span className="inventory__hint">(paste file contents)</span>
+            <textarea
+              className="inventory__textarea"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder={'apiVersion: v1\nkind: Config\nclusters: …'}
+              spellCheck={false}
+              rows={4}
+            />
+          </label>
+          <label>
+            Kubeconfig path <span className="inventory__hint">(local dev; server reads the file)</span>
             <input
               value={path}
               onChange={(e) => setPath(e.target.value)}
@@ -132,7 +146,7 @@ export function InventoryPage() {
             />
           </label>
           <label>
-            API address <span className="inventory__hint">(alternative to kubeconfig)</span>
+            API address <span className="inventory__hint">(bookmark only)</span>
             <input
               value={address}
               onChange={(e) => setAddress(e.target.value)}
@@ -142,7 +156,7 @@ export function InventoryPage() {
           </label>
           <button
             className="kb-button"
-            disabled={busy || !name || (!path && !address)}
+            disabled={busy || !name || (!content && !path && !address)}
             onClick={addCluster}
           >
             <Icon name="add" size={14} /> Add Cluster

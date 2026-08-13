@@ -1,0 +1,22 @@
+.users__clusters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
+
+.users__cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.users__cluster input {
+  cursor: pointer;
+}
+
+.users__all {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}

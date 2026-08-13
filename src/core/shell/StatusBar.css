@@ -28,6 +28,15 @@
   background: var(--vscode-statusBarItem-hoverBackground);
 }
 
+.status-bar__item--button {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
 .status-bar__select {
   appearance: none;
   background: transparent;

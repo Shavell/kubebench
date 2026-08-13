@@ -71,12 +71,26 @@ export function StatusBar() {
           title={
             dataMode.mode === 'live'
               ? `Connected to ${dataMode.server}`
-              : 'Mock data — no cluster connected (start the proxy: npm run server)'
+              : 'Mock data — no cluster connected (start the backend)'
           }
         >
           <Icon name={dataMode.mode === 'live' ? 'broadcast' : 'beaker'} size={13} />
           <span>{dataMode.mode}</span>
         </div>
+        {dataMode.user && (
+          <button
+            className="status-bar__item status-bar__item--button"
+            title="Sign out"
+            onClick={async () => {
+              await fetch('/api/auth/logout', { method: 'POST' })
+              window.location.reload()
+            }}
+          >
+            <Icon name="account" size={13} />
+            <span>{dataMode.user}</span>
+            <Icon name="sign-out" size={13} />
+          </button>
+        )}
       </div>
     </div>
   )

@@ -1,0 +1,80 @@
+.login {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--vscode-editor-background);
+}
+
+.login__card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 320px;
+  padding: 32px 28px;
+  background: var(--vscode-editorWidget-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 6px;
+  box-shadow: 0 8px 30px var(--vscode-widget-shadow);
+}
+
+.login__brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.login__title {
+  font-size: 20px;
+  font-weight: 300;
+  letter-spacing: 0.06em;
+  color: var(--vscode-editor-foreground);
+}
+
+.login__subtitle {
+  font-size: 12px;
+}
+
+.login__card label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.login__card input {
+  padding: 6px 9px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 2px;
+  outline: none;
+}
+.login__card input:focus {
+  border-color: var(--vscode-focusBorder);
+}
+
+.login__submit {
+  margin-top: 6px;
+  justify-content: center;
+  padding: 7px;
+  font-size: 13px;
+}
+
+.login__error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  font-size: 12px;
+  color: var(--status-failed);
+  background: rgba(241, 76, 76, 0.12);
+  border: 1px solid var(--status-failed);
+  border-radius: 3px;
+}

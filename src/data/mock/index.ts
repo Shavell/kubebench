@@ -216,6 +216,16 @@ export function createMockProviders(): DataProviders {
         return delay(undefined)
       },
     },
+    users: {
+      listUsers: () =>
+        delay([
+          { id: 1, username: 'admin', role: 'admin' as const, clusters: [] },
+          { id: 2, username: 'demo', role: 'user' as const, clusters: ['kind-dev-cluster'] },
+        ]),
+      createUser: () => delay(undefined),
+      deleteUser: () => delay(undefined),
+      assignClusters: () => delay(undefined),
+    },
     metrics: {
       listSources: () =>
         delay([
