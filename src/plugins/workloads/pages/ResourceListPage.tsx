@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useLayoutStore } from '@/core/store/layoutStore'
 import { ALL_NAMESPACES, useContextStore } from '@/core/store/contextStore'
-import { useProviderQuery } from '@/data/DataContext'
+import { useProviderQuery, useProviders } from '@/data/DataContext'
 import type { TabDescriptor } from '@/core/plugin/types'
 import type { Deployment, K8sNode, Namespace, Pod, Service } from '@/data/types'
 import { Badge } from '@/shared/Badge'
@@ -9,6 +9,7 @@ import { ListFilterBar } from '@/shared/ListFilterBar'
 import { Table, type Column } from '@/shared/Table'
 import { Toolbar } from '@/shared/Toolbar'
 import { EmptyState } from '@/shared/EmptyState'
+import { deploymentMenu, podMenu } from '../rowActions'
 import './pages.css'
 
 function openDetail(kind: string, namespace: string | null, name: string, icon: string) {
@@ -97,6 +98,7 @@ const NAMESPACED = ['Pods', 'Deployments', 'Services']
 
 export function ResourceListPage({ tab }: { tab: TabDescriptor }) {
   const resource = tab.props?.resource as string
+  const providers = useProviders()
   const globalNamespace = useContextStore((s) => s.namespace)
   const [search, setSearch] = useState('')
   /** Page-local namespace filter; empty = follow the global status bar filter. */
@@ -199,6 +201,7 @@ export function ResourceListPage({ tab }: { tab: TabDescriptor }) {
               rows={rows as Pod[]}
               rowKey={(p) => `${p.namespace}/${p.name}`}
               onRowClick={(p) => openDetail('Pod', p.namespace, p.name, 'package')}
+              onRowContextMenu={(p, e) => podMenu(e, p, providers)}
             />
           )}
           {resource === 'Nodes' && (
@@ -218,6 +221,7 @@ export function ResourceListPage({ tab }: { tab: TabDescriptor }) {
               rows={rows as Deployment[]}
               rowKey={(d) => `${d.namespace}/${d.name}`}
               onRowClick={(d) => openDetail('Deployment', d.namespace, d.name, 'rocket')}
+              onRowContextMenu={(d, e) => deploymentMenu(e, d, providers)}
             />
           )}
           {resource === 'Services' && (

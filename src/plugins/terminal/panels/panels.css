@@ -30,6 +30,12 @@
   }
 }
 
+.log__hint {
+  color: var(--vscode-descriptionForeground);
+  font-style: italic;
+  margin-bottom: 6px;
+}
+
 .log__ts {
   color: var(--vscode-descriptionForeground);
 }

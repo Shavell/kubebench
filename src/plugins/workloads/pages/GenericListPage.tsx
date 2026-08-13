@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useLayoutStore } from '@/core/store/layoutStore'
 import { ALL_NAMESPACES, useContextStore } from '@/core/store/contextStore'
-import { useProviderQuery } from '@/data/DataContext'
+import { useProviderQuery, useProviders } from '@/data/DataContext'
 import type { TabDescriptor } from '@/core/plugin/types'
 import type { KubeObject } from '@/data/types'
 import { ListFilterBar } from '@/shared/ListFilterBar'
@@ -9,11 +9,13 @@ import { Table, type Column } from '@/shared/Table'
 import { Toolbar } from '@/shared/Toolbar'
 import { EmptyState } from '@/shared/EmptyState'
 import { catalogByKey, objName, objNamespace } from '../resourceCatalog'
+import { genericMenu } from '../rowActions'
 import './pages.css'
 
 export function GenericListPage({ tab }: { tab: TabDescriptor }) {
   const key = tab.props?.resourceKey as string
   const descriptor = catalogByKey.get(key)
+  const providers = useProviders()
   const globalNamespace = useContextStore((s) => s.namespace)
   const [search, setSearch] = useState('')
   const [localNs, setLocalNs] = useState('')
@@ -87,6 +89,9 @@ export function GenericListPage({ tab }: { tab: TabDescriptor }) {
             rows={rows}
             rowKey={(o) => `${objNamespace(o)}/${objName(o)}`}
             onRowClick={openDetail}
+            onRowContextMenu={(o, e) =>
+              genericMenu(e, descriptor.kind, objNamespace(o) || null, objName(o), providers)
+            }
           />
         </div>
       )}

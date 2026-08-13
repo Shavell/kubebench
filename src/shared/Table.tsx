@@ -16,9 +16,10 @@ interface TableProps<T> {
   rows: T[]
   rowKey: (row: T) => string
   onRowClick?: (row: T) => void
+  onRowContextMenu?: (row: T, e: React.MouseEvent) => void
 }
 
-export function Table<T>({ columns, rows, rowKey, onRowClick }: TableProps<T>) {
+export function Table<T>({ columns, rows, rowKey, onRowClick, onRowContextMenu }: TableProps<T>) {
   const [sort, setSort] = useState<{ key: string; dir: 1 | -1 } | null>(null)
 
   const sorted = useMemo(() => {
@@ -65,6 +66,7 @@ export function Table<T>({ columns, rows, rowKey, onRowClick }: TableProps<T>) {
             key={rowKey(row)}
             className={onRowClick ? 'kb-table__row--clickable' : undefined}
             onClick={() => onRowClick?.(row)}
+            onContextMenu={onRowContextMenu ? (e) => onRowContextMenu(row, e) : undefined}
           >
             {columns.map((col) => (
               <td key={col.key}>{col.render(row)}</td>

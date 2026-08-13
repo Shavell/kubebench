@@ -1,102 +1,13 @@
-import { useEffect, useRef, useState } from 'react'
 import type { TabDescriptor } from '@/core/plugin/types'
-import { useProviders } from '@/data/DataContext'
-import { dataMode } from '@/data/mode'
-import './PodExecTab.css'
+import { ExecView } from './ExecView'
 
-interface TermLine {
-  prompt?: boolean
-  text: string
-}
-
-/**
- * Command shell inside a container. kind: "pod-exec".
- * Each entered command runs via the cluster provider's execCommand —
- * a real `kubectl exec` one-shot in live mode (when RBAC allows),
- * a canned mock shell otherwise. `clear` and `exit` are handled locally.
- */
+/** Editor-tab wrapper around ExecView. kind: "pod-exec". */
 export function PodExecTab({ tab }: { tab: TabDescriptor }) {
-  const namespace = tab.props?.namespace as string
-  const pod = tab.props?.pod as string
-  const container = tab.props?.container as string
-  const providers = useProviders()
-
-  const promptText = `${pod.slice(0, 24)}:/#`
-  const [lines, setLines] = useState<TermLine[]>([
-    {
-      text: `kubectl exec -it ${pod} -c ${container} -- sh   (${dataMode.mode === 'live' ? 'one-shot exec' : 'mock session'})`,
-    },
-  ])
-  const [input, setInput] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [closed, setClosed] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const bodyRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight })
-  }, [lines])
-
-  const onKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key !== 'Enter' || closed || busy) return
-    const cmd = input.trim()
-    setInput('')
-    if (cmd === 'clear') {
-      setLines([])
-      return
-    }
-    if (cmd === 'exit') {
-      setLines((prev) => [
-        ...prev,
-        { prompt: true, text: cmd },
-        { text: 'Session ended. Reopen the Shell action to reconnect.' },
-      ])
-      setClosed(true)
-      return
-    }
-    setLines((prev) => [...prev, { prompt: true, text: cmd }])
-    if (!cmd) return
-    setBusy(true)
-    try {
-      const output = await providers.cluster.execCommand(namespace, pod, container, cmd)
-      setLines((prev) => [...prev, ...output.map((text) => ({ text }))])
-    } catch (err) {
-      setLines((prev) => [...prev, { text: err instanceof Error ? err.message : String(err) }])
-    } finally {
-      setBusy(false)
-    }
-  }
-
   return (
-    <div className="podexec" onClick={() => inputRef.current?.focus()}>
-      <div className="podexec__body" ref={bodyRef}>
-        {lines.map((line, i) =>
-          line.prompt ? (
-            <div key={i}>
-              <span className="podexec__prompt">{promptText} </span>
-              <span className="podexec__cmd">{line.text}</span>
-            </div>
-          ) : (
-            <div key={i}>{line.text}</div>
-          ),
-        )}
-        {!closed && (
-          <div className="podexec__inputline">
-            <span className="podexec__prompt">{busy ? '…' : promptText} </span>
-            <input
-              ref={inputRef}
-              className="podexec__input"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={onKeyDown}
-              disabled={busy}
-              autoFocus
-              spellCheck={false}
-              autoComplete="off"
-            />
-          </div>
-        )}
-      </div>
-    </div>
+    <ExecView
+      namespace={tab.props?.namespace as string}
+      pod={tab.props?.pod as string}
+      container={tab.props?.container as string}
+    />
   )
 }
