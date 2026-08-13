@@ -71,6 +71,9 @@ func (s *Server) Routes(mux *http.ServeMux) {
 	authed("GET /api/metrics/node", s.withRuntime(s.handleNodeSeries))
 	authed("GET /api/metrics/pod", s.withRuntime(s.handlePodSeries))
 
+	authed("GET /api/resource", s.withRuntime(s.handleResourceList))
+	authed("GET /api/resource/get", s.withRuntime(s.handleResourceGet))
+
 	authed("GET /api/crds", s.withRuntime(s.handleCrds))
 	authed("GET /api/crds/instances", s.withRuntime(s.handleCrdInstances))
 

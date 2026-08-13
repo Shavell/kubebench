@@ -10,6 +10,7 @@ import type {
   HelmRelease,
   HelmRepo,
   K8sNode,
+  KubeObject,
   MetricKind,
   MetricPoint,
   MetricsSourceInfo,
@@ -34,6 +35,9 @@ export interface ClusterProvider {
   getResourceYaml(kind: string, namespace: string | null, name: string): Promise<string>
   listEvents(kind: string, namespace: string | null, name: string): Promise<K8sEvent[]>
   getPodLogs(namespace: string, pod: string, container: string): Promise<string[]>
+  /** Generic list for any catalog resource key (configmaps, secrets, …). */
+  listResource(key: string, namespace?: string): Promise<KubeObject[]>
+  getResource(key: string, namespace: string | null, name: string): Promise<KubeObject>
   /** Runs one command in a container and returns its output lines. */
   execCommand(namespace: string, pod: string, container: string, command: string): Promise<string[]>
   /** Mutations are visual-only: they mutate the mock dataset in memory. */

@@ -48,7 +48,7 @@ guide: [`docs/deployment.md`](docs/deployment.md).
 | Module | What it does |
 |---|---|
 | **Clusters** | Inventory of kubeconfig paths / API addresses; add, remove, activate (switches the proxy and reloads the app) |
-| **Workloads** | Nodes, namespaces, pods, deployments, services: lists with in-page filters (name / namespace / status) and sortable columns; rich detail pages with utilization charts, resources (requests/limits), env, labels/annotations, events; actions: logs viewer, exec shell (mock), delete pod, scale & restart deployment, YAML view |
+| **Workloads** | Grouped resource tree — **Cluster** (Nodes, Namespaces, Events), **Workloads** (Pods, Deployments, StatefulSets, DaemonSets, ReplicaSets, Jobs, CronJobs), **Config** (ConfigMaps, Secrets), **Network** (Services, Ingresses, Endpoints, NetworkPolicies), **Storage** (PVCs, PVs, StorageClasses), **Access Control** (ServiceAccounts, Roles/Bindings, ClusterRoles/Bindings). Rich detail (utilization charts, env, requests/limits, events, logs, exec, delete/scale/restart) for pods/deployments/nodes; generic list+detail+YAML for the rest. Secret values are redacted. |
 | **CRDs** | CRD discovery grouped by API group, custom resource lists with CRD-specific columns *(mock until RBAC allows)* |
 | **Helm** | Releases with revision history, per-revision rollback, uninstall, editable values, repositories *(mock until RBAC allows)* |
 | **Metrics** | Cluster Overview: usage tiles (CPU/Mem/Disk), **allocation panels** (requests/limits/usage vs allocatable, with overcommit marker), utilization charts (CPU, memory, network, filesystem); per-node metric pages; status bar CPU/Mem item |

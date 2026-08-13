@@ -18,6 +18,23 @@ export interface K8sNode {
 
 export type MetricKind = 'cpu' | 'memory' | 'network' | 'fs'
 
+/** Raw Kubernetes object (unstructured) for the generic resource browser. */
+export interface KubeObject {
+  apiVersion?: string
+  kind?: string
+  metadata?: {
+    name?: string
+    namespace?: string
+    creationTimestamp?: string
+    labels?: Record<string, string>
+    annotations?: Record<string, string>
+    [k: string]: unknown
+  }
+  /** Synthetic age for mock objects that carry no creationTimestamp. */
+  age?: string
+  [k: string]: unknown
+}
+
 export interface AppUser {
   id: number
   username: string

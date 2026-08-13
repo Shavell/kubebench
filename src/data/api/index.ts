@@ -68,6 +68,9 @@ export function createApiProviders(capabilities: LiveCapabilities): DataProvider
       listEvents: (_kind, ns, name) => api(`/events?ns=${ns ?? ''}&name=${name}`),
       getPodLogs: (ns, pod, container) =>
         api(`/logs?ns=${ns}&pod=${pod}&container=${container}`),
+      listResource: (key, ns) => api(`/resource?key=${key}${ns ? `&ns=${ns}` : ''}`),
+      getResource: (key, ns, name) =>
+        api(`/resource/get?key=${key}&ns=${ns ?? ''}&name=${name}`),
       execCommand: (ns, pod, container, command) =>
         capabilities.exec
           ? api(`/exec?ns=${ns}&pod=${pod}&container=${container}&cmd=${encodeURIComponent(command)}`, {

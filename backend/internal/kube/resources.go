@@ -106,6 +106,18 @@ func (r *Runtime) ObjectYAML(ctx context.Context, kind, namespace, name string) 
 	case "Namespace":
 		obj, err = r.CS.CoreV1().Namespaces().Get(ctx, name, metav1.GetOptions{})
 	default:
+		// Catalog kinds (configmaps, secrets, ingresses, …) via dynamic get.
+		if rt, ok := catalogByKind[kind]; ok {
+			object, gerr := r.GetGeneric(ctx, rt.Key, namespace, name) // redacts secrets
+			if gerr != nil {
+				return "", gerr
+			}
+			if meta, ok := object["metadata"].(map[string]any); ok {
+				delete(meta, "managedFields")
+			}
+			out, merr := yaml.Marshal(object)
+			return string(out), merr
+		}
 		unstr, cerr := r.GetCustomResourceByKind(ctx, kind, namespace, name)
 		if cerr != nil {
 			return "", cerr

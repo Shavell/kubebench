@@ -2,6 +2,7 @@ import type { DataProviders } from '../providers'
 import { deployments, namespaces, nodes, pods, services, syncDeploymentPods } from './mockCluster'
 import { crds, customResources } from './mockCrds'
 import { eventsFor } from './mockEvents'
+import { genericMock } from './mockGeneric'
 import { podLogs } from './mockLogs'
 import { releases, repositories, valuesYaml } from './mockHelm'
 import { clusterAllocation, clusterStats, generateSeries } from './mockMetrics'
@@ -89,6 +90,16 @@ export function createMockProviders(): DataProviders {
       },
       listEvents: (kind, ns, name) => delay(eventsFor(kind, ns, name)),
       getPodLogs: (_ns, pod, container) => delay(podLogs(pod, container)),
+      listResource: (key, ns) => {
+        const items = genericMock[key] ?? []
+        return delay(ns ? items.filter((o) => o.metadata?.namespace === ns) : items)
+      },
+      getResource: (key, ns, name) => {
+        const found = (genericMock[key] ?? []).find(
+          (o) => o.metadata?.name === name && (!ns || o.metadata?.namespace === ns),
+        )
+        return delay(found ?? { kind: key, metadata: { name } })
+      },
       execCommand: (ns, podName, container, command) => {
         const pod = pods.find((p) => p.namespace === ns && p.name === podName)
         const env = pod?.containers[0]?.env ?? []

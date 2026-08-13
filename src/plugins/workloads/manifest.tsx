@@ -3,6 +3,8 @@ import { useLayoutStore } from '@/core/store/layoutStore'
 import { WorkloadsSidebar } from './WorkloadsSidebar'
 import { ResourceListPage } from './pages/ResourceListPage'
 import { ResourceDetailPage } from './pages/ResourceDetailPage'
+import { GenericListPage } from './pages/GenericListPage'
+import { GenericDetailPage } from './pages/GenericDetailPage'
 
 const LIST_COMMANDS: { resource: string; icon: string }[] = [
   { resource: 'Pods', icon: 'package' },
@@ -20,6 +22,8 @@ export const workloadsPlugin: PluginManifest = {
   tabRenderers: [
     { kind: 'workloads-list', component: ResourceListPage },
     { kind: 'workloads-detail', component: ResourceDetailPage },
+    { kind: 'generic-list', component: GenericListPage },
+    { kind: 'generic-detail', component: GenericDetailPage },
   ],
   commands: LIST_COMMANDS.map(({ resource, icon }) => ({
     id: `workloads.open${resource}`,

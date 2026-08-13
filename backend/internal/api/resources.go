@@ -119,3 +119,23 @@ func (s *Server) handleExec(w http.ResponseWriter, r *http.Request, rt *kube.Run
 	}
 	writeJSON(w, out)
 }
+
+func (s *Server) handleResourceList(w http.ResponseWriter, r *http.Request, rt *kube.Runtime) {
+	q := r.URL.Query()
+	out, err := rt.ListGeneric(r.Context(), q.Get("key"), q.Get("ns"))
+	if err != nil {
+		writeK8sErr(w, err)
+		return
+	}
+	writeJSON(w, out)
+}
+
+func (s *Server) handleResourceGet(w http.ResponseWriter, r *http.Request, rt *kube.Runtime) {
+	q := r.URL.Query()
+	out, err := rt.GetGeneric(r.Context(), q.Get("key"), q.Get("ns"), q.Get("name"))
+	if err != nil {
+		writeK8sErr(w, err)
+		return
+	}
+	writeJSON(w, out)
+}
