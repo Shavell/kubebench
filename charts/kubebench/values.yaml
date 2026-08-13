@@ -48,10 +48,13 @@ service:
 
 ingress:
   enabled: false
-  className: ""
+  # k3s ships Traefik as the default IngressClass.
+  className: traefik
   annotations: {}
   hosts:
-    - host: kubebench.local
+    # sslip.io resolves <name>.<node-ip>.sslip.io to the node IP with no
+    # DNS setup — handy for homelab/k3s. Replace with a real host + DNS.
+    - host: kubebench.10.103.0.70.sslip.io
       paths:
         - path: /
           pathType: Prefix
