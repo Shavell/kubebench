@@ -21,17 +21,29 @@ func gvr(group, version, resource string) schema.GroupVersionResource {
 // handlers; everything else flows through the generic path.
 var Catalog = map[string]ResourceType{
 	// Config
-	"configmaps": {"configmaps", "ConfigMap", gvr("", "v1", "configmaps"), true},
-	"secrets":    {"secrets", "Secret", gvr("", "v1", "secrets"), true},
+	"configmaps":                      {"configmaps", "ConfigMap", gvr("", "v1", "configmaps"), true},
+	"secrets":                         {"secrets", "Secret", gvr("", "v1", "secrets"), true},
+	"resourcequotas":                  {"resourcequotas", "ResourceQuota", gvr("", "v1", "resourcequotas"), true},
+	"limitranges":                     {"limitranges", "LimitRange", gvr("", "v1", "limitranges"), true},
+	"horizontalpodautoscalers":        {"horizontalpodautoscalers", "HorizontalPodAutoscaler", gvr("autoscaling", "v2", "horizontalpodautoscalers"), true},
+	"poddisruptionbudgets":            {"poddisruptionbudgets", "PodDisruptionBudget", gvr("policy", "v1", "poddisruptionbudgets"), true},
+	"priorityclasses":                 {"priorityclasses", "PriorityClass", gvr("scheduling.k8s.io", "v1", "priorityclasses"), false},
+	"runtimeclasses":                  {"runtimeclasses", "RuntimeClass", gvr("node.k8s.io", "v1", "runtimeclasses"), false},
+	"leases":                          {"leases", "Lease", gvr("coordination.k8s.io", "v1", "leases"), true},
+	"mutatingwebhookconfigurations":   {"mutatingwebhookconfigurations", "MutatingWebhookConfiguration", gvr("admissionregistration.k8s.io", "v1", "mutatingwebhookconfigurations"), false},
+	"validatingwebhookconfigurations": {"validatingwebhookconfigurations", "ValidatingWebhookConfiguration", gvr("admissionregistration.k8s.io", "v1", "validatingwebhookconfigurations"), false},
 	// Workloads (beyond deployments)
-	"statefulsets": {"statefulsets", "StatefulSet", gvr("apps", "v1", "statefulsets"), true},
-	"daemonsets":   {"daemonsets", "DaemonSet", gvr("apps", "v1", "daemonsets"), true},
-	"replicasets":  {"replicasets", "ReplicaSet", gvr("apps", "v1", "replicasets"), true},
-	"jobs":         {"jobs", "Job", gvr("batch", "v1", "jobs"), true},
-	"cronjobs":     {"cronjobs", "CronJob", gvr("batch", "v1", "cronjobs"), true},
+	"statefulsets":           {"statefulsets", "StatefulSet", gvr("apps", "v1", "statefulsets"), true},
+	"daemonsets":             {"daemonsets", "DaemonSet", gvr("apps", "v1", "daemonsets"), true},
+	"replicasets":            {"replicasets", "ReplicaSet", gvr("apps", "v1", "replicasets"), true},
+	"replicationcontrollers": {"replicationcontrollers", "ReplicationController", gvr("", "v1", "replicationcontrollers"), true},
+	"jobs":                   {"jobs", "Job", gvr("batch", "v1", "jobs"), true},
+	"cronjobs":               {"cronjobs", "CronJob", gvr("batch", "v1", "cronjobs"), true},
 	// Network
 	"ingresses":       {"ingresses", "Ingress", gvr("networking.k8s.io", "v1", "ingresses"), true},
+	"ingressclasses":  {"ingressclasses", "IngressClass", gvr("networking.k8s.io", "v1", "ingressclasses"), false},
 	"endpoints":       {"endpoints", "Endpoints", gvr("", "v1", "endpoints"), true},
+	"endpointslices":  {"endpointslices", "EndpointSlice", gvr("discovery.k8s.io", "v1", "endpointslices"), true},
 	"networkpolicies": {"networkpolicies", "NetworkPolicy", gvr("networking.k8s.io", "v1", "networkpolicies"), true},
 	// Storage
 	"persistentvolumeclaims": {"persistentvolumeclaims", "PersistentVolumeClaim", gvr("", "v1", "persistentvolumeclaims"), true},

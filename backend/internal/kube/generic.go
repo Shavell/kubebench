@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -24,6 +26,11 @@ func (r *Runtime) ListGeneric(ctx context.Context, key, namespace string) ([]map
 		list, err = r.Dyn.Resource(rt.GVR).List(ctx, metav1.ListOptions{})
 	}
 	if err != nil {
+		// A type not served by this cluster (older version / not installed)
+		// reads as empty rather than an error.
+		if apierrors.IsNotFound(err) || meta.IsNoMatchError(err) {
+			return []map[string]any{}, nil
+		}
 		return nil, err
 	}
 	out := make([]map[string]any, 0, len(list.Items))

@@ -119,6 +119,53 @@ export const RESOURCE_CATALOG: ResourceDescriptor[] = [
       { header: 'Keys', render: (o) => keysBadge(o, 'data') },
     ]),
   },
+  {
+    key: 'resourcequotas', kind: 'ResourceQuota', label: 'Resource Quotas', icon: 'pie-chart', group: 'Config', namespaced: true,
+    columns: withCommon(true, [{ header: 'Scopes', render: (o) => ((get(o, 'spec', 'scopes') as string[] | undefined) ?? []).join(', ') || '—' }]),
+  },
+  {
+    key: 'limitranges', kind: 'LimitRange', label: 'Limit Ranges', icon: 'symbol-ruler', group: 'Config', namespaced: true,
+    columns: withCommon(true, []),
+  },
+  {
+    key: 'horizontalpodautoscalers', kind: 'HorizontalPodAutoscaler', label: 'Horizontal Pod Autoscalers', icon: 'graph', group: 'Config', namespaced: true,
+    columns: withCommon(true, [
+      { header: 'Reference', render: (o) => `${str(o, 'spec', 'scaleTargetRef', 'kind')}/${str(o, 'spec', 'scaleTargetRef', 'name')}` },
+      { header: 'Min/Max', render: (o) => `${num(o, 'spec', 'minReplicas')} / ${num(o, 'spec', 'maxReplicas')}` },
+      { header: 'Replicas', render: (o) => str(o, 'status', 'currentReplicas') },
+    ]),
+  },
+  {
+    key: 'poddisruptionbudgets', kind: 'PodDisruptionBudget', label: 'Pod Disruption Budgets', icon: 'shield', group: 'Config', namespaced: true,
+    columns: withCommon(true, [
+      { header: 'Min Available', render: (o) => str(o, 'spec', 'minAvailable') },
+      { header: 'Max Unavailable', render: (o) => str(o, 'spec', 'maxUnavailable') },
+      { header: 'Healthy', render: (o) => str(o, 'status', 'currentHealthy') },
+    ]),
+  },
+  {
+    key: 'priorityclasses', kind: 'PriorityClass', label: 'Priority Classes', icon: 'list-ordered', group: 'Config', namespaced: false,
+    columns: withCommon(false, [
+      { header: 'Value', render: (o) => str(o, 'value'), sortValue: (o) => num(o, 'value') },
+      { header: 'Global Default', render: (o) => String(get(o, 'globalDefault') ?? false) },
+    ]),
+  },
+  {
+    key: 'runtimeclasses', kind: 'RuntimeClass', label: 'Runtime Classes', icon: 'server-process', group: 'Config', namespaced: false,
+    columns: withCommon(false, [{ header: 'Handler', render: (o) => str(o, 'handler') }]),
+  },
+  {
+    key: 'leases', kind: 'Lease', label: 'Leases', icon: 'watch', group: 'Config', namespaced: true,
+    columns: withCommon(true, [{ header: 'Holder', render: (o) => str(o, 'spec', 'holderIdentity') }]),
+  },
+  {
+    key: 'mutatingwebhookconfigurations', kind: 'MutatingWebhookConfiguration', label: 'Mutating Webhooks', icon: 'symbol-event', group: 'Config', namespaced: false,
+    columns: withCommon(false, [{ header: 'Webhooks', render: (o) => String(((get(o, 'webhooks') as unknown[]) ?? []).length) }]),
+  },
+  {
+    key: 'validatingwebhookconfigurations', kind: 'ValidatingWebhookConfiguration', label: 'Validating Webhooks', icon: 'symbol-event', group: 'Config', namespaced: false,
+    columns: withCommon(false, [{ header: 'Webhooks', render: (o) => String(((get(o, 'webhooks') as unknown[]) ?? []).length) }]),
+  },
   // Workloads
   {
     key: 'statefulsets', kind: 'StatefulSet', label: 'StatefulSets', icon: 'database', group: 'Workloads', namespaced: true,
@@ -151,6 +198,12 @@ export const RESOURCE_CATALOG: ResourceDescriptor[] = [
       { header: 'Suspend', render: (o) => String(get(o, 'spec', 'suspend') ?? false) },
     ]),
   },
+  {
+    key: 'replicationcontrollers', kind: 'ReplicationController', label: 'Replication Controllers', icon: 'copy', group: 'Workloads', namespaced: true,
+    columns: withCommon(true, [
+      { header: 'Ready', render: (o) => `${num(o, 'status', 'readyReplicas')}/${num(o, 'spec', 'replicas')}` },
+    ]),
+  },
   // Network
   {
     key: 'ingresses', kind: 'Ingress', label: 'Ingresses', icon: 'globe', group: 'Network', namespaced: true,
@@ -163,6 +216,17 @@ export const RESOURCE_CATALOG: ResourceDescriptor[] = [
           return rules.map((r) => r.host).filter(Boolean).join(', ') || '—'
         },
       },
+    ]),
+  },
+  {
+    key: 'ingressclasses', kind: 'IngressClass', label: 'Ingress Classes', icon: 'globe', group: 'Network', namespaced: false,
+    columns: withCommon(false, [{ header: 'Controller', render: (o) => str(o, 'spec', 'controller') }]),
+  },
+  {
+    key: 'endpointslices', kind: 'EndpointSlice', label: 'Endpoint Slices', icon: 'plug', group: 'Network', namespaced: true,
+    columns: withCommon(true, [
+      { header: 'Address Type', render: (o) => str(o, 'addressType') },
+      { header: 'Endpoints', render: (o) => String(((get(o, 'endpoints') as unknown[]) ?? []).length) },
     ]),
   },
   {

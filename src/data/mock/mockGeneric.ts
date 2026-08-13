@@ -106,6 +106,40 @@ export const genericMock: Record<string, KubeObject[]> = {
   clusterrolebindings: [
     obj('ClusterRoleBinding', 'cluster-admin', undefined, '92d', { roleRef: { kind: 'ClusterRole', name: 'cluster-admin' } }),
   ],
+  resourcequotas: [
+    obj('ResourceQuota', 'shop-quota', 'shop', '45d', { spec: { scopes: [] }, status: { hard: { 'requests.cpu': '4', 'requests.memory': '8Gi' } } }),
+  ],
+  limitranges: [obj('LimitRange', 'shop-limits', 'shop', '45d')],
+  horizontalpodautoscalers: [
+    obj('HorizontalPodAutoscaler', 'shop-frontend', 'shop', '45d', {
+      spec: { scaleTargetRef: { kind: 'Deployment', name: 'shop-frontend' }, minReplicas: 2, maxReplicas: 6 },
+      status: { currentReplicas: 3 },
+    }),
+  ],
+  poddisruptionbudgets: [
+    obj('PodDisruptionBudget', 'shop-frontend', 'shop', '45d', { spec: { minAvailable: 2 }, status: { currentHealthy: 2 } }),
+  ],
+  priorityclasses: [
+    obj('PriorityClass', 'system-cluster-critical', undefined, '92d', { value: 2000000000, globalDefault: false }),
+    obj('PriorityClass', 'high-priority', undefined, '45d', { value: 1000000, globalDefault: false }),
+  ],
+  runtimeclasses: [obj('RuntimeClass', 'nvidia', undefined, '30d', { handler: 'nvidia' })],
+  leases: [
+    obj('Lease', 'kube-controller-manager', 'kube-system', '92d', { spec: { holderIdentity: 'kb-control-plane_a1b2' } }),
+  ],
+  mutatingwebhookconfigurations: [
+    obj('MutatingWebhookConfiguration', 'cert-manager-webhook', undefined, '77d', { webhooks: [{}] }),
+  ],
+  validatingwebhookconfigurations: [
+    obj('ValidatingWebhookConfiguration', 'cert-manager-webhook', undefined, '77d', { webhooks: [{}, {}] }),
+  ],
+  replicationcontrollers: [],
+  ingressclasses: [
+    obj('IngressClass', 'traefik', undefined, '92d', { spec: { controller: 'traefik.io/ingress-controller' } }),
+  ],
+  endpointslices: [
+    obj('EndpointSlice', 'shop-frontend-abcde', 'shop', '45d', { addressType: 'IPv4', endpoints: [{}, {}] }),
+  ],
   events: [
     obj('Event', 'shop-payments.17a', 'shop', '2m', { type: 'Warning', reason: 'BackOff', message: 'Back-off restarting failed container', count: 14 }),
     obj('Event', 'shop-frontend.18b', 'shop', '26m', { type: 'Warning', reason: 'FailedScheduling', message: '0/3 nodes are available: insufficient cpu', count: 12 }),
