@@ -55,18 +55,22 @@ Utilization series come from one of two backends, selectable in Settings:
 
 ## Live-mode capability matrix
 
-What is real depends on the kubeconfig's RBAC. With a read-mostly service
-account (the current demo credentials):
+On activation the proxy probes what the cluster + local tooling allow and
+reports capabilities to the UI; each module independently runs live or falls
+back to mock. Auth supports bearer tokens **and** client certificates.
 
-| Capability | Needs | Status with demo credentials |
+| Capability | Needs | Fallback when unavailable |
 |---|---|---|
-| Resource lists / detail / YAML / events | `list`, `get` | ✅ live |
-| Pod logs | `pods/log` | ✅ live |
-| Usage & allocation metrics | metrics-server, or `services/proxy` + Prometheus | ✅ live |
-| Delete pod, scale/restart deployment | `delete pods`, `patch deployments` | ⚠️ endpoint wired; RBAC errors shown as inline banners |
-| Helm releases | `secrets` | ❌ mock |
-| CRD browsing | `customresourcedefinitions` | ❌ mock |
-| Exec into container | `pods/exec` | ❌ mock shell |
+| Resource lists / detail / YAML / events | `list`, `get` | — (mode is mock entirely) |
+| Pod logs | `pods/log` | error shown |
+| Usage & allocation metrics | metrics-server, or `services/proxy` + Prometheus | mock series |
+| Delete pod, scale/restart deployment | `delete pods`, `patch deployments` | RBAC error banner |
+| Helm (releases, history, values, rollback, uninstall) | local `helm` binary + `secrets` access | mock module |
+| CRD browsing (defs + instances + YAML) | `customresourcedefinitions` + CR groups | mock module |
+| Exec (one-shot commands) | local `kubectl` + `pods/exec` | mock shell |
+
+With admin credentials (e.g. the homelab k3s cluster) everything above runs
+live; with the read-mostly EKS demo credentials, Helm/CRDs/exec fall back.
 
 ## Documentation
 

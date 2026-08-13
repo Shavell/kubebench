@@ -19,6 +19,9 @@ const round1 = (n) => Math.round(n * 10) / 10
 import { readFileSync } from 'node:fs'
 import { inventoryPath, loadInventory, saveInventory } from './inventory.mjs'
 import { discoverPrometheus } from './prometheus.mjs'
+import { cliAvailable, runCli } from './cli.mjs'
+import { createHelmCli } from './helm.mjs'
+import { getCustomResourceByKind, listCrds, listCustomResources } from './crds.mjs'
 
 const PORT = Number(process.env.PORT ?? 9876)
 
@@ -47,7 +50,14 @@ function activateCluster(name) {
   }
   const kube = createKubeClient(entry.kubeconfigPath)
   active?.metrics?.stop()
-  active = { name, kube, metrics: startMetricsSampler(kube), prom: null }
+  active = {
+    name,
+    kube,
+    metrics: startMetricsSampler(kube),
+    prom: null,
+    helm: null,
+    capabilities: { crds: false, helm: false, exec: false },
+  }
   inventory.active = name
   saveInventory(inventory)
   console.log(`[kube] active=${name} context=${kube.contextName} server=${kube.server}`)
@@ -56,6 +66,41 @@ function activateCluster(name) {
     if (active === current) active.prom = prom
     if (!prom) console.log('[prometheus] not found or not reachable — using metrics-server only')
   })
+  probeCapabilities(current)
+}
+
+/** Detect what this cluster + local tooling can do; drives live/mock per module. */
+async function probeCapabilities(target) {
+  const { kube, capabilities } = target
+  try {
+    await kube.getJSON('/apis/apiextensions.k8s.io/v1/customresourcedefinitions?limit=1')
+    capabilities.crds = true
+  } catch {
+    /* stays false */
+  }
+  if (await cliAvailable('helm')) {
+    // helm needs to read release secrets; probe with a cheap list.
+    try {
+      await runCli('helm', ['list', '-A', '--max', '1', '-o', 'json'], kube.kubeconfigPath)
+      capabilities.helm = true
+      target.helm = createHelmCli(kube.kubeconfigPath)
+    } catch {
+      /* stays false */
+    }
+  }
+  if (await cliAvailable('kubectl')) {
+    try {
+      const ssar = await kube.postJSON('/apis/authorization.k8s.io/v1/selfsubjectaccessreviews', {
+        apiVersion: 'authorization.k8s.io/v1',
+        kind: 'SelfSubjectAccessReview',
+        spec: { resourceAttributes: { verb: 'create', resource: 'pods', subresource: 'exec' } },
+      })
+      capabilities.exec = Boolean(ssar.status?.allowed)
+    } catch {
+      /* stays false */
+    }
+  }
+  console.log(`[capabilities] ${JSON.stringify(capabilities)}`)
 }
 
 // Seed the inventory from KUBECONFIG on first run.
@@ -81,6 +126,12 @@ console.log(`[inventory] ${inventory.clusters.length} cluster(s) in ${inventoryP
 function requireActive() {
   if (!active) throw Object.assign(new Error('no active cluster'), { status: 503 })
   return active
+}
+
+function requireHelm() {
+  const helm = requireActive().helm
+  if (!helm) throw Object.assign(new Error('helm is not available for this cluster'), { status: 501 })
+  return helm
 }
 
 const kube = new Proxy({}, { get: (_t, prop) => requireActive().kube[prop] })
@@ -126,7 +177,39 @@ const routes = {
     context: kube.contextName,
     server: kube.server,
     namespace: kube.namespace ?? null,
+    capabilities: requireActive().capabilities,
   }),
+
+  'GET /api/crds': async () => listCrds(kube),
+  'GET /api/crds/instances': async (q) => listCustomResources(kube, q.get('crd')),
+
+  'GET /api/helm/releases': async () => requireHelm().listReleases(),
+  'GET /api/helm/repos': async () => requireHelm().listRepositories(),
+  'GET /api/helm/values': async (q) => ({
+    yaml: await requireHelm().getValuesYaml(q.get('name'), q.get('ns')),
+  }),
+  'POST /api/helm/rollback': async (q) => {
+    await requireHelm().rollback(q.get('name'), q.get('ns'), Number(q.get('revision')))
+    return { ok: true }
+  },
+  'POST /api/helm/uninstall': async (q) => {
+    await requireHelm().uninstall(q.get('name'), q.get('ns'))
+    return { ok: true }
+  },
+
+  'POST /api/exec': async (q) => {
+    const [ns, pod, container, cmd] = ['ns', 'pod', 'container', 'cmd'].map((k) => q.get(k))
+    if (!requireActive().capabilities.exec) {
+      throw Object.assign(new Error('exec is not available (RBAC or kubectl missing)'), { status: 501 })
+    }
+    const out = await runCli(
+      'kubectl',
+      ['exec', pod, '-n', ns, '-c', container, '--', 'sh', '-c', cmd],
+      requireActive().kube.kubeconfigPath,
+      { timeoutMs: 20_000 },
+    ).catch((err) => `${err.message}`)
+    return out.replace(/\n$/, '').split('\n')
+  },
 
   'GET /api/clusters': async () =>
     inventory.clusters.map((c) => ({
@@ -177,8 +260,10 @@ const routes = {
   'GET /api/yaml': async (q) => {
     const kind = q.get('kind')
     const pathFor = KIND_PATHS[kind]
-    if (!pathFor) return { yaml: `# unsupported kind ${kind}` }
-    const obj = await kube.getJSON(pathFor(q.get('ns'), q.get('name')))
+    const obj = pathFor
+      ? await kube.getJSON(pathFor(q.get('ns'), q.get('name')))
+      : await getCustomResourceByKind(kube, kind, q.get('ns') || undefined, q.get('name'))
+    if (!obj) return { yaml: `# ${kind} ${q.get('name')} not found` }
     delete obj.metadata?.managedFields
     return { yaml: yaml.dump(obj, { noRefs: true, lineWidth: 140 }) }
   },

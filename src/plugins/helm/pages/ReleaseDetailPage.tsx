@@ -30,7 +30,7 @@ export function ReleaseDetailPage({ tab }: { tab: TabDescriptor }) {
   }
 
   const openValues = async () => {
-    const text = await providers.helm.getReleaseValuesYaml(name)
+    const text = await providers.helm.getReleaseValuesYaml(name, release.namespace)
     openTab({
       id: `helm-values:${name}`,
       title: `${name} · values.yaml`,
@@ -43,13 +43,13 @@ export function ReleaseDetailPage({ tab }: { tab: TabDescriptor }) {
   const rollback = async (revision: number) => {
     if (busy) return
     setBusy(true)
-    await providers.helm.rollbackRelease(name, revision)
+    await providers.helm.rollbackRelease(name, release.namespace, revision)
     refreshData()
     setBusy(false)
   }
 
   const uninstall = async () => {
-    await providers.helm.uninstallRelease(name)
+    await providers.helm.uninstallRelease(name, release.namespace)
     refreshData()
     closeTab(tab.id)
   }

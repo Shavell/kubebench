@@ -89,6 +89,43 @@ export function createMockProviders(): DataProviders {
       },
       listEvents: (kind, ns, name) => delay(eventsFor(kind, ns, name)),
       getPodLogs: (_ns, pod, container) => delay(podLogs(pod, container)),
+      execCommand: (ns, podName, container, command) => {
+        const pod = pods.find((p) => p.namespace === ns && p.name === podName)
+        const env = pod?.containers[0]?.env ?? []
+        const [bin, ...args] = command.trim().split(/\s+/)
+        const out = (() => {
+          switch (bin) {
+            case '':
+              return []
+            case 'help':
+              return ['Mock shell. Try: ls, pwd, whoami, hostname, env, ps, uname']
+            case 'ls':
+              return ['app  bin  dev  etc  home  lib  proc  root  sys  tmp  usr  var']
+            case 'pwd':
+              return ['/']
+            case 'whoami':
+              return ['root']
+            case 'hostname':
+              return [podName]
+            case 'uname':
+              return [`Linux ${podName} 6.6.16 #1 SMP x86_64 GNU/Linux`]
+            case 'env':
+              return [
+                `HOSTNAME=${podName}`,
+                'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
+                'KUBERNETES_SERVICE_HOST=10.96.0.1',
+                ...env.map((e) => `${e.name}=${e.value}`),
+              ]
+            case 'ps':
+              return ['PID   USER     COMMAND', `1     root     /app/${container}`, '27    root     sh']
+            case 'cat':
+              return args.length ? [`cat: ${args[0]}: Permission denied (mock)`] : ['usage: cat FILE']
+            default:
+              return [`/bin/sh: ${bin}: command not found`]
+          }
+        })()
+        return delay(out)
+      },
       deletePod: (ns, name) => {
         const idx = pods.findIndex((p) => p.namespace === ns && p.name === name)
         if (idx >= 0) pods.splice(idx, 1)
@@ -132,8 +169,8 @@ export function createMockProviders(): DataProviders {
     helm: {
       listReleases: () => delay(releases),
       listRepositories: () => delay(repositories),
-      getReleaseValuesYaml: (name) => delay(valuesYaml[name] ?? `# no values for ${name}`),
-      rollbackRelease: (name, revision) => {
+      getReleaseValuesYaml: (name, _ns) => delay(valuesYaml[name] ?? `# no values for ${name}`),
+      rollbackRelease: (name, _ns, revision) => {
         const release = releases.find((r) => r.name === name)
         if (release) {
           const newRevision = release.revision + 1
@@ -152,7 +189,7 @@ export function createMockProviders(): DataProviders {
         }
         return delay(undefined)
       },
-      uninstallRelease: (name) => {
+      uninstallRelease: (name, _ns) => {
         const idx = releases.findIndex((r) => r.name === name)
         if (idx >= 0) releases.splice(idx, 1)
         return delay(undefined)

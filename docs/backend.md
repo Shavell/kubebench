@@ -13,16 +13,20 @@ Vite proxies `/api` → `http://localhost:9876` in dev.
 
 ## Authentication
 
-`server/kube.mjs` reads the kubeconfig's current context and expects a
-**bearer token** user (service-account kubeconfigs). Exec/cloud-provider auth
-plugins and client certificates are not supported. The CA from
+`server/kube.mjs` reads the kubeconfig's current context and supports
+**bearer token** users (service-account kubeconfigs) and **client
+certificates** (`client-certificate-data`/`client-key-data`, e.g. k3s).
+Exec/cloud-provider auth plugins are not supported. The CA from
 `certificate-authority-data` is used to verify the API server.
 
 ## Files
 
 | File | Responsibility |
 |---|---|
-| `index.mjs` | routes, active-cluster state, allocation computation |
+| `index.mjs` | routes, active-cluster state, capability probing, allocation computation |
+| `cli.mjs` | safe child-process wrapper for local `helm`/`kubectl` |
+| `helm.mjs` | real Helm ops via the `helm` binary (list/history/values/rollback/uninstall) |
+| `crds.mjs` | CRD list + dynamic custom-resource listing (additionalPrinterColumns) |
 | `kube.mjs` | kubeconfig parsing + authenticated HTTP client |
 | `mappers.mjs` | raw K8s objects → UI domain shapes; quantity/age parsing |
 | `metricsSampler.mjs` | 15s metrics-server polling into a ring buffer (240 samples ≈ 1h) |
@@ -65,6 +69,26 @@ from `KUBECONFIG`.
 
 Kubernetes error messages pass through verbatim with their status codes; the
 UI shows them as inline banners.
+
+### CRDs, Helm, exec (capability-gated)
+
+`GET /api/info` includes `capabilities: {crds, helm, exec}` probed per
+cluster: CRD list access, `helm list` success (binary + secrets RBAC), and a
+`pods/exec` SelfSubjectAccessReview + local `kubectl`. The frontend picks
+live or mock per module accordingly.
+
+| Route | Notes |
+|---|---|
+| `GET /api/crds` | CRD definitions |
+| `GET /api/crds/instances?crd=` | custom resources; extra columns from `additionalPrinterColumns` |
+| `GET /api/helm/releases` | releases with history (`helm list` + `helm history`) |
+| `GET /api/helm/repos` · `/api/helm/values?name=&ns=` | repos, user-supplied values |
+| `POST /api/helm/rollback?name=&ns=&revision=` | `helm rollback` |
+| `POST /api/helm/uninstall?name=&ns=` | `helm uninstall` |
+| `POST /api/exec?ns=&pod=&container=&cmd=` | one-shot `kubectl exec -- sh -c <cmd>`, returns output lines |
+
+`/api/yaml` also resolves unknown kinds through the CRD registry, so custom
+resources render as YAML too.
 
 ### Metrics
 

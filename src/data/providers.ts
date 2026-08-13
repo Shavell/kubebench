@@ -33,6 +33,8 @@ export interface ClusterProvider {
   getResourceYaml(kind: string, namespace: string | null, name: string): Promise<string>
   listEvents(kind: string, namespace: string | null, name: string): Promise<K8sEvent[]>
   getPodLogs(namespace: string, pod: string, container: string): Promise<string[]>
+  /** Runs one command in a container and returns its output lines. */
+  execCommand(namespace: string, pod: string, container: string, command: string): Promise<string[]>
   /** Mutations are visual-only: they mutate the mock dataset in memory. */
   deletePod(namespace: string, name: string): Promise<void>
   scaleDeployment(namespace: string, name: string, replicas: number): Promise<void>
@@ -47,10 +49,10 @@ export interface CrdProvider {
 export interface HelmProvider {
   listReleases(): Promise<HelmRelease[]>
   listRepositories(): Promise<HelmRepo[]>
-  getReleaseValuesYaml(name: string): Promise<string>
+  getReleaseValuesYaml(name: string, namespace: string): Promise<string>
   /** Creates a new revision that restores the given one, like `helm rollback`. */
-  rollbackRelease(name: string, revision: number): Promise<void>
-  uninstallRelease(name: string): Promise<void>
+  rollbackRelease(name: string, namespace: string, revision: number): Promise<void>
+  uninstallRelease(name: string, namespace: string): Promise<void>
 }
 
 export interface MetricsProvider {

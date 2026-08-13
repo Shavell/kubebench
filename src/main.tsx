@@ -19,10 +19,14 @@ async function createProviders(): Promise<DataProviders> {
   try {
     const res = await fetch('/api/info', { signal: AbortSignal.timeout(1500) })
     if (!res.ok) throw new Error(String(res.status))
-    const info = (await res.json()) as { context: string; server: string }
+    const info = (await res.json()) as {
+      context: string
+      server: string
+      capabilities?: { crds: boolean; helm: boolean; exec: boolean }
+    }
     setDataMode({ mode: 'live', context: info.context, server: info.server })
     useContextStore.setState({ contexts: [info.context], activeContext: info.context })
-    return createApiProviders()
+    return createApiProviders(info.capabilities ?? { crds: false, helm: false, exec: false })
   } catch {
     setDataMode({ mode: 'mock', context: 'kind-dev-cluster (mock)' })
     return createMockProviders()

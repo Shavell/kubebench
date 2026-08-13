@@ -21,11 +21,21 @@ export function createKubeClient(path) {
   const server = cluster?.cluster?.server
   const caData = cluster?.cluster?.['certificate-authority-data']
   const token = user?.user?.token
+  const certData = user?.user?.['client-certificate-data']
+  const keyData = user?.user?.['client-key-data']
   if (!server) throw new Error(`No cluster server found in ${kubeconfigPath}`)
-  if (!token) throw new Error(`No bearer token in ${kubeconfigPath} (exec/cert auth not supported)`)
+  if (!token && !(certData && keyData)) {
+    throw new Error(
+      `No bearer token or client certificate in ${kubeconfigPath} (exec plugins not supported)`,
+    )
+  }
 
+  const b64 = (data) => Buffer.from(data, 'base64').toString('utf8')
   const dispatcher = new Agent({
-    connect: caData ? { ca: Buffer.from(caData, 'base64').toString('utf8') } : { rejectUnauthorized: false },
+    connect: {
+      ...(caData ? { ca: b64(caData) } : { rejectUnauthorized: false }),
+      ...(certData && keyData ? { cert: b64(certData), key: b64(keyData) } : {}),
+    },
   })
 
   async function request(path, { method = 'GET', body, contentType } = {}) {
@@ -33,7 +43,7 @@ export function createKubeClient(path) {
       method,
       dispatcher,
       headers: {
-        Authorization: `Bearer ${token}`,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(contentType ? { 'Content-Type': contentType } : {}),
       },
       body: body ? JSON.stringify(body) : undefined,
@@ -57,8 +67,11 @@ export function createKubeClient(path) {
     contextName,
     server,
     namespace: context.namespace,
+    kubeconfigPath,
     getJSON: async (path) => JSON.parse(await request(path)),
     getRaw: (path) => request(path),
+    postJSON: async (path, body) =>
+      JSON.parse(await request(path, { method: 'POST', body, contentType: 'application/json' })),
     delete: (path) => request(path, { method: 'DELETE' }),
     mergePatch: (path, body) =>
       request(path, { method: 'PATCH', body, contentType: 'application/merge-patch+json' }),

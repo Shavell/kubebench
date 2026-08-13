@@ -8,10 +8,10 @@ import { useSettingsStore } from '@/core/store/settingsStore'
  * Real providers backed by the local proxy server (server/index.mjs),
  * which talks to the cluster from the kubeconfig.
  *
- * Not everything is live yet — limited by the current kubeconfig's RBAC:
- * - helm & crd: mock (secrets/CRD list are forbidden)
- * - network/fs metrics: mock series (metrics-server has no such data)
- * Swap those pieces as broader credentials arrive.
+ * What is live depends on the capabilities the proxy reports for the
+ * active cluster (RBAC + local tooling): crd/helm/exec fall back to the
+ * mock implementations when unavailable, and metric series fall back to
+ * mock data when the selected source cannot provide them.
  */
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
@@ -43,7 +43,13 @@ async function liveOrMockSeries(
   }
 }
 
-export function createApiProviders(): DataProviders {
+export interface LiveCapabilities {
+  crds: boolean
+  helm: boolean
+  exec: boolean
+}
+
+export function createApiProviders(capabilities: LiveCapabilities): DataProviders {
   const mock = createMockProviders()
 
   return {
@@ -62,6 +68,12 @@ export function createApiProviders(): DataProviders {
       listEvents: (_kind, ns, name) => api(`/events?ns=${ns ?? ''}&name=${name}`),
       getPodLogs: (ns, pod, container) =>
         api(`/logs?ns=${ns}&pod=${pod}&container=${container}`),
+      execCommand: (ns, pod, container, command) =>
+        capabilities.exec
+          ? api(`/exec?ns=${ns}&pod=${pod}&container=${container}&cmd=${encodeURIComponent(command)}`, {
+              method: 'POST',
+            })
+          : mock.cluster.execCommand(ns, pod, container, command),
       deletePod: async (ns, name) => {
         await api(`/pods?ns=${ns}&name=${name}`, { method: 'DELETE' })
       },
@@ -74,8 +86,26 @@ export function createApiProviders(): DataProviders {
         await api(`/deployments/restart?ns=${ns}&name=${name}`, { method: 'POST' })
       },
     },
-    crd: mock.crd,
-    helm: mock.helm,
+    crd: capabilities.crds
+      ? {
+          listCrds: () => api('/crds'),
+          listCustomResources: (crdName) => api(`/crds/instances?crd=${crdName}`),
+        }
+      : mock.crd,
+    helm: capabilities.helm
+      ? {
+          listReleases: () => api('/helm/releases'),
+          listRepositories: () => api('/helm/repos'),
+          getReleaseValuesYaml: async (name, ns) =>
+            (await api<{ yaml: string }>(`/helm/values?name=${name}&ns=${ns}`)).yaml,
+          rollbackRelease: async (name, ns, revision) => {
+            await api(`/helm/rollback?name=${name}&ns=${ns}&revision=${revision}`, { method: 'POST' })
+          },
+          uninstallRelease: async (name, ns) => {
+            await api(`/helm/uninstall?name=${name}&ns=${ns}`, { method: 'POST' })
+          },
+        }
+      : mock.helm,
     inventory: {
       listClusters: () => api('/clusters'),
       addCluster: async ({ name, kubeconfigPath, address }) => {
