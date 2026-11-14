@@ -74,6 +74,15 @@ kubectl delete clusterrolebinding kubebench
 kubectl delete namespace kubebench
 ```
 
+## Another namespace
+
+The objects can be rendered for any namespace from a checkout:
+
+```bash
+scripts/render-manifests.sh --namespace tools --output kubebench-tools.yaml
+kubectl apply -f kubebench-tools.yaml
+```
+
 ## Regenerate
 
 `kubebench.yaml` is generated; change the chart or `values.yaml`, then run

@@ -3,8 +3,9 @@
 # from the Helm chart, so `kubectl apply -f` installs the same objects as
 # `helm install` with deploy/kubernetes/values.yaml, plus the Namespace.
 #
-# Usage: scripts/render-manifests.sh [--version X.Y.Z] [--output FILE] [--check]
+# Usage: scripts/render-manifests.sh [--version X.Y.Z] [--namespace NS] [--output FILE] [--check]
 #   --version X.Y.Z  image tag to render (default: the chart's appVersion)
+#   --namespace NS   namespace to create and install into (default: kubebench)
 #   --output FILE    destination (default: deploy/kubernetes/kubebench.yaml; "-" = stdout)
 #   --check          do not write; exit 1 when FILE differs from a fresh render
 #
@@ -19,18 +20,21 @@ version=""
 check=0
 
 die() { printf 'render-manifests: %s\n' "$*" >&2; exit 1; }
+usage() { awk 'NR > 1 { if (!/^#/) exit; sub(/^# ?/, ""); print }' "${BASH_SOURCE[0]}"; }
 
 while (($#)); do
   case "$1" in
     --version) version="${2:?--version needs a value}"; version="${version#v}"; shift 2 ;;
+    --namespace) namespace="${2:?--namespace needs a value}"; shift 2 ;;
     --output) output="${2:?--output needs a value}"; shift 2 ;;
     --check) check=1; shift ;;
-    -h | --help) sed -n '2,11s/^# \{0,1\}//p' "${BASH_SOURCE[0]}"; exit 0 ;;
+    -h | --help) usage; exit 0 ;;
     *) die "unknown argument: $1 (see --help)" ;;
   esac
 done
 
 command -v helm >/dev/null 2>&1 || die "helm is required"
+[[ "$namespace" =~ ^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$ ]] || die "--namespace must be a DNS label"
 
 chart_field() { sed -n "s/^$1:[[:space:]]*\"\{0,1\}\([^\"]*\)\"\{0,1\}[[:space:]]*$/\1/p" "$chart/Chart.yaml"; }
 chart_version="$(chart_field version)"
