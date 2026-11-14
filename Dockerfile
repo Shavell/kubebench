@@ -1,29 +1,73 @@
 # syntax=docker/dockerfile:1
 
-# 1. Build the frontend.
-FROM node:22-alpine AS frontend
-WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN npm ci
-COPY . .
+# KubeBench image: the Go server with the built frontend embedded, on a
+# distroless nonroot base. The build stages run on the build host
+# ($BUILDPLATFORM) and cross-compile for $TARGETOS/$TARGETARCH, so a
+# multi-arch build needs no emulation:
+#
+#   docker buildx build --platform linux/amd64,linux/arm64 \
+#     --build-arg VERSION=0.5.0 --build-arg COMMIT="$(git rev-parse --short HEAD)" \
+#     --build-arg DATE="$(git log -1 --format=%cI)" -t ghcr.io/shavell/kube-bench:0.5.0 .
+#
+# `make image` does the same for the local platform.
+
+# 1. Frontend (Vite) -> /src/dist
+FROM --platform=$BUILDPLATFORM node:24-trixie-slim AS frontend
+WORKDIR /src
+COPY package.json package-lock.json ./
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --no-audit --no-fund
+COPY index.html vite.config.ts tsconfig*.json ./
+COPY public/ public/
+COPY src/ src/
 RUN npm run build
 
-# 2. Build the Go binary with the frontend embedded.
-FROM golang:1.26-alpine AS backend
+# 2. Go server with the frontend embedded (go:embed of internal/web/dist).
+# CGO stays off: SQLite is the pure-Go modernc driver.
+FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS backend
 WORKDIR /src
 COPY backend/go.mod backend/go.sum ./
-RUN go mod download
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
 COPY backend/ ./
-# Replace the placeholder embed dir with the real build.
-RUN rm -rf internal/web/dist
-COPY --from=frontend /app/dist ./internal/web/dist
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /kubebench .
+COPY --from=frontend /src/dist/ internal/web/dist/
+ARG TARGETOS
+ARG TARGETARCH
+ARG VERSION=dev
+ARG COMMIT=none
+ARG DATE=unknown
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
+    go build -trimpath \
+      -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${COMMIT} -X main.date=${DATE}" \
+      -o /out/kubebench . \
+ && mkdir /out/data
 
-# 3. Minimal runtime image.
-FROM gcr.io/distroless/static-debian12:nonroot
-COPY --from=backend /kubebench /kubebench
-ENV KUBEBENCH_DB=/data/kubebench.db PORT=9876
+# 3. Runtime: static binary only; no shell, no package manager.
+FROM gcr.io/distroless/static-debian13:nonroot
+ARG VERSION=dev
+ARG COMMIT=none
+ARG DATE=unknown
+# TODO: set once the project picks a license (org.opencontainers.image.licenses).
+LABEL org.opencontainers.image.title="KubeBench" \
+      org.opencontainers.image.description="VSCode-style Kubernetes workbench: workloads, logs, shells, YAML, Helm and metrics for many clusters in one web UI" \
+      org.opencontainers.image.url="https://github.com/Shavell/kube-bench" \
+      org.opencontainers.image.source="https://github.com/Shavell/kube-bench" \
+      org.opencontainers.image.documentation="https://github.com/Shavell/kube-bench/blob/main/docs/deployment.md" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.revision="${COMMIT}" \
+      org.opencontainers.image.created="${DATE}"
+COPY --from=backend /out/kubebench /kubebench
+# An image-owned /data lets Docker seed named volumes with nonroot ownership.
+COPY --from=backend --chown=65532:65532 /out/data /data
+ENV PORT=9876 \
+    KUBEBENCH_DATA_DIR=/data \
+    KUBEBENCH_DB=/data/kubebench.db
 EXPOSE 9876
 VOLUME ["/data"]
-USER nonroot:nonroot
+USER 65532:65532
+# distroless has no shell or curl: the binary probes its own /healthz.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD ["/kubebench", "healthcheck"]
 ENTRYPOINT ["/kubebench"]

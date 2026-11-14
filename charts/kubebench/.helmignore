@@ -1,0 +1,13 @@
+# Patterns excluded from `helm package`.
+.DS_Store
+.git/
+.gitignore
+.idea/
+.vscode/
+*.swp
+*.bak
+*.tmp
+*.orig
+*~
+# Lint scenarios used by scripts/lint-chart.sh
+ci/

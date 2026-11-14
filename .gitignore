@@ -27,3 +27,7 @@ dist-ssr
 kubebench.db*
 backend/internal/web/dist/
 !backend/internal/web/dist/.gitkeep
+
+# Build and release outputs (Makefile, GoReleaser, scripts/offline-bundle.sh)
+/bin/
+/build/

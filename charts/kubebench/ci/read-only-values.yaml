@@ -1,0 +1,7 @@
+# Read-only RBAC preset with an extra CRD group and a chart-managed password.
+auth:
+  adminPassword: change-me-please
+rbac:
+  preset: read-only
+  readOnly:
+    extraApiGroups: [cert-manager.io]

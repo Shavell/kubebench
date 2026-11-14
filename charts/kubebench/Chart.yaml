@@ -1,13 +1,22 @@
 apiVersion: v2
 name: kubebench
-description: VSCode-style Kubernetes dashboard & workbench
+description: VSCode-style Kubernetes workbench - workloads, logs, shells, YAML, Helm releases and metrics for many clusters in one web UI
 type: application
-version: 0.1.0
-appVersion: "0.1.0"
-home: https://github.com/your-org/kubebench
+# Chart and app share one version line; bump both for every release.
+version: 0.5.0
+appVersion: "0.5.0"
+kubeVersion: ">=1.25.0-0"
+home: https://github.com/Shavell/kube-bench
 sources:
-  - https://github.com/your-org/kubebench
+  - https://github.com/Shavell/kube-bench
+icon: https://raw.githubusercontent.com/Shavell/kube-bench/main/public/favicon.svg
 keywords:
   - kubernetes
   - dashboard
   - workbench
+  - helm
+  - devops
+maintainers:
+  - name: Shavell
+    url: https://github.com/Shavell
+# TODO: set once the project picks a license (artifacthub.io/license annotation).

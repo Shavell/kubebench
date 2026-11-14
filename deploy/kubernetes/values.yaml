@@ -1,0 +1,12 @@
+# Chart values behind deploy/kubernetes/kubebench.yaml (scripts/render-manifests.sh).
+# Everything not listed here keeps the chart default.
+
+auth:
+  # No password Secret in a file meant to be committed and shared: the server
+  # bootstraps admin/admin and forces a password change at the first sign-in.
+  createSecret: false
+
+persistence:
+  # helm.sh/resource-policy means nothing to kubectl; see README.md for how
+  # to uninstall without deleting the data volume.
+  keep: false

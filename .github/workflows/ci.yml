@@ -1,0 +1,153 @@
+name: CI
+
+# CI is intentionally manual for now (workflow_dispatch only); uncomment the
+# triggers below to run it on every push and pull request.
+on:
+  workflow_dispatch:
+  # push:
+  #   branches: [main, "release/**"]
+  # pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "24"
+  KUBECONFORM_VERSION: v0.8.0
+  ACTIONLINT_VERSION: v1.7.12
+
+jobs:
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Lint
+        run: npm run lint
+      - name: Type-check
+        run: npx tsc -b
+      - name: Build
+        run: npm run build
+      - name: Check translations
+        run: npm run i18n:check
+
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: gofmt
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [[ -n "$unformatted" ]]; then
+            echo "::error::gofmt needed: $unformatted"
+            exit 1
+          fi
+      - name: Vet
+        run: go vet ./...
+      - name: Test
+        run: go test -race ./...
+      # internal/web/dist only holds .gitkeep in git; a placeholder page makes
+      # the binary embed and serve a frontend without building it here.
+      - name: Embed a placeholder frontend
+        run: printf '<!doctype html>\n<title>KubeBench CI</title>\n' >internal/web/dist/index.html
+      - name: Build
+        run: |
+          CGO_ENABLED=0 go build -trimpath \
+            -ldflags "-s -w -X main.version=ci -X main.commit=${GITHUB_SHA::7}" \
+            -o "$RUNNER_TEMP/kubebench" .
+          "$RUNNER_TEMP/kubebench" --version
+
+  chart:
+    name: Helm chart (${{ matrix.helm }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        helm: [v3.22.1, v4.3.2]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: azure/setup-helm@v5
+        with:
+          version: ${{ matrix.helm }}
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: backend/go.mod
+          cache: false
+      - name: Install kubeconform
+        run: go install "github.com/yannh/kubeconform/cmd/kubeconform@${KUBECONFORM_VERSION}"
+      - name: Lint and validate the chart
+        run: scripts/lint-chart.sh
+      - name: Check the rendered manifests are current
+        run: scripts/render-manifests.sh --check
+
+  packaging:
+    name: Packaging config
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Check .goreleaser.yaml
+        uses: goreleaser/goreleaser-action@v7
+        with:
+          version: "~> v2"
+          args: check
+      - name: Lint the Dockerfile
+        run: docker buildx build --check .
+
+  shell:
+    name: Shell scripts
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: shellcheck
+        run: |
+          shellcheck --version
+          shellcheck install.sh scripts/*.sh packaging/scripts/*.sh
+
+  actionlint:
+    name: Workflows
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: backend/go.mod
+          cache: false
+      - name: Install actionlint
+        run: go install "github.com/rhysd/actionlint/cmd/actionlint@${ACTIONLINT_VERSION}"
+      - name: actionlint
+        run: actionlint -color

@@ -1,0 +1,88 @@
+{{- if .Values.rbac.create }}
+{{- $fullname := include "kubebench.fullname" . }}
+{{- $preset := .Values.rbac.preset }}
+{{- if ne $preset "cluster-admin" }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ $fullname }}
+  labels:
+    {{- include "kubebench.labels" . | nindent 4 }}
+rules:
+{{- if eq $preset "read-only" }}
+  # RBAC cannot exclude a single resource from a wildcard, so the core group is
+  # listed resource by resource: everything except secrets, and no exec,
+  # attach, port-forward or node proxy subresources.
+  - apiGroups: [""]
+    resources:
+      - componentstatuses
+      - configmaps
+      - endpoints
+      - events
+      - limitranges
+      - namespaces
+      - nodes
+      - persistentvolumeclaims
+      - persistentvolumes
+      - pods
+      - pods/log
+      - podtemplates
+      - replicationcontrollers
+      - resourcequotas
+      - serviceaccounts
+      - services
+    verbs: [get, list, watch]
+  # Prometheus is queried through the API server's service proxy.
+  - apiGroups: [""]
+    resources: [services/proxy]
+    verbs: [get]
+  # Built-in groups hold no Secrets, so whole groups are readable, plus the
+  # CRD groups the KubeBench plugins understand.
+  - apiGroups:
+      - admissionregistration.k8s.io
+      - apiextensions.k8s.io
+      - apiregistration.k8s.io
+      - apps
+      - autoscaling
+      - batch
+      - certificates.k8s.io
+      - coordination.k8s.io
+      - discovery.k8s.io
+      - events.k8s.io
+      - flowcontrol.apiserver.k8s.io
+      - metrics.k8s.io
+      - networking.k8s.io
+      - node.k8s.io
+      - policy
+      - rbac.authorization.k8s.io
+      - resource.k8s.io
+      - scheduling.k8s.io
+      - storage.k8s.io
+      - argoproj.io
+      - gateway.networking.k8s.io
+      - snapshot.storage.k8s.io
+      {{- range .Values.rbac.readOnly.extraApiGroups }}
+      - {{ . | quote }}
+      {{- end }}
+    resources: ["*"]
+    verbs: [get, list, watch]
+{{- else }}
+  {{- toYaml .Values.rbac.rules | nindent 2 }}
+{{- end }}
+---
+{{- end }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ $fullname }}
+  labels:
+    {{- include "kubebench.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ eq $preset "cluster-admin" | ternary "cluster-admin" $fullname }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "kubebench.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}

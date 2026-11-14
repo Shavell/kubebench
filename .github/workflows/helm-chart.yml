@@ -1,0 +1,70 @@
+name: Helm chart
+
+# CI is intentionally manual for now (workflow_dispatch only); uncomment the
+# trigger below to lint the chart whenever it changes.
+on:
+  workflow_dispatch:
+    inputs:
+      push:
+        description: Push the packaged chart to oci://ghcr.io/shavell/charts
+        type: boolean
+        default: false
+  # push:
+  #   branches: [main]
+  #   paths: ["charts/**", "deploy/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CHART_REPOSITORY: oci://ghcr.io/shavell/charts
+  HELM_VERSION: v3.22.1
+  KUBECONFORM_VERSION: v0.8.0
+
+jobs:
+  chart:
+    name: Lint, package${{ inputs.push && ' and push' || '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write # only used when pushing
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: azure/setup-helm@v5
+        with:
+          version: ${{ env.HELM_VERSION }}
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: backend/go.mod
+          cache: false
+      - name: Install kubeconform
+        run: go install "github.com/yannh/kubeconform/cmd/kubeconform@${KUBECONFORM_VERSION}"
+      - name: Lint and validate
+        run: |
+          scripts/lint-chart.sh
+          scripts/render-manifests.sh --check
+      - name: Package
+        id: package
+        run: |
+          helm package charts/kubebench --destination build/chart
+          echo "file=$(ls build/chart/kubebench-*.tgz)" >>"$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: chart
+          path: ${{ steps.package.outputs.file }}
+          if-no-files-found: error
+      - name: Push
+        if: inputs.push
+        env:
+          CHART: ${{ steps.package.outputs.file }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          printf '%s' "$GITHUB_TOKEN" | helm registry login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          helm push "$CHART" "$CHART_REPOSITORY"
