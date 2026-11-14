@@ -1,11 +1,17 @@
 import type { DataProviders } from '../providers'
 import { deployments, namespaces, nodes, pods, services, syncDeploymentPods } from './mockCluster'
 import { crds, customResources } from './mockCrds'
+import { delay } from './delay'
 import { eventsFor } from './mockEvents'
 import { genericMock } from './mockGeneric'
 import { podLogs } from './mockLogs'
 import { releases, repositories, valuesYaml } from './mockHelm'
 import { clusterAllocation, clusterStats, generateSeries } from './mockMetrics'
+import { createMockAudit } from './mockAudit'
+import { createMockInventory } from './mockInventory'
+import { mockK8sGet } from './mockK8s'
+import { createMockPlugins } from './mockPlugins'
+import { createMockSession, createMockUsers } from './mockUsers'
 import {
   customResourceYaml,
   deploymentYaml,
@@ -13,42 +19,9 @@ import {
   podYaml,
   serviceYaml,
 } from './mockYaml'
-import { mulberry32 } from './rng'
-
-/** Simulated network latency so loading states are exercised for real. */
-const latencyRand = mulberry32(0x6b85)
-
-function delay<T>(value: T): Promise<T> {
-  const ms = 150 + latencyRand() * 150
-  return new Promise((resolve) => setTimeout(() => resolve(value), ms))
-}
 
 const byNamespace = <T extends { namespace: string }>(items: T[], namespace?: string) =>
   namespace ? items.filter((i) => i.namespace === namespace) : items
-
-/** Mock inventory persists to localStorage; activation is visual-only. */
-const INVENTORY_KEY = 'kubebench.mock.clusters'
-
-interface StoredCluster {
-  name: string
-  kubeconfigPath?: string
-  address?: string
-  active: boolean
-}
-
-function loadStoredClusters(): StoredCluster[] {
-  try {
-    const raw = localStorage.getItem(INVENTORY_KEY)
-    if (raw) return JSON.parse(raw) as StoredCluster[]
-  } catch {
-    /* fall through */
-  }
-  return [{ name: 'kind-dev-cluster', kubeconfigPath: '~/.kube/config (mock)', active: true }]
-}
-
-function saveStoredClusters(clusters: StoredCluster[]): void {
-  localStorage.setItem(INVENTORY_KEY, JSON.stringify(clusters))
-}
 
 export function createMockProviders(): DataProviders {
   return {
@@ -137,6 +110,7 @@ export function createMockProviders(): DataProviders {
         })()
         return delay(out)
       },
+      k8sGet: <T>(path: string) => mockK8sGet<T>(path),
       deletePod: (ns, name) => {
         const idx = pods.findIndex((p) => p.namespace === ns && p.name === name)
         if (idx >= 0) pods.splice(idx, 1)
@@ -206,37 +180,11 @@ export function createMockProviders(): DataProviders {
         return delay(undefined)
       },
     },
-    inventory: {
-      listClusters: () =>
-        delay(loadStoredClusters().map((c) => ({ ...c, context: c.name, server: c.address }))),
-      addCluster: (entry) => {
-        const clusters = loadStoredClusters()
-        if (clusters.some((c) => c.name === entry.name)) {
-          return Promise.reject(new Error(`cluster "${entry.name}" already exists`))
-        }
-        clusters.push({ ...entry, active: false })
-        saveStoredClusters(clusters)
-        return delay(undefined)
-      },
-      removeCluster: (name) => {
-        saveStoredClusters(loadStoredClusters().filter((c) => c.name !== name))
-        return delay(undefined)
-      },
-      activateCluster: (name) => {
-        saveStoredClusters(loadStoredClusters().map((c) => ({ ...c, active: c.name === name })))
-        return delay(undefined)
-      },
-    },
-    users: {
-      listUsers: () =>
-        delay([
-          { id: 1, username: 'admin', role: 'admin' as const, clusters: [] },
-          { id: 2, username: 'demo', role: 'user' as const, clusters: ['kind-dev-cluster'] },
-        ]),
-      createUser: () => delay(undefined),
-      deleteUser: () => delay(undefined),
-      assignClusters: () => delay(undefined),
-    },
+    inventory: createMockInventory(),
+    users: createMockUsers(),
+    session: createMockSession(),
+    audit: createMockAudit(),
+    plugins: createMockPlugins(),
     metrics: {
       listSources: () =>
         delay([

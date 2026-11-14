@@ -1,14 +1,16 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
+export type ThemePreference = 'dark' | 'light' | 'system'
+
 /** User preferences, persisted to localStorage. */
 interface SettingsState {
   /** Metrics history window shown on charts, in minutes. */
   metricsWindow: number
   /** Font size for terminal/log views, in px. */
   terminalFontSize: number
-  /** UI theme; only Dark+ exists today. */
-  theme: 'dark'
+  /** Color theme: Dark+, Light+, or follow the operating system. */
+  theme: ThemePreference
   /** Refetch interval for list pages, in seconds (0 = off). */
   autoRefreshSeconds: number
   /** Where utilization series come from in live mode. */

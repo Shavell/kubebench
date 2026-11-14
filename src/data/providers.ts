@@ -1,8 +1,14 @@
+import type { QueryParams } from './apiClient'
 import type {
   AppUser,
+  AssignmentRole,
+  AuditPage,
+  AuditQuery,
   ClusterAllocation,
   ClusterEntry,
   ClusterStats,
+  ClusterUpdate,
+  GlobalRole,
   K8sEvent,
   CrdDefinition,
   CustomResource,
@@ -15,15 +21,16 @@ import type {
   MetricPoint,
   MetricsSourceInfo,
   Namespace,
+  PluginCatalog,
   Pod,
   Service,
 } from './types'
 
 /**
- * The contract between the UI and any data source. Today these are
- * implemented by mocks (src/data/mock); the real implementation will
- * call the Kubernetes API / Helm / Prometheus without touching the UI.
- * Everything is async so the UI already handles the eventual API shape.
+ * The contract between the UI and any data source. Every capability has a
+ * deterministic mock implementation (src/data/mock) and a live one that
+ * calls the Go backend (src/data/api). Live mode never falls back to mock
+ * data: an unavailable capability rejects with an ApiError instead.
  */
 
 export interface ClusterProvider {
@@ -40,7 +47,12 @@ export interface ClusterProvider {
   getResource(key: string, namespace: string | null, name: string): Promise<KubeObject>
   /** Runs one command in a container and returns its output lines. */
   execCommand(namespace: string, pod: string, container: string, command: string): Promise<string[]>
-  /** Mutations are visual-only: they mutate the mock dataset in memory. */
+  /**
+   * Read-only Kubernetes API passthrough (GET /api/k8s/<path>), e.g.
+   * `k8sGet('/api/v1/namespaces')`. Secrets are not readable this way.
+   */
+  k8sGet<T = unknown>(path: string, params?: QueryParams): Promise<T>
+  /** Workload mutations (in mock mode they change the in-memory dataset). */
   deletePod(namespace: string, name: string): Promise<void>
   scaleDeployment(namespace: string, name: string, replicas: number): Promise<void>
   restartDeployment(namespace: string, name: string): Promise<void>
@@ -86,13 +98,36 @@ export interface InventoryProvider {
   removeCluster(name: string): Promise<void>
   /** Switches the backend to another cluster; the app reloads afterwards. */
   activateCluster(name: string): Promise<void>
+  /** Admin: rename a cluster, set its environment or read-only flag. */
+  updateCluster(id: number, update: ClusterUpdate): Promise<void>
 }
 
 export interface UsersProvider {
   listUsers(): Promise<AppUser[]>
-  createUser(username: string, password: string, role: 'admin' | 'user'): Promise<void>
+  createUser(username: string, password: string, role: GlobalRole): Promise<void>
+  /** Changes the global role and/or resets the password (forces a change at next sign-in). */
+  updateUser(id: number, update: { role?: GlobalRole; password?: string }): Promise<void>
   deleteUser(id: number): Promise<void>
-  assignClusters(id: number, clusterIds: number[]): Promise<void>
+  /** Replaces the user's cluster assignments. */
+  assignClusters(id: number, assignments: { clusterId: number; role: AssignmentRole }[]): Promise<void>
+}
+
+/** The signed-in user's own session. */
+export interface SessionProvider {
+  /** Clears `mustChangePassword`; the server revokes the user's other sessions. */
+  changePassword(currentPassword: string, newPassword: string): Promise<void>
+  logout(): Promise<void>
+}
+
+export interface AuditProvider {
+  /** Newest first; page with `before` = the previous page's `nextBefore`. */
+  listAudit(query: AuditQuery): Promise<AuditPage>
+}
+
+export interface PluginsProvider {
+  listPlugins(): Promise<PluginCatalog>
+  /** Admin: enable or disable any plugin id (built-in, backend or external). */
+  setPluginEnabled(id: string, enabled: boolean): Promise<void>
 }
 
 export interface DataProviders {
@@ -102,4 +137,7 @@ export interface DataProviders {
   metrics: MetricsProvider
   inventory: InventoryProvider
   users: UsersProvider
+  session: SessionProvider
+  audit: AuditProvider
+  plugins: PluginsProvider
 }

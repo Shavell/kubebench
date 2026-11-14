@@ -35,11 +35,99 @@ export interface KubeObject {
   [k: string]: unknown
 }
 
+/** Global KubeBench role (users.role). */
+export type GlobalRole = 'admin' | 'user'
+/** Per-cluster assignment role (user_clusters.role). */
+export type AssignmentRole = 'viewer' | 'operator'
+/** Effective role of a user on one cluster (admins are admin everywhere). */
+export type ClusterRole = 'admin' | AssignmentRole
+export type ClusterEnvironment = '' | 'development' | 'staging' | 'production'
+
+export interface ClusterAssignment {
+  clusterId: number
+  cluster: string
+  role: AssignmentRole
+}
+
 export interface AppUser {
   id: number
   username: string
-  role: 'admin' | 'user'
+  role: GlobalRole
+  mustChangePassword: boolean
+  /** Assigned cluster names (kept for v0.4 compatibility). */
   clusters: string[]
+  assignments: ClusterAssignment[]
+}
+
+/** Effective permissions on the active cluster, as reported by /api/info. */
+export interface SessionPermissions {
+  role: ClusterRole
+  canRead: boolean
+  canWrite: boolean
+  canExec: boolean
+  isAdmin: boolean
+  /** The active cluster is flagged read-only (blocks write/exec for everyone). */
+  readOnly: boolean
+}
+
+export interface ActiveCluster {
+  id: number
+  name: string
+  environment: ClusterEnvironment
+  readOnly: boolean
+}
+
+/** One row of the audit log (GET /api/audit). */
+export interface AuditEntry {
+  id: number
+  /** RFC 3339 timestamp. */
+  ts: string
+  user: string
+  cluster: string
+  action: string
+  target: string
+  status: number
+  detail: string
+}
+
+export interface AuditPage {
+  items: AuditEntry[]
+  /** Pass as `before` to load the next (older) page; null when exhausted. */
+  nextBefore: number | null
+}
+
+export interface AuditQuery {
+  limit?: number
+  before?: number
+  user?: string
+  cluster?: string
+  action?: string
+}
+
+export interface PluginAvailability {
+  available: boolean
+  reason?: string
+}
+
+/** A plugin known to the server: a backend plugin or an installed external UI plugin. */
+export interface ServerPlugin {
+  id: string
+  name: string
+  version: string
+  description: string
+  category: string
+  builtin: boolean
+  external: boolean
+  enabled: boolean
+  status: PluginAvailability
+  /** Script URL of an external plugin (`/plugins/<id>/<entry>`); empty otherwise. */
+  entry: string
+}
+
+/** GET /api/plugins: server plugins plus the admin's enable/disable choices for any plugin id. */
+export interface PluginCatalog {
+  plugins: ServerPlugin[]
+  settings: Record<string, { enabled: boolean }>
 }
 
 export interface MetricsSourceInfo {
@@ -52,6 +140,8 @@ export interface MetricsSourceInfo {
 export interface ClusterEntry {
   id?: number
   name: string
+  /** How the credentials are stored: kubeconfig, incluster or address (bookmark). */
+  source?: string
   kubeconfigPath?: string
   address?: string
   active: boolean
@@ -59,6 +149,17 @@ export interface ClusterEntry {
   context?: string
   server?: string
   error?: string
+  readOnly?: boolean
+  environment?: ClusterEnvironment
+  /** The caller's effective role on this cluster. */
+  role?: ClusterRole
+}
+
+/** Fields an admin can change on a cluster (PATCH /api/clusters/{id}). */
+export interface ClusterUpdate {
+  name?: string
+  readOnly?: boolean
+  environment?: ClusterEnvironment
 }
 
 export interface Namespace {

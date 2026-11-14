@@ -1,0 +1,146 @@
+import { ApiError } from '../apiClient'
+import type { InventoryProvider } from '../providers'
+import type { ClusterEnvironment, ClusterEntry } from '../types'
+import { delay, delayReject } from './delay'
+
+/**
+ * Mock cluster inventory, persisted to localStorage so add/remove/activate
+ * survive the reload that follows a cluster switch. Activating a cluster
+ * only changes which entry is marked active (and thereby the status bar
+ * environment); the mock dataset itself is shared by all entries.
+ */
+const INVENTORY_KEY = 'kubebench.mock.clusters'
+
+interface StoredCluster {
+  id: number
+  name: string
+  kubeconfigPath?: string
+  address?: string
+  active: boolean
+  environment: ClusterEnvironment
+  readOnly: boolean
+}
+
+const DEFAULT_CLUSTERS: StoredCluster[] = [
+  {
+    id: 1,
+    name: 'kind-dev-cluster',
+    kubeconfigPath: '~/.kube/config (mock)',
+    active: true,
+    environment: 'development',
+    readOnly: false,
+  },
+  {
+    id: 2,
+    name: 'staging',
+    kubeconfigPath: '(stored kubeconfig)',
+    active: false,
+    environment: 'staging',
+    readOnly: false,
+  },
+  {
+    id: 3,
+    name: 'prod-eu-west-1',
+    kubeconfigPath: '(stored kubeconfig)',
+    active: false,
+    environment: 'production',
+    readOnly: true,
+  },
+]
+
+function isStoredCluster(value: unknown): value is StoredCluster {
+  const c = value as StoredCluster
+  return typeof c?.id === 'number' && typeof c.name === 'string' && typeof c.active === 'boolean'
+}
+
+function load(): StoredCluster[] {
+  try {
+    const parsed: unknown = JSON.parse(localStorage.getItem(INVENTORY_KEY) ?? 'null')
+    // Entries written by older versions lack ids/flags: start over from the defaults.
+    if (Array.isArray(parsed) && parsed.every(isStoredCluster)) return parsed
+  } catch {
+    /* unreadable storage → defaults */
+  }
+  return DEFAULT_CLUSTERS.map((c) => ({ ...c }))
+}
+
+function save(clusters: StoredCluster[]): void {
+  try {
+    localStorage.setItem(INVENTORY_KEY, JSON.stringify(clusters))
+  } catch {
+    /* storage unavailable (private mode): changes last for this page only */
+  }
+}
+
+function toEntry(c: StoredCluster): ClusterEntry {
+  return {
+    id: c.id,
+    name: c.name,
+    source: c.address && !c.kubeconfigPath ? 'address' : 'kubeconfig',
+    kubeconfigPath: c.kubeconfigPath,
+    address: c.address,
+    active: c.active,
+    context: c.name,
+    server: c.address ?? `https://${c.name}.mock:6443`,
+    environment: c.environment,
+    readOnly: c.readOnly,
+    role: 'admin',
+  }
+}
+
+/** The active mock cluster, used at boot for the session facts. */
+export function activeMockCluster(): ClusterEntry {
+  const clusters = load()
+  return toEntry(clusters.find((c) => c.active) ?? clusters[0] ?? DEFAULT_CLUSTERS[0])
+}
+
+/** Id → name of every mock cluster (for user assignments and audit rows). */
+export function mockClusterNames(): Map<number, string> {
+  return new Map(load().map((c) => [c.id, c.name]))
+}
+
+export function createMockInventory(): InventoryProvider {
+  return {
+    listClusters: () => delay(load().map(toEntry)),
+    addCluster: (entry) => {
+      const clusters = load()
+      if (clusters.some((c) => c.name === entry.name)) {
+        return delayReject(new ApiError(409, 'conflict', `cluster "${entry.name}" already exists`))
+      }
+      clusters.push({
+        id: Math.max(0, ...clusters.map((c) => c.id)) + 1,
+        name: entry.name,
+        kubeconfigPath: entry.kubeconfigPath ?? (entry.content ? '(stored kubeconfig)' : undefined),
+        address: entry.address,
+        active: false,
+        environment: '',
+        readOnly: false,
+      })
+      save(clusters)
+      return delay(undefined)
+    },
+    removeCluster: (name) => {
+      save(load().filter((c) => c.name !== name))
+      return delay(undefined)
+    },
+    activateCluster: (name) => {
+      save(load().map((c) => ({ ...c, active: c.name === name })))
+      return delay(undefined)
+    },
+    updateCluster: (id, update) => {
+      const clusters = load()
+      const target = clusters.find((c) => c.id === id)
+      if (!target) return delayReject(new ApiError(404, 'not_found', `cluster ${id} not found`))
+      if (update.name && clusters.some((c) => c.id !== id && c.name === update.name)) {
+        return delayReject(new ApiError(409, 'conflict', `cluster "${update.name}" already exists`))
+      }
+      Object.assign(target, {
+        name: update.name ?? target.name,
+        environment: update.environment ?? target.environment,
+        readOnly: update.readOnly ?? target.readOnly,
+      })
+      save(clusters)
+      return delay(undefined)
+    },
+  }
+}

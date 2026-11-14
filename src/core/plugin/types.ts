@@ -54,19 +54,81 @@ export interface CommandContribution {
   run: () => void
 }
 
+/** Grouping shown in the Extensions view (design §6.4). */
+export type PluginCategory =
+  | 'core'
+  | 'workloads'
+  | 'gitops'
+  | 'storage'
+  | 'security'
+  | 'observability'
+  | 'tools'
+
+/** A Kubernetes object a resource action is invoked on. */
+export interface ResourceRef {
+  kind: string
+  apiVersion?: string
+  namespace?: string
+  name: string
+}
+
+/**
+ * An action a plugin adds to resource row context menus and detail page
+ * toolbars of other views (workloads, CRDs), e.g. "Show topology".
+ */
+export interface ResourceActionContribution {
+  id: string
+  /** i18n key in the contributing plugin's namespace. */
+  title: string
+  icon?: string
+  /** Kinds the action applies to, e.g. ['Deployment', 'Service'], or ['*'] for all. */
+  kinds: string[]
+  /**
+   * Permission needed on the active cluster (default 'read'). Hosts render
+   * the action disabled, with the reason, when it is not held.
+   */
+  permission?: 'read' | 'write' | 'exec'
+  run: (ref: ResourceRef) => void
+}
+
+/** A section a plugin adds to the Settings page. */
+export interface SettingsSectionContribution {
+  id: string
+  /** i18n key in the contributing plugin's namespace. */
+  title: string
+  component: ComponentType
+}
+
 /**
  * Everything a module contributes to the shell. The shell only knows
  * this shape — never plugin internals.
  *
- * i18n: display strings in a manifest (name, activityBar.tooltip,
- * sidebar.title, command/bottom-panel titles) are i18n keys in the
+ * i18n: display strings in a manifest (name, description,
+ * activityBar.tooltip, sidebar.title, command/bottom-panel titles,
+ * resource action and settings section titles) are i18n keys in the
  * plugin's own namespace (= plugin id). The shell resolves them with
- * translateManifestText()/useManifestText() from '@/i18n'; a key that
- * is not found renders literally, so plain strings keep working.
+ * translateManifestText()/useManifestText() from '@/i18n'; a key that is
+ * not found renders literally, so plain strings keep working.
  */
 export interface PluginManifest {
   id: string
   name: string
+  /** Shown in the Extensions view; built-in plugins default to the app version. */
+  version?: string
+  /** i18n key describing the plugin, shown in the Extensions view. */
+  description?: string
+  category?: PluginCategory
+  /**
+   * Part of the workbench itself (workloads, clusters, settings, terminal,
+   * extensions, users, audit): always enabled, cannot be disabled.
+   */
+  core?: boolean
+  /**
+   * Id of the backend plugin this UI needs. While that plugin is disabled
+   * or reports itself unavailable on the active cluster, this plugin's
+   * contributions are hidden and the Extensions view shows the reason.
+   */
+  backendPlugin?: string
   /**
    * Translation bundles for this plugin's namespace, keyed by language
    * code: `{ en: enJson, tr: trJson }`. Registered automatically when
@@ -80,4 +142,15 @@ export interface PluginManifest {
   bottomPanelTabs?: BottomPanelTabContribution[]
   statusBarItems?: StatusBarItemContribution[]
   commands?: CommandContribution[]
+  resourceActions?: ResourceActionContribution[]
+  settingsSections?: SettingsSectionContribution[]
 }
+
+/** Where a registered plugin came from. */
+export type PluginSource = 'builtin' | 'external'
+
+/**
+ * Contributions returned by the registry carry the id of the plugin that
+ * contributed them, so hosts can translate titles in its namespace.
+ */
+export type Contributed<T> = T & { pluginId: string }

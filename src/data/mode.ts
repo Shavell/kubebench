@@ -1,27 +1,26 @@
+import type { ActiveCluster, GlobalRole, SessionPermissions } from './types'
+
+export type { ActiveCluster, ClusterEnvironment, ClusterRole, SessionPermissions } from './types'
+
 /**
  * Which data source the app was bootstrapped with, plus the session facts
- * reported by `/api/info`. Set once in main.tsx before render; the app
- * reloads after a cluster switch, so components may read it directly.
+ * reported by `/api/info` (docs/design-v0.5.md §4.1). Set once at boot
+ * before render; the app reloads after a cluster switch, so components may
+ * read it directly.
  */
-export type ClusterRole = 'admin' | 'operator' | 'viewer'
-export type ClusterEnvironment = '' | 'development' | 'staging' | 'production'
 
-export interface SessionPermissions {
-  /** Effective role on the active cluster. */
-  role: ClusterRole
-  canRead: boolean
-  canWrite: boolean
-  canExec: boolean
-  isAdmin: boolean
-  /** The active cluster is flagged read-only (blocks write/exec for everyone). */
-  readOnly: boolean
+/** What the backend can do on the active cluster (RBAC + probes). */
+export interface LiveCapabilities {
+  crds: boolean
+  helm: boolean
+  exec: boolean
 }
 
-export interface ActiveCluster {
-  id: number
-  name: string
-  environment: ClusterEnvironment
-  readOnly: boolean
+export interface ServerFeatures {
+  /** Clusters may be added by a server-side kubeconfig path. */
+  pathKubeconfig: boolean
+  /** External (runtime-loaded) UI plugins are supported. */
+  externalPlugins: boolean
 }
 
 export interface DataMode {
@@ -29,18 +28,27 @@ export interface DataMode {
   context: string
   server?: string
   user?: string
-  role?: 'admin' | 'user'
+  role?: GlobalRole
+  /** Server version; the bundled `__APP_VERSION__` is used when absent. */
   version?: string
   commit?: string
   cluster?: ActiveCluster
   /** Missing in mock mode → everything allowed. */
   permissions?: SessionPermissions
-  features?: { pathKubeconfig?: boolean; externalPlugins?: boolean }
+  capabilities?: LiveCapabilities
+  features?: ServerFeatures
   mustChangePassword?: boolean
+  /** Why no cluster runtime is available (no assignment, bad kubeconfig, …). */
+  clusterError?: string
 }
 
 export const dataMode: DataMode = { mode: 'mock', context: 'kind-dev-cluster (mock)' }
 
 export function setDataMode(next: DataMode): void {
   Object.assign(dataMode, next)
+}
+
+/** Version shown in the UI: the server's in live mode, the bundle's otherwise. */
+export function appVersion(): string {
+  return dataMode.version || __APP_VERSION__
 }
