@@ -1,10 +1,43 @@
-node_modules
-dist
-backend/internal/web/dist
+# Build context for the Dockerfile. The build reads package*.json,
+# index.html, vite.config.ts, tsconfig*.json, public/, src/ and backend/;
+# scripts/ stays in the context for build steps. Everything below is never
+# needed (and some of it should never reach the build daemon).
+
+# VCS, editors, agents
 .git
+.github
 .claude
+.vscode
+.idea
+**/.DS_Store
+
+# Dependencies and build outputs (rebuilt inside the image)
+**/node_modules
+dist
+bin
+build
+backend/kubebench
+backend/internal/web/dist
+
+# Local state and credentials
+**/*.db
+**/*.db-*
+.env
+.env.*
+kubeconfig*
+
+# Repository content that is not part of the image
+charts
+deploy
+packaging
+docs
+examples
 server
 *.md
-docs
-charts
-kubebench.db*
+*.tgz
+*.tar.gz
+install.sh
+Makefile
+.goreleaser.yaml
+backend/**/*_test.go
+backend/**/testdata
