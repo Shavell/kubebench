@@ -1,0 +1,132 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+#
+# GoReleaser v2: binaries, archives, .deb/.rpm packages and checksums of a
+# KubeBench release. .github/workflows/release.yml runs
+# `goreleaser release --release-notes <CHANGELOG section>` on a v* tag;
+# `make snapshot` (or `make deb`) builds the same artifacts locally without
+# publishing anything. Output goes to build/release because Vite owns dist/.
+version: 2
+
+project_name: kubebench
+dist: build/release
+
+before:
+  hooks:
+    # The server embeds the frontend build (go:embed internal/web/dist).
+    - make embed
+
+builds:
+  - id: kubebench
+    dir: backend
+    main: .
+    binary: kubebench
+    env:
+      - CGO_ENABLED=0 # SQLite is the pure-Go modernc driver
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.version={{ .Version }} -X main.commit={{ .ShortCommit }} -X main.date={{ .CommitDate }}
+    # Reproducible builds: timestamps come from the commit, not the clock.
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    # Linux for servers; macOS and Windows run it as a local, single-user
+    # app against a kubeconfig (KUBECONFIG=... kubebench).
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    ignore:
+      - goos: windows
+        goarch: arm64
+
+archives:
+  - id: kubebench
+    ids: [kubebench]
+    name_template: kubebench_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - README.md
+      - CHANGELOG.md
+      - install.sh
+      # install.sh --method tarball installs these exactly like the packages.
+      - packaging/systemd/kubebench.service
+      - packaging/kubebench.env
+
+nfpms:
+  - id: packages
+    ids: [kubebench]
+    package_name: kubebench
+    file_name_template: "{{ .ConventionalFileName }}"
+    formats: [deb, rpm]
+    vendor: KubeBench
+    homepage: https://github.com/Shavell/kube-bench
+    maintainer: Shavell <Shavell@users.noreply.github.com>
+    description: |-
+      VSCode-style Kubernetes workbench
+      KubeBench is a web workbench for Kubernetes: workloads, logs, shells,
+      YAML, Helm releases, CRDs and metrics for many clusters, with users,
+      per-cluster roles and an audit log. The package runs it as the systemd
+      service kubebench.service, configured in /etc/kubebench/kubebench.env.
+    # TODO: set once the project picks a license
+    section: admin
+    priority: optional
+    bindir: /usr/bin
+    mtime: "{{ .CommitDate }}"
+    overrides:
+      # useradd/groupadd/userdel for the maintainer scripts
+      deb:
+        dependencies: [passwd]
+      rpm:
+        dependencies: [shadow-utils]
+    contents:
+      - src: packaging/systemd/kubebench.service
+        dst: /usr/lib/systemd/system/kubebench.service
+        file_info:
+          mode: 0644
+      - dst: /etc/kubebench
+        type: dir
+        file_info:
+          mode: 0755
+      # postinstall.sh hands the file to group kubebench (0640).
+      - src: packaging/kubebench.env
+        dst: /etc/kubebench/kubebench.env
+        type: config|noreplace
+        file_info:
+          mode: 0640
+      - src: README.md
+        dst: /usr/share/doc/kubebench/README.md
+        file_info:
+          mode: 0644
+      - src: CHANGELOG.md
+        dst: /usr/share/doc/kubebench/CHANGELOG.md
+        file_info:
+          mode: 0644
+    scripts:
+      postinstall: packaging/scripts/postinstall.sh
+      preremove: packaging/scripts/preremove.sh
+      postremove: packaging/scripts/postremove.sh
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-snapshot-{{ .ShortCommit }}"
+
+# Release notes come from CHANGELOG.md (scripts/extract-changelog.sh).
+changelog:
+  disable: true
+
+release:
+  github:
+    owner: Shavell
+    name: kube-bench
+  name_template: KubeBench {{ .Tag }}
+  draft: true
+  replace_existing_draft: true
+  prerelease: auto
+  # release.yml stages the Helm chart, the rendered manifests and install.sh
+  # here first. The offline bundle is built from this release's packages, so
+  # the workflow uploads it to the draft afterwards.
+  extra_files:
+    - glob: build/extra/*

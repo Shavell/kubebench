@@ -1,0 +1,54 @@
+[Unit]
+Description=KubeBench Kubernetes workbench
+Documentation=https://github.com/Shavell/kube-bench/blob/main/docs/deployment.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=kubebench
+Group=kubebench
+# Defaults; /etc/kubebench/kubebench.env is read afterwards and overrides them.
+# A data directory elsewhere also needs WorkingDirectory= and ReadWritePaths=
+# in a drop-in (install.sh --data-dir writes one).
+Environment=KUBEBENCH_DATA_DIR=/var/lib/kubebench
+Environment=KUBEBENCH_DB=/var/lib/kubebench/kubebench.db
+EnvironmentFile=-/etc/kubebench/kubebench.env
+WorkingDirectory=/var/lib/kubebench
+ExecStart=/usr/bin/kubebench
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=30s
+UMask=0027
+
+# Sandboxing: the server only writes its data directory and talks to the
+# network. Home directories stay readable because kubeconfigs often live there.
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ReadWritePaths=/var/lib/kubebench
+ProtectHome=read-only
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectKernelLogs=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+ProtectProc=invisible
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RemoveIPC=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+SystemCallErrorNumber=EPERM
+
+[Install]
+WantedBy=multi-user.target
