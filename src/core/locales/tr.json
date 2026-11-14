@@ -1,1 +1,264 @@
-{}
+{
+  "ui": {
+    "dialog": {
+      "close": "Kapat"
+    },
+    "confirm": {
+      "confirm": "Onayla",
+      "cancel": "İptal",
+      "production": "Bu cluster üretim ortamı olarak işaretlenmiş.",
+      "typePrompt": "Onaylamak için aşağıdaki metni yazın"
+    },
+    "keyValue": {
+      "key": "Anahtar",
+      "value": "Değer",
+      "add": "Ekle",
+      "keyLabel": "Anahtar {{row}}",
+      "valueLabel": "Değer {{row}}",
+      "remove": "{{row}}. satırı kaldır",
+      "keyRequired": "Bu değer için bir anahtar girin.",
+      "duplicate": "Bu anahtar birden fazla kez kullanılıyor."
+    },
+    "notify": {
+      "region": "Bildirimler",
+      "close": "Bildirimi kapat"
+    },
+    "unavailable": {
+      "retry": "Tekrar dene"
+    },
+    "errors": {
+      "capabilityUnavailable": {
+        "title": "Bu cluster'da kullanılamıyor",
+        "hint": "Cluster bu özelliği sunmuyor ya da KubeBench'in bunun için kullandığı kimlik bilgilerinin buna izni yok."
+      },
+      "pluginUnavailable": {
+        "title": "Eklenti kullanılamıyor",
+        "hint": "Eklentinin gereksinimleri etkin cluster'da karşılanmıyor."
+      },
+      "pluginDisabled": {
+        "title": "Eklenti devre dışı",
+        "hint": "Bir yönetici bu eklentiyi Eklentiler görünümünde devre dışı bıraktı."
+      },
+      "forbiddenRole": {
+        "title": "Rolünüz buna izin vermiyor",
+        "hint": "İzleyiciler yalnızca okuyabilir. Bu cluster için bir yöneticiden operatör erişimi isteyin."
+      },
+      "clusterReadOnly": {
+        "title": "Cluster salt okunur",
+        "hint": "Bu cluster'da değişiklikler herkes için engellenir. Bir yönetici bu kısıtlamayı Cluster'lar görünümünden kaldırabilir."
+      },
+      "adminRequired": {
+        "title": "Yönetici erişimi gerekiyor",
+        "hint": "Bunu yalnızca yöneticiler yapabilir."
+      },
+      "forbidden": {
+        "title": "Erişim reddedildi",
+        "hint": "Bu istek için izniniz yok."
+      },
+      "noCluster": {
+        "title": "Cluster seçilmedi",
+        "hint": "Cluster'lar görünümünden bir cluster seçin veya ekleyin."
+      },
+      "notFound": {
+        "title": "Bulunamadı",
+        "hint": "Silinmiş veya yeniden adlandırılmış olabilir."
+      },
+      "sessionExpired": {
+        "title": "Oturumunuz sona erdi",
+        "hint": "Devam etmek için yeniden giriş yapın."
+      },
+      "passwordChangeRequired": {
+        "title": "Parola değişikliği gerekiyor",
+        "hint": "Devam etmek için parolanızı değiştirin."
+      },
+      "rateLimited": {
+        "title": "Çok fazla istek",
+        "hint": "Biraz bekleyip tekrar deneyin."
+      },
+      "conflict": {
+        "title": "Çakışma",
+        "hint": "Nesne bu arada başka biri tarafından değiştirildi. Yeniden yükleyip tekrar deneyin."
+      },
+      "badRequest": {
+        "title": "Geçersiz istek",
+        "hint": "Girdiğiniz değerleri kontrol edip tekrar deneyin."
+      },
+      "redactedSecret": {
+        "title": "Secret değerleri gizli",
+        "hint": "Metin gizlenmiş Secret değerleri içeriyor. Uygulamadan önce Secret'ı gösterip gerçek değerlerini düzenleyin."
+      },
+      "kubernetes": {
+        "title": "Kubernetes API hatası",
+        "hint": "Cluster isteği reddetti."
+      },
+      "network": {
+        "title": "Sunucuya ulaşılamıyor",
+        "hint": "KubeBench sunucusunun çalıştığından ve erişilebilir olduğundan emin olun."
+      },
+      "generic": {
+        "title": "Bir sorun oluştu",
+        "hint": "Tekrar deneyin. Sorun devam ederse sunucu loglarını kontrol edin."
+      }
+    }
+  },
+  "editor": {
+    "loading": "Düzenleyici yükleniyor…",
+    "loadFailed": {
+      "title": "Düzenleyici yüklenemedi",
+      "hint": "KubeBench sunucusuyla bağlantınızı kontrol edip tekrar deneyin."
+    },
+    "diff": {
+      "original": "Orijinal",
+      "modified": "Değiştirilmiş"
+    },
+    "yamlTab": {
+      "ariaLabel": "{{title}} için YAML"
+    }
+  },
+  "boot": {
+    "starting": "KubeBench başlatılıyor…",
+    "failedTitle": "KubeBench başlatılamadı",
+    "unreachableHint": "KubeBench sunucusu yanıt vermedi. Sunucunun çalıştığından ve bu tarayıcıdan erişilebilir olduğundan emin olup tekrar deneyin.",
+    "failedHint": "KubeBench sunucusu bir hatayla yanıt verdi. Tekrar deneyin; hata sürerse sunucu loglarını kontrol edin.",
+    "status": "HTTP {{status}}: {{message}}",
+    "retry": "Tekrar dene"
+  },
+  "password": {
+    "current": "Mevcut parola",
+    "new": "Yeni parola",
+    "newHelp": "En az {{count}} karakter ve mevcut paroladan farklı olmalı.",
+    "confirm": "Yeni parolayı onaylayın",
+    "submit": "Parolayı değiştir",
+    "cancel": "İptal",
+    "changed": "Parolanız değiştirildi. Diğer oturumlarınız kapatıldı.",
+    "dialogTitle": "Parolayı değiştir",
+    "dialogDescription": "Diğer oturumlarınız kapatılır; bu oturum açık kalır.",
+    "forcedTitle": "Yeni bir parola seçin",
+    "forcedDescription": "Parolanız sizin için belirlendi veya hâlâ varsayılan parola. Devam etmek için kendi parolanızı seçin.",
+    "signedInAs": "{{user}} olarak giriş yapıldı",
+    "errors": {
+      "currentRequired": "Mevcut parolanızı girin.",
+      "currentIncorrect": "Mevcut parola doğru değil.",
+      "tooShort": "En az {{count}} karakter kullanın.",
+      "unchanged": "Yeni parola mevcut paroladan farklı olmalı.",
+      "mismatch": "Parolalar eşleşmiyor."
+    }
+  },
+  "session": {
+    "signOut": "Çıkış yap",
+    "lostTitle": "Oturumunuz sona erdi",
+    "lostHint": "Sunucu bu oturumu artık kabul etmiyor: süresi doldu ya da başka bir yerde çıkış yaptınız veya parolanızı değiştirdiniz. Devam etmek için yeniden giriş yapın.",
+    "passwordChangeTitle": "Parola değişikliği gerekiyor",
+    "passwordChangeHint": "Parolanız sıfırlandı. Çalışmaya devam etmek için yeni bir parola seçin.",
+    "signInAgain": "Yeniden giriş yap",
+    "continue": "Devam et",
+    "later": "Daha sonra"
+  },
+  "about": {
+    "title": "KubeBench hakkında",
+    "version": "Sürüm",
+    "commit": "Commit",
+    "uiVersion": "Web arayüzü sürümü",
+    "notAvailable": "Mevcut değil",
+    "dataSource": "Veri kaynağı",
+    "live": "Canlı cluster",
+    "mock": "Demo (örnek veriler)",
+    "cluster": "Cluster",
+    "noCluster": "Yok",
+    "server": "API sunucusu",
+    "close": "Kapat"
+  },
+  "statusBar": {
+    "label": "Durum çubuğu",
+    "cluster": {
+      "title": "Cluster: {{name}}",
+      "switchHint": "Cluster değiştirmek için tıklayın.",
+      "none": "Cluster yok",
+      "noneHint": "Etkin bir cluster yok. Cluster'lar görünümünden birini seçin veya ekleyin.",
+      "menu": "Cluster değiştir",
+      "loading": "Cluster'lar yükleniyor…",
+      "bookmark": "Yer imi",
+      "broken": "Hata",
+      "switching": "{{name}} cluster'ına geçiliyor…",
+      "manage": "Cluster'ları yönet…",
+      "inventoryTab": "Cluster'lar"
+    },
+    "readOnly": {
+      "label": "Salt okunur",
+      "clusterHint": "Bu cluster salt okunur: değişiklikler ve kabuk erişimi, yöneticiler dahil herkes için engellenir.",
+      "viewerHint": "Bu cluster'daki rolünüz izleyici: her şeyi görebilir ancak değiştiremezsiniz."
+    },
+    "namespace": {
+      "tooltip": "Namespace filtresi",
+      "all": "Tüm Namespace'ler"
+    },
+    "source": {
+      "live": "Canlı",
+      "liveHint": "{{server}} adresine bağlı",
+      "mock": "Demo verisi",
+      "mockHint": "Demo modu: sabit örnek veriler gösteriliyor, bağlı bir cluster yok."
+    },
+    "version": {
+      "label": "v{{version}}",
+      "tooltip": "KubeBench hakkında"
+    },
+    "user": {
+      "tooltip": "{{user}} olarak giriş yapıldı",
+      "menu": "Hesap",
+      "signedInAs": "{{user}} olarak giriş yapıldı ({{role}})",
+      "changePassword": "Parolayı değiştir…",
+      "demoSignOut": "Demo modunda yok"
+    }
+  },
+  "environment": {
+    "development": "Geliştirme",
+    "staging": "Hazırlık",
+    "production": "Üretim"
+  },
+  "roles": {
+    "admin": "Yönetici",
+    "user": "Kullanıcı"
+  },
+  "permissions": {
+    "adminRequired": "Bunu yalnızca yöneticiler yapabilir.",
+    "clusterReadOnly": "Cluster salt okunur: değişiklikler herkes için engellenir.",
+    "viewerRole": "Bu cluster'daki rolünüz izleyici; bu rolle hiçbir şeyi değiştiremezsiniz.",
+    "notAllowed": "Bu cluster'da bunu yapmanıza izin verilmiyor."
+  },
+  "plugins": {
+    "reasons": {
+      "backendMissing": "Bu sunucuda gereken \"{{id}}\" eklentisi yok.",
+      "backendDisabled": "Gereken \"{{id}}\" sunucu eklentisi devre dışı.",
+      "backendUnavailable": "Gereken \"{{id}}\" sunucu eklentisi bu cluster'da kullanılamıyor.",
+      "unavailable": "\"{{id}}\" bu cluster'da kullanılamıyor."
+    },
+    "load": {
+      "invalidEntry": "Betik adresi eklenti dizininin içinde değil: {{detail}}",
+      "network": "Betik indirilemedi: {{detail}}",
+      "timeout": "Betiğin yüklenmesi {{detail}} saniye içinde tamamlanmadı.",
+      "threw": "Betik hata verdi: {{detail}}",
+      "notRegistered": "Betik çalıştı ancak KubeBench.registerPlugin() çağrılmadı."
+    }
+  },
+  "errors": {
+    "capability": {
+      "crds": "KubeBench'in kimlik bilgileri bu cluster'da CustomResourceDefinition'ları listeleyemiyor.",
+      "helm": "KubeBench'in kimlik bilgileri bu cluster'da Helm release'lerini okuyamıyor.",
+      "exec": "KubeBench'in kimlik bilgileri bu cluster'da container'larda komut çalıştıramıyor."
+    }
+  },
+  "workbench": {
+    "manifest": {
+      "name": "Çalışma alanı",
+      "description": "Çalışma alanının kendisi: Hakkında penceresi ve hesabınız."
+    },
+    "commands": {
+      "about": "Yardım: Hakkında",
+      "changePassword": "Hesap: Parolayı değiştir",
+      "signOut": "Hesap: Çıkış yap"
+    },
+    "notices": {
+      "demoSignOut": "Demo modunda giriş olmadığından çıkış yapılacak bir oturum da yok."
+    }
+  }
+}

@@ -5,7 +5,16 @@ import { Icon } from './Icon'
 import './contextMenu.css'
 
 export type ContextMenuItem =
-  | { type?: 'item'; label: string; icon?: string; danger?: boolean; disabled?: boolean; onClick: () => void }
+  | {
+      type?: 'item'
+      label: string
+      icon?: string
+      danger?: boolean
+      disabled?: boolean
+      /** Tooltip, e.g. why a disabled item cannot be used. */
+      title?: string
+      onClick: () => void
+    }
   | { type: 'separator' }
 
 interface ContextMenuState {
@@ -91,6 +100,7 @@ export function ContextMenuHost() {
               item.disabled && 'ctx-menu__item--disabled',
             )}
             disabled={item.disabled}
+            title={item.title}
             onClick={() => {
               close()
               item.onClick()

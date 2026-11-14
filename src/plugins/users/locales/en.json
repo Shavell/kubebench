@@ -1,0 +1,108 @@
+{
+  "manifest": {
+    "name": "Users",
+    "description": "User accounts, their global role and their role on each cluster. Administrators only.",
+    "tooltip": "Users",
+    "sidebarTitle": "Users"
+  },
+  "commands": {
+    "open": "Users: Manage Users"
+  },
+  "tab": {
+    "title": "Users"
+  },
+  "page": {
+    "title": "Users"
+  },
+  "sidebar": {
+    "users": "Users"
+  },
+  "columns": {
+    "user": "User",
+    "role": "Role",
+    "access": "Cluster access",
+    "status": "Status",
+    "actions": "Actions"
+  },
+  "table": {
+    "you": "(you)",
+    "mustChangePassword": "Must change password",
+    "loading": "Loading users…",
+    "empty": "No users"
+  },
+  "access": {
+    "allClusters": "All clusters (administrator)",
+    "noClusters": "No cluster access",
+    "none": "No access"
+  },
+  "roles": {
+    "admin": "Administrator",
+    "user": "User",
+    "viewer": "Viewer",
+    "operator": "Operator"
+  },
+  "actions": {
+    "refresh": "Refresh",
+    "add": "Add user",
+    "cancel": "Cancel",
+    "editAccess": "Edit access",
+    "resetPassword": "Reset password",
+    "resetOwnHint": "Change your own password from the user menu in the status bar.",
+    "deleteNamed": "Delete {{name}}",
+    "deleteOwnHint": "You cannot delete your own account."
+  },
+  "fields": {
+    "username": "Username",
+    "initialPassword": "Initial password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm new password",
+    "role": "Role",
+    "roleHelp": "Administrators manage users, clusters, plugins and the audit log, and have full access to every cluster."
+  },
+  "create": {
+    "title": "Add user",
+    "description": "The user signs in once with this password and then has to choose a new one.",
+    "usernameHelp": "Letters, digits, '.', '_', '@' and '-'; up to 64 characters.",
+    "passwordHelp": "At least {{count}} characters. Share it with the user over a safe channel.",
+    "submit": "Add user",
+    "done": "User {{name}} added. They must change the password at their first sign-in.",
+    "errors": {
+      "username": "Enter 1 to 64 letters, digits, '.', '_', '@' or '-', starting with a letter or digit.",
+      "taken": "A user with this name already exists.",
+      "password": "The password needs at least {{count}} characters."
+    }
+  },
+  "reset": {
+    "title": "Reset password of {{name}}",
+    "description": "{{name}} is signed out everywhere and has to choose a new password at the next sign-in.",
+    "help": "At least {{count}} characters. Share it with the user over a safe channel.",
+    "submit": "Reset password",
+    "done": "Password of {{name}} reset. They must choose a new one at the next sign-in.",
+    "errors": {
+      "password": "The password needs at least {{count}} characters.",
+      "mismatch": "The passwords do not match."
+    }
+  },
+  "edit": {
+    "title": "Access of {{name}}",
+    "clusterAccess": "Cluster access",
+    "accessHelp": "Viewers can look at everything on a cluster; operators can also change resources and open shells. A read-only cluster blocks changes for everyone.",
+    "adminAccess": "Administrators have full access to every cluster. The roles below apply again if the user becomes a regular user.",
+    "noClusters": "No clusters are registered yet.",
+    "submit": "Save",
+    "done": "Access of {{name}} updated.",
+    "errors": {
+      "lastAdmin": "At least one administrator must remain. Make another user an administrator first."
+    }
+  },
+  "delete": {
+    "title": "Delete {{name}}?",
+    "message": "The account, its sessions and its cluster assignments are removed. Audit log entries are kept.",
+    "confirm": "Delete",
+    "done": "User {{name}} deleted.",
+    "errors": {
+      "self": "You cannot delete your own account.",
+      "lastAdmin": "The last administrator cannot be deleted. Make another user an administrator first."
+    }
+  }
+}

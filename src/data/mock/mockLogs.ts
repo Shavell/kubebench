@@ -1,7 +1,8 @@
+import type { PodLogOptions } from '../types'
 import { mulberry32 } from './rng'
 
 /**
- * Deterministic per-pod log transcript. Timestamps count up to a fixed
+ * Deterministic per-pod log transcripts. Timestamps count up to a fixed
  * "now" (14:30) so output is stable across reloads.
  */
 
@@ -61,19 +62,31 @@ const DEFAULT_LINES = [
   'INFO  heartbeat ok',
 ]
 
-export function podLogs(pod: string, container: string): string[] {
-  const app = container
-  const lines = APP_LINES[app] ?? DEFAULT_LINES
-  const rand = mulberry32(pod.length * 2654435761)
+/** The fixed "now" the transcripts end at: 14:30:00. */
+const NOW_SECONDS = (14 * 60 + 30) * 60
+
+/**
+ * Log lines of one container instance. `previous` gives the transcript of
+ * the instance before the last restart, which ended with a crash;
+ * `sinceSeconds` and `tail` filter like the Kubernetes log API.
+ */
+export function podLogs(pod: string, container: string, options: PodLogOptions = {}): string[] {
+  const lines = [...(APP_LINES[container] ?? DEFAULT_LINES)]
+  if (options.previous) lines.push('ERROR received SIGTERM, shutting down (exit code 1)')
+  const rand = mulberry32(pod.length * 2654435761 + (options.previous ? 7 : 0))
+  // The previous instance ended a few minutes before the current one started.
+  let seconds = NOW_SECONDS - lines.length * 120 - (options.previous ? 600 : 0)
   const out: string[] = []
-  let minute = 14 * 60 + 30 - lines.length * 2
   for (const line of lines) {
-    minute += 1 + Math.floor(rand() * 2)
-    const hh = String(Math.floor(minute / 60)).padStart(2, '0')
-    const mm = String(minute % 60).padStart(2, '0')
-    const ss = String(Math.floor(rand() * 60)).padStart(2, '0')
-    const ms = String(Math.floor(rand() * 1000)).padStart(3, '0')
-    out.push(`${hh}:${mm}:${ss}.${ms} ${line}`)
+    seconds += 60 + Math.floor(rand() * 60)
+    const ms = Math.floor(rand() * 1000)
+    if (options.sinceSeconds !== undefined && seconds < NOW_SECONDS - options.sinceSeconds) continue
+    out.push(`${clock(seconds)}.${String(ms).padStart(3, '0')} ${line}`)
   }
-  return out
+  return options.tail !== undefined ? out.slice(-options.tail) : out
+}
+
+function clock(totalSeconds: number): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${pad(Math.floor(totalSeconds / 3600))}:${pad(Math.floor(totalSeconds / 60) % 60)}:${pad(totalSeconds % 60)}`
 }

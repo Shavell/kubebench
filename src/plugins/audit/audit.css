@@ -1,0 +1,68 @@
+.audit-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 12px;
+  max-width: 980px;
+  margin-bottom: 12px;
+}
+.audit-filters > .kb-field {
+  width: 200px;
+}
+
+.audit__loading {
+  padding: 24px 0;
+  text-align: center;
+  color: var(--vscode-descriptionForeground);
+}
+
+.audit__time {
+  font-variant-numeric: tabular-nums;
+}
+
+.audit__muted {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+/* Long values are cut with an ellipsis; the full text is in the tooltip. */
+.audit__code,
+.audit__detail {
+  display: inline-block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.audit__code--action {
+  max-width: 230px;
+}
+.audit__code--target {
+  max-width: 210px;
+}
+.audit__detail {
+  max-width: 240px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.audit__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 980px;
+  margin: 12px 0;
+}
+
+.audit-sidebar__time {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--vscode-descriptionForeground);
+}
+
+.audit-sidebar__error {
+  margin: 6px 12px;
+  font-size: 12px;
+  color: var(--vscode-errorForeground);
+}

@@ -1,0 +1,122 @@
+{
+  "manifest": {
+    "name": "Clusters",
+    "description": "The cluster inventory: switch the active cluster; administrators add clusters and set their environment and read-only flag.",
+    "tooltip": "Clusters",
+    "sidebarTitle": "Clusters"
+  },
+  "commands": {
+    "openInventory": "Clusters: Open Inventory"
+  },
+  "tab": {
+    "title": "Clusters"
+  },
+  "page": {
+    "title": "Clusters"
+  },
+  "sidebar": {
+    "clusters": "Clusters"
+  },
+  "columns": {
+    "name": "Name",
+    "environment": "Environment",
+    "access": "Changes",
+    "role": "Your role",
+    "server": "API server",
+    "status": "Status",
+    "actions": "Actions"
+  },
+  "table": {
+    "loading": "Loading clusters…",
+    "empty": "No clusters",
+    "emptyAdminHint": "Add a cluster with its kubeconfig to get started.",
+    "emptyUserHint": "An administrator has not given you access to a cluster yet."
+  },
+  "status": {
+    "active": "Active",
+    "registered": "Registered",
+    "bookmark": "Bookmark",
+    "error": "Error"
+  },
+  "environment": {
+    "none": "Not set",
+    "development": "Development",
+    "staging": "Staging",
+    "production": "Production"
+  },
+  "roles": {
+    "admin": "Administrator",
+    "operator": "Operator",
+    "viewer": "Viewer",
+    "none": "No access"
+  },
+  "readOnly": {
+    "label": "Read-only",
+    "hint": "Changes and shell access are blocked for everyone on this cluster, administrators included.",
+    "writable": "Allowed"
+  },
+  "actions": {
+    "refresh": "Refresh",
+    "add": "Add cluster",
+    "cancel": "Cancel",
+    "activate": "Activate",
+    "activateHint": "Switch to this cluster; the workbench reloads.",
+    "bookmarkHint": "Entries added by address are bookmarks without credentials and cannot be activated.",
+    "edit": "Edit",
+    "removeNamed": "Remove {{name}}"
+  },
+  "note": {
+    "live": "The KubeBench server keeps each kubeconfig in its own database; clusters added by address only are bookmarks.",
+    "mock": "Demo mode: the inventory is kept in this browser and every entry shows the same sample data."
+  },
+  "remove": {
+    "title": "Remove {{name}}?",
+    "message": "KubeBench forgets the cluster: its stored credentials and the users' access to it are deleted. The cluster itself is not changed.",
+    "messageActive": "This is the active cluster. KubeBench forgets it — its stored credentials and the users' access to it are deleted — and switches to another cluster. The cluster itself is not changed.",
+    "confirm": "Remove",
+    "done": "Cluster {{name}} removed."
+  },
+  "edit": {
+    "title": "Edit {{name}}",
+    "submit": "Save",
+    "done": "Cluster {{name}} updated."
+  },
+  "form": {
+    "name": "Name",
+    "environment": "Environment",
+    "environmentHelp": "Production clusters get a red status bar and ask for the resource name before destructive actions.",
+    "readOnly": "Read-only",
+    "readOnlyHelp": "Blocks changes and shell access for everyone, administrators included. Reading stays possible.",
+    "errors": {
+      "name": "Enter a name of 1 to {{max}} characters.",
+      "nameTaken": "A cluster with this name already exists.",
+      "content": "Paste the kubeconfig or load it from a file.",
+      "path": "Enter the path of the kubeconfig file on the server.",
+      "address": "Enter an http:// or https:// address.",
+      "fileTooLarge": "{{name}} is too large to be a kubeconfig."
+    }
+  },
+  "add": {
+    "title": "Add cluster",
+    "submit": "Add cluster",
+    "done": "Cluster {{name}} added.",
+    "nameHelp": "How the cluster is shown in KubeBench.",
+    "source": "Credentials",
+    "sources": {
+      "content": "Paste a kubeconfig",
+      "path": "Kubeconfig file on the server",
+      "address": "API address only (bookmark)"
+    },
+    "sourceHelp": {
+      "content": "The server stores the kubeconfig. Embed certificates and tokens in it: references to files or credential plugins may not be allowed.",
+      "path": "The server reads the file once and stores its contents.",
+      "address": "Only remembers the address; KubeBench cannot connect to a bookmark."
+    },
+    "kubeconfig": "Kubeconfig",
+    "loadFile": "Load from file…",
+    "path": "Path on the server",
+    "address": "API server address",
+    "context": "Context",
+    "contextHelp": "Leave empty to use the kubeconfig's current context."
+  }
+}

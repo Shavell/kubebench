@@ -1,1 +1,264 @@
-{}
+{
+  "ui": {
+    "dialog": {
+      "close": "Close"
+    },
+    "confirm": {
+      "confirm": "Confirm",
+      "cancel": "Cancel",
+      "production": "This cluster is marked as production.",
+      "typePrompt": "To confirm, type the text below"
+    },
+    "keyValue": {
+      "key": "Key",
+      "value": "Value",
+      "add": "Add",
+      "keyLabel": "Key {{row}}",
+      "valueLabel": "Value {{row}}",
+      "remove": "Remove row {{row}}",
+      "keyRequired": "Enter a key for this value.",
+      "duplicate": "This key is used more than once."
+    },
+    "notify": {
+      "region": "Notifications",
+      "close": "Close notification"
+    },
+    "unavailable": {
+      "retry": "Retry"
+    },
+    "errors": {
+      "capabilityUnavailable": {
+        "title": "Not available on this cluster",
+        "hint": "The cluster does not offer this capability, or the credentials KubeBench uses for it may not use it."
+      },
+      "pluginUnavailable": {
+        "title": "Plugin unavailable",
+        "hint": "The plugin's requirements are not met on the active cluster."
+      },
+      "pluginDisabled": {
+        "title": "Plugin disabled",
+        "hint": "An administrator has disabled this plugin in the Extensions view."
+      },
+      "forbiddenRole": {
+        "title": "Your role does not allow this",
+        "hint": "Viewers can only read. Ask an administrator for operator access to this cluster."
+      },
+      "clusterReadOnly": {
+        "title": "The cluster is read-only",
+        "hint": "Changes are blocked for everyone on this cluster. An administrator can lift the restriction in the Clusters view."
+      },
+      "adminRequired": {
+        "title": "Administrator access required",
+        "hint": "Only administrators can do this."
+      },
+      "forbidden": {
+        "title": "Access denied",
+        "hint": "You do not have permission for this request."
+      },
+      "noCluster": {
+        "title": "No cluster selected",
+        "hint": "Select or add a cluster in the Clusters view."
+      },
+      "notFound": {
+        "title": "Not found",
+        "hint": "It may have been deleted or renamed."
+      },
+      "sessionExpired": {
+        "title": "Your session has ended",
+        "hint": "Sign in again to continue."
+      },
+      "passwordChangeRequired": {
+        "title": "Password change required",
+        "hint": "Change your password to continue."
+      },
+      "rateLimited": {
+        "title": "Too many requests",
+        "hint": "Wait a moment and try again."
+      },
+      "conflict": {
+        "title": "Conflict",
+        "hint": "Someone else changed the object in the meantime. Reload it and try again."
+      },
+      "badRequest": {
+        "title": "Invalid request",
+        "hint": "Check the values you entered and try again."
+      },
+      "redactedSecret": {
+        "title": "Secret values are hidden",
+        "hint": "The text contains redacted Secret values. Reveal the Secret and edit its real values before applying."
+      },
+      "kubernetes": {
+        "title": "Kubernetes API error",
+        "hint": "The cluster rejected the request."
+      },
+      "network": {
+        "title": "Server unreachable",
+        "hint": "Check that the KubeBench server is running and reachable."
+      },
+      "generic": {
+        "title": "Something went wrong",
+        "hint": "Try again. If the problem persists, check the server logs."
+      }
+    }
+  },
+  "editor": {
+    "loading": "Loading editor…",
+    "loadFailed": {
+      "title": "The editor could not be loaded",
+      "hint": "Check your connection to the KubeBench server and try again."
+    },
+    "diff": {
+      "original": "Original",
+      "modified": "Modified"
+    },
+    "yamlTab": {
+      "ariaLabel": "YAML of {{title}}"
+    }
+  },
+  "boot": {
+    "starting": "Starting KubeBench…",
+    "failedTitle": "KubeBench could not start",
+    "unreachableHint": "The KubeBench server did not answer. Check that it is running and reachable from this browser, then try again.",
+    "failedHint": "The KubeBench server answered with an error. Try again; if it keeps failing, check the server logs.",
+    "status": "HTTP {{status}}: {{message}}",
+    "retry": "Try again"
+  },
+  "password": {
+    "current": "Current password",
+    "new": "New password",
+    "newHelp": "At least {{count}} characters, different from the current one.",
+    "confirm": "Confirm new password",
+    "submit": "Change password",
+    "cancel": "Cancel",
+    "changed": "Your password was changed. Your other sessions were signed out.",
+    "dialogTitle": "Change password",
+    "dialogDescription": "Your other sessions are signed out; this one stays signed in.",
+    "forcedTitle": "Choose a new password",
+    "forcedDescription": "Your password was set for you, or it is still the default one. Choose your own password to continue.",
+    "signedInAs": "Signed in as {{user}}",
+    "errors": {
+      "currentRequired": "Enter your current password.",
+      "currentIncorrect": "The current password is not correct.",
+      "tooShort": "Use at least {{count}} characters.",
+      "unchanged": "The new password must differ from the current one.",
+      "mismatch": "The passwords do not match."
+    }
+  },
+  "session": {
+    "signOut": "Sign out",
+    "lostTitle": "Your session has ended",
+    "lostHint": "The server no longer accepts this session: it expired, or you signed out or changed your password elsewhere. Sign in again to continue.",
+    "passwordChangeTitle": "Password change required",
+    "passwordChangeHint": "Your password was reset. Choose a new password to continue working.",
+    "signInAgain": "Sign in again",
+    "continue": "Continue",
+    "later": "Later"
+  },
+  "about": {
+    "title": "About KubeBench",
+    "version": "Version",
+    "commit": "Commit",
+    "uiVersion": "Web UI version",
+    "notAvailable": "Not available",
+    "dataSource": "Data source",
+    "live": "Live cluster",
+    "mock": "Demo (sample data)",
+    "cluster": "Cluster",
+    "noCluster": "None",
+    "server": "API server",
+    "close": "Close"
+  },
+  "statusBar": {
+    "label": "Status bar",
+    "cluster": {
+      "title": "Cluster: {{name}}",
+      "switchHint": "Click to switch clusters.",
+      "none": "No cluster",
+      "noneHint": "No cluster is active. Choose or add one in the Clusters view.",
+      "menu": "Switch cluster",
+      "loading": "Loading clusters…",
+      "bookmark": "Bookmark",
+      "broken": "Error",
+      "switching": "Switching to {{name}}…",
+      "manage": "Manage clusters…",
+      "inventoryTab": "Clusters"
+    },
+    "readOnly": {
+      "label": "Read-only",
+      "clusterHint": "This cluster is read-only: changes and shell access are blocked for everyone, administrators included.",
+      "viewerHint": "Your role on this cluster is viewer: you can look at everything but not change it."
+    },
+    "namespace": {
+      "tooltip": "Namespace filter",
+      "all": "All namespaces"
+    },
+    "source": {
+      "live": "Live",
+      "liveHint": "Connected to {{server}}",
+      "mock": "Demo data",
+      "mockHint": "Demo mode: deterministic sample data, no cluster is connected."
+    },
+    "version": {
+      "label": "v{{version}}",
+      "tooltip": "About KubeBench"
+    },
+    "user": {
+      "tooltip": "Signed in as {{user}}",
+      "menu": "Account",
+      "signedInAs": "Signed in as {{user}} ({{role}})",
+      "changePassword": "Change password…",
+      "demoSignOut": "Not in demo mode"
+    }
+  },
+  "environment": {
+    "development": "Development",
+    "staging": "Staging",
+    "production": "Production"
+  },
+  "roles": {
+    "admin": "Administrator",
+    "user": "User"
+  },
+  "permissions": {
+    "adminRequired": "Only administrators can do this.",
+    "clusterReadOnly": "The cluster is read-only: changes are blocked for everyone.",
+    "viewerRole": "Your role on this cluster is viewer, which cannot change anything.",
+    "notAllowed": "You are not allowed to do this on this cluster."
+  },
+  "plugins": {
+    "reasons": {
+      "backendMissing": "This server does not have the \"{{id}}\" plugin it needs.",
+      "backendDisabled": "The server plugin \"{{id}}\" it needs is disabled.",
+      "backendUnavailable": "The server plugin \"{{id}}\" it needs is not available on this cluster.",
+      "unavailable": "\"{{id}}\" is not available on this cluster."
+    },
+    "load": {
+      "invalidEntry": "Its script address is not inside its plugin directory: {{detail}}",
+      "network": "Its script could not be downloaded: {{detail}}",
+      "timeout": "Its script did not finish loading within {{detail}} seconds.",
+      "threw": "Its script failed: {{detail}}",
+      "notRegistered": "Its script ran but did not call KubeBench.registerPlugin()."
+    }
+  },
+  "errors": {
+    "capability": {
+      "crds": "KubeBench's credentials cannot list CustomResourceDefinitions on this cluster.",
+      "helm": "KubeBench's credentials cannot read Helm releases on this cluster.",
+      "exec": "KubeBench's credentials cannot run commands in containers on this cluster."
+    }
+  },
+  "workbench": {
+    "manifest": {
+      "name": "Workbench",
+      "description": "The workbench itself: the About dialog and your account."
+    },
+    "commands": {
+      "about": "Help: About",
+      "changePassword": "Account: Change Password",
+      "signOut": "Account: Sign Out"
+    },
+    "notices": {
+      "demoSignOut": "Demo mode has no sign-in, so there is nothing to sign out of."
+    }
+  }
+}

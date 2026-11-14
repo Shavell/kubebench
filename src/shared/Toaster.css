@@ -1,0 +1,111 @@
+/* Above dialogs (150) and context menus (200); clear of the 22px status bar. */
+.kb-toaster {
+  position: fixed;
+  right: 12px;
+  bottom: 32px;
+  z-index: 250;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: calc(100vw - 24px);
+  pointer-events: none;
+}
+
+.kb-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 380px;
+  max-width: 100%;
+  padding: 10px 8px 10px 12px;
+  border: 1px solid var(--vscode-notifications-border);
+  border-radius: 4px;
+  background: var(--vscode-notifications-background);
+  color: var(--vscode-notifications-foreground);
+  box-shadow: 0 4px 16px var(--vscode-widget-shadow);
+  font-size: 13px;
+  pointer-events: auto;
+  animation: kb-toast-in 140ms ease-out;
+}
+
+.kb-toast__icon {
+  margin-top: 1px;
+}
+.kb-toast--success .kb-toast__icon {
+  color: var(--vscode-charts-green);
+}
+.kb-toast--error .kb-toast__icon {
+  color: var(--vscode-notificationsErrorIcon-foreground);
+}
+.kb-toast--info .kb-toast__icon {
+  color: var(--vscode-notificationsInfoIcon-foreground);
+}
+
+.kb-toast__text {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.45;
+  user-select: text;
+}
+
+.kb-toast__message {
+  overflow-wrap: anywhere;
+}
+
+.kb-toast__detail {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  overflow-wrap: anywhere;
+}
+
+.kb-toast__action {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border: none;
+  border-radius: 2px;
+  font-size: 12px;
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  cursor: pointer;
+}
+.kb-toast__action:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
+.kb-toast__close {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--vscode-icon-foreground);
+  cursor: pointer;
+}
+.kb-toast__close:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+}
+
+.kb-toast__action:focus-visible,
+.kb-toast__close:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+}
+
+@keyframes kb-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kb-toast {
+    animation: none;
+  }
+}

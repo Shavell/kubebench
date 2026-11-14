@@ -1,0 +1,79 @@
+{
+  "manifest": {
+    "name": "Settings",
+    "description": "Appearance, language, data and terminal preferences, and the settings of other plugins."
+  },
+  "commands": {
+    "open": "Preferences: Open Settings"
+  },
+  "tab": {
+    "title": "Settings"
+  },
+  "page": {
+    "title": "Settings"
+  },
+  "sections": {
+    "appearance": "Appearance",
+    "data": "Data",
+    "terminal": "Terminal and logs",
+    "about": "About"
+  },
+  "appearance": {
+    "theme": {
+      "label": "Color theme",
+      "help": "Choose dark or light, or follow your operating system.",
+      "dark": "Dark",
+      "light": "Light",
+      "system": "System ({{theme}})"
+    },
+    "language": {
+      "label": "Language",
+      "help": "Language of the user interface. Automatic follows your browser.",
+      "auto": "Automatic ({{language}})"
+    }
+  },
+  "data": {
+    "metricsSource": {
+      "label": "Metrics source",
+      "help": "Where utilization series come from.",
+      "helpPrometheus": "Where utilization series come from. Prometheus was found; it also provides network and filesystem metrics and a longer history.",
+      "helpPrometheusAt": "Where utilization series come from. Prometheus was found at {{location}}; it also provides network and filesystem metrics and a longer history.",
+      "helpNoPrometheus": "Where utilization series come from. Prometheus was not found in this cluster, so metrics-server is used and network and filesystem charts are unavailable.",
+      "auto": "Automatic (prefer Prometheus)",
+      "prometheus": "Prometheus",
+      "prometheusUnavailable": "Prometheus (unavailable)",
+      "metricsServer": "metrics-server"
+    },
+    "metricsWindow": {
+      "label": "Metrics window",
+      "help": "How much utilization history charts show.",
+      "minutes_one": "{{count}} minute",
+      "minutes_other": "{{count}} minutes"
+    },
+    "autoRefresh": {
+      "label": "Auto refresh",
+      "help": "Reload resource lists periodically. Off means manual refresh only.",
+      "off": "Off",
+      "every_one": "Every second",
+      "every_other": "Every {{count}} seconds"
+    }
+  },
+  "terminal": {
+    "fontSize": {
+      "label": "Font size",
+      "help": "Font size of the terminal, exec and log views.",
+      "value": "{{size}} px"
+    }
+  },
+  "about": {
+    "version": "Version",
+    "build": "{{version}} (commit {{commit}})",
+    "dataSource": "Data source",
+    "live": "Live cluster",
+    "mock": "Demo (mock data)",
+    "context": "Context",
+    "noCluster": "None",
+    "server": "API server",
+    "storage": "Settings are stored in this browser."
+  }
+}

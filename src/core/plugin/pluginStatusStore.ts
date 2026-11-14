@@ -6,6 +6,13 @@ import type { ServerPlugin } from '@/data/types'
 import { i18n } from '@/i18n'
 import type { PluginManifest, PluginSource } from './types'
 
+/** Why an external plugin's script could not be loaded or did not register. */
+export interface PluginLoadError {
+  reason: 'invalidEntry' | 'network' | 'timeout' | 'threw' | 'notRegistered'
+  /** The script URL, or the message of the exception the script threw. */
+  detail?: string
+}
+
 /**
  * Enable/disable choices and availability of plugins (design §6.4), loaded
  * from GET /api/plugins at boot. The registry reads it to decide which
@@ -23,11 +30,11 @@ interface PluginStatusState {
   /** Admin enable/disable choices for any plugin id. */
   settings: Record<string, { enabled: boolean }>
   /** External plugin id → why its script failed to load or register. */
-  externalErrors: Record<string, string>
+  externalErrors: Record<string, PluginLoadError>
 
   load: (provider: PluginsProvider, options: { assumeAvailable: boolean }) => Promise<void>
   setEnabled: (provider: PluginsProvider, id: string, enabled: boolean) => Promise<void>
-  setExternalError: (id: string, message: string | null) => void
+  setExternalError: (id: string, error: PluginLoadError | null) => void
 }
 
 export const usePluginStatusStore = create<PluginStatusState>((set) => ({
@@ -63,10 +70,10 @@ export const usePluginStatusStore = create<PluginStatusState>((set) => ({
     }))
   },
 
-  setExternalError: (id, message) =>
+  setExternalError: (id, error) =>
     set((s) => {
       const externalErrors = { ...s.externalErrors }
-      if (message) externalErrors[id] = message
+      if (error) externalErrors[id] = error
       else delete externalErrors[id]
       return { externalErrors }
     }),
@@ -89,6 +96,11 @@ type StatusInputs = Pick<
 const t = (key: string, options?: Record<string, unknown>) =>
   i18n.t(key, { ns: PLATFORM_NS, ...options })
 
+/** Translated explanation of an external plugin load failure. */
+export function describeLoadError(error: PluginLoadError): string {
+  return t(`plugins.load.${error.reason}`, { detail: error.detail ?? '' })
+}
+
 /**
  * Effective status of one plugin. Core plugins are always on. Otherwise
  * the admin's choice wins, then the server's flag, then the default:
@@ -108,7 +120,7 @@ export function resolvePluginStatus(
   const unavailable = (reason: string) => ({ enabled, available: false, reason, loading })
 
   const externalError = state.externalErrors[id]
-  if (externalError) return unavailable(externalError)
+  if (externalError) return unavailable(describeLoadError(externalError))
   // Without a catalog (mock mode, or the request failed) availability is unknown.
   if (state.assumeAvailable || state.loadError) return { enabled, available: true, loading }
 
@@ -122,7 +134,7 @@ export function resolvePluginStatus(
     }
   }
   if (server && !server.status.available) {
-    return unavailable(server.status.reason || t('plugins.reasons.unavailable'))
+    return unavailable(server.status.reason || t('plugins.reasons.unavailable', { id }))
   }
   return { enabled, available: true, loading }
 }

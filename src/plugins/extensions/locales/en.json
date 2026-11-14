@@ -1,0 +1,84 @@
+{
+  "manifest": {
+    "name": "Extensions",
+    "description": "Lists every plugin with its version, source and status; administrators enable or disable plugins for everyone.",
+    "tooltip": "Extensions",
+    "sidebarTitle": "Extensions"
+  },
+  "groups": {
+    "core": "Core",
+    "builtin": "Built-in",
+    "external": "External"
+  },
+  "sidebar": {
+    "catalogFailed": "Plugin status could not be loaded from the server, so availability is not checked: {{error}}"
+  },
+  "status": {
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "available": "Available",
+    "unavailable": "Unavailable",
+    "loadFailed": "Load failed",
+    "core": "Core"
+  },
+  "toggle": {
+    "enabled": "{{name}} is enabled for everyone.",
+    "disabled": "{{name}} is disabled for everyone.",
+    "loadFailed": "{{name}} is enabled, but its script could not be loaded."
+  },
+  "detail": {
+    "unknown": "There is no plugin with the id \"{{id}}\".",
+    "version": "Version {{version}}",
+    "coreHint": "Part of the workbench itself; it cannot be disabled.",
+    "enable": "Enable",
+    "disable": "Disable",
+    "adminOnly": "Only administrators can enable or disable plugins.",
+    "disableConfirm": {
+      "title": "Disable {{name}}?",
+      "message": "{{name}} is turned off for every user: its views, commands and actions disappear until an administrator enables it again."
+    },
+    "statusSection": "Status",
+    "contributesSection": "Contributions",
+    "state": "State",
+    "availability": "Availability",
+    "requires": "Requires server plugin",
+    "backendMissing": "This server does not have it.",
+    "script": "Script",
+    "noScript": "None",
+    "loaded": "Loaded in this window",
+    "loadedYes": "Yes",
+    "loadedNo": "No",
+    "loadError": "Load error"
+  },
+  "categories": {
+    "core": "Core",
+    "workloads": "Workloads",
+    "gitops": "GitOps",
+    "storage": "Storage",
+    "security": "Security",
+    "observability": "Observability",
+    "tools": "Tools"
+  },
+  "sources": {
+    "builtin": "Built-in",
+    "external": "External"
+  },
+  "contributes": {
+    "notLoaded": "The plugin's script is not loaded in this window, so its contributions are not known yet. Enable it to load it.",
+    "serverOnly": "This plugin runs on the server and has no views of its own in this version.",
+    "nothing": "This plugin adds nothing to the user interface.",
+    "activityBar": "Activity bar",
+    "sidebar": "Side bar view",
+    "tabs": "Editor tabs",
+    "tabKinds_one": "{{count}} kind of tab",
+    "tabKinds_other": "{{count}} kinds of tabs",
+    "commands": "Commands",
+    "panels": "Panel tabs",
+    "statusBar": "Status bar",
+    "statusBarItems_one": "{{count}} item",
+    "statusBarItems_other": "{{count}} items",
+    "resourceActions": "Resource actions",
+    "resourceAction": "{{title}} ({{kinds}})",
+    "settings": "Settings sections"
+  }
+}

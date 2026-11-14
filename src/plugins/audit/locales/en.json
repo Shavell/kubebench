@@ -1,0 +1,53 @@
+{
+  "manifest": {
+    "name": "Audit log",
+    "description": "Who changed what, on which cluster, and whether it was allowed. Administrators only.",
+    "tooltip": "Audit log",
+    "sidebarTitle": "Audit log"
+  },
+  "commands": {
+    "open": "Audit: Open Audit Log"
+  },
+  "tab": {
+    "title": "Audit log"
+  },
+  "page": {
+    "title": "Audit log"
+  },
+  "sidebar": {
+    "log": "Recent activity",
+    "entry": "{{user}}: {{action}}"
+  },
+  "columns": {
+    "time": "Time",
+    "user": "User",
+    "cluster": "Cluster",
+    "action": "Action",
+    "target": "Target",
+    "status": "Status",
+    "detail": "Detail"
+  },
+  "table": {
+    "noCluster": "—",
+    "loading": "Loading the audit log…",
+    "empty": "No audit entries yet",
+    "emptyHint": "Changes, shell sessions and administration are recorded here.",
+    "noMatches": "No entries match the filters",
+    "noMatchesHint": "User and cluster must match exactly; the action matches any part.",
+    "shown_one": "{{count}} entry shown",
+    "shown_other": "{{count}} entries shown",
+    "loadMore": "Load more"
+  },
+  "filters": {
+    "user": "User",
+    "allUsers": "All users",
+    "cluster": "Cluster",
+    "allClusters": "All clusters",
+    "action": "Action",
+    "actionPlaceholder": "scale, /api/pods, exec…",
+    "clear": "Clear filters"
+  },
+  "actions": {
+    "refresh": "Refresh"
+  }
+}

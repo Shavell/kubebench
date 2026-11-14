@@ -1,5 +1,5 @@
-import type { LiveCapabilities } from '../mode'
 import type { DataProviders } from '../providers'
+import type { LiveCapabilities } from '../types'
 import {
   createApiAudit,
   createApiInventory,

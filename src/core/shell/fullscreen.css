@@ -1,0 +1,105 @@
+/* Full-window states outside the workbench: boot splash, boot error and the
+   forced password change. The card matches the sign-in screen. */
+.kb-fullscreen {
+  height: 100%;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background: var(--vscode-editor-background);
+  color: var(--vscode-editor-foreground);
+}
+
+.kb-fullscreen__card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 380px;
+  padding: 28px;
+  background: var(--vscode-editorWidget-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 6px;
+  box-shadow: 0 8px 30px var(--vscode-widget-shadow);
+}
+
+.kb-fullscreen__brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  color: var(--vscode-descriptionForeground);
+}
+
+.kb-fullscreen__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--vscode-editor-foreground);
+}
+
+.kb-fullscreen__text {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--vscode-descriptionForeground);
+}
+
+.kb-fullscreen__detail {
+  padding: 6px 8px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  background: var(--vscode-textCodeBlock-background);
+  user-select: text;
+}
+
+.kb-fullscreen__actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+.kb-fullscreen__actions .kb-button {
+  justify-content: center;
+  padding: 6px 14px;
+  font-size: 13px;
+}
+
+.kb-fullscreen__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--vscode-widget-border);
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.kb-fullscreen__link {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--vscode-textLink-foreground);
+  cursor: pointer;
+}
+.kb-fullscreen__link:hover:not(:disabled) {
+  text-decoration: underline;
+  color: var(--vscode-textLink-activeForeground);
+}
+.kb-fullscreen__link:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+}
+
+.kb-fullscreen__splash {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
+}

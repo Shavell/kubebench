@@ -2,13 +2,16 @@ import { useEffect } from 'react'
 import { useLayoutStore } from '@/core/store/layoutStore'
 import { useSettingsStore } from '@/core/store/settingsStore'
 import { refreshData } from '@/data/DataContext'
-import { ActivityBar } from './ActivityBar'
-import { CommandPalette } from './CommandPalette'
 import { ContextMenuHost } from '@/shared/contextMenu'
-import { SideBar } from './SideBar'
-import { EditorArea } from './EditorArea'
+import { Toaster } from '@/shared/Toaster'
+import { ActivityBar } from './ActivityBar'
 import { BottomPanel } from './BottomPanel'
+import { CommandPalette } from './CommandPalette'
+import { EditorArea } from './EditorArea'
+import { SessionGuard } from './SessionGuard'
+import { SideBar } from './SideBar'
 import { StatusBar } from './StatusBar'
+import { WorkbenchDialogs } from './WorkbenchDialogs'
 import './Shell.css'
 
 export function Shell() {
@@ -67,6 +70,9 @@ export function Shell() {
       <StatusBar />
       <CommandPalette />
       <ContextMenuHost />
+      <WorkbenchDialogs />
+      <SessionGuard />
+      <Toaster />
     </div>
   )
 }

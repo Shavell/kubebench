@@ -1,0 +1,61 @@
+.kb-tabs {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.kb-tabs__list {
+  display: flex;
+  gap: 4px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+
+.kb-tabs__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 8px 5px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--vscode-panelTitle-inactiveForeground);
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.kb-tabs__tab:hover:not(:disabled) {
+  color: var(--vscode-panelTitle-activeForeground);
+}
+.kb-tabs__tab:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+.kb-tabs__tab:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.kb-tabs__tab--active {
+  color: var(--vscode-panelTitle-activeForeground);
+  border-bottom-color: var(--vscode-panelTitle-activeBorder);
+}
+
+.kb-tabs__badge {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  font-size: 11px;
+  line-height: 16px;
+  text-align: center;
+  background: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+}
+
+.kb-tabs__panel {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}

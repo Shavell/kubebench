@@ -9,7 +9,16 @@ import type { ComponentType } from 'react'
 export interface TabDescriptor {
   /** Unique id, e.g. "pod:default/nginx-7d4b" or "yaml:pod:default/nginx-7d4b". */
   id: string
+  /** Title as translated when the tab was opened; shown when `titleKey` is not set. */
   title: string
+  /**
+   * i18n key of the title in namespace `titleNs`, for tabs whose title is
+   * a UI string ("Settings", "Pods", "{{name}} · logs"), so it follows
+   * language changes. `titleValues` fills its interpolation variables.
+   */
+  titleKey?: string
+  titleNs?: string
+  titleValues?: Record<string, string | number>
   /** Codicon name without the "codicon-" prefix, e.g. "file-code". */
   icon?: string
   /** Maps to a registered TabRendererContribution. */
@@ -30,6 +39,11 @@ export interface BottomPanelTabContribution {
   title: string
   component: ComponentType
   order?: number
+  /**
+   * Request kinds this tab shows when another plugin calls `showInPanel`
+   * (core/plugin/panelRequests.ts), e.g. ['pod-logs'].
+   */
+  kinds?: string[]
 }
 
 export interface StatusBarItemContribution {
@@ -135,7 +149,11 @@ export interface PluginManifest {
    * the plugin is registered.
    */
   locales?: Record<string, object>
-  /** Omit to contribute no activity bar entry (e.g. the terminal plugin). */
+  /**
+   * Omit to contribute no activity bar entry (e.g. the terminal plugin).
+   * `order` sorts the entries: the built-in views use 0–6 and Extensions 90;
+   * without it the entry goes after the built-in views (50).
+   */
   activityBar?: { icon: string; tooltip: string; order?: number }
   sidebar?: SidebarViewContribution
   tabRenderers?: TabRendererContribution[]

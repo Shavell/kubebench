@@ -1,0 +1,33 @@
+.kb-page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.kb-page__body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 16px 24px;
+}
+
+.kb-page__section {
+  max-width: 980px;
+  margin-top: 18px;
+}
+.kb-page__section:first-child {
+  margin-top: 0;
+}
+
+/* Uppercased in CSS, which follows <html lang> (Turkish i → İ). */
+.kb-page__section-title {
+  margin: 0 0 8px;
+  padding-bottom: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--vscode-descriptionForeground);
+  border-bottom: 1px solid var(--vscode-panel-border);
+}

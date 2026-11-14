@@ -2,25 +2,29 @@ import { useSyncExternalStore } from 'react'
 import { useSettingsStore, type ThemePreference } from '@/core/store/settingsStore'
 
 /**
- * Applies the color theme (design §6.7): resolves the Settings preference
- * (dark | light | system) to a concrete theme, sets `<html data-theme>`
- * (theme.css switches every token on it) and `color-scheme` for native
- * controls, and follows OS changes while the preference is "system".
+ * Applies the colour theme (design §6.7). Importing this module resolves
+ * the Settings preference (dark | light | system) to a concrete palette,
+ * sets `<html data-theme>` (theme.css switches every token on it) and
+ * `color-scheme` (native controls, scroll bars), and keeps both in sync with
+ * Settings and, while the preference is "system", with the operating system.
+ *
+ * index.html applies the same rule before the first paint so the page never
+ * flashes the wrong palette; keep resolveTheme() and that inline script in
+ * agreement. Import this module once at boot (main.tsx), so that theme
+ * changes apply even before any themed component has rendered.
  */
 export type ResolvedTheme = 'dark' | 'light'
 
-const lightQuery =
-  typeof window !== 'undefined' && window.matchMedia
-    ? window.matchMedia('(prefers-color-scheme: light)')
-    : null
+const lightQuery = window.matchMedia?.('(prefers-color-scheme: light)') ?? null
 
 const listeners = new Set<() => void>()
 let resolved: ResolvedTheme = 'dark'
 
+const systemTheme = (): ResolvedTheme => (lightQuery?.matches ? 'light' : 'dark')
+
 function resolveTheme(preference: ThemePreference): ResolvedTheme {
-  if (preference === 'light') return 'light'
-  if (preference === 'system') return lightQuery?.matches ? 'light' : 'dark'
-  return 'dark'
+  if (preference === 'system') return systemTheme()
+  return preference === 'light' ? 'light' : 'dark'
 }
 
 function apply(): void {
@@ -34,30 +38,28 @@ function apply(): void {
   }
 }
 
-let started = false
+apply()
+useSettingsStore.subscribe((state, prev) => {
+  if (state.theme !== prev.theme) apply()
+})
+lightQuery?.addEventListener('change', apply)
 
-/** Applies the theme now and keeps it in sync with Settings and the OS. Idempotent. */
-export function initTheme(): void {
-  if (started) return
-  started = true
-  apply()
-  useSettingsStore.subscribe((state, prev) => {
-    if (state.theme !== prev.theme) apply()
-  })
-  lightQuery?.addEventListener('change', apply)
+function subscribe(listener: () => void): () => void {
+  listeners.add(listener)
+  return () => listeners.delete(listener)
 }
 
-export function currentTheme(): ResolvedTheme {
-  return resolved
-}
-
-/** The concrete theme in effect; re-renders when it changes (e.g. for Monaco). */
+/** The palette in effect; re-renders when it changes (e.g. to retheme Monaco). */
 export function useResolvedTheme(): ResolvedTheme {
-  return useSyncExternalStore(
-    (onChange) => {
-      listeners.add(onChange)
-      return () => listeners.delete(onChange)
-    },
-    currentTheme,
-  )
+  return useSyncExternalStore(subscribe, () => resolved)
+}
+
+function subscribeSystem(listener: () => void): () => void {
+  lightQuery?.addEventListener('change', listener)
+  return () => lightQuery?.removeEventListener('change', listener)
+}
+
+/** What the "system" preference resolves to right now; re-renders when the OS switches. */
+export function useSystemTheme(): ResolvedTheme {
+  return useSyncExternalStore(subscribeSystem, systemTheme)
 }

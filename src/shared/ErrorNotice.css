@@ -1,0 +1,23 @@
+.kb-error-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--vscode-inputValidation-errorBorder);
+  border-radius: 3px;
+  font-size: 12px;
+  line-height: 1.45;
+  background: var(--vscode-inputValidation-errorBackground);
+  user-select: text;
+}
+.kb-error-notice .codicon {
+  margin-top: 1px;
+  color: var(--vscode-errorForeground);
+}
+
+.kb-error-notice__detail {
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+  opacity: 0.85;
+}

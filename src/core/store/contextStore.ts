@@ -3,18 +3,17 @@ import { create } from 'zustand'
 /** All namespaces (no filter). */
 export const ALL_NAMESPACES = ''
 
-interface ClusterContextState {
-  contexts: string[]
-  activeContext: string
+/**
+ * The namespace filter shared by list views (set from the status bar).
+ * The active cluster is part of the session (`dataMode.cluster`), not of
+ * this store: switching clusters goes through the server and reloads.
+ */
+interface NamespaceFilterState {
   namespace: string
-  setActiveContext: (context: string) => void
   setNamespace: (namespace: string) => void
 }
 
-export const useContextStore = create<ClusterContextState>((set) => ({
-  contexts: ['kind-dev-cluster', 'prod-eu-west-1', 'staging'],
-  activeContext: 'kind-dev-cluster',
+export const useContextStore = create<NamespaceFilterState>((set) => ({
   namespace: ALL_NAMESPACES,
-  setActiveContext: (activeContext) => set({ activeContext }),
   setNamespace: (namespace) => set({ namespace }),
 }))

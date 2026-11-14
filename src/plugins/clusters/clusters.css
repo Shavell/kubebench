@@ -1,0 +1,83 @@
+.clusters__loading {
+  padding: 24px 0;
+  text-align: center;
+  color: var(--vscode-descriptionForeground);
+}
+
+.clusters__name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.clusters__active {
+  color: var(--status-running);
+}
+
+.clusters__muted {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.clusters__server {
+  display: inline-block;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+  color: var(--vscode-descriptionForeground);
+}
+
+.clusters__actions {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.clusters__note {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 760px;
+  margin: 18px 0 0;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+/* Environment tags use the status bar's environment colours. */
+.clusters-env {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 8px;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 600;
+}
+.clusters-env--production {
+  background: var(--vscode-statusBarItem-productionBackground);
+  color: var(--vscode-statusBarItem-productionForeground);
+}
+.clusters-env--staging {
+  background: var(--vscode-statusBarItem-stagingBackground);
+  color: var(--vscode-statusBarItem-stagingForeground);
+}
+.clusters-env--development {
+  background: var(--vscode-statusBarItem-developmentBackground);
+  color: var(--vscode-statusBarItem-developmentForeground);
+}
+
+.clusters-env-dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.clusters-readonly {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--vscode-editorWarning-foreground);
+}

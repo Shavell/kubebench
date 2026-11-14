@@ -1,26 +1,76 @@
-/* VSCode Dark+ token palette — single source of truth for every component. */
+/*
+ * Design tokens: the single source of truth for every colour in the app.
+ *
+ * Names follow VS Code theme colour ids (`editor.background` becomes
+ * `--vscode-editor-background`) and the values are the Dark+ and Light+
+ * palettes. Tokens marked "KubeBench" have no VS Code equivalent.
+ *
+ * <html data-theme="dark|light"> selects the palette: index.html sets it
+ * before the first paint and src/core/theme/themeController.ts keeps it in
+ * sync with Settings and the operating system. Both palette blocks define
+ * the same token set; add a new token to both.
+ */
+
 :root {
+  --font-ui: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "SF Mono", Menlo, Consolas, "Courier New", monospace;
+}
+
+/* Dark+ (also the fallback while data-theme is not set yet). */
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* Base colours */
+  --vscode-foreground: #cccccc;
+  --vscode-descriptionForeground: #9d9d9d;
+  --vscode-disabledForeground: #6e6e6e;
+  --vscode-errorForeground: #f48771;
+  --vscode-icon-foreground: #c5c5c5;
+  --vscode-focusBorder: #007fd4;
+  --vscode-widget-border: #303031;
+  --vscode-widget-shadow: rgba(0, 0, 0, 0.36);
+  --vscode-textLink-foreground: #3794ff;
+  --vscode-textLink-activeForeground: #3794ff;
+  --vscode-textPreformat-foreground: #d7ba7d;
+  --vscode-textCodeBlock-background: rgba(10, 10, 10, 0.4);
+
+  /* Editor and editor widgets (dialogs, popups) */
   --vscode-editor-background: #1e1e1e;
   --vscode-editor-foreground: #d4d4d4;
   --vscode-editorWidget-background: #252526;
-  --vscode-descriptionForeground: #9d9d9d;
-  --vscode-disabledForeground: #6e6e6e;
+  --vscode-editorWidget-foreground: #cccccc;
+  --vscode-editorWidget-border: #454545;
+  --vscode-editorError-foreground: #f14c4c;
+  --vscode-editorWarning-foreground: #cca700;
+  --vscode-editorInfo-foreground: #3794ff;
 
+  /* Side bar */
   --vscode-sideBar-background: #252526;
   --vscode-sideBar-foreground: #cccccc;
   --vscode-sideBar-border: #1e1e1e;
   --vscode-sideBarSectionHeader-background: #252526;
   --vscode-sideBarTitle-foreground: #bbbbbb;
 
+  /* Activity bar */
   --vscode-activityBar-background: #333333;
   --vscode-activityBar-foreground: #ffffff;
   --vscode-activityBar-inactiveForeground: #858585;
   --vscode-activityBar-activeBorder: #ffffff;
 
+  /* Status bar */
   --vscode-statusBar-background: #007acc;
   --vscode-statusBar-foreground: #ffffff;
   --vscode-statusBarItem-hoverBackground: rgba(255, 255, 255, 0.12);
+  /* KubeBench: the active cluster's environment (design §6.3). */
+  --vscode-statusBarItem-productionBackground: #c72e0f;
+  --vscode-statusBarItem-productionForeground: #ffffff;
+  --vscode-statusBarItem-stagingBackground: #e8a317;
+  --vscode-statusBarItem-stagingForeground: #1e1e1e;
+  --vscode-statusBarItem-developmentBackground: #16825d;
+  --vscode-statusBarItem-developmentForeground: #ffffff;
 
+  /* Editor tabs */
   --vscode-tab-activeBackground: #1e1e1e;
   --vscode-tab-inactiveBackground: #2d2d2d;
   --vscode-tab-activeForeground: #ffffff;
@@ -29,56 +79,230 @@
   --vscode-tab-activeBorderTop: #007acc;
   --vscode-editorGroupHeader-tabsBackground: #252526;
 
+  /* Panel */
   --vscode-panel-background: #1e1e1e;
   --vscode-panel-border: rgba(128, 128, 128, 0.35);
   --vscode-panelTitle-activeForeground: #e7e7e7;
   --vscode-panelTitle-activeBorder: #e7e7e7;
   --vscode-panelTitle-inactiveForeground: #9d9d9d;
 
+  /* Lists, trees and tables */
   --vscode-list-hoverBackground: #2a2d2e;
   --vscode-list-activeSelectionBackground: #094771;
   --vscode-list-activeSelectionForeground: #ffffff;
   --vscode-list-inactiveSelectionBackground: #37373d;
+  --vscode-tree-tableColumnsBorder: rgba(204, 204, 204, 0.125);
 
+  /* Inputs */
   --vscode-input-background: #3c3c3c;
   --vscode-input-foreground: #cccccc;
   --vscode-input-border: #3c3c3c;
+  --vscode-input-placeholderForeground: #a6a6a6;
+  --vscode-inputValidation-errorBackground: #5a1d1d;
+  --vscode-inputValidation-errorBorder: #be1100;
   --vscode-dropdown-background: #3c3c3c;
   --vscode-dropdown-border: #454545;
+  --vscode-checkbox-background: #3c3c3c;
+  --vscode-checkbox-border: #3c3c3c;
+  --vscode-checkbox-foreground: #f0f0f0;
 
+  /* Buttons and toolbars */
   --vscode-button-background: #0e639c;
   --vscode-button-foreground: #ffffff;
   --vscode-button-hoverBackground: #1177bb;
   --vscode-button-secondaryBackground: #3a3d41;
+  --vscode-button-secondaryForeground: #ffffff;
+  --vscode-button-secondaryHoverBackground: #45494e;
+  /* KubeBench: destructive actions (delete, uninstall, drain). */
+  --vscode-button-dangerBackground: #c72e0f;
+  --vscode-button-dangerHoverBackground: #d4351a;
+  --vscode-button-dangerForeground: #ffffff;
+  --vscode-toolbar-hoverBackground: rgba(90, 93, 94, 0.31);
 
-  --vscode-focusBorder: #007fd4;
-  --vscode-widget-shadow: rgba(0, 0, 0, 0.36);
+  /* Badges */
+  --vscode-badge-background: #4d4d4d;
+  --vscode-badge-foreground: #ffffff;
+
+  /* Scroll bars */
   --vscode-scrollbarSlider-background: rgba(121, 121, 121, 0.4);
   --vscode-scrollbarSlider-hoverBackground: rgba(100, 100, 100, 0.7);
+  --vscode-scrollbarSlider-activeBackground: rgba(191, 191, 191, 0.4);
 
+  /* Notifications (toasts) and dialogs */
+  --vscode-notifications-background: #252526;
+  --vscode-notifications-foreground: #cccccc;
+  --vscode-notifications-border: #303031;
+  --vscode-notificationsErrorIcon-foreground: #f14c4c;
+  --vscode-notificationsInfoIcon-foreground: #3794ff;
+  /* KubeBench: the dimmed backdrop behind modal dialogs. */
+  --vscode-dialog-backdrop: rgba(0, 0, 0, 0.45);
+
+  /* Terminal and log views */
   --vscode-terminal-foreground: #cccccc;
   --vscode-terminal-ansiGreen: #23d18b;
   --vscode-terminal-ansiYellow: #f5f543;
   --vscode-terminal-ansiCyan: #29b8db;
   --vscode-terminal-ansiRed: #f14c4c;
 
+  /* Charts */
   --vscode-charts-blue: #3794ff;
   --vscode-charts-red: #f14c4c;
   --vscode-charts-green: #89d185;
   --vscode-charts-yellow: #cca700;
   --vscode-charts-orange: #d18616;
   --vscode-charts-purple: #b180d7;
+  /* KubeBench: chart grid lines and empty bar tracks. */
+  --vscode-charts-gridLines: rgba(128, 128, 128, 0.2);
 
-  --vscode-badge-background: #4d4d4d;
-  --vscode-badge-foreground: #ffffff;
-
+  /* KubeBench: Kubernetes object states (badges, status dots). */
   --status-running: #89d185;
   --status-pending: #cca700;
   --status-failed: #f14c4c;
   --status-unknown: #9d9d9d;
+}
 
-  --font-ui: "Segoe UI", system-ui, -apple-system, sans-serif;
-  --font-mono: "SF Mono", Menlo, Consolas, "Courier New", monospace;
+/* Light+ */
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  /* Base colours */
+  --vscode-foreground: #616161;
+  --vscode-descriptionForeground: #717171;
+  --vscode-disabledForeground: rgba(97, 97, 97, 0.5);
+  --vscode-errorForeground: #a1260d;
+  --vscode-icon-foreground: #424242;
+  --vscode-focusBorder: #0090f1;
+  --vscode-widget-border: #d4d4d4;
+  --vscode-widget-shadow: rgba(0, 0, 0, 0.16);
+  --vscode-textLink-foreground: #006ab1;
+  --vscode-textLink-activeForeground: #006ab1;
+  --vscode-textPreformat-foreground: #a31515;
+  --vscode-textCodeBlock-background: rgba(220, 220, 220, 0.4);
+
+  /* Editor and editor widgets (dialogs, popups) */
+  --vscode-editor-background: #ffffff;
+  --vscode-editor-foreground: #000000;
+  --vscode-editorWidget-background: #f3f3f3;
+  --vscode-editorWidget-foreground: #616161;
+  --vscode-editorWidget-border: #c8c8c8;
+  --vscode-editorError-foreground: #e51400;
+  --vscode-editorWarning-foreground: #bf8803;
+  --vscode-editorInfo-foreground: #1a85ff;
+
+  /* Side bar */
+  --vscode-sideBar-background: #f3f3f3;
+  --vscode-sideBar-foreground: #616161;
+  --vscode-sideBar-border: #e5e5e5;
+  --vscode-sideBarSectionHeader-background: #f3f3f3;
+  --vscode-sideBarTitle-foreground: #6f6f6f;
+
+  /* Activity bar (dark in Light+ too) */
+  --vscode-activityBar-background: #2c2c2c;
+  --vscode-activityBar-foreground: #ffffff;
+  --vscode-activityBar-inactiveForeground: rgba(255, 255, 255, 0.4);
+  --vscode-activityBar-activeBorder: #ffffff;
+
+  /* Status bar */
+  --vscode-statusBar-background: #007acc;
+  --vscode-statusBar-foreground: #ffffff;
+  --vscode-statusBarItem-hoverBackground: rgba(255, 255, 255, 0.12);
+  /* KubeBench: the active cluster's environment (design §6.3). */
+  --vscode-statusBarItem-productionBackground: #c72e0f;
+  --vscode-statusBarItem-productionForeground: #ffffff;
+  --vscode-statusBarItem-stagingBackground: #e8a317;
+  --vscode-statusBarItem-stagingForeground: #1e1e1e;
+  --vscode-statusBarItem-developmentBackground: #16825d;
+  --vscode-statusBarItem-developmentForeground: #ffffff;
+
+  /* Editor tabs */
+  --vscode-tab-activeBackground: #ffffff;
+  --vscode-tab-inactiveBackground: #ececec;
+  --vscode-tab-activeForeground: #333333;
+  --vscode-tab-inactiveForeground: rgba(51, 51, 51, 0.7);
+  --vscode-tab-border: #f3f3f3;
+  --vscode-tab-activeBorderTop: #007acc;
+  --vscode-editorGroupHeader-tabsBackground: #f3f3f3;
+
+  /* Panel */
+  --vscode-panel-background: #ffffff;
+  --vscode-panel-border: rgba(128, 128, 128, 0.35);
+  --vscode-panelTitle-activeForeground: #424242;
+  --vscode-panelTitle-activeBorder: #424242;
+  --vscode-panelTitle-inactiveForeground: rgba(66, 66, 66, 0.75);
+
+  /* Lists, trees and tables */
+  --vscode-list-hoverBackground: #e8e8e8;
+  --vscode-list-activeSelectionBackground: #0060c0;
+  --vscode-list-activeSelectionForeground: #ffffff;
+  --vscode-list-inactiveSelectionBackground: #e4e6f1;
+  --vscode-tree-tableColumnsBorder: rgba(97, 97, 97, 0.125);
+
+  /* Inputs */
+  --vscode-input-background: #ffffff;
+  --vscode-input-foreground: #616161;
+  --vscode-input-border: #cecece;
+  --vscode-input-placeholderForeground: #767676;
+  --vscode-inputValidation-errorBackground: #f2dede;
+  --vscode-inputValidation-errorBorder: #be1100;
+  --vscode-dropdown-background: #ffffff;
+  --vscode-dropdown-border: #cecece;
+  --vscode-checkbox-background: #ffffff;
+  --vscode-checkbox-border: #cecece;
+  --vscode-checkbox-foreground: #616161;
+
+  /* Buttons and toolbars */
+  --vscode-button-background: #007acc;
+  --vscode-button-foreground: #ffffff;
+  --vscode-button-hoverBackground: #0062a3;
+  --vscode-button-secondaryBackground: #5f6a79;
+  --vscode-button-secondaryForeground: #ffffff;
+  --vscode-button-secondaryHoverBackground: #4c5561;
+  /* KubeBench: destructive actions (delete, uninstall, drain). */
+  --vscode-button-dangerBackground: #c72e0f;
+  --vscode-button-dangerHoverBackground: #a8260c;
+  --vscode-button-dangerForeground: #ffffff;
+  --vscode-toolbar-hoverBackground: rgba(184, 184, 184, 0.31);
+
+  /* Badges */
+  --vscode-badge-background: #c4c4c4;
+  --vscode-badge-foreground: #333333;
+
+  /* Scroll bars */
+  --vscode-scrollbarSlider-background: rgba(100, 100, 100, 0.4);
+  --vscode-scrollbarSlider-hoverBackground: rgba(100, 100, 100, 0.7);
+  --vscode-scrollbarSlider-activeBackground: rgba(0, 0, 0, 0.6);
+
+  /* Notifications (toasts) and dialogs */
+  --vscode-notifications-background: #f3f3f3;
+  --vscode-notifications-foreground: #616161;
+  --vscode-notifications-border: #e7e7e7;
+  --vscode-notificationsErrorIcon-foreground: #e51400;
+  --vscode-notificationsInfoIcon-foreground: #1a85ff;
+  /* KubeBench: the dimmed backdrop behind modal dialogs. */
+  --vscode-dialog-backdrop: rgba(0, 0, 0, 0.25);
+
+  /* Terminal and log views */
+  --vscode-terminal-foreground: #333333;
+  --vscode-terminal-ansiGreen: #00bc00;
+  --vscode-terminal-ansiYellow: #949800;
+  --vscode-terminal-ansiCyan: #0598bc;
+  --vscode-terminal-ansiRed: #cd3131;
+
+  /* Charts */
+  --vscode-charts-blue: #1a85ff;
+  --vscode-charts-red: #e51400;
+  --vscode-charts-green: #388a34;
+  --vscode-charts-yellow: #bf8803;
+  --vscode-charts-orange: #d18616;
+  --vscode-charts-purple: #652d90;
+  /* KubeBench: chart grid lines and empty bar tracks. */
+  --vscode-charts-gridLines: rgba(128, 128, 128, 0.2);
+
+  /* KubeBench: Kubernetes object states (badges, status dots). */
+  --status-running: #388a34;
+  --status-pending: #bf8803;
+  --status-failed: #e51400;
+  --status-unknown: #717171;
 }
 
 * {
@@ -115,6 +339,9 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--vscode-scrollbarSlider-hoverBackground);
+}
+::-webkit-scrollbar-thumb:active {
+  background: var(--vscode-scrollbarSlider-activeBackground);
 }
 ::-webkit-scrollbar-corner {
   background: transparent;

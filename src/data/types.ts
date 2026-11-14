@@ -77,6 +77,50 @@ export interface ActiveCluster {
   readOnly: boolean
 }
 
+/** What the backend can do on the active cluster (RBAC + capability probes). */
+export interface LiveCapabilities {
+  crds: boolean
+  helm: boolean
+  exec: boolean
+}
+
+export interface ServerFeatures {
+  /** Clusters may be added by a server-side kubeconfig path. */
+  pathKubeconfig: boolean
+  /** The server has a plugins directory for external (runtime-loaded) UI plugins. */
+  externalPlugins: boolean
+}
+
+/** The session as described by GET /api/info (design §4.1), normalised. */
+export interface ServerInfo {
+  version: string
+  commit: string
+  user: string
+  role: GlobalRole
+  /** Every cluster request is refused until the user picks a new password. */
+  mustChangePassword: boolean
+  /** Name of the active cluster; empty when there is none. */
+  context: string
+  /** API server URL of the active cluster, when its runtime is up. */
+  server: string
+  cluster: ActiveCluster | null
+  permissions: SessionPermissions
+  capabilities: LiveCapabilities
+  features: ServerFeatures
+  /** Why no cluster runtime is available (no assignment, bad kubeconfig, …); empty otherwise. */
+  clusterError: string
+}
+
+/** Options of GET /api/logs (design §4.4). */
+export interface PodLogOptions {
+  /** Number of lines from the end (server default 300, at most 5000). */
+  tail?: number
+  /** Logs of the previous, terminated instance of the container. */
+  previous?: boolean
+  /** Only lines written in the last N seconds. */
+  sinceSeconds?: number
+}
+
 /** One row of the audit log (GET /api/audit). */
 export interface AuditEntry {
   id: number

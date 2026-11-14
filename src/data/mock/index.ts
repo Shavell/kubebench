@@ -1,7 +1,8 @@
+import { ApiError } from '../apiClient'
 import type { DataProviders } from '../providers'
 import { deployments, namespaces, nodes, pods, services, syncDeploymentPods } from './mockCluster'
 import { crds, customResources } from './mockCrds'
-import { delay } from './delay'
+import { delay, delayReject } from './delay'
 import { eventsFor } from './mockEvents'
 import { genericMock } from './mockGeneric'
 import { podLogs } from './mockLogs'
@@ -11,7 +12,8 @@ import { createMockAudit } from './mockAudit'
 import { createMockInventory } from './mockInventory'
 import { mockK8sGet } from './mockK8s'
 import { createMockPlugins } from './mockPlugins'
-import { createMockSession, createMockUsers } from './mockUsers'
+import { createMockSession } from './mockSession'
+import { createMockUsers } from './mockUsers'
 import {
   customResourceYaml,
   deploymentYaml,
@@ -62,7 +64,20 @@ export function createMockProviders(): DataProviders {
         }
       },
       listEvents: (kind, ns, name) => delay(eventsFor(kind, ns, name)),
-      getPodLogs: (_ns, pod, container) => delay(podLogs(pod, container)),
+      getPodLogs: (ns, podName, container, options = {}) => {
+        const pod = pods.find((p) => p.namespace === ns && p.name === podName)
+        if (options.previous && !pod?.restarts) {
+          // What the Kubernetes API answers for a container that never restarted.
+          return delayReject(
+            new ApiError(
+              400,
+              'kubernetes',
+              `previous terminated container "${container}" in pod "${podName}" not found`,
+            ),
+          )
+        }
+        return delay(podLogs(podName, container, options))
+      },
       listResource: (key, ns) => {
         const items = genericMock[key] ?? []
         return delay(ns ? items.filter((o) => o.metadata?.namespace === ns) : items)

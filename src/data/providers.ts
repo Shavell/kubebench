@@ -23,6 +23,8 @@ import type {
   Namespace,
   PluginCatalog,
   Pod,
+  PodLogOptions,
+  ServerInfo,
   Service,
 } from './types'
 
@@ -41,7 +43,7 @@ export interface ClusterProvider {
   listServices(namespace?: string): Promise<Service[]>
   getResourceYaml(kind: string, namespace: string | null, name: string): Promise<string>
   listEvents(kind: string, namespace: string | null, name: string): Promise<K8sEvent[]>
-  getPodLogs(namespace: string, pod: string, container: string): Promise<string[]>
+  getPodLogs(namespace: string, pod: string, container: string, options?: PodLogOptions): Promise<string[]>
   /** Generic list for any catalog resource key (configmaps, secrets, …). */
   listResource(key: string, namespace?: string): Promise<KubeObject[]>
   getResource(key: string, namespace: string | null, name: string): Promise<KubeObject>
@@ -114,6 +116,8 @@ export interface UsersProvider {
 
 /** The signed-in user's own session. */
 export interface SessionProvider {
+  /** The session facts: user, active cluster, permissions, capabilities (GET /api/info). */
+  info(): Promise<ServerInfo>
   /** Clears `mustChangePassword`; the server revokes the user's other sessions. */
   changePassword(currentPassword: string, newPassword: string): Promise<void>
   logout(): Promise<void>

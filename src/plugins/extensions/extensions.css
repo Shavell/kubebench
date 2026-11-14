@@ -1,0 +1,219 @@
+/* ---- sidebar list ---- */
+
+.ext-list {
+  padding-bottom: 8px;
+}
+
+.ext-list__notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 6px 8px;
+  padding: 6px 8px;
+  font-size: 12px;
+  border: 1px solid var(--vscode-inputValidation-errorBorder);
+  border-radius: 3px;
+  background: var(--vscode-inputValidation-errorBackground);
+}
+
+/* Uppercased in CSS, which follows <html lang> (Turkish i → İ). */
+.ext-list__group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+  padding: 8px 12px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--vscode-sideBarTitle-foreground);
+}
+
+.ext-list__count {
+  padding: 0 6px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 400;
+  background: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+}
+
+.ext-list__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ext-list__row:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+.ext-list__row:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+.ext-list__row--selected,
+.ext-list__row--selected:hover {
+  background: var(--vscode-list-inactiveSelectionBackground);
+}
+
+.ext-list__icon {
+  margin-top: 2px;
+  color: var(--vscode-icon-foreground);
+}
+.ext-list__row--inactive .ext-list__icon,
+.ext-list__row--inactive .ext-list__name {
+  opacity: 0.6;
+}
+
+.ext-list__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.ext-list__title {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ext-list__name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ext-list__version,
+.ext-list__description {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.ext-list__description {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ext-list__badges {
+  display: flex;
+  gap: 4px;
+}
+.ext-list__badges:empty {
+  display: none;
+}
+
+/* ---- detail page ---- */
+
+.ext-detail__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  max-width: 980px;
+  margin-bottom: 8px;
+}
+
+.ext-detail__icon {
+  color: var(--vscode-icon-foreground);
+}
+
+.ext-detail__heading {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.ext-detail__name {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 400;
+}
+
+.ext-detail__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.ext-detail__id {
+  font-family: var(--font-mono);
+  user-select: text;
+}
+
+.ext-detail__description {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  user-select: text;
+}
+
+.ext-detail__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.ext-detail__hint {
+  max-width: 260px;
+  font-size: 12px;
+  text-align: right;
+  color: var(--vscode-descriptionForeground);
+}
+
+.ext-detail__facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 6px 16px;
+  margin: 0;
+  font-size: 13px;
+}
+.ext-detail__facts dt {
+  color: var(--vscode-descriptionForeground);
+}
+.ext-detail__facts dd {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.ext-detail__code {
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--vscode-textPreformat-foreground);
+  background: var(--vscode-textCodeBlock-background);
+}
+
+.ext-detail__reason {
+  color: var(--vscode-descriptionForeground);
+}
+
+.ext-detail__list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  line-height: 1.7;
+}

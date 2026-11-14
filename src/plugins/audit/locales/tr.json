@@ -1,0 +1,53 @@
+{
+  "manifest": {
+    "name": "Denetim kaydı",
+    "description": "Kimin hangi cluster'da neyi değiştirdiği ve buna izin verilip verilmediği. Yalnızca yöneticiler içindir.",
+    "tooltip": "Denetim kaydı",
+    "sidebarTitle": "Denetim kaydı"
+  },
+  "commands": {
+    "open": "Denetim: Denetim kaydını aç"
+  },
+  "tab": {
+    "title": "Denetim kaydı"
+  },
+  "page": {
+    "title": "Denetim kaydı"
+  },
+  "sidebar": {
+    "log": "Son etkinlikler",
+    "entry": "{{user}}: {{action}}"
+  },
+  "columns": {
+    "time": "Zaman",
+    "user": "Kullanıcı",
+    "cluster": "Cluster",
+    "action": "Eylem",
+    "target": "Hedef",
+    "status": "Durum",
+    "detail": "Ayrıntı"
+  },
+  "table": {
+    "noCluster": "—",
+    "loading": "Denetim kaydı yükleniyor…",
+    "empty": "Henüz denetim girdisi yok",
+    "emptyHint": "Değişiklikler, kabuk oturumları ve yönetim işlemleri burada kaydedilir.",
+    "noMatches": "Filtrelerle eşleşen girdi yok",
+    "noMatchesHint": "Kullanıcı ve cluster tam olarak eşleşmelidir; eylem herhangi bir kısmıyla eşleşir.",
+    "shown_one": "{{count}} girdi gösteriliyor",
+    "shown_other": "{{count}} girdi gösteriliyor",
+    "loadMore": "Daha fazla yükle"
+  },
+  "filters": {
+    "user": "Kullanıcı",
+    "allUsers": "Tüm kullanıcılar",
+    "cluster": "Cluster",
+    "allClusters": "Tüm cluster'lar",
+    "action": "Eylem",
+    "actionPlaceholder": "scale, /api/pods, exec…",
+    "clear": "Filtreleri temizle"
+  },
+  "actions": {
+    "refresh": "Yenile"
+  }
+}

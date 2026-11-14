@@ -4,7 +4,28 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>KubeBench — Kubernetes Workbench</title>
+    <meta name="color-scheme" content="dark light" />
+    <title>KubeBench</title>
+    <script>
+      // Applies the saved colour theme before the first paint, so the page
+      // never flashes the wrong palette. Reads the persisted settings store
+      // (src/core/store/settingsStore.ts, key "kubebench.settings") and
+      // mirrors resolveTheme() in src/core/theme/themeController.ts, which
+      // takes over once the app has loaded.
+      ;(function () {
+        var theme = 'dark'
+        try {
+          var saved = JSON.parse(localStorage.getItem('kubebench.settings') || 'null')
+          var preference = saved && saved.state && saved.state.theme
+          if (preference === 'light') theme = 'light'
+          else if (preference === 'system' && matchMedia('(prefers-color-scheme: light)').matches) theme = 'light'
+        } catch (err) {
+          // Storage blocked or corrupt: keep the default palette.
+        }
+        document.documentElement.dataset.theme = theme
+        document.documentElement.style.colorScheme = theme
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

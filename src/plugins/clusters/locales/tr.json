@@ -1,0 +1,122 @@
+{
+  "manifest": {
+    "name": "Cluster'lar",
+    "description": "Cluster envanteri: etkin cluster'ı değiştirin; yöneticiler cluster ekler, ortamlarını ve salt okunur durumlarını belirler.",
+    "tooltip": "Cluster'lar",
+    "sidebarTitle": "Cluster'lar"
+  },
+  "commands": {
+    "openInventory": "Cluster'lar: Envanteri aç"
+  },
+  "tab": {
+    "title": "Cluster'lar"
+  },
+  "page": {
+    "title": "Cluster'lar"
+  },
+  "sidebar": {
+    "clusters": "Cluster'lar"
+  },
+  "columns": {
+    "name": "Ad",
+    "environment": "Ortam",
+    "access": "Değişiklikler",
+    "role": "Rolünüz",
+    "server": "API sunucusu",
+    "status": "Durum",
+    "actions": "Eylemler"
+  },
+  "table": {
+    "loading": "Cluster'lar yükleniyor…",
+    "empty": "Cluster yok",
+    "emptyAdminHint": "Başlamak için kubeconfig dosyasıyla bir cluster ekleyin.",
+    "emptyUserHint": "Bir yönetici size henüz bir cluster'a erişim vermedi."
+  },
+  "status": {
+    "active": "Etkin",
+    "registered": "Kayıtlı",
+    "bookmark": "Yer imi",
+    "error": "Hata"
+  },
+  "environment": {
+    "none": "Belirtilmedi",
+    "development": "Geliştirme",
+    "staging": "Hazırlık",
+    "production": "Üretim"
+  },
+  "roles": {
+    "admin": "Yönetici",
+    "operator": "Operatör",
+    "viewer": "İzleyici",
+    "none": "Erişim yok"
+  },
+  "readOnly": {
+    "label": "Salt okunur",
+    "hint": "Bu cluster'da değişiklikler ve kabuk erişimi, yöneticiler dahil herkes için engellenir.",
+    "writable": "İzinli"
+  },
+  "actions": {
+    "refresh": "Yenile",
+    "add": "Cluster ekle",
+    "cancel": "İptal",
+    "activate": "Etkinleştir",
+    "activateHint": "Bu cluster'a geçin; çalışma alanı yeniden yüklenir.",
+    "bookmarkHint": "Adresle eklenen girdiler kimlik bilgisi olmayan yer imleridir ve etkinleştirilemez.",
+    "edit": "Düzenle",
+    "removeNamed": "{{name}} cluster'ını kaldır"
+  },
+  "note": {
+    "live": "KubeBench sunucusu her kubeconfig'i kendi veritabanında tutar; yalnızca adresle eklenen cluster'lar yer imidir.",
+    "mock": "Demo modu: envanter bu tarayıcıda tutulur ve her girdi aynı örnek verileri gösterir."
+  },
+  "remove": {
+    "title": "{{name}} kaldırılsın mı?",
+    "message": "KubeBench bu cluster'ı unutur: saklanan kimlik bilgileri ve kullanıcıların ona erişimi silinir. Cluster'ın kendisi değişmez.",
+    "messageActive": "Bu, etkin cluster. KubeBench onu unutur (saklanan kimlik bilgileri ve kullanıcıların ona erişimi silinir) ve başka bir cluster'a geçer. Cluster'ın kendisi değişmez.",
+    "confirm": "Kaldır",
+    "done": "{{name}} cluster'ı kaldırıldı."
+  },
+  "edit": {
+    "title": "{{name}} cluster'ını düzenle",
+    "submit": "Kaydet",
+    "done": "{{name}} cluster'ı güncellendi."
+  },
+  "form": {
+    "name": "Ad",
+    "environment": "Ortam",
+    "environmentHelp": "Üretim cluster'larında durum çubuğu kırmızı olur ve yıkıcı işlemlerden önce kaynağın adını yazmanız istenir.",
+    "readOnly": "Salt okunur",
+    "readOnlyHelp": "Değişiklikleri ve kabuk erişimini, yöneticiler dahil herkes için engeller. Okuma yapılabilir.",
+    "errors": {
+      "name": "1 ile {{max}} karakter arasında bir ad girin.",
+      "nameTaken": "Bu adda bir cluster zaten var.",
+      "content": "Kubeconfig içeriğini yapıştırın veya bir dosyadan yükleyin.",
+      "path": "Sunucudaki kubeconfig dosyasının yolunu girin.",
+      "address": "http:// veya https:// ile başlayan bir adres girin.",
+      "fileTooLarge": "{{name}} bir kubeconfig olamayacak kadar büyük."
+    }
+  },
+  "add": {
+    "title": "Cluster ekle",
+    "submit": "Cluster ekle",
+    "done": "{{name}} cluster'ı eklendi.",
+    "nameHelp": "Cluster'ın KubeBench'te görünen adı.",
+    "source": "Kimlik bilgileri",
+    "sources": {
+      "content": "Kubeconfig yapıştır",
+      "path": "Sunucudaki kubeconfig dosyası",
+      "address": "Yalnızca API adresi (yer imi)"
+    },
+    "sourceHelp": {
+      "content": "Sunucu kubeconfig'i saklar. Sertifikaları ve token'ları içine gömün: dosyalara veya kimlik bilgisi eklentilerine yapılan başvurulara izin verilmeyebilir.",
+      "path": "Sunucu dosyayı bir kez okur ve içeriğini saklar.",
+      "address": "Yalnızca adresi hatırlar; KubeBench bir yer imine bağlanamaz."
+    },
+    "kubeconfig": "Kubeconfig",
+    "loadFile": "Dosyadan yükle…",
+    "path": "Sunucudaki yol",
+    "address": "API sunucusu adresi",
+    "context": "Context",
+    "contextHelp": "Kubeconfig'in geçerli context'ini kullanmak için boş bırakın."
+  }
+}

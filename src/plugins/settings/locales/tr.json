@@ -1,0 +1,79 @@
+{
+  "manifest": {
+    "name": "Ayarlar",
+    "description": "Görünüm, dil, veri ve terminal tercihleri ile diğer eklentilerin ayarları."
+  },
+  "commands": {
+    "open": "Tercihler: Ayarları aç"
+  },
+  "tab": {
+    "title": "Ayarlar"
+  },
+  "page": {
+    "title": "Ayarlar"
+  },
+  "sections": {
+    "appearance": "Görünüm",
+    "data": "Veri",
+    "terminal": "Terminal ve loglar",
+    "about": "Hakkında"
+  },
+  "appearance": {
+    "theme": {
+      "label": "Renk teması",
+      "help": "Koyu veya açık temayı seçin ya da işletim sisteminizin ayarını izleyin.",
+      "dark": "Koyu",
+      "light": "Açık",
+      "system": "Sistem ({{theme}})"
+    },
+    "language": {
+      "label": "Dil",
+      "help": "Kullanıcı arayüzünün dili. Otomatik seçeneği tarayıcınızın dilini izler.",
+      "auto": "Otomatik ({{language}})"
+    }
+  },
+  "data": {
+    "metricsSource": {
+      "label": "Metrik kaynağı",
+      "help": "Kullanım serilerinin alındığı kaynak.",
+      "helpPrometheus": "Kullanım serilerinin alındığı kaynak. Prometheus bulundu; ağ ve dosya sistemi metriklerini ve daha uzun bir geçmişi de sağlar.",
+      "helpPrometheusAt": "Kullanım serilerinin alındığı kaynak. Prometheus {{location}} adresinde bulundu; ağ ve dosya sistemi metriklerini ve daha uzun bir geçmişi de sağlar.",
+      "helpNoPrometheus": "Kullanım serilerinin alındığı kaynak. Bu cluster'da Prometheus bulunamadı; bu nedenle metrics-server kullanılıyor ve ağ ile dosya sistemi grafikleri kullanılamıyor.",
+      "auto": "Otomatik (Prometheus tercih edilir)",
+      "prometheus": "Prometheus",
+      "prometheusUnavailable": "Prometheus (kullanılamıyor)",
+      "metricsServer": "metrics-server"
+    },
+    "metricsWindow": {
+      "label": "Metrik zaman aralığı",
+      "help": "Grafiklerin gösterdiği kullanım geçmişinin uzunluğu.",
+      "minutes_one": "{{count}} dakika",
+      "minutes_other": "{{count}} dakika"
+    },
+    "autoRefresh": {
+      "label": "Otomatik yenileme",
+      "help": "Kaynak listelerini düzenli aralıklarla yeniden yükler. Kapalıyken listeler yalnızca elle yenilenir.",
+      "off": "Kapalı",
+      "every_one": "Her saniye",
+      "every_other": "{{count}} saniyede bir"
+    }
+  },
+  "terminal": {
+    "fontSize": {
+      "label": "Yazı tipi boyutu",
+      "help": "Terminal, exec ve log görünümlerinin yazı tipi boyutu.",
+      "value": "{{size}} px"
+    }
+  },
+  "about": {
+    "version": "Sürüm",
+    "build": "{{version}} (commit {{commit}})",
+    "dataSource": "Veri kaynağı",
+    "live": "Canlı cluster",
+    "mock": "Demo (örnek veri)",
+    "context": "Context",
+    "noCluster": "Yok",
+    "server": "API sunucusu",
+    "storage": "Ayarlar bu tarayıcıda saklanır."
+  }
+}

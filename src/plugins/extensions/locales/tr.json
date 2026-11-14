@@ -1,0 +1,84 @@
+{
+  "manifest": {
+    "name": "Eklentiler",
+    "description": "Tüm eklentileri sürümleri, kaynakları ve durumlarıyla listeler; yöneticiler eklentileri herkes için etkinleştirir veya devre dışı bırakır.",
+    "tooltip": "Eklentiler",
+    "sidebarTitle": "Eklentiler"
+  },
+  "groups": {
+    "core": "Çekirdek",
+    "builtin": "Yerleşik",
+    "external": "Harici"
+  },
+  "sidebar": {
+    "catalogFailed": "Eklenti durumu sunucudan yüklenemedi, bu nedenle kullanılabilirlik denetlenmiyor: {{error}}"
+  },
+  "status": {
+    "enabled": "Etkin",
+    "disabled": "Devre dışı",
+    "available": "Kullanılabilir",
+    "unavailable": "Kullanılamıyor",
+    "loadFailed": "Yüklenemedi",
+    "core": "Çekirdek"
+  },
+  "toggle": {
+    "enabled": "{{name}} herkes için etkinleştirildi.",
+    "disabled": "{{name}} herkes için devre dışı bırakıldı.",
+    "loadFailed": "{{name}} etkinleştirildi ancak betiği yüklenemedi."
+  },
+  "detail": {
+    "unknown": "\"{{id}}\" kimlikli bir eklenti yok.",
+    "version": "Sürüm {{version}}",
+    "coreHint": "Çalışma alanının kendi parçasıdır; devre dışı bırakılamaz.",
+    "enable": "Etkinleştir",
+    "disable": "Devre dışı bırak",
+    "adminOnly": "Eklentileri yalnızca yöneticiler etkinleştirebilir veya devre dışı bırakabilir.",
+    "disableConfirm": {
+      "title": "{{name}} devre dışı bırakılsın mı?",
+      "message": "{{name}} tüm kullanıcılar için kapatılır: bir yönetici yeniden etkinleştirene kadar görünümleri, komutları ve eylemleri kaybolur."
+    },
+    "statusSection": "Durum",
+    "contributesSection": "Katkılar",
+    "state": "Durum",
+    "availability": "Kullanılabilirlik",
+    "requires": "Gerektirdiği sunucu eklentisi",
+    "backendMissing": "Bu sunucuda bulunmuyor.",
+    "script": "Betik",
+    "noScript": "Yok",
+    "loaded": "Bu pencerede yüklü",
+    "loadedYes": "Evet",
+    "loadedNo": "Hayır",
+    "loadError": "Yükleme hatası"
+  },
+  "categories": {
+    "core": "Çekirdek",
+    "workloads": "İş Yükleri",
+    "gitops": "GitOps",
+    "storage": "Depolama",
+    "security": "Güvenlik",
+    "observability": "Gözlemlenebilirlik",
+    "tools": "Araçlar"
+  },
+  "sources": {
+    "builtin": "Yerleşik",
+    "external": "Harici"
+  },
+  "contributes": {
+    "notLoaded": "Eklentinin betiği bu pencerede yüklü değil, bu nedenle katkıları henüz bilinmiyor. Yüklemek için eklentiyi etkinleştirin.",
+    "serverOnly": "Bu eklenti sunucuda çalışır ve bu sürümde kendi görünümleri yoktur.",
+    "nothing": "Bu eklenti kullanıcı arayüzüne bir şey eklemiyor.",
+    "activityBar": "Etkinlik çubuğu",
+    "sidebar": "Kenar çubuğu görünümü",
+    "tabs": "Düzenleyici sekmeleri",
+    "tabKinds_one": "{{count}} sekme türü",
+    "tabKinds_other": "{{count}} sekme türü",
+    "commands": "Komutlar",
+    "panels": "Panel sekmeleri",
+    "statusBar": "Durum çubuğu",
+    "statusBarItems_one": "{{count}} öğe",
+    "statusBarItems_other": "{{count}} öğe",
+    "resourceActions": "Kaynak eylemleri",
+    "resourceAction": "{{title}} ({{kinds}})",
+    "settings": "Ayar bölümleri"
+  }
+}

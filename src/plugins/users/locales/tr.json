@@ -1,0 +1,108 @@
+{
+  "manifest": {
+    "name": "Kullanıcılar",
+    "description": "Kullanıcı hesapları, genel rolleri ve her cluster'daki rolleri. Yalnızca yöneticiler içindir.",
+    "tooltip": "Kullanıcılar",
+    "sidebarTitle": "Kullanıcılar"
+  },
+  "commands": {
+    "open": "Kullanıcılar: Kullanıcıları yönet"
+  },
+  "tab": {
+    "title": "Kullanıcılar"
+  },
+  "page": {
+    "title": "Kullanıcılar"
+  },
+  "sidebar": {
+    "users": "Kullanıcılar"
+  },
+  "columns": {
+    "user": "Kullanıcı",
+    "role": "Rol",
+    "access": "Cluster erişimi",
+    "status": "Durum",
+    "actions": "Eylemler"
+  },
+  "table": {
+    "you": "(siz)",
+    "mustChangePassword": "Parolasını değiştirmeli",
+    "loading": "Kullanıcılar yükleniyor…",
+    "empty": "Kullanıcı yok"
+  },
+  "access": {
+    "allClusters": "Tüm cluster'lar (yönetici)",
+    "noClusters": "Cluster erişimi yok",
+    "none": "Erişim yok"
+  },
+  "roles": {
+    "admin": "Yönetici",
+    "user": "Kullanıcı",
+    "viewer": "İzleyici",
+    "operator": "Operatör"
+  },
+  "actions": {
+    "refresh": "Yenile",
+    "add": "Kullanıcı ekle",
+    "cancel": "İptal",
+    "editAccess": "Erişimi düzenle",
+    "resetPassword": "Parolayı sıfırla",
+    "resetOwnHint": "Kendi parolanızı durum çubuğundaki kullanıcı menüsünden değiştirin.",
+    "deleteNamed": "{{name}} kullanıcısını sil",
+    "deleteOwnHint": "Kendi hesabınızı silemezsiniz."
+  },
+  "fields": {
+    "username": "Kullanıcı adı",
+    "initialPassword": "İlk parola",
+    "newPassword": "Yeni parola",
+    "confirmPassword": "Yeni parolayı onaylayın",
+    "role": "Rol",
+    "roleHelp": "Yöneticiler kullanıcıları, cluster'ları, eklentileri ve denetim kaydını yönetir; her cluster'a tam erişimleri vardır."
+  },
+  "create": {
+    "title": "Kullanıcı ekle",
+    "description": "Kullanıcı bu parolayla bir kez giriş yapar, ardından yeni bir parola seçmesi gerekir.",
+    "usernameHelp": "Harfler, rakamlar, '.', '_', '@' ve '-'; en fazla 64 karakter.",
+    "passwordHelp": "En az {{count}} karakter. Parolayı kullanıcıyla güvenli bir kanaldan paylaşın.",
+    "submit": "Kullanıcı ekle",
+    "done": "{{name}} kullanıcısı eklendi. İlk girişte parolasını değiştirmesi gerekecek.",
+    "errors": {
+      "username": "Harf veya rakamla başlayan, 1-64 harf, rakam, '.', '_', '@' ya da '-' girin.",
+      "taken": "Bu adda bir kullanıcı zaten var.",
+      "password": "Parola en az {{count}} karakter olmalı."
+    }
+  },
+  "reset": {
+    "title": "{{name}} kullanıcısının parolasını sıfırla",
+    "description": "{{name}} tüm oturumlarından çıkarılır ve bir sonraki girişte yeni bir parola seçmesi gerekir.",
+    "help": "En az {{count}} karakter. Parolayı kullanıcıyla güvenli bir kanaldan paylaşın.",
+    "submit": "Parolayı sıfırla",
+    "done": "{{name}} kullanıcısının parolası sıfırlandı. Bir sonraki girişte yeni bir parola seçmesi gerekecek.",
+    "errors": {
+      "password": "Parola en az {{count}} karakter olmalı.",
+      "mismatch": "Parolalar eşleşmiyor."
+    }
+  },
+  "edit": {
+    "title": "{{name}} kullanıcısının erişimi",
+    "clusterAccess": "Cluster erişimi",
+    "accessHelp": "İzleyiciler bir cluster'daki her şeyi görebilir; operatörler ayrıca kaynakları değiştirebilir ve kabuk açabilir. Salt okunur bir cluster değişiklikleri herkes için engeller.",
+    "adminAccess": "Yöneticilerin her cluster'a tam erişimi vardır. Aşağıdaki roller, kullanıcı yeniden normal kullanıcı olursa geçerli olur.",
+    "noClusters": "Henüz kayıtlı cluster yok.",
+    "submit": "Kaydet",
+    "done": "{{name}} kullanıcısının erişimi güncellendi.",
+    "errors": {
+      "lastAdmin": "En az bir yönetici kalmalı. Önce başka bir kullanıcıyı yönetici yapın."
+    }
+  },
+  "delete": {
+    "title": "{{name}} silinsin mi?",
+    "message": "Hesap, oturumları ve cluster atamaları kaldırılır. Denetim kaydı girdileri korunur.",
+    "confirm": "Sil",
+    "done": "{{name}} kullanıcısı silindi.",
+    "errors": {
+      "self": "Kendi hesabınızı silemezsiniz.",
+      "lastAdmin": "Son yönetici silinemez. Önce başka bir kullanıcıyı yönetici yapın."
+    }
+  }
+}

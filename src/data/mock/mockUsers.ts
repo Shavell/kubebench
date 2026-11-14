@@ -1,5 +1,6 @@
 import { ApiError } from '../apiClient'
-import type { SessionProvider, UsersProvider } from '../providers'
+import type { UsersProvider } from '../providers'
+import { MIN_PASSWORD_LENGTH, passwordLength, USERNAME_PATTERN } from '../rules'
 import type { AppUser, AssignmentRole, GlobalRole } from '../types'
 import { delay, delayReject } from './delay'
 import { mockClusterNames } from './mockInventory'
@@ -19,7 +20,6 @@ interface StoredUser {
 
 /** The mock session always belongs to this user. */
 export const MOCK_USERNAME = 'admin'
-const MIN_PASSWORD_LENGTH = 8
 
 const users: StoredUser[] = [
   { id: 1, username: MOCK_USERNAME, role: 'admin', mustChangePassword: false, assignments: [] },
@@ -62,7 +62,7 @@ function find(id: number): StoredUser | undefined {
   return users.find((u) => u.id === id)
 }
 
-const badRequest = (message: string) => new ApiError(400, 'bad_request', message)
+export const badRequest = (message: string) => new ApiError(400, 'bad_request', message)
 const conflict = (message: string) => new ApiError(409, 'conflict', message)
 const notFound = (id: number) => new ApiError(404, 'not_found', `user ${id} not found`)
 const isLastAdmin = (user: StoredUser) =>
@@ -74,9 +74,12 @@ export function createMockUsers(): UsersProvider {
       const names = mockClusterNames()
       return delay(users.map((u) => toAppUser(u, names)))
     },
-    createUser: (username, password, role) => {
-      if (!username.trim()) return delayReject(badRequest('username is required'))
-      if (password.length < MIN_PASSWORD_LENGTH) {
+    createUser: (rawUsername, password, role) => {
+      const username = rawUsername.trim()
+      if (!USERNAME_PATTERN.test(username)) {
+        return delayReject(badRequest("a username is 1-64 letters, digits, '.', '_', '@' or '-'"))
+      }
+      if (passwordLength(password) < MIN_PASSWORD_LENGTH) {
         return delayReject(badRequest(`password must be at least ${MIN_PASSWORD_LENGTH} characters`))
       }
       if (users.some((u) => u.username === username)) {
@@ -97,7 +100,7 @@ export function createMockUsers(): UsersProvider {
       if (update.role === 'user' && isLastAdmin(user)) {
         return delayReject(conflict('cannot demote the last admin'))
       }
-      if (update.password !== undefined && update.password.length < MIN_PASSWORD_LENGTH) {
+      if (update.password !== undefined && passwordLength(update.password) < MIN_PASSWORD_LENGTH) {
         return delayReject(badRequest(`password must be at least ${MIN_PASSWORD_LENGTH} characters`))
       }
       if (update.role) user.role = update.role
@@ -120,15 +123,5 @@ export function createMockUsers(): UsersProvider {
       user.assignments = assignments.map((a) => ({ ...a }))
       return delay(undefined)
     },
-  }
-}
-
-export function createMockSession(): SessionProvider {
-  return {
-    changePassword: (_current, next) =>
-      next.length < MIN_PASSWORD_LENGTH
-        ? delayReject(badRequest(`password must be at least ${MIN_PASSWORD_LENGTH} characters`))
-        : delay(undefined),
-    logout: () => delay(undefined),
   }
 }

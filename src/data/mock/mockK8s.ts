@@ -96,11 +96,13 @@ const PATH = /^\/(?:api\/(v1)|apis\/([^/]+\/[^/]+))(?:\/namespaces\/([^/]+))?\/(
 const notFound = (path: string) =>
   new ApiError(404, 'not_found', `the server could not find the requested resource (${path})`)
 
-export function mockK8sGet<T>(path: string): Promise<T> {
+export function mockK8sGet<T>(rawPath: string): Promise<T> {
+  // Same normalisation as the live client: optional leading slash, query ignored.
+  const path = (rawPath.startsWith('/') ? rawPath : `/${rawPath}`).split('?')[0]
   if (path === '/version') {
     return delay({ major: '1', minor: '30', gitVersion: 'v1.30.2' } as T)
   }
-  const match = PATH.exec(path.split('?')[0])
+  const match = PATH.exec(path)
   if (!match) return delayReject(notFound(path))
   const [, coreVersion, groupVersion, namespace, resource] = match
   if (resource === 'secrets') {

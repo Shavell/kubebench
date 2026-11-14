@@ -1,20 +1,22 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PLATFORM_NS } from '@/core/locales'
-import { dataMode } from '@/data/mode'
+import { dataMode, useDataMode } from '@/data/mode'
 import type { SessionPermissions } from '@/data/types'
 import { i18n } from '@/i18n'
 
 /**
  * Effective permissions of the signed-in user on the active cluster
- * (docs/design-v0.5.md §3). Boot stores them in `dataMode`; mock mode
- * acts as an admin (only a read-only mock cluster takes write/exec away).
+ * (docs/design-v0.5.md §3). Boot stores them in `dataMode`: live mode
+ * takes them from /api/info, mock mode acts as an admin on the active mock
+ * cluster (a read-only mock cluster takes write/exec away).
  *
- * `dataMode` is set once at boot and the app reloads on cluster switch,
- * so this is a plain read — no subscription needed.
+ * The hooks re-render when the session facts are re-read; the plain
+ * functions read the current facts.
  */
 export type Permission = 'read' | 'write' | 'exec' | 'admin'
 
+/** Before boot has stored a session nothing restricts the UI (the server still decides). */
 const ALL_ALLOWED: SessionPermissions = {
   role: 'admin',
   canRead: true,
@@ -28,8 +30,8 @@ export function currentPermissions(): SessionPermissions {
   return dataMode.permissions ?? ALL_ALLOWED
 }
 
-/** Hook form (kept as a hook so a reactive store can back it later). */
 export function usePermissions(): SessionPermissions {
+  useDataMode()
   return currentPermissions()
 }
 
@@ -66,7 +68,7 @@ export function deniedReason(
 
 /**
  * Whether a permission is held and, if not, the reason to show on the
- * disabled control. Re-renders on language change.
+ * disabled control. Re-renders on language and session changes.
  */
 export function usePermission(permission: Permission): { allowed: boolean; reason: string | null } {
   const { t } = useTranslation(PLATFORM_NS)
@@ -85,5 +87,6 @@ export function Can({
   children: ReactNode
   fallback?: ReactNode
 }): ReactNode {
-  return can(perm) ? children : fallback
+  const perms = usePermissions()
+  return can(perm, perms) ? children : fallback
 }

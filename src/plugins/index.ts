@@ -1,16 +1,18 @@
 import type { PluginManifest } from '@/core/plugin/types'
+import { auditPlugin } from './audit/manifest'
 import { clustersPlugin } from './clusters/manifest'
-import { workloadsPlugin } from './workloads/manifest'
 import { crdPlugin } from './crd/manifest'
+import { extensionsPlugin } from './extensions/manifest'
 import { helmPlugin } from './helm/manifest'
 import { metricsPlugin } from './metrics/manifest'
-import { terminalPlugin } from './terminal/manifest'
 import { settingsPlugin } from './settings/manifest'
-export { usersPlugin } from './users/manifest'
+import { terminalPlugin } from './terminal/manifest'
+import { usersPlugin } from './users/manifest'
+import { workloadsPlugin } from './workloads/manifest'
 
 /**
- * The single place modules are wired in. Comment one out and its
- * activity bar icon, sidebar, tabs, panels, and status bar items all
+ * The single place built-in modules are wired in. Comment one out and its
+ * activity bar icon, sidebar, tabs, panels and status bar items all
  * disappear — nothing else references plugin internals.
  */
 export const allPlugins: PluginManifest[] = [
@@ -21,4 +23,8 @@ export const allPlugins: PluginManifest[] = [
   metricsPlugin,
   terminalPlugin,
   settingsPlugin,
+  extensionsPlugin,
 ]
+
+/** Registered at boot only when the signed-in user is a global admin. */
+export const adminPlugins: PluginManifest[] = [usersPlugin, auditPlugin]

@@ -7,6 +7,7 @@ import type {
   UsersProvider,
 } from '../providers'
 import type { AppUser, AuditPage, PluginCatalog } from '../types'
+import { fetchServerInfo } from './info'
 
 /**
  * Inventory, users, session, audit and plugin management. Go encodes empty
@@ -57,6 +58,7 @@ export function createApiUsers(): UsersProvider {
 
 export function createApiSession(): SessionProvider {
   return {
+    info: fetchServerInfo,
     changePassword: async (currentPassword, newPassword) => {
       await apiPost('/auth/password', { currentPassword, newPassword })
     },

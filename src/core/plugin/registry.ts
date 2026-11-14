@@ -18,6 +18,12 @@ import {
   type ResolvedPluginStatus,
 } from './pluginStatusStore'
 
+/**
+ * Activity bar position of entries without an `order`: after the built-in
+ * views (0–6), before Extensions (90).
+ */
+const DEFAULT_ACTIVITY_BAR_ORDER = 50
+
 interface Registration {
   manifest: PluginManifest
   source: PluginSource
@@ -77,9 +83,10 @@ class PluginRegistry {
   }
 
   activityBarEntries(): PluginManifest[] {
+    const order = (p: PluginManifest) => p.activityBar!.order ?? DEFAULT_ACTIVITY_BAR_ORDER
     return this.active()
       .filter((p) => p.activityBar)
-      .sort((a, b) => (a.activityBar!.order ?? 0) - (b.activityBar!.order ?? 0))
+      .sort((a, b) => order(a) - order(b))
   }
 
   sidebarFor(pluginId: string): SidebarViewContribution | undefined {

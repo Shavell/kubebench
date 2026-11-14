@@ -1,0 +1,47 @@
+.kb-unavailable {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+  color: var(--vscode-descriptionForeground);
+}
+
+.kb-unavailable--compact {
+  height: auto;
+  justify-content: flex-start;
+  padding: 16px;
+}
+
+.kb-unavailable__icon {
+  color: var(--vscode-disabledForeground);
+}
+
+.kb-unavailable__title {
+  font-size: 14px;
+  color: var(--vscode-foreground);
+}
+
+.kb-unavailable__hint {
+  max-width: 480px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.kb-unavailable__reason {
+  max-width: 560px;
+  padding: 4px 8px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  background: var(--vscode-textCodeBlock-background);
+  user-select: text;
+}
+
+.kb-unavailable .kb-button {
+  margin-top: 6px;
+}

@@ -1,28 +1,26 @@
-import Editor from '@monaco-editor/react'
+import { useTranslation } from 'react-i18next'
+import { PLATFORM_NS } from '@/core/locales'
 import type { TabDescriptor } from '@/core/plugin/types'
+import { CodeEditor } from '@/shared/editor/CodeEditor'
 
 /**
- * Monaco-based YAML tab. Registered under kind "yaml"; any plugin opens
- * one via openTab({kind: "yaml", props: {text, readOnly?}}).
+ * YAML tab, registered under kind "yaml". Any plugin opens one with
+ * openTab({ kind: 'yaml', props: { text, readOnly? } }). `readOnly`
+ * defaults to true; `readOnly: false` allows local edits that are never
+ * saved or applied.
  */
 export function YamlEditorTab({ tab }: { tab: TabDescriptor }) {
-  const text = (tab.props?.text as string) ?? ''
-  const readOnly = (tab.props?.readOnly as boolean) ?? true
+  const { t } = useTranslation(PLATFORM_NS)
+  const text = typeof tab.props?.text === 'string' ? tab.props.text : ''
+  const readOnly = tab.props?.readOnly !== false
 
   return (
-    <Editor
-      language="yaml"
-      theme="vs-dark"
+    <CodeEditor
       value={text}
-      options={{
-        readOnly,
-        minimap: { enabled: true },
-        fontSize: 13,
-        fontFamily: 'SF Mono, Menlo, Consolas, monospace',
-        scrollBeyondLastLine: false,
-        renderLineHighlight: 'all',
-        automaticLayout: true,
-      }}
+      language="yaml"
+      readOnly={readOnly}
+      minimap
+      ariaLabel={t('editor.yamlTab.ariaLabel', { title: tab.title })}
     />
   )
 }

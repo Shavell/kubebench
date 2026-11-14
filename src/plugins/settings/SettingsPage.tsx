@@ -1,116 +1,26 @@
-import { useSettingsStore } from '@/core/store/settingsStore'
-import { useProviderQuery } from '@/data/DataContext'
-import { dataMode } from '@/data/mode'
+import { useTranslation } from 'react-i18next'
 import { Toolbar } from '@/shared/Toolbar'
-import '@/plugins/workloads/pages/pages.css'
+import { SETTINGS_NS } from './namespace'
+import { AboutSection } from './sections/AboutSection'
+import { AppearanceSection } from './sections/AppearanceSection'
+import { DataSection } from './sections/DataSection'
+import { PluginSettingsSections } from './sections/PluginSettingsSections'
+import { TerminalSection } from './sections/TerminalSection'
 import './settings.css'
 
-interface RowProps {
-  title: string
-  description: string
-  children: React.ReactNode
-}
-
-function SettingRow({ title, description, children }: RowProps) {
-  return (
-    <div className="setting">
-      <div className="setting__text">
-        <div className="setting__title">{title}</div>
-        <div className="setting__description">{description}</div>
-      </div>
-      <div className="setting__control">{children}</div>
-    </div>
-  )
-}
-
+/** The Settings tab: built-in preferences, then sections contributed by plugins. */
 export function SettingsPage() {
-  const settings = useSettingsStore()
-  const { data: sources } = useProviderQuery((p) => p.metrics.listSources(), [])
-  const prometheus = sources?.find((s) => s.id === 'prometheus')
-
+  const { t } = useTranslation(SETTINGS_NS)
   return (
-    <div className="page">
-      <Toolbar title="Settings" />
-      <div className="detail settings">
-        <div className="detail__section">Appearance</div>
-        <SettingRow title="Color Theme" description="The workbench color theme.">
-          <select value={settings.theme} disabled title="More themes coming later">
-            <option value="dark">Dark+ (default)</option>
-          </select>
-        </SettingRow>
-
-        <div className="detail__section">Data</div>
-        <SettingRow
-          title="Metrics Source"
-          description={
-            prometheus?.available
-              ? `Where utilization series come from. Prometheus discovered at ${prometheus.detail}; it also provides network & filesystem metrics and full history.`
-              : 'Where utilization series come from. Prometheus was not discovered in this cluster — metrics-server is used, and network/filesystem charts fall back to mock data.'
-          }
-        >
-          <select
-            value={settings.metricsSource}
-            onChange={(e) =>
-              settings.set('metricsSource', e.target.value as typeof settings.metricsSource)
-            }
-          >
-            <option value="auto">Auto (prefer Prometheus)</option>
-            <option value="prometheus" disabled={prometheus ? !prometheus.available : false}>
-              Prometheus{prometheus && !prometheus.available ? ' (unavailable)' : ''}
-            </option>
-            <option value="metrics-server">metrics-server</option>
-          </select>
-        </SettingRow>
-        <SettingRow
-          title="Metrics Window"
-          description="How much utilization history charts show, in minutes."
-        >
-          <select
-            value={settings.metricsWindow}
-            onChange={(e) => settings.set('metricsWindow', Number(e.target.value))}
-          >
-            <option value={15}>15 minutes</option>
-            <option value={30}>30 minutes</option>
-            <option value={60}>60 minutes</option>
-          </select>
-        </SettingRow>
-        <SettingRow
-          title="Auto Refresh"
-          description="Refetch resource lists periodically. Off means manual refresh only."
-        >
-          <select
-            value={settings.autoRefreshSeconds}
-            onChange={(e) => settings.set('autoRefreshSeconds', Number(e.target.value))}
-          >
-            <option value={0}>Off</option>
-            <option value={10}>Every 10s</option>
-            <option value={30}>Every 30s</option>
-            <option value={60}>Every 60s</option>
-          </select>
-        </SettingRow>
-
-        <div className="detail__section">Terminal & Logs</div>
-        <SettingRow
-          title="Font Size"
-          description="Font size for the terminal, exec and log views, in pixels."
-        >
-          <select
-            value={settings.terminalFontSize}
-            onChange={(e) => settings.set('terminalFontSize', Number(e.target.value))}
-          >
-            {[11, 12, 12.5, 13, 14, 15, 16].map((size) => (
-              <option key={size} value={size}>
-                {size} px
-              </option>
-            ))}
-          </select>
-        </SettingRow>
-
-        <div className="detail__section">About</div>
-        <div className="settings__about">
-          KubeBench · data source: <strong>{dataMode.mode}</strong> ({dataMode.context})
-          <br />
-          Settings persist in this browser (localStorage).
+    <div className="settings-page">
+      <Toolbar title={t('page.title')} />
+      <div className="settings-page__scroll">
+        <div className="settings">
+          <AppearanceSection />
+          <DataSection />
+          <TerminalSection />
+          <PluginSettingsSections />
+          <AboutSection />
         </div>
       </div>
     </div>

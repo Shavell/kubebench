@@ -1,0 +1,19 @@
+/* Additions to the .kb-button rules in Toolbar.css (base, secondary, disabled). */
+
+/* Solid red, for destructive actions (variant="danger"). */
+.kb-button--destructive {
+  background: var(--vscode-button-dangerBackground);
+  color: var(--vscode-button-dangerForeground);
+}
+.kb-button--destructive:hover:where(:not(:disabled)) {
+  background: var(--vscode-button-dangerHoverBackground);
+}
+
+.kb-button:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 2px;
+}
+
+.kb-button[aria-busy='true'] {
+  cursor: progress;
+}
