@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "es2022",
+    "lib": ["ES2022", "DOM"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "verbatimModuleSyntax": true,
+    "noUnusedLocals": true,
+    "skipLibCheck": true,
+    "types": [],
+    "paths": {
+      // The SDK declarations. Outside this repository, copy kubebench.d.ts
+      // into the project and point this entry at the copy.
+      "@kubebench/sdk": ["../../../src/core/plugin/sdk/kubebench.d.ts"],
+      // One copy of the React types for this project and the SDK declarations.
+      "react": ["./node_modules/@types/react"],
+      "react/*": ["./node_modules/@types/react/*"]
+    }
+  },
+  "include": ["src"]
+}

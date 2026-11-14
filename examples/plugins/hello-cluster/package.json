@@ -1,0 +1,16 @@
+{
+  "name": "kubebench-plugin-hello-cluster",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Example KubeBench external UI plugin (docs/design-v0.5.md §6.8).",
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "typescript": "~6.0.2",
+    "vite": "^8.2.0"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "manifest": {
+    "name": "Merhaba Cluster",
+    "description": "Örnek harici eklenti: etkin cluster'ın Namespace'lerini listeler.",
+    "tooltip": "Merhaba Cluster"
+  },
+  "commands": {
+    "showNamespaces": "Merhaba Cluster: Namespace'leri göster"
+  },
+  "sidebar": {
+    "intro": "Örnek bir harici eklenti. Etkin cluster'ı KubeBench'in salt okunur Kubernetes API'si üzerinden okur.",
+    "open": "Namespace'leri göster"
+  },
+  "tab": {
+    "title": "Namespace'ler"
+  },
+  "namespaces": {
+    "title_one": "{{count}} Namespace",
+    "title_other": "{{count}} Namespace",
+    "loading": "Namespace'ler yükleniyor…",
+    "failed": "Namespace'ler yüklenemedi",
+    "refresh": "Yenile"
+  },
+  "columns": {
+    "name": "Ad",
+    "status": "Durum",
+    "labels": "Etiketler",
+    "created": "Oluşturulma"
+  }
+}
