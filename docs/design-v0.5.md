@@ -89,7 +89,14 @@ cluster-to-cluster compare, port-forward, light/dark per-plugin theming.
 | `KUBEBENCH_ALLOW_PATH_KUBECONFIG` | `true` outside a cluster, `false` in-cluster | Allow adding clusters by server-side file path |
 | `KUBECONFIG` | — | Dev/VM convenience: seeds the inventory on first run |
 
-The backend parses these once into `internal/config.Config`.
+The backend parses these once into `internal/config.Config`; invalid values
+are all reported at once and the binary exits with status 2.
+
+"First run" means a new database (no users yet). Only then are the
+bootstrap admin created and the inventory seeded from `KUBECONFIG` and, in
+a pod, the in-cluster service account, so deleting a seeded cluster sticks
+across restarts. Seeded kubeconfigs are stored flattened (referenced
+certificate files embedded).
 
 ## 3. Roles, permissions, audit
 
@@ -121,13 +128,24 @@ Every route declares one of:
 
 - `public` — no session (`/healthz`, `/api/version`, `POST /api/auth/login`).
 - `authed` — any session (`/api/auth/*`, `/api/info`, `/api/clusters` GET,
-  activate, `GET /api/plugins`).
+  activate, `GET /api/plugins`, external plugin files `/plugins/{id}/…`).
 - `read` — session + active cluster runtime + any role on it.
 - `write` — `read` + role operator/admin + cluster not read-only. **Audited.**
 - `exec` — same gate as write. **Audited.**
 - `admin` — global admin. Mutations audited.
 
-Dry-run requests (`dryRun=true`) need `read` and are not audited.
+Every route is registered once (`backend/internal/api/routes.go`) with its
+level. The router runs the gates in this order before the handler, so a
+refused request never reaches the cluster: `password_change_required` →
+`admin_required` → `plugin_disabled` (plugin routes) → active cluster
+(`no_cluster`) → `cluster_read_only` (checked first, admins included) →
+`forbidden_role` → `plugin_unavailable` (plugin routes).
+
+Dry-run requests (exactly `dryRun=true`) need `read` and are not audited —
+on routes that opt in (core flag `allowDryRun`, plugin flag
+`plugin.DryRunnable`) and whose handlers then really perform a dry run
+(`plugin.IsDryRun(r)`). The relaxation is per route because a handler that
+ignored `dryRun` would otherwise let a viewer mutate.
 
 ### 3.3 Error format
 
@@ -137,7 +155,19 @@ Codes used across the API: `unauthenticated`, `session_expired`,
 `no_cluster`, `not_found`, `bad_request`, `conflict`, `rate_limited`,
 `plugin_disabled`, `plugin_unavailable`, `capability_unavailable`,
 `redacted_secret`, `password_change_required`, `kubernetes` (Kubernetes API error; HTTP status mirrors
-the API status). The frontend `ApiError` exposes `status` and `code`.
+the API status), `internal` (a KubeBench-side 500, e.g. the database).
+The frontend `ApiError` exposes `status` and `code`.
+
+- Unknown `/api` paths answer `404 not_found`; a known path with the wrong
+  method answers `405 bad_request` with an `Allow` header.
+- `no_cluster` is `409` when no usable cluster is active (none chosen, it
+  was removed, or the assignment was revoked) and `503` when the active
+  cluster's runtime cannot be built.
+- A Kubernetes `401` (the stored credential was rejected) is reported as
+  `502 kubernetes`, so the browser does not mistake it for the end of its
+  own KubeBench session.
+- Missing capabilities of the legacy endpoints (Helm, Prometheus-only
+  metrics) answer `503 capability_unavailable`.
 
 ### 3.4 Audit log
 
@@ -150,6 +180,16 @@ or an explicit action name for plugins/websockets (`exec.session`),
 `status` = HTTP status, `detail` = short JSON (e.g. `{"replicas":3}`) or
 error text. Pruned per `KUBEBENCH_AUDIT_RETENTION_DAYS`.
 
+- Refused attempts are audited too: status 4xx, detail `"<code>: <message>"`.
+- The default target kind is the first path segment after `/api/` (or
+  `/api/plugins/<id>/`), made singular (`/api/deployments/scale` →
+  `deployment`); `auditKinds` in `routes.go` overrides it per route.
+  Handlers may refine target and detail once they have read the body.
+- Request bodies are never recorded (they may carry passwords or Secret
+  data); dry runs are not audited.
+- WebSocket rows are written when the connection is hijacked (status 101);
+  extra rows written through a plugin's `Context.Audit` have status 0.
+
 `GET /api/audit?limit=100&before=<id>&user=&cluster=&action=` (admin) →
 `{"items":[{"id","ts","user","cluster","action","target","status","detail"}],"nextBefore":<id|null>}`.
 
@@ -159,15 +199,20 @@ error text. Pruned per `KUBEBENCH_AUDIT_RETENTION_DAYS`.
   removes sessions/assignments; a deleted active cluster resets
   `active_cluster_id`.
 - Login rate limit: 10 failed attempts per (client IP, username) per 15 min
-  → `429 rate_limited`.
+  → `429 rate_limited` with `Retry-After`. Behind a trusted proxy the client
+  IP is the last `X-Forwarded-For` entry. Wrong current passwords in
+  `POST /api/auth/password` count against the same limit.
 - Non-GET requests with an `Origin` header that does not match the request
   host → `403 forbidden` (CSRF defence in depth; WebSocket upgrades too).
+  `X-Forwarded-Host` is only compared when `KUBEBENCH_TRUST_PROXY` is set.
 - Session cookie `kubebench_session`: HttpOnly, SameSite=Lax, Secure per
   `KUBEBENCH_SECURE_COOKIES`. Expired sessions pruned hourly.
 - `users.must_change_password`: set when the bootstrap admin uses the
-  default password and when an admin resets a password. While set, every
-  `read`/`write`/`exec`/`admin` route returns `403 {"code":"password_change_required"}`
-  except `/api/auth/*` and `/api/info`.
+  default password, for users an admin creates, and when an admin resets a
+  password — every password an admin knows. While set, every
+  `read`/`write`/`exec`/`admin` route returns `403 {"code":"password_change_required"}`;
+  the `authed` routes (`/api/auth/*`, `/api/info`, …) keep working.
+- Passwords are 8 characters to 72 bytes (the bcrypt limit).
 - Cannot delete yourself or demote/delete the last admin (`409 conflict`).
 
 ## 4. API changes (core)
@@ -193,27 +238,44 @@ active cluster). `/api/info` waits (≤3 s) for the runtime's capability probe
 to finish so capabilities are never reported `false` merely because the
 probe is still running.
 
+When the caller has no usable active cluster, `/api/info` activates the
+first cluster they may use (the app reads it at boot, so nothing in flight
+is surprised). It is the only route that switches clusters: every other
+route answers `409 no_cluster` instead. Without any usable cluster,
+`cluster` is `null` and `clusterError` says why.
+
+`POST /api/auth/login` and `GET /api/auth/me` return
+`{"id","username","role","mustChangePassword"}`.
+
 ### 4.2 Users & password
 
 - `GET /api/users` (admin) → `[{"id","username","role","mustChangePassword","clusters":["name",…],"assignments":[{"clusterId","cluster","role"}]}]`
   (`clusters` kept for compatibility).
-- `POST /api/users` (admin) `{"username","password","role"}`.
+- `POST /api/users` (admin) `{"username","password","role"}` → `{"id"}`; the
+  new user has `mustChangePassword` set.
 - `PATCH /api/users/{id}` (admin) `{"role"?: "admin"|"user", "password"?: "…"}`
-  (password reset sets `mustChangePassword`).
+  (a password reset sets `mustChangePassword` and ends the user's sessions,
+  except the caller's own when admins reset their own password).
 - `DELETE /api/users/{id}` (admin).
 - `PUT /api/users/{id}/clusters` (admin) accepts `{"assignments":[{"clusterId":1,"role":"viewer"}]}`
   or legacy `{"clusterIds":[1,2]}` (→ operator).
 - `POST /api/auth/password` (authed) `{"currentPassword","newPassword"}`
-  (min length 8; clears `mustChangePassword`; other sessions of the user
-  are revoked).
+  (8 characters to 72 bytes and different from the current one, else `400`;
+  a wrong current password is `403 forbidden`, throttled like logins;
+  clears `mustChangePassword`; other sessions of the user are revoked).
 
 ### 4.3 Clusters
 
 - `GET /api/clusters` entries gain `"readOnly"`, `"environment"`, `"role"`
   (the caller's effective role on it).
 - `PATCH /api/clusters/{id}` (admin) `{"name"?, "readOnly"?, "environment"?}`.
-- `POST /api/clusters` with `path` is rejected with `403 forbidden` unless
-  `features.pathKubeconfig`.
+- `POST /api/clusters` (admin) `{"name", "content"? | "path"? | "address"?, "context"?}`
+  → `{"ok": true, "id"}`. With `path` it is rejected with `403 forbidden`
+  unless `features.pathKubeconfig`. Without that feature, pasted kubeconfigs
+  whose selected context reads server-side files (certificate authority,
+  client certificate/key, token file) or runs exec plugins or auth
+  providers are rejected the same way. Kubeconfigs added by path are stored
+  flattened (referenced certificate files embedded).
 
 ### 4.4 Resources (fixes)
 
@@ -229,6 +291,13 @@ probe is still running.
 path targets `secrets` are rejected (`403 forbidden`; use `/api/resource`).
 `watch=true` is rejected (use the live-updates SSE). Response size capped
 (16 MiB).
+
+- Also rejected: `/watch/` paths and `follow=true` (`400`), and the
+  `proxy`, `exec`, `attach` and `portforward` subresources (`403`). Boolean
+  flags are read the way the API server reads them (anything but `0` or
+  `false` is true).
+- Upstream errors become `{"error": <Status.message>, "code": "kubernetes"}`
+  with the upstream status (a `401` becomes `502`, see §3.3).
 
 ### 4.6 Plugins
 
@@ -248,8 +317,13 @@ path targets `secrets` are rejected (`403 forbidden`; use `/api/resource`).
   `^[a-z0-9][a-z0-9-]{0,39}$`.
 - Backend plugin routes live under `/api/plugins/{id}/…`; disabled →
   `404 plugin_disabled`; `Detect` unavailable → `503 plugin_unavailable`.
-- External plugin files: `GET /plugins/{id}/{file}` (authed) served from
-  `$KUBEBENCH_PLUGINS_DIR/<id>/`.
+- External plugin files: `GET /plugins/{id}/{file...}` (authed) served from
+  `$KUBEBENCH_PLUGINS_DIR/<id>/` through `os.Root` (no traversal, no
+  symlink escapes, no directory listings), only for valid and enabled
+  external plugins (disabled → `404 plugin_disabled`) and only `.js`,
+  `.mjs`, `.css`, `.json`, `.map`, `.svg` and `.png` files. `plugin.json`
+  may carry an optional `category` (default `tools`). An external plugin
+  whose id belongs to a built-in backend plugin is skipped.
 
 ## 5. Backend plugin contract (`backend/internal/plugin`)
 
@@ -263,6 +337,13 @@ const (
     AccessExec
     AccessAdmin
 )
+
+// DryRunnable is combined with AccessWrite or AccessExec for a route whose
+// handler performs a dry run whenever IsDryRun(r): such requests are
+// checked as AccessRead and not audited (§3.2).
+const DryRunnable Access = 1 << 8
+
+func IsDryRun(r *http.Request) bool // exactly dryRun=true
 
 type Manifest struct {
     ID, Name, Version, Description, Category string
@@ -320,7 +401,17 @@ func WriteK8sError(w http.ResponseWriter, err error) // maps apierrors → statu
 - `kube.Runtime` exposes (foundation): `CS`, `Dyn`, `Metrics`, `Config`,
   `Discovery()`, `Mapper()` (cached deferred discovery RESTMapper),
   `ResolveKind(apiVersion, kind) (gvr, namespaced, error)`,
-  `ResolveResource(group, resource)`, `Cluster` (store.Cluster incl. ID).
+  `ResolveResource(group, resource)`, `Cluster` (store.Cluster incl. ID),
+  `Caps()` and `WaitProbed(ctx)` (the capability probe), `RawGet` (the
+  §4.5 passthrough). `ResolveKind`/`ResolveResource` reset the mapper and
+  retry once on a no-match error (e.g. a CRD installed since the last
+  discovery), so plugins should prefer them over `Mapper()`.
+  `kube.NewRuntimeForTest(cluster, cs, dyn)` builds one around fake clients
+  without background work.
+- `WriteK8sError` reports a Kubernetes `401` as `502` (§3.3); a no-match
+  from the RESTMapper is `404 not_found`.
+- Plugin route paths use `net/http` ServeMux wildcards. `Context.Runtime`
+  is the caller's active cluster; requests never switch clusters.
 
 ## 6. Frontend contracts
 
@@ -355,6 +446,10 @@ All providers use it; no hand-built query strings.
 - **Mock mode policy**: mock only when `import.meta.env.DEV`, or the URL has
   `?demo`, or the build sets `VITE_DEMO_MODE=true`. A production build whose
   backend is unreachable shows a boot error screen with Retry — never mock.
+  `?demo` and `VITE_DEMO_MODE=true` force demo data without contacting the
+  backend; the dev server falls back to it only when the backend is
+  unreachable or answers 5xx (a `401` always shows the sign-in screen).
+  Sign-out is disabled in demo mode, which has no session.
 - Status bar shows the cluster environment (production = red background,
   staging = amber, development = green) and a "Read-only" item when
   `readOnly` or role viewer; the user item opens a menu (Change password,
@@ -394,10 +489,26 @@ interface SettingsSectionContribution { id: string; title: string; component: Co
   enabled & available). Built-in frontend plugins default to enabled;
   external plugins default to **disabled** until an admin enables them.
 - `registry.resourceActionsFor(kind)` feeds row context menus and detail
-  page toolbars in the workloads/CRD views.
+  page toolbars in the workloads/CRD views, through
+  `resourceActionItems(ref)` (`core/plugin/resourceActions.ts`) and
+  `<ResourceActionButtons resource>`; an action whose permission is not
+  held is shown disabled with the reason.
 - **Extensions** plugin (core): activity-bar entry listing every plugin
   (name, version, category, builtin/external, enabled, availability +
   reason); admins toggle enable/disable.
+- Additions to the shell contract:
+  - `TabDescriptor.titleKey` / `titleNs` / `titleValues`: the tab strip
+    shows the title translated from that key, so open tabs follow language
+    changes; `title` is the fallback.
+  - Activity bar entries without `order` sort at 50: after the built-in
+    views (0–6), before Extensions (90).
+  - Bottom panel tabs may list request `kinds`; `showInPanel(kind, props)`
+    (`core/plugin/panelRequests.ts`) shows a request in the tab that handles
+    it, e.g. `pod-logs` / `pod-exec` with `{namespace, pod, container}`
+    (the terminal plugin). Like `openTab`, it keeps plugins from importing
+    each other.
+  - External plugins register only under the id of an enabled external
+    plugin whose script is loading, and never as `core`.
 
 ### 6.5 Plugin-owned data (`src/data/pluginData.ts`)
 
@@ -433,6 +544,10 @@ environment is `production` or the action is irreversible at scale),
 `CodeEditor` / `DiffEditor` (Monaco **bundled locally** — no CDN; lazy
 loaded; theme-aware; languages yaml/json/plaintext/shell).
 
+Destructive and rollback actions of the built-in views (Pod delete, Helm
+uninstall and rollback) ask through `ConfirmDialog`, so production
+clusters always require the name to be typed.
+
 ### 6.7 Themes
 
 `settings.theme`: `dark` | `light` | `system`; `<html data-theme>`;
@@ -449,7 +564,11 @@ Light+ palettes). Monaco follows (`vs-dark` / `vs`).
   (5 s timeout each, failures reported in Extensions), then renders.
 - The bundle calls `window.KubeBench.registerPlugin(manifest)`.
   `window.KubeBench` (`src/core/plugin/globalSdk.ts`) exposes
-  `{ apiVersion: 1, version, React, jsxRuntime, registerPlugin, i18n: {t, registerTranslations}, api: {apiFetch, pluginApi, k8sGet}, data: {usePluginQuery, refreshData}, layout: {openTab}, permissions: {usePermissions}, ui: {Table, Badge, EmptyState, Toolbar, Dialog, ConfirmDialog, CodeEditor, notify} }`.
+  `{ apiVersion: 1, version, React, jsxRuntime, registerPlugin, i18n: {t, registerTranslations, useTranslation}, api: {apiFetch, pluginApi, k8sGet}, data: {usePluginQuery, refreshData}, layout: {openTab}, permissions: {usePermissions}, ui: {Table, Badge, EmptyState, Toolbar, Dialog, ConfirmDialog, CodeEditor, notify} }`.
+  `i18n.useTranslation(ns)` is a hook returning `t` bound to the namespace
+  that re-renders on language changes. Types for plugin authors:
+  `src/core/plugin/sdk/kubebench.d.ts`, type-checked against the
+  implementation.
 - Example: `examples/plugins/hello-cluster` (Vite library build, IIFE,
   `react` → `KubeBench.React` globals). Excluded from the app build.
 
