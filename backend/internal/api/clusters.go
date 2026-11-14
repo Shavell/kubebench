@@ -1,75 +1,87 @@
 package api
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
-	"os"
+	"sort"
+	"strconv"
+	"strings"
 
 	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
+	"kubebench/internal/kube"
+	"kubebench/internal/plugin"
 	"kubebench/internal/store"
 )
 
+// clusterView is one inventory entry (src/data/types.ts ClusterEntry).
 type clusterView struct {
-	ID      int64  `json:"id"`
-	Name    string `json:"name"`
-	Source  string `json:"source"`
-	Active  bool   `json:"active"`
-	Context string `json:"context,omitempty"`
-	Server  string `json:"server,omitempty"`
-	Address string `json:"address,omitempty"`
-	Error   string `json:"error,omitempty"`
-	// kubeconfigPath kept for frontend compatibility; shows the source label.
+	ID          int64  `json:"id"`
+	Name        string `json:"name"`
+	Source      string `json:"source"`
+	Active      bool   `json:"active"`
+	Context     string `json:"context,omitempty"`
+	Server      string `json:"server,omitempty"`
+	Address     string `json:"address,omitempty"`
+	Error       string `json:"error,omitempty"`
+	ReadOnly    bool   `json:"readOnly"`
+	Environment string `json:"environment"`
+	Role        string `json:"role"` // the caller's effective role on the cluster
+	// KubeconfigPath labels where the credentials come from (v0.4 field).
 	KubeconfigPath string `json:"kubeconfigPath,omitempty"`
 }
 
-func describeCluster(c *store.Cluster, activeID *int64) clusterView {
+func describeCluster(uc *store.UserCluster, activeID *int64) clusterView {
+	c := &uc.Cluster
 	view := clusterView{
 		ID: c.ID, Name: c.Name, Source: c.Source, Address: c.Address, Context: c.Context,
-		Active: activeID != nil && *activeID == c.ID,
+		Active:   activeID != nil && *activeID == c.ID,
+		ReadOnly: c.ReadOnly, Environment: c.Environment, Role: uc.Role,
 	}
 	switch c.Source {
-	case "incluster":
+	case store.SourceInCluster:
 		view.KubeconfigPath = "(in-cluster service account)"
 		view.Server = "kubernetes.default.svc"
-	case "address":
+	case store.SourceAddress:
 		view.Server = c.Address
 	default:
 		view.KubeconfigPath = "(stored kubeconfig)"
-		if cfg, err := clientcmd.Load([]byte(c.Kubeconfig)); err == nil {
-			contextName := c.Context
-			if contextName == "" {
-				contextName = cfg.CurrentContext
-			}
-			view.Context = contextName
-			if ctx, ok := cfg.Contexts[contextName]; ok {
-				if cluster, ok := cfg.Clusters[ctx.Cluster]; ok {
-					view.Server = cluster.Server
-				}
-			}
-		} else {
+		kc, err := clientcmd.Load([]byte(c.Kubeconfig))
+		if err != nil {
 			view.Error = "unparseable kubeconfig"
+			break
+		}
+		view.Context = c.Context
+		if view.Context == "" {
+			view.Context = kc.CurrentContext
+		}
+		if ctx, ok := kc.Contexts[view.Context]; ok {
+			if cluster, ok := kc.Clusters[ctx.Cluster]; ok {
+				view.Server = cluster.Server
+			}
 		}
 	}
 	return view
 }
 
-func (s *Server) handleListClusters(w http.ResponseWriter, r *http.Request) {
-	user := currentUser(r)
-	clusters, err := s.Store.ListClusters(user)
+func (s *Server) handleListClusters(w http.ResponseWriter, _ *http.Request, c *call) {
+	clusters, err := s.store.ListClusters(c.user)
 	if err != nil {
-		writeErr(w, http.StatusInternalServerError, err)
+		writeErr(w, err)
 		return
 	}
-	out := []clusterView{}
+	out := make([]clusterView, 0, len(clusters))
 	for i := range clusters {
-		out = append(out, describeCluster(&clusters[i], user.ActiveClusterID))
+		out = append(out, describeCluster(&clusters[i], c.user.ActiveClusterID))
 	}
-	writeJSON(w, out)
+	plugin.WriteJSON(w, out)
 }
 
-func (s *Server) handleAddCluster(w http.ResponseWriter, r *http.Request) {
+// handleAddCluster stores a kubeconfig (pasted content or, when
+// features.pathKubeconfig, a server-side path) or an address bookmark.
+// JSON bodies and the v0.4 query parameters are both accepted.
+func (s *Server) handleAddCluster(w http.ResponseWriter, r *http.Request, c *call) {
 	var body struct {
 		Name    string `json:"name"`
 		Content string `json:"content"`
@@ -77,92 +89,229 @@ func (s *Server) handleAddCluster(w http.ResponseWriter, r *http.Request) {
 		Address string `json:"address"`
 		Context string `json:"context"`
 	}
-	// Accept both JSON body and legacy query params.
-	if r.Header.Get("Content-Type") == "application/json" {
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			writeErr(w, http.StatusBadRequest, err)
+	if strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
+		if err := decodeJSON(w, r, &body); err != nil {
+			writeErr(w, err)
 			return
 		}
 	} else {
 		q := r.URL.Query()
-		body.Name, body.Path, body.Address = q.Get("name"), q.Get("path"), q.Get("address")
+		body.Name, body.Path, body.Address, body.Context = q.Get("name"), q.Get("path"), q.Get("address"), q.Get("context")
 	}
-	if body.Name == "" {
-		writeErr(w, http.StatusBadRequest, errors.New("name is required"))
+	body.Name = strings.TrimSpace(body.Name)
+	c.setAudit("cluster/"+body.Name, "")
+	if err := validateClusterName(body.Name); err != nil {
+		writeErr(w, err)
 		return
 	}
 
 	cluster := store.Cluster{Name: body.Name, Context: body.Context}
 	switch {
 	case body.Content != "":
-		cluster.Source = "kubeconfig"
-		cluster.Kubeconfig = body.Content
+		cluster.Source, cluster.Kubeconfig = store.SourceKubeconfig, body.Content
 	case body.Path != "":
-		content, err := os.ReadFile(body.Path)
+		if !s.cfg.AllowPathKubeconfig {
+			writeErr(w, errorf(http.StatusForbidden, plugin.CodeForbidden,
+				"adding clusters by server-side path is disabled (KUBEBENCH_ALLOW_PATH_KUBECONFIG); paste the kubeconfig instead"))
+			return
+		}
+		content, err := kube.ReadKubeconfig(body.Path)
 		if err != nil {
-			writeErr(w, http.StatusBadRequest, err)
+			writeErr(w, badRequest("cannot read the kubeconfig %s: %v", body.Path, err))
 			return
 		}
-		cluster.Source = "kubeconfig"
-		cluster.Kubeconfig = string(content)
+		cluster.Source, cluster.Kubeconfig = store.SourceKubeconfig, string(content)
 	case body.Address != "":
-		cluster.Source = "address"
-		cluster.Address = body.Address
+		cluster.Source, cluster.Address = store.SourceAddress, body.Address
 	default:
-		writeErr(w, http.StatusBadRequest, errors.New("kubeconfig content, path or API address is required"))
+		writeErr(w, badRequest("kubeconfig content, path or API address is required"))
 		return
 	}
+	c.setAudit("", auditJSON(map[string]string{"source": cluster.Source}))
 
-	if cluster.Source == "kubeconfig" {
-		if _, err := clientcmd.Load([]byte(cluster.Kubeconfig)); err != nil {
-			writeErr(w, http.StatusBadRequest, errors.New("invalid kubeconfig: "+err.Error()))
+	if cluster.Source == store.SourceKubeconfig {
+		if err := s.checkKubeconfig(cluster.Kubeconfig, cluster.Context); err != nil {
+			writeErr(w, err)
 			return
 		}
 	}
-	if _, err := s.Store.AddCluster(cluster); err != nil {
-		writeErr(w, http.StatusConflict, err)
+	id, err := s.store.AddCluster(cluster)
+	if err != nil {
+		writeErr(w, err)
 		return
 	}
-	writeJSON(w, map[string]bool{"ok": true})
+	plugin.WriteJSON(w, map[string]any{"ok": true, "id": id})
 }
 
-func (s *Server) handleDeleteCluster(w http.ResponseWriter, r *http.Request) {
+// checkKubeconfig validates kubeconfig content for the given context ("" =
+// current). Unless server-side files are allowed, the credentials must be
+// self-contained: a pasted kubeconfig must not make KubeBench read local
+// files (such as its own service-account token) or run commands.
+func (s *Server) checkKubeconfig(content, contextName string) error {
+	kc, err := clientcmd.Load([]byte(content))
+	if err != nil {
+		return badRequest("invalid kubeconfig: %v", err)
+	}
+	if contextName == "" {
+		contextName = kc.CurrentContext
+	}
+	ctx, ok := kc.Contexts[contextName]
+	if !ok {
+		return badRequest("context %q is not in the kubeconfig", contextName)
+	}
+	if s.cfg.AllowPathKubeconfig {
+		return nil
+	}
+	if refs := serverSideReferences(kc.Clusters[ctx.Cluster], kc.AuthInfos[ctx.AuthInfo]); len(refs) > 0 {
+		return errorf(http.StatusForbidden, plugin.CodeForbidden,
+			"the kubeconfig uses %s, which this server does not allow (KUBEBENCH_ALLOW_PATH_KUBECONFIG); embed the credentials as *-data fields or a token",
+			strings.Join(refs, ", "))
+	}
+	return nil
+}
+
+// serverSideReferences lists what the cluster/user entries would read or
+// run on the server.
+func serverSideReferences(cluster *clientcmdapi.Cluster, user *clientcmdapi.AuthInfo) []string {
+	var refs []string
+	if cluster != nil && cluster.CertificateAuthority != "" {
+		refs = append(refs, "a certificate-authority file")
+	}
+	if user != nil {
+		if user.ClientCertificate != "" || user.ClientKey != "" {
+			refs = append(refs, "client certificate files")
+		}
+		if user.TokenFile != "" {
+			refs = append(refs, "a token file")
+		}
+		if user.Exec != nil {
+			refs = append(refs, "an exec credential plugin")
+		}
+		if user.AuthProvider != nil {
+			refs = append(refs, "an auth provider")
+		}
+	}
+	sort.Strings(refs)
+	return refs
+}
+
+func validateClusterName(name string) error {
+	if name == "" || len(name) > 63 {
+		return badRequest("a cluster name is 1-63 characters")
+	}
+	return nil
+}
+
+func (s *Server) handleDeleteCluster(w http.ResponseWriter, r *http.Request, _ *call) {
 	name := r.URL.Query().Get("name")
-	cluster, err := s.Store.ClusterByName(name)
+	cluster, err := s.store.ClusterByName(name)
+	if errors.Is(err, store.ErrNotFound) {
+		writeErr(w, errorf(http.StatusNotFound, plugin.CodeNotFound, "cluster %q not found", name))
+		return
+	}
 	if err != nil {
-		writeErr(w, http.StatusNotFound, err)
+		writeErr(w, err)
 		return
 	}
-	s.Manager.Drop(cluster.ID)
-	if err := s.Store.DeleteCluster(cluster.ID); err != nil {
-		writeErr(w, http.StatusInternalServerError, err)
+	if err := s.store.DeleteCluster(cluster.ID); err != nil {
+		writeErr(w, err)
 		return
 	}
-	writeJSON(w, map[string]bool{"ok": true})
+	s.manager.Drop(cluster.ID)
+	writeOK(w)
 }
 
-func (s *Server) handleActivateCluster(w http.ResponseWriter, r *http.Request) {
-	user := currentUser(r)
-	cluster, err := s.Store.ClusterByName(r.URL.Query().Get("name"))
+// handleUpdateCluster renames a cluster or changes its safety flags (§4.3).
+// The cluster's runtime picks the new record up on its next use.
+func (s *Server) handleUpdateCluster(w http.ResponseWriter, r *http.Request, c *call) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		writeErr(w, http.StatusNotFound, err)
+		writeErr(w, badRequest("invalid cluster id %q", r.PathValue("id")))
 		return
 	}
-	if cluster.Source == "address" {
-		writeErr(w, http.StatusBadRequest, errors.New("address-only entries cannot be activated"))
+	cluster, err := s.store.GetCluster(id)
+	if errors.Is(err, store.ErrNotFound) {
+		writeErr(w, errorf(http.StatusNotFound, plugin.CodeNotFound, "cluster %d not found", id))
 		return
 	}
-	if ok, err := s.Store.CanAccessCluster(user, cluster.ID); err != nil || !ok {
-		writeErr(w, http.StatusForbidden, errors.New("no access to this cluster"))
+	if err != nil {
+		writeErr(w, err)
 		return
 	}
-	if _, err := s.Manager.Runtime(cluster); err != nil {
-		writeErr(w, http.StatusBadRequest, err)
+	var body struct {
+		Name        *string `json:"name"`
+		ReadOnly    *bool   `json:"readOnly"`
+		Environment *string `json:"environment"`
+	}
+	if err := decodeJSON(w, r, &body); err != nil {
+		writeErr(w, err)
 		return
 	}
-	if err := s.Store.SetActiveCluster(user.ID, cluster.ID); err != nil {
-		writeErr(w, http.StatusInternalServerError, err)
+	update := store.ClusterUpdate{ReadOnly: body.ReadOnly, Environment: body.Environment}
+	changes := map[string]any{}
+	if body.Name != nil {
+		name := strings.TrimSpace(*body.Name)
+		update.Name, changes["name"] = &name, name
+	}
+	if body.ReadOnly != nil {
+		changes["readOnly"] = *body.ReadOnly
+	}
+	if body.Environment != nil {
+		changes["environment"] = *body.Environment
+	}
+	c.setAudit("cluster/"+cluster.Name, auditJSON(changes))
+	if len(changes) == 0 {
+		writeErr(w, badRequest("nothing to update: send name, readOnly and/or environment"))
 		return
 	}
-	writeJSON(w, map[string]bool{"ok": true})
+	if update.Name != nil {
+		if err := validateClusterName(*update.Name); err != nil {
+			writeErr(w, err)
+			return
+		}
+	}
+	if update.Environment != nil && !store.ValidEnvironment(*update.Environment) {
+		writeErr(w, badRequest("invalid environment %q: use development, staging, production or empty", *update.Environment))
+		return
+	}
+	if err := s.store.UpdateCluster(id, update); err != nil {
+		writeErr(w, err)
+		return
+	}
+	writeOK(w)
+}
+
+func (s *Server) handleActivateCluster(w http.ResponseWriter, r *http.Request, c *call) {
+	name := r.URL.Query().Get("name")
+	cluster, err := s.store.ClusterByName(name)
+	if errors.Is(err, store.ErrNotFound) {
+		writeErr(w, errorf(http.StatusNotFound, plugin.CodeNotFound, "cluster %q not found", name))
+		return
+	}
+	if err != nil {
+		writeErr(w, err)
+		return
+	}
+	if cluster.Source == store.SourceAddress {
+		writeErr(w, badRequest("address-only entries cannot be activated"))
+		return
+	}
+	role, err := s.store.ClusterRole(c.user, cluster.ID)
+	if err != nil {
+		writeErr(w, err)
+		return
+	}
+	if role == "" {
+		writeErr(w, errorf(http.StatusForbidden, plugin.CodeForbidden, "you have no access to cluster %q", name))
+		return
+	}
+	if _, err := s.manager.Runtime(cluster); err != nil {
+		writeErr(w, badRequest("cannot connect to cluster %q: %v", name, err))
+		return
+	}
+	if err := s.store.SetActiveCluster(c.user.ID, cluster.ID); err != nil {
+		writeErr(w, err)
+		return
+	}
+	writeOK(w)
 }

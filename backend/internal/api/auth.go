@@ -1,79 +1,172 @@
 package api
 
 import (
-	"encoding/json"
 	"errors"
+	"math"
 	"net/http"
 	"strconv"
-	"time"
+	"strings"
+	"unicode/utf8"
+
+	"kubebench/internal/config"
+	"kubebench/internal/plugin"
+	"kubebench/internal/store"
 )
 
-const sessionTTL = 7 * 24 * time.Hour
+const (
+	sessionCookie     = "kubebench_session"
+	minPasswordLength = 8
+	maxPasswordBytes  = 72 // bcrypt ignores anything longer
+)
 
-func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
+// validatePassword enforces the password policy for new passwords.
+func validatePassword(password string) error {
+	if utf8.RuneCountInString(password) < minPasswordLength {
+		return badRequest("the password must be at least %d characters", minPasswordLength)
+	}
+	if len(password) > maxPasswordBytes {
+		return badRequest("the password must be at most %d bytes", maxPasswordBytes)
+	}
+	return nil
+}
+
+type meView struct {
+	ID                 int64  `json:"id"`
+	Username           string `json:"username"`
+	Role               string `json:"role"`
+	MustChangePassword bool   `json:"mustChangePassword"`
+}
+
+func viewMe(u *store.User) meView {
+	return meView{ID: u.ID, Username: u.Username, Role: u.Role, MustChangePassword: u.MustChangePassword}
+}
+
+func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request, _ *call) {
 	var body struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeErr(w, http.StatusBadRequest, err)
+	if err := decodeJSON(w, r, &body); err != nil {
+		writeErr(w, err)
 		return
 	}
-	user, err := s.Store.Authenticate(body.Username, body.Password)
+	key := limiterKey{ip: s.clientIP(r), username: body.Username}
+	if err := s.throttled(w, key); err != nil {
+		writeErr(w, err)
+		return
+	}
+	user, err := s.store.Authenticate(body.Username, body.Password)
+	if errors.Is(err, store.ErrNotFound) {
+		s.limiter.fail(key)
+		writeErr(w, errorf(http.StatusUnauthorized, plugin.CodeUnauthenticated, "invalid username or password"))
+		return
+	}
 	if err != nil {
-		writeErr(w, http.StatusUnauthorized, errors.New("invalid username or password"))
+		writeErr(w, err)
 		return
 	}
-	token, err := s.Store.CreateSession(user.ID, sessionTTL)
+	s.limiter.reset(key)
+	token, err := s.store.CreateSession(user.ID, s.cfg.SessionTTL)
 	if err != nil {
-		writeErr(w, http.StatusInternalServerError, err)
+		writeErr(w, err)
 		return
 	}
-	http.SetCookie(w, &http.Cookie{
-		Name:     "kubebench_session",
-		Value:    token,
+	http.SetCookie(w, s.sessionCookie(r, token, int(s.cfg.SessionTTL.Seconds())))
+	plugin.WriteJSON(w, viewMe(user))
+}
+
+// throttled refuses an attempt for a key with too many recent failures.
+func (s *Server) throttled(w http.ResponseWriter, key limiterKey) error {
+	wait := s.limiter.blocked(key)
+	if wait <= 0 {
+		return nil
+	}
+	w.Header().Set("Retry-After", strconv.Itoa(int(math.Ceil(wait.Seconds()))))
+	return errorf(http.StatusTooManyRequests, plugin.CodeRateLimited,
+		"too many failed attempts; try again in %d minutes", int(math.Ceil(wait.Minutes())))
+}
+
+func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request, c *call) {
+	if err := s.store.DeleteSession(c.token); err != nil {
+		writeErr(w, err)
+		return
+	}
+	http.SetCookie(w, s.sessionCookie(r, "", -1))
+	writeOK(w)
+}
+
+func (s *Server) handleMe(w http.ResponseWriter, _ *http.Request, c *call) {
+	plugin.WriteJSON(w, viewMe(c.user))
+}
+
+// handleChangePassword sets the caller's own password (§4.2). It clears a
+// forced change and signs out the caller's other sessions.
+func (s *Server) handleChangePassword(w http.ResponseWriter, r *http.Request, c *call) {
+	var body struct {
+		CurrentPassword string `json:"currentPassword"`
+		NewPassword     string `json:"newPassword"`
+	}
+	if err := decodeJSON(w, r, &body); err != nil {
+		writeErr(w, err)
+		return
+	}
+	if err := validatePassword(body.NewPassword); err != nil {
+		writeErr(w, err)
+		return
+	}
+	// Guessing the current password is throttled like logins.
+	key := limiterKey{ip: s.clientIP(r), username: c.user.Username}
+	if err := s.throttled(w, key); err != nil {
+		writeErr(w, err)
+		return
+	}
+	ok, err := s.store.CheckPassword(c.user.ID, body.CurrentPassword)
+	if err != nil {
+		writeErr(w, err)
+		return
+	}
+	if !ok {
+		s.limiter.fail(key)
+		writeErr(w, errorf(http.StatusForbidden, plugin.CodeForbidden, "the current password is incorrect"))
+		return
+	}
+	if body.NewPassword == body.CurrentPassword {
+		writeErr(w, badRequest("the new password must differ from the current one"))
+		return
+	}
+	s.limiter.reset(key)
+	if err := s.store.SetPassword(c.user.ID, body.NewPassword, false, c.token); err != nil {
+		writeErr(w, err)
+		return
+	}
+	writeOK(w)
+}
+
+// sessionCookie builds the session cookie; maxAge < 0 deletes it.
+func (s *Server) sessionCookie(r *http.Request, value string, maxAge int) *http.Cookie {
+	return &http.Cookie{
+		Name:     sessionCookie,
+		Value:    value,
 		Path:     "/",
+		MaxAge:   maxAge,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
-		MaxAge:   int(sessionTTL.Seconds()),
-	})
-	writeJSON(w, map[string]any{"username": user.Username, "role": user.Role})
-}
-
-func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
-	if cookie, err := r.Cookie("kubebench_session"); err == nil {
-		_ = s.Store.DeleteSession(cookie.Value)
+		Secure:   s.secureRequest(r),
 	}
-	http.SetCookie(w, &http.Cookie{
-		Name: "kubebench_session", Value: "", Path: "/", HttpOnly: true, MaxAge: -1,
-	})
-	writeJSON(w, map[string]bool{"ok": true})
 }
 
-func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
-	user := currentUser(r)
-	writeJSON(w, map[string]any{"username": user.Username, "role": user.Role})
-}
-
-func (s *Server) handleInfo(w http.ResponseWriter, r *http.Request) {
-	user := currentUser(r)
-	info := map[string]any{
-		"user": user.Username,
-		"role": user.Role,
+// secureRequest decides the cookie's Secure flag (KUBEBENCH_SECURE_COOKIES):
+// in auto mode a request counts as secure when it arrived over TLS or, from
+// a trusted proxy, with X-Forwarded-Proto: https.
+func (s *Server) secureRequest(r *http.Request) bool {
+	switch s.cfg.SecureCookies {
+	case config.CookiesSecure:
+		return true
+	case config.CookiesPlain:
+		return false
 	}
-	if rt, err := s.runtimeFor(user); err == nil {
-		info["context"] = rt.Cluster.Name
-		info["server"] = rt.Config.Host
-		info["capabilities"] = rt.Caps()
-	} else {
-		info["context"] = ""
-		info["server"] = ""
-		info["capabilities"] = map[string]bool{"crds": false, "helm": false, "exec": false}
-		info["clusterError"] = err.Error()
+	if r.TLS != nil {
+		return true
 	}
-	writeJSON(w, info)
-}
-
-func pathID(r *http.Request) (int64, error) {
-	return strconv.ParseInt(r.PathValue("id"), 10, 64)
+	return s.cfg.TrustProxy && strings.EqualFold(firstHeaderValue(r.Header.Get("X-Forwarded-Proto")), "https")
 }

@@ -1,89 +1,136 @@
-// kubebench backend: serves the API (and, in production images, the
-// embedded frontend) for the VSCode-style Kubernetes workbench.
+// kubebench serves the API and, in release builds, the embedded frontend
+// of the VSCode-style Kubernetes workbench. Configuration comes from the
+// environment (docs/design-v0.5.md §2, internal/config).
 package main
 
 import (
+	"context"
+	"crypto/tls"
+	"errors"
+	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
-
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"kubebench/internal/api"
+	"kubebench/internal/config"
 	"kubebench/internal/kube"
+	"kubebench/internal/plugin"
+	_ "kubebench/internal/plugins/all" // links the built-in backend plugins
 	"kubebench/internal/store"
 	"kubebench/internal/web"
 )
 
-func env(key, fallback string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return fallback
-}
+// Build information, set with
+// -ldflags "-X main.version=… -X main.commit=… -X main.date=…".
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
+// shutdownGrace is how long in-flight requests may finish after SIGTERM;
+// streams still open afterwards are cut.
+const shutdownGrace = 10 * time.Second
 
 func main() {
-	dbPath := env("KUBEBENCH_DB", "kubebench.db")
-	st, err := store.Open(dbPath)
+	showVersion := flag.Bool("version", false, "print the version and exit")
+	flag.Usage = func() {
+		out := flag.CommandLine.Output()
+		fmt.Fprintln(out, "Usage: kubebench [--version] [healthcheck]")
+		fmt.Fprintln(out, "\nWithout a command kubebench serves the workbench; healthcheck probes a running server.")
+		fmt.Fprintln(out, "Settings are read from environment variables (PORT, KUBEBENCH_*, KUBECONFIG).")
+		flag.PrintDefaults()
+	}
+	flag.Parse()
+	if *showVersion {
+		fmt.Printf("kubebench %s (%s, %s)\n", version, commit, date)
+		return
+	}
+	if flag.NArg() > 1 || (flag.NArg() == 1 && flag.Arg(0) != "healthcheck") {
+		flag.Usage()
+		os.Exit(2)
+	}
+
+	cfg, err := config.Load()
 	if err != nil {
-		log.Fatalf("open db %s: %v", dbPath, err)
+		fmt.Fprintf(os.Stderr, "kubebench: invalid configuration:\n%v\n", err)
+		os.Exit(2)
 	}
-	log.Printf("[store] %s", dbPath)
-
-	bootstrap(st)
-
-	server := &api.Server{Store: st, Manager: kube.NewManager()}
-	mux := http.NewServeMux()
-	server.Routes(mux)
-
-	if handler, ok := web.Handler(); ok {
-		mux.Handle("/", handler)
-		log.Printf("[web] serving embedded frontend")
+	if flag.Arg(0) == "healthcheck" {
+		os.Exit(healthcheck(cfg))
 	}
-
-	addr := ":" + env("PORT", "9876")
-	log.Printf("[api] listening on %s", addr)
-	log.Fatal(http.ListenAndServe(addr, mux))
+	if err := serve(cfg); err != nil {
+		log.Fatalf("kubebench: %v", err)
+	}
 }
 
-// bootstrap creates the initial admin user and seeds the cluster
-// inventory from the environment on first run.
-func bootstrap(st *store.Store) {
-	if n, _ := st.CountUsers(); n == 0 {
-		password := env("KUBEBENCH_ADMIN_PASSWORD", "admin")
-		if _, err := st.CreateUser("admin", password, "admin"); err != nil {
-			log.Fatalf("bootstrap admin: %v", err)
-		}
-		log.Printf("[auth] created initial user \"admin\" (set KUBEBENCH_ADMIN_PASSWORD to control the password)")
+// serve runs the server until SIGINT or SIGTERM, then shuts down
+// gracefully.
+func serve(cfg *config.Config) error {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	log.Printf("[kubebench] %s (%s, %s)", version, commit, date)
+
+	if err := prepareDirs(cfg); err != nil {
+		return err
+	}
+	st, err := store.Open(cfg.DBPath)
+	if err != nil {
+		return fmt.Errorf("open database %s: %w", cfg.DBPath, err)
+	}
+	defer st.Close()
+	log.Printf("[store] %s", cfg.DBPath)
+	if err := bootstrap(cfg, st); err != nil {
+		return err
 	}
 
-	// In-cluster service account → register the local cluster.
-	if _, err := rest.InClusterConfig(); err == nil {
-		if _, err := st.ClusterByName("in-cluster"); err != nil {
-			if _, err := st.AddCluster(store.Cluster{Name: "in-cluster", Source: "incluster"}); err == nil {
-				log.Printf("[inventory] registered in-cluster service account")
-			}
-		}
+	build := api.BuildInfo{Version: version, Commit: commit, Date: date}
+	apiServer := api.New(cfg, st, kube.NewManager(), build, plugin.All())
+	spa, embedded := web.Handler()
+	if embedded {
+		log.Printf("[web] serving the embedded frontend")
+	}
+	srv := &http.Server{
+		Addr:              cfg.ListenAddr,
+		Handler:           apiServer.Handler(spa),
+		ReadHeaderTimeout: 10 * time.Second,
+		IdleTimeout:       2 * time.Minute,
+		// No ReadTimeout/WriteTimeout: log streams (SSE) and terminals
+		// (WebSocket) stay open far longer than any sane timeout.
+		TLSConfig: &tls.Config{MinVersion: tls.VersionTLS12},
 	}
 
-	// Local dev convenience: seed from KUBECONFIG.
-	if path := os.Getenv("KUBECONFIG"); path != "" {
-		content, err := os.ReadFile(path)
-		if err != nil {
-			log.Printf("[inventory] KUBECONFIG unreadable: %v", err)
+	go runJobs(ctx, cfg, st)
+
+	served := make(chan error, 1)
+	go func() {
+		if cfg.TLS() {
+			log.Printf("[api] listening on %s (https)", cfg.ListenAddr)
+			served <- srv.ListenAndServeTLS(cfg.TLSCert, cfg.TLSKey)
 			return
 		}
-		name := "kubeconfig"
-		if cfg, err := clientcmd.Load(content); err == nil && cfg.CurrentContext != "" {
-			name = cfg.CurrentContext
-		}
-		if _, err := st.ClusterByName(name); err != nil {
-			if _, err := st.AddCluster(store.Cluster{
-				Name: name, Source: "kubeconfig", Kubeconfig: string(content),
-			}); err == nil {
-				log.Printf("[inventory] seeded cluster %q from KUBECONFIG", name)
-			}
-		}
+		log.Printf("[api] listening on %s", cfg.ListenAddr)
+		served <- srv.ListenAndServe()
+	}()
+
+	select {
+	case err := <-served:
+		return err
+	case <-ctx.Done():
 	}
+	log.Printf("[api] shutting down")
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownGrace)
+	defer cancel()
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			return srv.Close()
+		}
+		return err
+	}
+	return nil
 }

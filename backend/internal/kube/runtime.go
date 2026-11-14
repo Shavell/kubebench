@@ -1,19 +1,24 @@
-// Package kube holds one Runtime per cluster: typed clients, the metrics
-// sampler, Prometheus access, Helm actions and probed capabilities.
+// Package kube holds one Runtime per cluster: typed and dynamic clients,
+// cached discovery with a RESTMapper, the metrics sampler, Prometheus
+// access, Helm actions and probed capabilities.
 package kube
 
 import (
 	"context"
 	"log"
+	"net/http"
 	"sync"
 	"time"
 
 	authv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
 	metricsv "k8s.io/metrics/pkg/client/clientset/versioned"
 
@@ -26,50 +31,37 @@ type Capabilities struct {
 	Exec bool `json:"exec"`
 }
 
+// Runtime is the connection to one cluster. Its exported fields are set at
+// construction and not changed afterwards: the Manager replaces the whole
+// Runtime when the stored cluster record changes. The clients are
+// interfaces so tests can inject fakes (see NewRuntimeForTest).
 type Runtime struct {
 	Cluster store.Cluster
 	Config  *rest.Config
-	CS      *kubernetes.Clientset
+	CS      kubernetes.Interface
 	Dyn     dynamic.Interface
-	Metrics *metricsv.Clientset
+	Metrics metricsv.Interface
 	Sampler *Sampler
 	Helm    *HelmService
+
+	discovery discovery.CachedDiscoveryInterface
+	mapper    *restmapper.DeferredDiscoveryRESTMapper
+	probed    chan struct{} // closed once the capability probe finished
+	closeOnce sync.Once
+
+	rawOnce   sync.Once // builds rawClient for RawGet on first use
+	rawClient *http.Client
+	rawErr    error
 
 	mu   sync.RWMutex
 	prom *PromSource
 	caps Capabilities
 }
 
-func (r *Runtime) Prom() *PromSource {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	return r.prom
-}
-
-func (r *Runtime) Caps() Capabilities {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	return r.caps
-}
-
-// Manager caches one Runtime per cluster id, building them lazily.
-type Manager struct {
-	mu       sync.Mutex
-	runtimes map[int64]*Runtime
-}
-
-func NewManager() *Manager {
-	return &Manager{runtimes: map[int64]*Runtime{}}
-}
-
-func (m *Manager) Runtime(cluster *store.Cluster) (*Runtime, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if rt, ok := m.runtimes[cluster.ID]; ok {
-		return rt, nil
-	}
-
-	config, err := restConfigFor(cluster)
+// newRuntime connects to cluster and starts its background work: the
+// metrics sampler, Prometheus discovery and the capability probe.
+func newRuntime(cluster store.Cluster) (*Runtime, error) {
+	config, err := restConfigFor(&cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -89,27 +81,72 @@ func (m *Manager) Runtime(cluster *store.Cluster) (*Runtime, error) {
 		return nil, err
 	}
 
-	rt := &Runtime{Cluster: *cluster, Config: config, CS: cs, Dyn: dyn, Metrics: metrics}
-	rt.Sampler = startSampler(rt)
+	rt := assemble(cluster, config, cs, dyn, metrics)
 	rt.Helm = newHelmService(config)
+	rt.Sampler.start()
 	go rt.discoverProm()
 	go rt.probeCapabilities()
-	m.runtimes[cluster.ID] = rt
 	return rt, nil
 }
 
-// Drop removes a cached runtime (e.g. when the cluster is deleted).
-func (m *Manager) Drop(clusterID int64) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if rt, ok := m.runtimes[clusterID]; ok {
-		rt.Sampler.Stop()
-		delete(m.runtimes, clusterID)
+// NewRuntimeForTest builds a Runtime around injected (usually fake)
+// clients. It starts no background work: the capability probe counts as
+// finished with no capabilities, the sampler stays empty, Metrics and Helm
+// are nil, and Config points at an unreachable host. Tests that need
+// metrics or RawGet set Metrics or Config before using the runtime.
+func NewRuntimeForTest(cluster store.Cluster, cs kubernetes.Interface, dyn dynamic.Interface) *Runtime {
+	rt := assemble(cluster, &rest.Config{Host: "https://kubebench.invalid"}, cs, dyn, nil)
+	close(rt.probed)
+	return rt
+}
+
+func assemble(cluster store.Cluster, config *rest.Config, cs kubernetes.Interface,
+	dyn dynamic.Interface, metrics metricsv.Interface) *Runtime {
+	cached := memory.NewMemCacheClient(cs.Discovery())
+	rt := &Runtime{
+		Cluster:   cluster,
+		Config:    config,
+		CS:        cs,
+		Dyn:       dyn,
+		Metrics:   metrics,
+		discovery: cached,
+		mapper:    restmapper.NewDeferredDiscoveryRESTMapper(cached),
+		probed:    make(chan struct{}),
+	}
+	rt.Sampler = newSampler(rt)
+	return rt
+}
+
+// Close stops the runtime's background work. It is safe to call more than
+// once; the clients keep working for requests still holding the runtime.
+func (r *Runtime) Close() { r.closeOnce.Do(r.Sampler.Stop) }
+
+func (r *Runtime) Prom() *PromSource {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.prom
+}
+
+// Caps returns the probed capabilities; all false until WaitProbed returns.
+func (r *Runtime) Caps() Capabilities {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.caps
+}
+
+// WaitProbed blocks until the capability probe finished, or returns ctx's
+// error when ctx ends first.
+func (r *Runtime) WaitProbed(ctx context.Context) error {
+	select {
+	case <-r.probed:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
 	}
 }
 
 func restConfigFor(cluster *store.Cluster) (*rest.Config, error) {
-	if cluster.Source == "incluster" {
+	if cluster.Source == store.SourceInCluster {
 		return rest.InClusterConfig()
 	}
 	apiConfig, err := clientcmd.Load([]byte(cluster.Kubeconfig))
@@ -126,6 +163,7 @@ func restConfigFor(cluster *store.Cluster) (*rest.Config, error) {
 }
 
 func (r *Runtime) probeCapabilities() {
+	defer close(r.probed)
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 	caps := Capabilities{}

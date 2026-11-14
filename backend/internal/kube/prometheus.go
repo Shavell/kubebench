@@ -115,7 +115,11 @@ func (p *PromSource) rangeQuery(ctx context.Context, query string, minutes int) 
 	for _, v := range res.Data.Result[0].Values {
 		ts, _ := v[0].(float64)
 		str, _ := v[1].(string)
-		value, _ := strconv.ParseFloat(str, 64)
+		value, err := strconv.ParseFloat(str, 64)
+		// PromQL yields NaN/Inf for 0/0 and the like; JSON cannot carry them.
+		if err != nil || math.IsNaN(value) || math.IsInf(value, 0) {
+			continue
+		}
 		points = append(points, MetricPoint{
 			Time:  time.Unix(int64(ts), 0).Format("15:04"),
 			Value: math.Round(value*10) / 10,

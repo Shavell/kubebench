@@ -43,12 +43,14 @@ type Sampler struct {
 	stop chan struct{}
 }
 
-func startSampler(rt *Runtime) *Sampler {
-	s := &Sampler{rt: rt, stop: make(chan struct{})}
-	go s.loop()
-	return s
+func newSampler(rt *Runtime) *Sampler {
+	return &Sampler{rt: rt, stop: make(chan struct{})}
 }
 
+// start begins polling in the background until Stop.
+func (s *Sampler) start() { go s.loop() }
+
+// Stop ends polling; call it once (Runtime.Close does).
 func (s *Sampler) Stop() { close(s.stop) }
 
 func (s *Sampler) loop() {

@@ -266,7 +266,10 @@ func MapPod(p *corev1.Pod) PodInfo {
 }
 
 func MapDeployment(d *appsv1.Deployment) DeploymentInfo {
-	labels := d.Spec.Selector.MatchLabels
+	var labels map[string]string
+	if d.Spec.Selector != nil {
+		labels = d.Spec.Selector.MatchLabels
+	}
 	if len(labels) == 0 {
 		labels = d.Labels
 	}

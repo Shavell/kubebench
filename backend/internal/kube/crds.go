@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -172,7 +173,7 @@ func (r *Runtime) GetCustomResourceByKind(ctx context.Context, kind, namespace, 
 		}
 		return r.Dyn.Resource(gvr).Get(ctx, name, metav1.GetOptions{})
 	}
-	return nil, fmt.Errorf("no CRD with kind %q", kind)
+	return nil, apierrors.NewNotFound(schema.GroupResource{Resource: "kind"}, kind)
 }
 
 func crStatus(obj *unstructured.Unstructured) string {

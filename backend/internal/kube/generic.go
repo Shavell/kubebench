@@ -16,7 +16,7 @@ import (
 func (r *Runtime) ListGeneric(ctx context.Context, key, namespace string) ([]map[string]any, error) {
 	rt, ok := Catalog[key]
 	if !ok {
-		return nil, fmt.Errorf("unknown resource %q", key)
+		return nil, unknownResource(key)
 	}
 	var list *unstructured.UnstructuredList
 	var err error
@@ -52,7 +52,7 @@ func (r *Runtime) ListGeneric(ctx context.Context, key, namespace string) ([]map
 func (r *Runtime) GetGeneric(ctx context.Context, key, namespace, name string) (map[string]any, error) {
 	rt, ok := Catalog[key]
 	if !ok {
-		return nil, fmt.Errorf("unknown resource %q", key)
+		return nil, unknownResource(key)
 	}
 	var obj *unstructured.Unstructured
 	var err error
@@ -71,6 +71,11 @@ func (r *Runtime) GetGeneric(ctx context.Context, key, namespace, name string) (
 		redactSecret(obj.Object)
 	}
 	return obj.Object, nil
+}
+
+// unknownResource is a 400 for a catalog key the API does not know.
+func unknownResource(key string) error {
+	return apierrors.NewBadRequest(fmt.Sprintf("unknown resource %q", key))
 }
 
 // redactSecret replaces data/stringData values with a byte-count marker

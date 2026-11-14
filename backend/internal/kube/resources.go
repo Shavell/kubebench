@@ -10,6 +10,8 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/remotecommand"
 	"k8s.io/kubectl/pkg/scheme"
@@ -76,8 +78,18 @@ func (r *Runtime) ListServices(ctx context.Context, namespace string) ([]Service
 	return out, nil
 }
 
-func (r *Runtime) ListEvents(ctx context.Context, namespace, name string) ([]EventInfo, error) {
-	opts := metav1.ListOptions{FieldSelector: "involvedObject.name=" + name}
+// ListEvents lists the events in namespace ("" = all) about objects of the
+// given kind and name; empty filters match everything. Filtering on the
+// kind keeps e.g. Deployment "web" and Service "web" apart.
+func (r *Runtime) ListEvents(ctx context.Context, namespace, kind, name string) ([]EventInfo, error) {
+	var terms []fields.Selector
+	if kind != "" {
+		terms = append(terms, fields.OneTermEqualSelector("involvedObject.kind", kind))
+	}
+	if name != "" {
+		terms = append(terms, fields.OneTermEqualSelector("involvedObject.name", name))
+	}
+	opts := metav1.ListOptions{FieldSelector: fields.AndSelectors(terms...).String()}
 	list, err := r.CS.CoreV1().Events(namespace).List(ctx, opts)
 	if err != nil {
 		return nil, err
@@ -92,7 +104,7 @@ func (r *Runtime) ListEvents(ctx context.Context, namespace, name string) ([]Eve
 // ObjectYAML fetches a typed object (or a custom resource by kind) and
 // renders it as YAML with managedFields stripped.
 func (r *Runtime) ObjectYAML(ctx context.Context, kind, namespace, name string) (string, error) {
-	var obj any
+	var obj runtime.Object
 	var err error
 	switch kind {
 	case "Pod":
@@ -129,6 +141,11 @@ func (r *Runtime) ObjectYAML(ctx context.Context, kind, namespace, name string) 
 	if err != nil {
 		return "", err
 	}
+	// Typed clients decode objects without apiVersion and kind; restore them
+	// so the YAML is a complete manifest.
+	if gvks, _, err := scheme.Scheme.ObjectKinds(obj); err == nil && len(gvks) > 0 {
+		obj.GetObjectKind().SetGroupVersionKind(gvks[0])
+	}
 	if meta, ok := obj.(metav1.Object); ok {
 		meta.SetManagedFields(nil)
 	}
@@ -136,14 +153,40 @@ func (r *Runtime) ObjectYAML(ctx context.Context, kind, namespace, name string) 
 	return string(out), err
 }
 
-func (r *Runtime) PodLogs(ctx context.Context, namespace, pod, container string) ([]string, error) {
-	tail := int64(300)
-	req := r.CS.CoreV1().Pods(namespace).GetLogs(pod, &corev1.PodLogOptions{
-		Container: container, TailLines: &tail, Timestamps: true,
-	})
-	raw, err := req.DoRaw(ctx)
+// LogOptions selects the lines PodLogs returns.
+type LogOptions struct {
+	Container string
+	// TailLines is the number of lines from the end; it must be positive.
+	TailLines int64
+	// Previous reads the previous (crashed) instance of the container.
+	Previous bool
+	// SinceSeconds limits the lines to that many seconds back; 0 = no limit.
+	SinceSeconds int64
+}
+
+// maxLogBytes bounds one PodLogs response, whatever the line lengths.
+const maxLogBytes = 16 << 20
+
+// PodLogs returns log lines with their timestamps shortened to
+// HH:MM:SS.mmm.
+func (r *Runtime) PodLogs(ctx context.Context, namespace, pod string, o LogOptions) ([]string, error) {
+	limitBytes := int64(maxLogBytes)
+	opts := &corev1.PodLogOptions{
+		Container:  o.Container,
+		TailLines:  &o.TailLines,
+		Previous:   o.Previous,
+		Timestamps: true,
+		LimitBytes: &limitBytes,
+	}
+	if o.SinceSeconds > 0 {
+		opts.SinceSeconds = &o.SinceSeconds
+	}
+	// Do + Result.Error (unlike DoRaw) decodes the API server's Status, so
+	// e.g. "previous terminated container ... not found" reaches the UI.
+	res := r.CS.CoreV1().Pods(namespace).GetLogs(pod, opts).Do(ctx)
+	raw, err := res.Raw()
 	if err != nil {
-		return nil, err
+		return nil, res.Error()
 	}
 	lines := []string{}
 	scanner := bufio.NewScanner(bytes.NewReader(raw))
