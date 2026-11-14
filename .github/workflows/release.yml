@@ -1,0 +1,298 @@
+name: Release
+
+# CI is intentionally manual for now (workflow_dispatch only); the commented
+# trigger would release on every pushed v* tag instead.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release, e.g. v0.5.0 (the tag is created on the selected branch when missing)
+        required: true
+        type: string
+      prerelease:
+        description: Mark the GitHub release as a pre-release
+        type: boolean
+        default: false
+      push_image:
+        description: Push the multi-arch image to ghcr.io/shavell/kube-bench
+        type: boolean
+        default: false
+      push_chart:
+        description: Push the Helm chart to oci://ghcr.io/shavell/charts
+        type: boolean
+        default: false
+  # push:
+  #   tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.version || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/shavell/kube-bench
+  CHART_REPOSITORY: oci://ghcr.io/shavell/charts
+  NODE_VERSION: "24"
+  HELM_VERSION: v3.22.1
+
+jobs:
+  release:
+    name: Draft GitHub release
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: write # push the tag, create the draft release, upload assets
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Validate the version
+        id: version
+        env:
+          # A tag push (commented trigger above) has no inputs: use the tag.
+          INPUT_VERSION: ${{ inputs.version || github.ref_name }}
+        run: |
+          if [[ ! "$INPUT_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::version must look like v0.5.0 or v0.5.0-rc.1, got '$INPUT_VERSION'"
+            exit 1
+          fi
+          echo "tag=$INPUT_VERSION" >>"$GITHUB_OUTPUT"
+          echo "version=${INPUT_VERSION#v}" >>"$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # tags and history for GoReleaser and scripts/version.sh
+
+      - name: Release an existing tag as it is
+        id: tag
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            git checkout --detach "refs/tags/$TAG"
+            echo "exists=true" >>"$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >>"$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - uses: azure/setup-helm@v5
+        with:
+          version: ${{ env.HELM_VERSION }}
+      - run: npm ci --no-audit --no-fund
+
+      - name: Check versions, CHANGELOG and manifests
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: scripts/check-release.sh "$VERSION"
+      - name: Test
+        run: make test
+
+      - name: Create the tag
+        if: steps.tag.outputs.exists == 'false'
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "KubeBench $TAG"
+          git push origin "refs/tags/$TAG"
+
+      - name: Extract the release notes
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: scripts/extract-changelog.sh "$VERSION" >"$RUNNER_TEMP/release-notes.md"
+
+      - name: Build the frontend
+        run: make embed
+
+      # GoReleaser attaches everything in build/extra/ to the release.
+      - name: Stage the chart, manifests and installer
+        run: |
+          mkdir -p build/extra
+          helm package charts/kubebench --destination build/extra
+          cp deploy/kubernetes/kubebench.yaml install.sh build/extra/
+
+      - name: GoReleaser
+        uses: goreleaser/goreleaser-action@v7
+        with:
+          version: "~> v2"
+          args: release --clean --release-notes ${{ runner.temp }}/release-notes.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Mark as pre-release
+        if: inputs.prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: gh release edit "$TAG" --prerelease
+
+      # Image tarballs for the offline bundle (the same as `docker save`). The
+      # build stages cross-compile, so no emulation is needed; QEMU is only a
+      # safety net for future RUN steps in the runtime stage.
+      - name: Build metadata
+        id: build
+        run: |
+          echo "commit=$(git rev-parse --short HEAD)" >>"$GITHUB_OUTPUT"
+          echo "date=$(TZ=UTC git log -1 --format=%cd --date=format-local:%Y-%m-%dT%H:%M:%SZ)" >>"$GITHUB_OUTPUT"
+          mkdir -p build/images
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+      - name: Image tarball (linux/amd64)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64
+          tags: ${{ env.IMAGE }}:${{ steps.version.outputs.version }}
+          build-args: |
+            VERSION=${{ steps.version.outputs.version }}
+            COMMIT=${{ steps.build.outputs.commit }}
+            DATE=${{ steps.build.outputs.date }}
+          outputs: type=docker,dest=build/images/kube-bench_${{ steps.version.outputs.version }}_linux_amd64.tar
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Image tarball (linux/arm64)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/arm64
+          tags: ${{ env.IMAGE }}:${{ steps.version.outputs.version }}
+          build-args: |
+            VERSION=${{ steps.version.outputs.version }}
+            COMMIT=${{ steps.build.outputs.commit }}
+            DATE=${{ steps.build.outputs.date }}
+          outputs: type=docker,dest=build/images/kube-bench_${{ steps.version.outputs.version }}_linux_arm64.tar
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Offline bundle
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          scripts/offline-bundle.sh "$VERSION" \
+            --chart "build/extra/kubebench-$VERSION.tgz" \
+            --image-tar "build/images/kube-bench_${VERSION}_linux_amd64.tar" \
+            --image-tar "build/images/kube-bench_${VERSION}_linux_arm64.tar" \
+            --output build/bundle
+      - name: Upload the offline bundle to the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release upload "$TAG" --clobber \
+            "build/bundle/kubebench-offline-$VERSION.tar.gz" \
+            "build/bundle/kubebench-offline-$VERSION.tar.gz.sha256"
+
+      - name: Keep the chart for the publish job
+        uses: actions/upload-artifact@v7
+        with:
+          name: chart
+          path: build/extra/kubebench-*.tgz
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Summary
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          {
+            echo "### KubeBench $TAG"
+            echo
+            echo "Draft release: https://github.com/${GITHUB_REPOSITORY}/releases/tag/$TAG (publish it on GitHub when ready)."
+            echo
+            echo '```'
+            for file in build/release/*.{tar.gz,zip,deb,rpm} build/release/checksums.txt build/extra/* build/bundle/*; do
+              basename "$file"
+            done
+            echo '```'
+          } >>"$GITHUB_STEP_SUMMARY"
+
+  publish-image:
+    name: Push the container image
+    needs: release
+    if: inputs.push_image
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: refs/tags/${{ needs.release.outputs.tag }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Build metadata
+        id: build
+        run: |
+          echo "commit=$(git rev-parse --short HEAD)" >>"$GITHUB_OUTPUT"
+          echo "date=$(TZ=UTC git log -1 --format=%cd --date=format-local:%Y-%m-%dT%H:%M:%SZ)" >>"$GITHUB_OUTPUT"
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=semver,pattern={{version}},value=${{ needs.release.outputs.tag }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.release.outputs.tag }}
+            type=raw,value=latest,enable=${{ !inputs.prerelease && !contains(needs.release.outputs.tag, '-') }}
+          flavor: latest=false
+          labels: |
+            org.opencontainers.image.title=KubeBench
+            org.opencontainers.image.description=VSCode-style Kubernetes workbench
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ needs.release.outputs.version }}
+            COMMIT=${{ steps.build.outputs.commit }}
+            DATE=${{ steps.build.outputs.date }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: mode=max
+          sbom: true
+
+  publish-chart:
+    name: Push the Helm chart
+    needs: release
+    if: inputs.push_chart
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: chart
+      - uses: azure/setup-helm@v5
+        with:
+          version: ${{ env.HELM_VERSION }}
+      - name: helm push
+        env:
+          VERSION: ${{ needs.release.outputs.version }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          printf '%s' "$GITHUB_TOKEN" | helm registry login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          helm push "kubebench-$VERSION.tgz" "$CHART_REPOSITORY"

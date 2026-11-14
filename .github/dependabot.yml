@@ -1,0 +1,63 @@
+# Dependabot version updates: weekly, grouped, at most five open pull
+# requests per ecosystem. Commit messages follow Conventional Commits.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels: [dependencies]
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      react:
+        patterns: [react, react-dom, "@types/react", "@types/react-dom"]
+      build-tooling:
+        patterns: [vite, "@vitejs/*", rolldown, "@rolldown/*", typescript, "@types/node", oxlint, "@oxlint/*"]
+      i18n:
+        patterns: [i18next, "i18next-*", react-i18next]
+      editor-terminal:
+        patterns: [monaco-editor, "@monaco-editor/*", xterm, "@xterm/*"]
+
+  - package-ecosystem: gomod
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels: [dependencies]
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      kubernetes:
+        patterns: ["k8s.io/*", "sigs.k8s.io/*"]
+      helm:
+        patterns: ["helm.sh/*"]
+      golang-x:
+        patterns: ["golang.org/x/*"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels: [dependencies]
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # Base images of the Dockerfile (node, golang, distroless).
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels: [dependencies]
+    commit-message:
+      prefix: chore(deps)
