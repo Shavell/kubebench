@@ -1,0 +1,165 @@
+package store
+
+import (
+	"database/sql"
+	"fmt"
+	"time"
+)
+
+// migrations upgrade the schema one version at a time: step i produces
+// schema version i+1, recorded in PRAGMA user_version inside the same
+// transaction. Never edit a released step; append a new one.
+var migrations = []func(tx *sql.Tx) error{
+	migrateV1,
+	migrateV2,
+}
+
+func (s *Store) migrate() error {
+	latest := len(migrations)
+	var version int
+	if err := s.db.QueryRow(`PRAGMA user_version`).Scan(&version); err != nil {
+		return fmt.Errorf("read schema version: %w", err)
+	}
+	if version > latest {
+		return fmt.Errorf("database schema v%d is newer than this KubeBench supports (v%d); upgrade KubeBench",
+			version, latest)
+	}
+	for v := version; v < latest; v++ {
+		err := s.withTx(func(tx *sql.Tx) error {
+			if err := migrations[v](tx); err != nil {
+				return err
+			}
+			_, err := tx.Exec(fmt.Sprintf(`PRAGMA user_version = %d`, v+1))
+			return err
+		})
+		if err != nil {
+			return fmt.Errorf("migrate schema to v%d: %w", v+1, err)
+		}
+	}
+	return nil
+}
+
+// migrateV1 is the v0.4 schema. Its statements are idempotent because v0.4
+// databases carry these tables without a user_version.
+func migrateV1(tx *sql.Tx) error {
+	_, err := tx.Exec(`
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  username TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'user',
+  active_cluster_id INTEGER,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS sessions (
+  token TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  expires_at TIMESTAMP NOT NULL
+);
+CREATE TABLE IF NOT EXISTS clusters (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE,
+  source TEXT NOT NULL,
+  kubeconfig TEXT,
+  context TEXT,
+  address TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS user_clusters (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  cluster_id INTEGER NOT NULL REFERENCES clusters(id) ON DELETE CASCADE,
+  PRIMARY KEY (user_id, cluster_id)
+);`)
+	return err
+}
+
+// migrateV2 adds v0.5 roles, cluster safety flags, the audit log and
+// plugin state (docs/design-v0.5.md §3, §4.6, §5).
+func migrateV2(tx *sql.Tx) error {
+	_, err := tx.Exec(`
+-- New assignments default to the least privilege; v0.4 assignments granted
+-- full access, so they become operators.
+ALTER TABLE user_clusters ADD COLUMN role TEXT NOT NULL DEFAULT 'viewer'
+  CHECK (role IN ('viewer', 'operator'));
+UPDATE user_clusters SET role = 'operator';
+
+ALTER TABLE clusters ADD COLUMN read_only INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE clusters ADD COLUMN environment TEXT NOT NULL DEFAULT '';
+ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0;
+
+-- v0.4 ran without foreign_keys: drop orphans before enforcement applies.
+DELETE FROM sessions WHERE user_id NOT IN (SELECT id FROM users);
+DELETE FROM user_clusters
+ WHERE user_id NOT IN (SELECT id FROM users) OR cluster_id NOT IN (SELECT id FROM clusters);
+UPDATE users SET active_cluster_id = NULL
+ WHERE active_cluster_id IS NOT NULL AND active_cluster_id NOT IN (SELECT id FROM clusters);
+
+CREATE INDEX idx_sessions_user ON sessions(user_id);
+CREATE INDEX idx_sessions_expires ON sessions(expires_at);
+CREATE INDEX idx_user_clusters_cluster ON user_clusters(cluster_id);
+
+CREATE TABLE audit_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ts TIMESTAMP NOT NULL,
+  username TEXT NOT NULL,
+  cluster TEXT NOT NULL DEFAULT '',
+  action TEXT NOT NULL,
+  target TEXT NOT NULL DEFAULT '',
+  status INTEGER NOT NULL,
+  detail TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX idx_audit_ts ON audit_log(ts);
+
+CREATE TABLE plugin_settings (
+  id TEXT PRIMARY KEY,
+  enabled INTEGER NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+);
+CREATE TABLE plugin_kv (
+  plugin_id TEXT NOT NULL,
+  key TEXT NOT NULL,
+  value TEXT NOT NULL,
+  updated_at TIMESTAMP NOT NULL,
+  PRIMARY KEY (plugin_id, key)
+);`)
+	if err != nil {
+		return err
+	}
+	return reencodeSessionExpiry(tx)
+}
+
+// reencodeSessionExpiry rewrites v0.4 session expiries (stored in Go's
+// time.String format) in the canonical format so expired sessions can be
+// pruned with a plain comparison. Unparseable rows are dropped; their users
+// simply sign in again.
+func reencodeSessionExpiry(tx *sql.Tx) error {
+	rows, err := tx.Query(`SELECT token, expires_at FROM sessions`)
+	if err != nil {
+		return err
+	}
+	expiry := map[string]any{}
+	for rows.Next() {
+		var token string
+		var value any
+		if err := rows.Scan(&token, &value); err != nil {
+			rows.Close()
+			return err
+		}
+		expiry[token] = value
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	for token, value := range expiry {
+		if t, ok := value.(time.Time); ok {
+			_, err = tx.Exec(`UPDATE sessions SET expires_at = ? WHERE token = ?`, t.UTC(), token)
+		} else {
+			_, err = tx.Exec(`DELETE FROM sessions WHERE token = ?`, token)
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
