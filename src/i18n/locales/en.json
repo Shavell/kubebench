@@ -1,0 +1,39 @@
+{
+  "common": {
+    "cancel": "Cancel",
+    "close": "Close",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "save": "Save",
+    "apply": "Apply",
+    "create": "Create",
+    "edit": "Edit",
+    "refresh": "Refresh",
+    "retry": "Retry",
+    "loading": "Loading…",
+    "search": "Search",
+    "filter": "Filter…",
+    "name": "Name",
+    "namespace": "Namespace",
+    "allNamespaces": "All namespaces",
+    "status": "Status",
+    "age": "Age",
+    "actions": "Actions",
+    "yes": "Yes",
+    "no": "No",
+    "none": "None",
+    "unknown": "Unknown",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "copy": "Copy",
+    "copied": "Copied",
+    "download": "Download",
+    "noData": "No data",
+    "error": "Error",
+    "unavailable": "Unavailable"
+  },
+  "language": {
+    "label": "Language",
+    "auto": "Automatic (browser)"
+  }
+}

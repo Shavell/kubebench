@@ -9,15 +9,18 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "server": "node server/index.mjs",
-    "server:go": "cd backend && go run ."
+    "server:go": "cd backend && go run .",
+    "i18n:check": "node scripts/check-i18n.mjs"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
     "@vscode/codicons": "^0.0.46-24",
     "clsx": "^2.1.1",
+    "i18next": "^27.1.1",
     "monaco-editor": "^0.56.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "react-i18next": "^18.0.1",
     "recharts": "^3.10.1",
     "zustand": "^5.0.14"
   },

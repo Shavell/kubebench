@@ -1,0 +1,39 @@
+{
+  "common": {
+    "cancel": "İptal",
+    "close": "Kapat",
+    "confirm": "Onayla",
+    "delete": "Sil",
+    "save": "Kaydet",
+    "apply": "Uygula",
+    "create": "Oluştur",
+    "edit": "Düzenle",
+    "refresh": "Yenile",
+    "retry": "Tekrar dene",
+    "loading": "Yükleniyor…",
+    "search": "Ara",
+    "filter": "Filtrele…",
+    "name": "Ad",
+    "namespace": "Namespace",
+    "allNamespaces": "Tüm namespace'ler",
+    "status": "Durum",
+    "age": "Yaş",
+    "actions": "İşlemler",
+    "yes": "Evet",
+    "no": "Hayır",
+    "none": "Yok",
+    "unknown": "Bilinmiyor",
+    "enabled": "Etkin",
+    "disabled": "Devre dışı",
+    "copy": "Kopyala",
+    "copied": "Kopyalandı",
+    "download": "İndir",
+    "noData": "Veri yok",
+    "error": "Hata",
+    "unavailable": "Kullanılamıyor"
+  },
+  "language": {
+    "label": "Dil",
+    "auto": "Otomatik (tarayıcı)"
+  }
+}

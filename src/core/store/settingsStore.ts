@@ -13,6 +13,12 @@ interface SettingsState {
   autoRefreshSeconds: number
   /** Where utilization series come from in live mode. */
   metricsSource: 'auto' | 'metrics-server' | 'prometheus'
+  /**
+   * UI language preference: a supported code ('en', 'tr', …) or 'auto'
+   * (follow the browser). Typed as string to keep this store free of
+   * i18n imports; src/i18n validates it.
+   */
+  language: 'auto' | (string & {})
   set: <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => void
 }
 
@@ -24,6 +30,7 @@ export const useSettingsStore = create<SettingsState>()(
       theme: 'dark',
       autoRefreshSeconds: 0,
       metricsSource: 'auto',
+      language: 'auto',
       set: (key, value) => set({ [key]: value }),
     }),
     { name: 'kubebench.settings' },

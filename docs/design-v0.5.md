@@ -1,0 +1,658 @@
+# Design: KubeBench v0.5 — plugins, i18n, roles, live ops, packaging
+
+Status: **accepted** (implementation contract for the v0.5.0 release).
+Every change in v0.5 implements against this document. When code and this
+document disagree, fix one of them in the same change.
+
+Goals, in priority order:
+
+1. **Trust** — never show fabricated data in live mode; per-cluster roles,
+   read-only clusters and an audit log for a multi-user web tool.
+2. **Plugin platform** — backend + frontend plugin contracts, enable/disable,
+   capability detection, runtime-loaded external (frontend) plugins.
+3. **Multi-language UI** — i18next, English + Turkish, per-plugin namespaces.
+4. **Daily operations parity** (inspired by the KubelizeMe comparison, see
+   `docs/notes/kubelizeme-comparison.md`): real PTY shell, streaming logs,
+   YAML apply/dry-run/diff, node/workload operations, Helm install/upgrade.
+5. **New plugins**: Argo CD, Storage (PV/PVC creator), Security posture,
+   Access (RBAC), Topology.
+6. **Distribution**: Kubernetes (Helm chart + plain manifests), VM (.deb,
+   tarball, `curl | bash` installer), online and offline (air-gapped)
+   bundles, GitHub Releases, manual-only GitHub Actions, Dependabot.
+
+Out of scope for v0.5 (roadmap): AI assistant, manifest "Composer",
+cluster-to-cluster compare, port-forward, light/dark per-plugin theming.
+
+---
+
+## 0. Ground rules (all changes)
+
+- Read `CLAUDE.md`. Layering rules still hold: `core/shell` never imports
+  `plugins/*`; plugins never import each other or `core/shell`; cross-plugin
+  flows go through tab kinds (`useLayoutStore.getState().openTab(...)`).
+- **Every user-visible string goes through i18n** (`useTranslation(ns)`),
+  with both `en.json` and `tr.json` entries. `npm run i18n:check` must pass.
+- **Mock + live**: every data capability has a deterministic mock
+  implementation (seeded RNG, no `Date.now()`/`Math.random()` in mock data
+  generation) and a live implementation. **Live mode never falls back to
+  mock data**; it shows an "unavailable" state with the reason instead.
+- Colors only via `--vscode-*` tokens (`src/core/theme/theme.css`), which
+  must be defined for both dark and light themes. Charts are single-series
+  small multiples without legends.
+- TS: `verbatimModuleSyntax`, `noUnusedLocals`, `erasableSyntaxOnly` (no
+  enums, no parameter properties, no namespaces).
+- Verify: `npx tsc -b && npm run build && npm run lint && npm run i18n:check`;
+  backend `cd backend && go vet ./... && go test ./... && go build ./...`.
+- **The developer's k3s homelab cluster (`~/.kube/config`, context
+  `k3s-homelab`) may be used for read-only checks only.** Never send a
+  mutating request to it (no create/update/patch/delete/evict/exec-that-
+  mutates, not even `dryRun`). Test mutations with client-go fake clients
+  (`k8s.io/client-go/kubernetes/fake`, `k8s.io/client-go/dynamic/fake`)
+  or the mock frontend.
+- Never push, never touch the `origin` (Gitea) remote, never build or push
+  Docker images, never deploy to a cluster.
+- Commits: Conventional Commits (`feat(argocd): …`, `fix(api): …`), body
+  explains why, trailer `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
+
+---
+
+## 1. Versioning & build info
+
+- Go: `package main` declares `var (version = "dev"; commit = "none"; date = "unknown")`,
+  set with `-ldflags "-X main.version=… -X main.commit=… -X main.date=…"`.
+- `kubebench --version` prints `kubebench <version> (<commit>, <date>)`.
+- `kubebench healthcheck` performs `GET http://127.0.0.1:$PORT/healthz`
+  (honours `KUBEBENCH_TLS_*` → https with `InsecureSkipVerify`) and exits
+  0/1 — used by Docker `HEALTHCHECK` (distroless has no shell/curl).
+- `GET /api/version` (public) → `{"version","commit","date"}`.
+- `GET /healthz` (public) → `{"status":"ok"}`.
+- Frontend: `__APP_VERSION__` is defined by Vite from `package.json`
+  (`define` in vite.config.ts); live mode prefers `/api/info.version`.
+- Release version for this work: **0.5.0** (package.json, Chart.yaml
+  `version`/`appVersion`).
+
+## 2. Configuration (environment)
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `PORT` | `9876` | HTTP port |
+| `KUBEBENCH_LISTEN_ADDR` | `:$PORT` | Full bind address (overrides PORT), e.g. `127.0.0.1:9876` |
+| `KUBEBENCH_DB` | `kubebench.db` | SQLite file |
+| `KUBEBENCH_DATA_DIR` | dir of `KUBEBENCH_DB` | Writable state: helm repo cache, uploads, plugins |
+| `KUBEBENCH_PLUGINS_DIR` | `$KUBEBENCH_DATA_DIR/plugins` | External (frontend) plugins |
+| `KUBEBENCH_ADMIN_PASSWORD` | `admin` | Bootstrap admin password (first run only). When the default is used, the admin must change it at first login |
+| `KUBEBENCH_SECURE_COOKIES` | `auto` | `auto` (Secure when request is TLS or trusted `X-Forwarded-Proto: https`), `true`, `false` |
+| `KUBEBENCH_TRUST_PROXY` | `false` | Honour `X-Forwarded-Proto/For` (behind ingress/reverse proxy) |
+| `KUBEBENCH_TLS_CERT` / `KUBEBENCH_TLS_KEY` | — | Serve HTTPS natively (VM installs without a proxy) |
+| `KUBEBENCH_SESSION_TTL` | `168h` | Session lifetime (Go duration) |
+| `KUBEBENCH_AUDIT_RETENTION_DAYS` | `90` | Audit rows older than this are pruned daily (0 = keep forever) |
+| `KUBEBENCH_ALLOW_PATH_KUBECONFIG` | `true` outside a cluster, `false` in-cluster | Allow adding clusters by server-side file path |
+| `KUBECONFIG` | — | Dev/VM convenience: seeds the inventory on first run |
+
+The backend parses these once into `internal/config.Config`.
+
+## 3. Roles, permissions, audit
+
+### 3.1 Model
+
+- Global user role (`users.role`): `admin` | `user` (unchanged).
+- Per-cluster assignment role (`user_clusters.role`): `viewer` | `operator`.
+  Existing assignments migrate to `operator` (preserves v0.4 behaviour).
+- Cluster safety flags (`clusters` table): `read_only` (bool) and
+  `environment` (`""` | `development` | `staging` | `production`).
+
+Effective permission of a user on a cluster:
+
+| | admin | operator | viewer |
+|---|---|---|---|
+| read (lists, YAML, events, logs, metrics) | ✓ | ✓ | ✓ |
+| write (mutations) | ✓ | ✓ | ✗ |
+| exec (shell, debug container, reveal secret) | ✓ | ✓ | ✗ |
+| manage users/clusters/plugins/audit | ✓ | ✗ | ✗ |
+
+A **read-only cluster** rejects write and exec for everyone (admins
+included) with `403 {"code":"cluster_read_only"}`; an admin clears the flag
+in the Clusters view. Kubernetes-side authorization is still whatever the
+stored credential allows.
+
+### 3.2 Access levels in the API
+
+Every route declares one of:
+
+- `public` — no session (`/healthz`, `/api/version`, `POST /api/auth/login`).
+- `authed` — any session (`/api/auth/*`, `/api/info`, `/api/clusters` GET,
+  activate, `GET /api/plugins`).
+- `read` — session + active cluster runtime + any role on it.
+- `write` — `read` + role operator/admin + cluster not read-only. **Audited.**
+- `exec` — same gate as write. **Audited.**
+- `admin` — global admin. Mutations audited.
+
+Dry-run requests (`dryRun=true`) need `read` and are not audited.
+
+### 3.3 Error format
+
+All errors are JSON: `{"error": "<human message>", "code": "<machine code>"}`.
+Codes used across the API: `unauthenticated`, `session_expired`,
+`forbidden`, `forbidden_role`, `cluster_read_only`, `admin_required`,
+`no_cluster`, `not_found`, `bad_request`, `conflict`, `rate_limited`,
+`plugin_disabled`, `plugin_unavailable`, `capability_unavailable`,
+`redacted_secret`, `password_change_required`, `kubernetes` (Kubernetes API error; HTTP status mirrors
+the API status). The frontend `ApiError` exposes `status` and `code`.
+
+### 3.4 Audit log
+
+Table `audit_log(id INTEGER PK, ts TIMESTAMP, username TEXT, cluster TEXT,
+action TEXT, target TEXT, status INTEGER, detail TEXT)`.
+Written automatically by the router for `write`/`exec`/admin mutations:
+`action` = `"<METHOD> <route pattern>"` (e.g. `POST /api/deployments/scale`)
+or an explicit action name for plugins/websockets (`exec.session`),
+`target` = `<kind>/<ns>/<name>` style string from query/path values,
+`status` = HTTP status, `detail` = short JSON (e.g. `{"replicas":3}`) or
+error text. Pruned per `KUBEBENCH_AUDIT_RETENTION_DAYS`.
+
+`GET /api/audit?limit=100&before=<id>&user=&cluster=&action=` (admin) →
+`{"items":[{"id","ts","user","cluster","action","target","status","detail"}],"nextBefore":<id|null>}`.
+
+### 3.5 Hardening
+
+- SQLite opened with `_pragma=foreign_keys(1)`; deleting a user/cluster
+  removes sessions/assignments; a deleted active cluster resets
+  `active_cluster_id`.
+- Login rate limit: 10 failed attempts per (client IP, username) per 15 min
+  → `429 rate_limited`.
+- Non-GET requests with an `Origin` header that does not match the request
+  host → `403 forbidden` (CSRF defence in depth; WebSocket upgrades too).
+- Session cookie `kubebench_session`: HttpOnly, SameSite=Lax, Secure per
+  `KUBEBENCH_SECURE_COOKIES`. Expired sessions pruned hourly.
+- `users.must_change_password`: set when the bootstrap admin uses the
+  default password and when an admin resets a password. While set, every
+  `read`/`write`/`exec`/`admin` route returns `403 {"code":"password_change_required"}`
+  except `/api/auth/*` and `/api/info`.
+- Cannot delete yourself or demote/delete the last admin (`409 conflict`).
+
+## 4. API changes (core)
+
+### 4.1 `/api/info`
+
+```json
+{
+  "version": "0.5.0", "commit": "abc1234",
+  "user": "alice", "role": "admin",
+  "mustChangePassword": false,
+  "context": "k3s-homelab", "server": "https://10.0.0.1:6443",
+  "cluster": {"id": 1, "name": "k3s-homelab", "environment": "production", "readOnly": false},
+  "permissions": {"role": "admin", "canRead": true, "canWrite": true, "canExec": true, "isAdmin": true, "readOnly": false},
+  "capabilities": {"crds": true, "helm": true, "exec": true},
+  "features": {"pathKubeconfig": true, "externalPlugins": true},
+  "clusterError": ""
+}
+```
+
+`permissions.role` is `admin` | `operator` | `viewer` (effective role on the
+active cluster). `/api/info` waits (≤3 s) for the runtime's capability probe
+to finish so capabilities are never reported `false` merely because the
+probe is still running.
+
+### 4.2 Users & password
+
+- `GET /api/users` (admin) → `[{"id","username","role","mustChangePassword","clusters":["name",…],"assignments":[{"clusterId","cluster","role"}]}]`
+  (`clusters` kept for compatibility).
+- `POST /api/users` (admin) `{"username","password","role"}`.
+- `PATCH /api/users/{id}` (admin) `{"role"?: "admin"|"user", "password"?: "…"}`
+  (password reset sets `mustChangePassword`).
+- `DELETE /api/users/{id}` (admin).
+- `PUT /api/users/{id}/clusters` (admin) accepts `{"assignments":[{"clusterId":1,"role":"viewer"}]}`
+  or legacy `{"clusterIds":[1,2]}` (→ operator).
+- `POST /api/auth/password` (authed) `{"currentPassword","newPassword"}`
+  (min length 8; clears `mustChangePassword`; other sessions of the user
+  are revoked).
+
+### 4.3 Clusters
+
+- `GET /api/clusters` entries gain `"readOnly"`, `"environment"`, `"role"`
+  (the caller's effective role on it).
+- `PATCH /api/clusters/{id}` (admin) `{"name"?, "readOnly"?, "environment"?}`.
+- `POST /api/clusters` with `path` is rejected with `403 forbidden` unless
+  `features.pathKubeconfig`.
+
+### 4.4 Resources (fixes)
+
+- `/api/events?kind=&ns=&name=` filters on `involvedObject.kind` as well as
+  name (fixes cross-kind mixing, e.g. Deployment `web` vs Service `web`).
+- `/api/logs` accepts `tail` (default 300, max 5000), `previous=true`,
+  `sinceSeconds`.
+
+### 4.5 Kubernetes read passthrough (for external plugins)
+
+`GET /api/k8s/{path...}` (read) proxies **GET only** to the cluster API
+(`/api/...`, `/apis/...`, `/version`), returning the raw JSON. Requests whose
+path targets `secrets` are rejected (`403 forbidden`; use `/api/resource`).
+`watch=true` is rejected (use the live-updates SSE). Response size capped
+(16 MiB).
+
+### 4.6 Plugins
+
+- `GET /api/plugins` (authed) →
+  ```json
+  {"plugins": [{"id":"argocd","name":"Argo CD","version":"0.5.0","description":"…",
+                "category":"gitops","builtin":true,"external":false,"enabled":true,
+                "status":{"available":true,"reason":""},"entry":""}],
+   "settings": {"topology": {"enabled": false}}}
+  ```
+  `plugins` lists backend plugins (with `status` for the caller's active
+  cluster; Detect results cached 60 s per cluster) and external plugins
+  (`external: true`, `entry: "/plugins/<id>/<entry>"`). `settings` holds the
+  admin's enable/disable choices for **any** plugin id, including
+  frontend-only plugins the backend does not know.
+- `PUT /api/plugins/{id}` (admin) `{"enabled": bool}` — id must match
+  `^[a-z0-9][a-z0-9-]{0,39}$`.
+- Backend plugin routes live under `/api/plugins/{id}/…`; disabled →
+  `404 plugin_disabled`; `Detect` unavailable → `503 plugin_unavailable`.
+- External plugin files: `GET /plugins/{id}/{file}` (authed) served from
+  `$KUBEBENCH_PLUGINS_DIR/<id>/`.
+
+## 5. Backend plugin contract (`backend/internal/plugin`)
+
+```go
+package plugin
+
+type Access int
+const (
+    AccessRead Access = iota + 1
+    AccessWrite
+    AccessExec
+    AccessAdmin
+)
+
+type Manifest struct {
+    ID, Name, Version, Description, Category string
+}
+
+type Status struct {
+    Available bool   `json:"available"`
+    Reason    string `json:"reason,omitempty"`
+}
+
+// Context is what a plugin handler gets for one request.
+type Context struct {
+    Runtime *kube.Runtime   // the caller's active cluster
+    User    *store.User
+    KV      KV              // plugin-scoped persistent key/value (SQLite plugin_kv)
+    Audit   func(action, target, detail string) // extra audit rows if needed
+}
+
+type KV interface {
+    Get(key string) (string, bool, error)
+    Set(key, value string) error
+    Delete(key string) error
+    List(prefix string) (map[string]string, error)
+}
+
+type HandlerFunc func(w http.ResponseWriter, r *http.Request, c *Context)
+
+type Router interface {
+    // Handle registers e.g. ("GET", "/applications/{ns}/{name}", AccessRead, h)
+    // mounted at /api/plugins/<id>/applications/{ns}/{name}.
+    Handle(method, path string, access Access, h HandlerFunc)
+}
+
+type Plugin interface {
+    Manifest() Manifest
+    Routes(r Router)
+    Detect(ctx context.Context, rt *kube.Runtime) Status
+}
+
+func Register(p Plugin)            // called from init() of each plugin package
+func All() []Plugin
+func Get(id string) (Plugin, bool)
+
+// Helpers shared with core handlers:
+func WriteJSON(w http.ResponseWriter, v any)
+func WriteError(w http.ResponseWriter, status int, code string, err error)
+func WriteK8sError(w http.ResponseWriter, err error) // maps apierrors → status, code "kubernetes"
+```
+
+- Built-in plugins live in `backend/internal/plugins/<id>/` and are linked
+  via blank imports in `backend/internal/plugins/all/all.go`
+  (`main.go` imports `_ "kubebench/internal/plugins/all"`).
+- KV keys are scoped per plugin (`plugin_kv(plugin_id, key, value, updated_at)`);
+  per-cluster data should prefix keys with `cluster/<clusterID>/`.
+- `kube.Runtime` exposes (foundation): `CS`, `Dyn`, `Metrics`, `Config`,
+  `Discovery()`, `Mapper()` (cached deferred discovery RESTMapper),
+  `ResolveKind(apiVersion, kind) (gvr, namespaced, error)`,
+  `ResolveResource(group, resource)`, `Cluster` (store.Cluster incl. ID).
+
+## 6. Frontend contracts
+
+### 6.1 i18n (`src/i18n`)
+
+Already in place: `i18next` + `react-i18next`, languages `en`, `tr`;
+`core` namespace in `src/i18n/locales/<lang>.json`; plugin namespaces via
+`PluginManifest.locales = { en, tr }` (files `src/plugins/<id>/locales/<lang>.json`);
+`useManifestText()`/`translateManifestText()` for manifest strings;
+`setLanguagePreference()`; `formatNumber/formatDateTime/formatBytes` in
+`src/i18n/format.ts`; `npm run i18n:check`.
+
+Conventions: nested keys grouped by screen (`releases.columns.chart`);
+`{{var}}` interpolation; plurals via i18next `_one`/`_other` suffixes;
+Kubernetes nouns (Pod, Deployment, namespace, …) stay untranslated in `tr`.
+
+### 6.2 API client (`src/data/apiClient.ts`)
+
+`apiFetch<T>(path, init?)` (prefix `/api`, JSON in/out, throws
+`ApiError {status, code, message}`), `qs(params)` (URL-encodes every value;
+skips undefined/empty), helpers `apiGet/apiPost/apiPut/apiPatch/apiDelete`.
+All providers use it; no hand-built query strings.
+
+### 6.3 Session, permissions, mode
+
+- `src/data/mode.ts` `DataMode` gains `version`, `permissions`, `cluster`,
+  `features`, `mustChangePassword`.
+- `src/core/permissions.ts`: `usePermissions()` → `{role, canRead, canWrite,
+  canExec, isAdmin, readOnly}` (mock mode: everything true) and
+  `<Can perm="write|exec|admin" fallback?>`. Mutation UI is hidden or
+  disabled (with a tooltip explaining why) when not permitted.
+- **Mock mode policy**: mock only when `import.meta.env.DEV`, or the URL has
+  `?demo`, or the build sets `VITE_DEMO_MODE=true`. A production build whose
+  backend is unreachable shows a boot error screen with Retry — never mock.
+- Status bar shows the cluster environment (production = red background,
+  staging = amber, development = green) and a "Read-only" item when
+  `readOnly` or role viewer; the user item opens a menu (Change password,
+  Sign out). The About command shows version/commit.
+
+### 6.4 Plugin SDK v2 (`src/core/plugin`)
+
+`PluginManifest` additions:
+
+```ts
+version?: string            // shown in Extensions view
+description?: string        // i18n key
+category?: 'core' | 'workloads' | 'gitops' | 'storage' | 'security' | 'observability' | 'tools'
+core?: boolean              // cannot be disabled (workloads, clusters, settings, terminal, extensions, users, audit)
+backendPlugin?: string      // backend plugin id this plugin needs; unavailable → greyed with reason
+locales?: Record<string, object>
+resourceActions?: ResourceActionContribution[]
+settingsSections?: SettingsSectionContribution[]
+```
+
+```ts
+interface ResourceRef { kind: string; apiVersion?: string; namespace?: string; name: string }
+interface ResourceActionContribution {
+  id: string
+  title: string              // i18n key in the plugin namespace
+  icon?: string
+  kinds: string[]            // e.g. ['Deployment','Service'] or ['*']
+  permission?: 'read' | 'write' | 'exec'
+  run: (ref: ResourceRef) => void
+}
+interface SettingsSectionContribution { id: string; title: string; component: ComponentType }
+```
+
+- The registry filters disabled/unavailable plugins out of the activity
+  bar, sidebar, commands and resource actions, using a zustand
+  `pluginStatusStore` loaded from `/api/plugins` at boot (mock mode: all
+  enabled & available). Built-in frontend plugins default to enabled;
+  external plugins default to **disabled** until an admin enables them.
+- `registry.resourceActionsFor(kind)` feeds row context menus and detail
+  page toolbars in the workloads/CRD views.
+- **Extensions** plugin (core): activity-bar entry listing every plugin
+  (name, version, category, builtin/external, enabled, availability +
+  reason); admins toggle enable/disable.
+
+### 6.5 Plugin-owned data (`src/data/pluginData.ts`)
+
+```ts
+export function pluginApi(pluginId: string): {
+  get<T>(path: string, params?: Record<string, unknown>): Promise<T>
+  post<T>(path: string, body?: unknown, params?: Record<string, unknown>): Promise<T>
+  put<T>(…), patch<T>(…), del<T>(path, params?)
+}   // → /api/plugins/<pluginId><path>
+
+export function definePluginData<T>(pluginId: string, impl: {
+  mock: () => T
+  live: (api: ReturnType<typeof pluginApi>) => T
+}): () => T          // memoized; picks by dataMode.mode, never falls back
+
+export function usePluginQuery<T>(fn: () => Promise<T>, deps: DependencyList): QueryState<T>
+export function usePluginStatus(pluginId: string): { enabled: boolean; available: boolean; reason?: string; loading: boolean }
+```
+
+Plugin capabilities live in `src/plugins/<id>/data/` (`types.ts`,
+`provider.ts` interface, `mock.ts`, `live.ts`, `index.ts` exporting the
+`definePluginData` getter). Core capabilities stay in `src/data/providers.ts`.
+
+### 6.6 Shared UI building blocks (`src/shared`)
+
+`Dialog` (modal; Esc closes; focus first field), `ConfirmDialog`
+(danger variant; **type-to-confirm** the resource name when the cluster
+environment is `production` or the action is irreversible at scale),
+`Form` primitives (`Field`, `TextInput`, `NumberInput`, `Select`,
+`Checkbox`, `Textarea`, `KeyValueEditor`), `notify` toasts
+(`notify.success/error/info`, `<Toaster/>` mounted by the shell),
+`Tabs` (in-page tab strip), `Unavailable` (EmptyState variant with reason),
+`CodeEditor` / `DiffEditor` (Monaco **bundled locally** — no CDN; lazy
+loaded; theme-aware; languages yaml/json/plaintext/shell).
+
+### 6.7 Themes
+
+`settings.theme`: `dark` | `light` | `system`; `<html data-theme>`;
+`theme.css` defines every `--vscode-*` token for both themes (Dark+ /
+Light+ palettes). Monaco follows (`vs-dark` / `vs`).
+
+### 6.8 External (runtime) plugins
+
+- Layout on disk: `$KUBEBENCH_PLUGINS_DIR/<id>/plugin.json`
+  (`{"id","name","version","description","entry":"index.js"}`) + the IIFE
+  bundle.
+- Boot: after `/api/info`, the app fetches `/api/plugins`, injects
+  `<script src="/plugins/<id>/index.js">` for each enabled external plugin
+  (5 s timeout each, failures reported in Extensions), then renders.
+- The bundle calls `window.KubeBench.registerPlugin(manifest)`.
+  `window.KubeBench` (`src/core/plugin/globalSdk.ts`) exposes
+  `{ apiVersion: 1, version, React, jsxRuntime, registerPlugin, i18n: {t, registerTranslations}, api: {apiFetch, pluginApi, k8sGet}, data: {usePluginQuery, refreshData}, layout: {openTab}, permissions: {usePermissions}, ui: {Table, Badge, EmptyState, Toolbar, Dialog, ConfirmDialog, CodeEditor, notify} }`.
+- Example: `examples/plugins/hello-cluster` (Vite library build, IIFE,
+  `react` → `KubeBench.React` globals). Excluded from the app build.
+
+## 7. Feature specifications
+
+Tab kind contract that stays stable: `pod-exec` and `pod-logs` with props
+`{namespace, pod, container}`; `yaml` with `{text, readOnly}` (extended,
+see 7.2); `workloads-detail`, `generic-detail`, `crd-instances`.
+
+### 7.1 Terminal & logs (terminal plugin)
+
+- `GET /api/exec/ws?ns=&pod=&container=&command=` (exec, audited as
+  `exec.session` at start) — WebSocket. Client→server text frames
+  `{"type":"input","data":"…"}` / `{"type":"resize","cols":N,"rows":N}`;
+  server→client **binary** frames = terminal output, text frames
+  `{"type":"exit","code":N}` / `{"type":"error","message":"…"}`.
+  TTY + stdin; default command tries `bash` then `sh`. Uses client-go
+  `remotecommand` (WebSocket executor with SPDY fallback) and a
+  `TerminalSizeQueue`. Origin checked; 30 s ping; idle timeout 30 min.
+- `GET /api/logs/stream?ns=&pod=&container=&tail=&previous=&timestamps=&sinceSeconds=`
+  (read) — Server-Sent Events: `data:` one log line per event, `event: error`,
+  `event: end`. Also `?selector=<labelSelector>` (≤10 pods, lines prefixed
+  `[pod/container]`).
+- UI: xterm.js terminal (`@xterm/xterm` + fit addon), multiple sessions as
+  sub-tabs in the bottom Terminal panel, container picker, reconnect;
+  logs viewer with follow/pause, tail size, previous container, timestamps,
+  wrap, filter, level colouring, download, 10 000-line ring buffer.
+  Mock mode: simulated terminal + deterministic simulated stream.
+
+### 7.2 Resource editing (core + workloads/terminal plugins)
+
+- `POST /api/resource/apply?dryRun=&force=&ns=` (write; `dryRun=true` →
+  read) body: YAML/JSON, multi-document. Server-side apply
+  (`fieldManager=kubebench`), mapping via RESTMapper, namespace defaulting.
+  → `{"results":[{"apiVersion","kind","namespace","name","action":"created|configured|unchanged","error"?}]}`.
+  Rejects Secret documents containing redaction markers (`redacted_secret`).
+- `GET /api/yaml?kind=&apiVersion=&ns=&name=&neat=true` (neat strips status,
+  managedFields, uid, resourceVersion, generation, creationTimestamp,
+  selfLink, `kubectl.kubernetes.io/last-applied-configuration`).
+- `DELETE /api/resource?apiVersion=&kind=&ns=&name=&propagation=Background|Foreground|Orphan&gracePeriod=` (write).
+- `PATCH /api/resource/metadata?apiVersion=&kind=&ns=&name=` body
+  `{"labels":{…},"annotations":{…}}` (null value removes) (write).
+- `GET /api/resource/get?key=secrets&…&reveal=true` (exec, audited) returns
+  real values.
+- UI: YAML tab gains Edit → Review diff (DiffEditor) → Dry run → Apply,
+  conflict → "Force apply"; Neat toggle; "New resource" (templates +
+  import file/drag-drop, multi-doc); generic Delete (propagation choice,
+  ConfirmDialog); labels/annotations editor; secret reveal (exec).
+
+### 7.3 Workload & node operations (core + workloads plugin)
+
+All write unless noted; audited.
+
+- Nodes: `POST /api/nodes/cordon?name=&unschedulable=true|false`;
+  `POST /api/nodes/drain?name=&ignoreDaemonSets=true&deleteEmptyDirData=false&force=false&gracePeriod=-1&timeoutSeconds=120`
+  (k8s.io/kubectl/pkg/drain; eviction API; result lists evicted/failed pods
+  and PDB blocks); `PUT /api/nodes/taints?name=` body `{"taints":[{key,value,effect}]}`.
+- Deployments: `GET /api/deployments/history?ns=&name=` (read; revisions from
+  owned ReplicaSets: revision, images, change-cause, created, replicas);
+  `POST /api/deployments/rollback?ns=&name=&revision=`;
+  `POST /api/deployments/pause?ns=&name=&paused=true|false`.
+- `POST /api/workloads/restart?kind=Deployment|StatefulSet|DaemonSet&ns=&name=`;
+  `POST /api/workloads/scale?kind=Deployment|StatefulSet|ReplicaSet&ns=&name=&replicas=`.
+- Pods: `DELETE /api/pods?…&force=true` (grace 0); `POST /api/pods/bulk-delete`
+  `{"items":[{"namespace","name"}],"force":bool}`; `POST /api/pods/debug?ns=&pod=&image=&target=` (exec)
+  → ephemeral container name (attach via 7.1 with `container=`).
+- CronJobs: `POST /api/cronjobs/trigger?ns=&name=` (Job from template,
+  annotation `cronjob.kubernetes.io/instantiate=manual`);
+  `POST /api/cronjobs/suspend?ns=&name=&suspend=true|false`.
+- Namespaces: `POST /api/namespaces` `{"name","labels"?}`; `DELETE /api/namespaces?name=`.
+- UI: node actions (cordon/uncordon, drain dialog with results, taints
+  editor), rollout history + rollback, pause/resume, restart/scale for
+  StatefulSet/DaemonSet/ReplicaSet, multi-select bulk delete on pod lists,
+  force delete, debug container (opens a terminal), CronJob trigger/suspend,
+  namespace create/delete (type-to-confirm).
+
+### 7.4 Helm plugin v2 (backend plugin `helm`)
+
+Backend moves to `internal/plugins/helm`; routes under `/api/plugins/helm`
+(old `/api/helm/*` removed). Repos/caches under `$KUBEBENCH_DATA_DIR/helm/`.
+Detect: can list Secrets labelled `owner=helm`.
+
+`GET /releases?ns=`, `GET /releases/{ns}/{name}` (info, chart metadata,
+notes, hooks), `GET /releases/{ns}/{name}/values?all=&revision=`,
+`GET /releases/{ns}/{name}/manifest?revision=`,
+`POST /releases/{ns}/{name}/rollback {revision}`,
+`DELETE /releases/{ns}/{name}?keepHistory=`,
+`POST /install {name,namespace,createNamespace,chart:{repo,name,version}|{ref,version}|{uploadId},values,dryRun}` → `{release,manifest,notes}`,
+`POST /releases/{ns}/{name}/upgrade {chart…,values,reuseValues,dryRun}` → `{manifest,notes,currentManifest}`,
+`GET /repos`, `POST /repos {name,url,username?,password?}` (admin),
+`DELETE /repos/{name}` (admin), `POST /repos/update` (write),
+`GET /charts/search?q=`, `GET /charts/values?repo=&chart=&version=`,
+`POST /charts/upload` (multipart `.tgz`, write; for offline installs).
+
+UI: releases list/detail (overview, values user/all per revision, manifest,
+notes, history with rollback + values diff between two revisions),
+upgrade (values editor, version picker, dry-run manifest diff), install
+wizard (search → version → values → dry-run → install; or upload `.tgz`),
+repositories (add/remove/update), uninstall (keep-history option).
+
+### 7.5 Argo CD plugin (backend plugin `argocd`, new)
+
+Works through the Argo CD CRDs (no Argo CD API token). Detect: discovery
+serves `argoproj.io/v1alpha1` `applications`.
+
+`GET /applications?ns=` → summaries (name, namespace, project, repo, path or
+chart, targetRevision, destination, sync, health, operationPhase,
+lastSyncedAt, revision, autoSync); `GET /applications/{ns}/{name}` →
+detail (sources, status.resources with sync/health, conditions, history,
+operationState, summary images/URLs); `POST /applications/{ns}/{name}/sync
+{revision?,prune?,dryRun?,resources?,syncOptions?}` (sets `.operation`,
+`initiatedBy.username = "kubebench:<user>"`; 409 if an operation is
+running); `POST …/refresh?hard=` (annotation
+`argocd.argoproj.io/refresh`); `POST …/rollback {historyId}` (409 when
+automated sync is on); `DELETE …?cascade=` (adds
+`resources-finalizer.argocd.argoproj.io` when cascading);
+`GET /projects`; `GET /applicationsets`.
+
+UI: applications (grouped by project, sync/health badges), detail
+(resource tree → open resources in KubeBench via tab kinds, conditions,
+history + rollback, operation state), sync dialog (prune, dry-run,
+revision, selective resources), refresh/hard refresh, delete (cascade,
+type-to-confirm), projects, ApplicationSets; unavailable state when Argo
+CD is not installed.
+
+### 7.6 Storage plugin (backend plugin `storage`, new) — PV/PVC creator
+
+Detect: always available. `GET /overview` (storage classes incl. default
+marker, counts, capacity), `GET /csidrivers`, `GET /snapshots?ns=` (when
+snapshot CRDs exist), `POST /pvcs?dryRun=`, `POST /pvs?dryRun=`,
+`POST /storageclasses?dryRun=`, `PATCH /pvcs/{ns}/{name}/resize {size}`.
+Bodies are validated server-side (DNS-1123 names, quantities, access modes).
+
+UI: overview, PVC/PV/StorageClass lists, wizards — PVC (storage class,
+access modes, size+unit, volume mode, bind to an Available PV, clone from
+PVC/snapshot, labels), PV (capacity, access modes, reclaim policy, storage
+class, volume mode, source: hostPath | NFS | local + node affinity | CSI),
+StorageClass; live YAML preview, Validate (dry-run), Create → open the new
+resource; Expand PVC.
+
+### 7.7 Security plugin (backend plugin `security`, new)
+
+`POST /scan` (read) runs checks and returns a report
+`{generatedAt, score:{overall, byCategory}, counts, findings:[{key, checkId,
+title, severity, category, frameworks:["CIS 5.2.2","PSS baseline"], resource:{kind,namespace,name},
+message, remediation, accepted?:{by,reason,at,expiresAt}}], skipped:[{checkId, reason}]}`;
+`GET /report` (last report, cached per cluster); `GET /checks` (catalog);
+`POST /accept {key, reason, expiresAt?}` / `DELETE /accept/{key}` (write;
+stored in plugin KV, shared by all users of the cluster);
+`GET /export?format=md|csv`.
+
+≈25 checks: Pod Security Standards baseline/restricted (privileged, host
+namespaces, hostPath, hostPorts, capabilities, privilege escalation,
+runAsNonRoot, seccomp, …), workload hygiene (requests/limits, probes,
+`:latest`), RBAC (cluster-admin bindings, wildcards, secrets access,
+escalate/bind/impersonate, default SA tokens), network (namespaces without
+NetworkPolicy), secrets in env vars, PSA labels, workloads in `default`.
+System namespaces excluded by default (toggle).
+
+UI: overview (score, per-category small multiples, severity tiles),
+findings table (filters, grouping, accept/un-accept, open resource),
+checks catalog, export.
+
+### 7.8 Access plugin (backend plugin `access`, new) — RBAC
+
+`GET /subjects`, `GET /subjects/{kind}/{name}?namespace=` (effective
+rules with the binding path), `GET /who-can?verb=&group=&resource=&subresource=&namespace=&name=`,
+`POST /review` (SubjectAccessReview → `{allowed, reason}`), `GET /graph?namespace=`.
+UI: Who can…, subjects + effective permissions, risky roles, binding graph.
+
+### 7.9 Topology plugin (frontend-only, new)
+
+Builds a graph from core providers + generic lists: Ingress → Service →
+Pods ← ReplicaSet/StatefulSet/DaemonSet ← Deployment; Pods → PVC → PV;
+optional ConfigMap/Secret references. Layered SVG layout, pan/zoom, click
+opens the resource. Resource action "Show topology" on Deployment,
+StatefulSet, DaemonSet, Service, Ingress.
+
+### 7.10 Live updates (core)
+
+`GET /api/watch?topics=pods,deployments,…` (read) — SSE stream of
+`event: change` `data: {"topic":"pods","namespace":"default"}` (debounced),
+heartbeat comments every 25 s, backed by per-cluster shared informers that
+start lazily and stop when unused. Frontend: scoped invalidation
+(`refreshData(topic?)`), status bar "Live" indicator, Settings toggle.
+
+## 8. Distribution
+
+- **Kubernetes**: Helm chart `charts/kubebench` (OCI `ghcr.io/shavell/charts/kubebench`
+  and attached to releases) and rendered manifests
+  `deploy/kubernetes/kubebench.yaml` (`kubectl apply -f`).
+- **VM**: `.deb` (and `.rpm`) via nfpm/GoReleaser — binary `/usr/bin/kubebench`,
+  systemd unit `kubebench.service`, config `/etc/kubebench/kubebench.env`,
+  data `/var/lib/kubebench`, system user `kubebench`.
+- **Installer**: `install.sh` — `curl -fsSL https://raw.githubusercontent.com/Shavell/kube-bench/main/install.sh | sudo bash`
+  (online: downloads the release for the detected arch, verifies
+  SHA-256) or `sudo bash install.sh --offline ./kubebench-offline-<ver>.tar.gz`.
+- **Offline bundle** `kubebench-offline-<version>.tar.gz`: binaries,
+  .deb/.rpm, container image tarballs (amd64/arm64), Helm chart `.tgz`,
+  manifests, `install.sh`, checksums, README.
+- **Container image** `ghcr.io/shavell/kube-bench:<version>` (multi-arch).
+- **GitHub Actions**: `ci.yml`, `release.yml`, `docker-image.yml`,
+  `helm-chart.yml`, `codeql.yml` — all `on: workflow_dispatch` only, with
+  the push/PR triggers present but commented out.
+- **Dependabot**: npm, gomod (`/backend`), github-actions, docker; weekly,
+  grouped.

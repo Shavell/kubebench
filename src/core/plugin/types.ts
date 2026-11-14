@@ -57,10 +57,22 @@ export interface CommandContribution {
 /**
  * Everything a module contributes to the shell. The shell only knows
  * this shape — never plugin internals.
+ *
+ * i18n: display strings in a manifest (name, activityBar.tooltip,
+ * sidebar.title, command/bottom-panel titles) are i18n keys in the
+ * plugin's own namespace (= plugin id). The shell resolves them with
+ * translateManifestText()/useManifestText() from '@/i18n'; a key that
+ * is not found renders literally, so plain strings keep working.
  */
 export interface PluginManifest {
   id: string
   name: string
+  /**
+   * Translation bundles for this plugin's namespace, keyed by language
+   * code: `{ en: enJson, tr: trJson }`. Registered automatically when
+   * the plugin is registered.
+   */
+  locales?: Record<string, object>
   /** Omit to contribute no activity bar entry (e.g. the terminal plugin). */
   activityBar?: { icon: string; tooltip: string; order?: number }
   sidebar?: SidebarViewContribution

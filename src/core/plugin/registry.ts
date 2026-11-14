@@ -7,6 +7,7 @@ import type {
   StatusBarItemContribution,
   TabDescriptor,
 } from './types'
+import { registerTranslations } from '@/i18n'
 
 class PluginRegistry {
   private plugins = new Map<string, PluginManifest>()
@@ -15,6 +16,7 @@ class PluginRegistry {
     if (this.plugins.has(manifest.id)) {
       throw new Error(`Plugin "${manifest.id}" is already registered`)
     }
+    if (manifest.locales) registerTranslations(manifest.id, manifest.locales)
     this.plugins.set(manifest.id, manifest)
   }
 

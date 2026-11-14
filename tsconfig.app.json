@@ -8,6 +8,7 @@
     "strict": true,
     "paths": { "@/*": ["./src/*"] },
     "allowArbitraryExtensions": true,
+    "resolveJsonModule": true,
     "skipLibCheck": true,
 
     /* Bundler mode */
