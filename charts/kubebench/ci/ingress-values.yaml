@@ -1,0 +1,24 @@
+# Ingress with TLS (trustProxy follows ingress.enabled) and a NodePort Service.
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+  hosts:
+    - host: kubebench.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: kubebench-tls
+      hosts:
+        - kubebench.example.com
+config:
+  secureCookies: "true"
+  sessionTTL: 12h
+service:
+  type: NodePort
+  nodePort: 30876

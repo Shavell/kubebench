@@ -1,0 +1,207 @@
+# KubeBench Helm chart
+
+[KubeBench](https://github.com/Shavell/kube-bench) is a VSCode-style
+Kubernetes workbench: workloads, logs, shells, YAML, Helm releases and
+metrics for many clusters in one web UI, with users, per-cluster roles and an
+audit log. This chart runs it inside a cluster, which it registers as the
+`in-cluster` cluster through its ServiceAccount.
+
+The pod is a single replica with the `Recreate` strategy (SQLite on a
+ReadWriteOnce volume allows one writer), runs as non-root with a read-only
+root filesystem, and meets the Pod Security `restricted` profile.
+
+## Install
+
+Requires Kubernetes 1.25+ and Helm 3.8+ (OCI support) or Helm 4.
+
+```bash
+helm install kubebench oci://ghcr.io/shavell/charts/kubebench --version 0.5.0 \
+  --namespace kubebench --create-namespace
+```
+
+From a release asset or a checkout instead:
+
+```bash
+helm install kubebench ./kubebench-0.5.0.tgz -n kubebench --create-namespace
+helm install kubebench charts/kubebench -n kubebench --create-namespace
+```
+
+Then follow the printed notes:
+
+```bash
+kubectl -n kubebench get secret kubebench-auth -o jsonpath='{.data.admin-password}' | base64 -d; echo
+kubectl -n kubebench port-forward svc/kubebench 8080:80     # http://localhost:8080, user "admin"
+```
+
+## Admin password
+
+The bootstrap `admin` user is created on the first start only; afterwards
+the password lives in the database and is changed in the UI.
+
+| Values | Result |
+|---|---|
+| (defaults) | A random 24-character password is generated into the Secret `<fullname>-auth` on install and kept on upgrades (`lookup`) and after `helm uninstall` (`helm.sh/resource-policy: keep`). |
+| `auth.adminPassword=...` | The chart stores that value in the Secret. It also ends up in the Helm release history; prefer `existingSecret` in production. |
+| `auth.existingSecret=name` | Your Secret, key `auth.existingSecretKey` (default `admin-password`). |
+| `auth.createSecret=false` | No Secret: the server starts with `admin`/`admin` and forces a password change at the first sign-in. Change it before anyone else can reach the UI. |
+
+`helm template` cannot look up the existing Secret, so a GitOps render
+without `auth.existingSecret` gets a new random value on every render; use
+`auth.existingSecret` with Argo CD or Flux.
+
+## RBAC presets
+
+KubeBench acts on this cluster with its ServiceAccount, so the binding
+decides what the workbench can do here (KubeBench roles and read-only
+clusters are enforced on top of it).
+
+| `rbac.preset` | ClusterRole | Use it for |
+|---|---|---|
+| `cluster-admin` (default) | the built-in `cluster-admin` | the full workbench: changes, shells, Helm, CRDs |
+| `read-only` | chart-defined: `get`/`list`/`watch` on every built-in API group except Secrets, plus `pods/log`, `services/proxy` `get` (Prometheus), `metrics.k8s.io`, and the `argoproj.io`, `snapshot.storage.k8s.io`, `gateway.networking.k8s.io` CRD groups | browsing and troubleshooting; no exec, no changes, no Secrets, no Helm releases (they are Secrets) |
+| `custom` | chart-defined from `rbac.rules` | anything in between |
+
+Make more CRD groups readable with the read-only preset through
+`rbac.readOnly.extraApiGroups`, e.g. `--set rbac.readOnly.extraApiGroups='{cert-manager.io,traefik.io}'`.
+`rbac.create=false` leaves RBAC to you.
+
+## Ingress and TLS
+
+```yaml
+ingress:
+  enabled: true
+  className: nginx            # or traefik on k3s; empty = default IngressClass
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+    # Shells (WebSocket) and log streams (SSE) are long-lived connections:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+  hosts:
+    - host: kubebench.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: kubebench-tls
+      hosts: [kubebench.example.com]
+```
+
+With an Ingress, `config.trustProxy` defaults to `true` so that KubeBench
+honours `X-Forwarded-Proto/For` (secure cookies behind TLS, client IPs in
+the audit log and login rate limiting). Keep the Service `ClusterIP` then;
+anyone who can reach the pod directly could forge those headers. On k3s
+without DNS, `kubebench.<node-ip>.sslip.io` makes a handy host name.
+
+## NetworkPolicy
+
+`networkPolicy.enabled=true` allows ingress from anywhere to the HTTP port,
+and egress only to DNS, the Kubernetes API server and the destinations you
+add. Most CNIs apply egress rules after Service translation, so the policy
+must allow the API server *endpoints* (often `:6443`), not only the
+`kubernetes` Service on `:443`. The chart looks both up at install time;
+set `networkPolicy.apiServer.cidrs` when rendering offline (`helm template`,
+GitOps), otherwise any address is allowed on `networkPolicy.apiServer.ports`.
+Remote clusters, Helm repositories and other destinations go into
+`networkPolicy.extraEgressCIDRs` or `networkPolicy.extraEgress`.
+
+## Persistence and backups
+
+Users, sessions, the cluster inventory (including stored kubeconfigs) and
+the audit log live in SQLite at `/data/kubebench.db` on the PVC; treat the
+volume as sensitive. The PVC is kept on `helm uninstall` (`persistence.keep`).
+The image is distroless (no shell, no `tar`), so backups go through a helper
+pod while the Deployment is scaled to zero; see
+[docs/deployment.md](../../docs/deployment.md#backup-and-restore).
+
+## Upgrading
+
+`helm upgrade kubebench oci://ghcr.io/shavell/charts/kubebench --version <new> -n kubebench --reuse-values`
+replaces the pod (`Recreate`); the database is migrated on start.
+
+**From chart 0.1.0**: resource names now follow the usual Helm convention
+(release `kubebench` creates `kubebench`, not `kubebench-kubebench`). Keep the
+existing database by pointing the new release at the old claim:
+
+```bash
+helm upgrade kubebench charts/kubebench -n kubebench \
+  --set persistence.existingClaim=kubebench-kubebench-data \
+  --set auth.existingSecret=kubebench-kubebench-auth
+```
+
+## Uninstall
+
+```bash
+helm uninstall kubebench -n kubebench
+# the PVC and the password Secret are kept; delete them to remove all data:
+kubectl -n kubebench delete pvc kubebench-data secret kubebench-auth
+```
+
+## Values
+
+| Key | Default | Description |
+|---|---|---|
+| `nameOverride` | `""` | Replaces the chart name in resource names. |
+| `fullnameOverride` | `""` | Replaces the full resource name prefix. |
+| `image.repository` | `ghcr.io/shavell/kube-bench` | Image repository. |
+| `image.tag` | `""` | Image tag; defaults to the chart `appVersion`. |
+| `image.digest` | `""` | `sha256:...` digest; takes precedence over the tag. |
+| `image.pullPolicy` | `IfNotPresent` | Image pull policy. |
+| `imagePullSecrets` | `[]` | Pull secrets for private registries. |
+| `auth.adminPassword` | `""` | Bootstrap admin password stored in the chart Secret (see [Admin password](#admin-password)). |
+| `auth.existingSecret` | `""` | Existing Secret with the bootstrap password. |
+| `auth.existingSecretKey` | `admin-password` | Key in `auth.existingSecret`. |
+| `auth.createSecret` | `true` | `false` without `existingSecret`: no Secret, `admin`/`admin` with a forced change. |
+| `config.secureCookies` | `auto` | `KUBEBENCH_SECURE_COOKIES`: `auto`, `true` or `false`. |
+| `config.trustProxy` | `null` | `KUBEBENCH_TRUST_PROXY`; `null` = `true` when `ingress.enabled`. |
+| `config.sessionTTL` | `168h` | `KUBEBENCH_SESSION_TTL` (Go duration, at least `1m`). |
+| `config.auditRetentionDays` | `90` | `KUBEBENCH_AUDIT_RETENTION_DAYS` (`0` = keep forever). |
+| `config.allowPathKubeconfig` | `false` | `KUBEBENCH_ALLOW_PATH_KUBECONFIG`: add clusters by a path inside the pod. |
+| `extraEnv` | `[]` | Extra container env entries; they override the chart's variables. |
+| `extraEnvFrom` | `[]` | Extra `envFrom` sources. |
+| `serviceAccount.create` | `true` | Create the ServiceAccount. |
+| `serviceAccount.name` | `""` | Name; defaults to the fullname (or `default` when not created). |
+| `serviceAccount.annotations` | `{}` | Annotations, e.g. for workload identity. |
+| `serviceAccount.automount` | `true` | Mount the token; KubeBench needs it to manage this cluster. |
+| `rbac.create` | `true` | Create the ClusterRoleBinding (and ClusterRole for `read-only`/`custom`). |
+| `rbac.preset` | `cluster-admin` | `cluster-admin`, `read-only` or `custom` (see [RBAC presets](#rbac-presets)). |
+| `rbac.readOnly.extraApiGroups` | `[]` | More API groups readable by the `read-only` preset. |
+| `rbac.rules` | `[]` | PolicyRules for the `custom` preset. |
+| `persistence.enabled` | `true` | Store `/data` on a PVC (otherwise an `emptyDir`). |
+| `persistence.existingClaim` | `""` | Use this PVC instead of creating one. |
+| `persistence.storageClass` | `""` | StorageClass; `""` = cluster default, `"-"` = none. |
+| `persistence.accessMode` | `ReadWriteOnce` | PVC access mode. |
+| `persistence.size` | `1Gi` | PVC size. |
+| `persistence.annotations` | `{}` | PVC annotations. |
+| `persistence.keep` | `true` | Keep the PVC on `helm uninstall`. |
+| `service.type` | `ClusterIP` | `ClusterIP`, `NodePort` or `LoadBalancer`. |
+| `service.port` | `80` | Service port (the container listens on 9876). |
+| `service.nodePort` | `null` | Fixed node port for `NodePort`/`LoadBalancer`. |
+| `service.annotations` | `{}` | Service annotations. |
+| `ingress.enabled` | `false` | Create an Ingress. |
+| `ingress.className` | `""` | IngressClass; empty = cluster default. |
+| `ingress.annotations` | `{}` | Ingress annotations (timeouts for WebSocket/SSE, cert-manager, ...). |
+| `ingress.hosts` | `kubebench.example.com`, `/` | Hosts and paths. |
+| `ingress.tls` | `[]` | TLS entries (`secretName`, `hosts`). |
+| `networkPolicy.enabled` | `false` | Create a NetworkPolicy (see [NetworkPolicy](#networkpolicy)). |
+| `networkPolicy.apiServer.cidrs` | `[]` | API server CIDRs; empty = looked up at install time. |
+| `networkPolicy.apiServer.ports` | `[443, 6443]` | API server ports (looked-up endpoint ports are added). |
+| `networkPolicy.dns.namespaceSelector` | `kube-system` | Namespace of the cluster DNS. |
+| `networkPolicy.dns.podSelector` | `k8s-app: kube-dns` | Pods of the cluster DNS. |
+| `networkPolicy.extraEgressCIDRs` | `[]` | Extra egress destinations (any port). |
+| `networkPolicy.extraEgress` | `[]` | Extra NetworkPolicyEgressRule objects. |
+| `podAnnotations` | `{}` | Pod annotations. |
+| `podLabels` | `{}` | Extra pod labels. |
+| `podSecurityContext` | non-root 65532, `fsGroup` 65532, `RuntimeDefault` seccomp | Pod security context. |
+| `securityContext` | no privilege escalation, read-only root, drop `ALL`, `RuntimeDefault` seccomp | Container security context. |
+| `resources` | requests `50m`/`128Mi`, limit `512Mi` memory | Container resources. |
+| `startupProbe` | enabled, every 2s, 60 failures | Startup probe timing on `/healthz` (`enabled`, `periodSeconds`, `timeoutSeconds`, `failureThreshold`, ...). |
+| `readinessProbe` | enabled, every 10s | Readiness probe timing on `/healthz`. |
+| `livenessProbe` | enabled, every 20s | Liveness probe timing on `/healthz`. |
+| `extraVolumes` | `[]` | Extra pod volumes. |
+| `extraVolumeMounts` | `[]` | Extra container mounts (e.g. external plugins with `KUBEBENCH_PLUGINS_DIR`). |
+| `priorityClassName` | `""` | Pod priority class. |
+| `terminationGracePeriodSeconds` | `30` | Grace period for a clean shutdown. |
+| `nodeSelector` | `{}` | Node selector. |
+| `tolerations` | `[]` | Tolerations. |
+| `affinity` | `{}` | Affinity rules. |

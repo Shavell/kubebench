@@ -1,0 +1,86 @@
+{{- if .Values.networkPolicy.enabled }}
+{{- $np := .Values.networkPolicy }}
+{{- /*
+API server destinations. Explicit CIDRs win; otherwise the `kubernetes`
+Service address and its endpoints are looked up (empty under `helm template`).
+Most CNIs evaluate egress after Service DNAT, so the endpoint address and
+port (often 6443) matter as much as the Service VIP on 443.
+*/}}
+{{- $ports := list }}
+{{- range $np.apiServer.ports }}
+{{- $ports = append $ports (int .) }}
+{{- end }}
+{{- $cidrs := list }}
+{{- if $np.apiServer.cidrs }}
+{{- $cidrs = $np.apiServer.cidrs }}
+{{- else }}
+{{- $service := lookup "v1" "Service" "default" "kubernetes" | default dict }}
+{{- range (dig "spec" "clusterIPs" list $service) }}
+{{- $cidrs = append $cidrs (printf "%s/%s" . (contains ":" . | ternary "128" "32")) }}
+{{- end }}
+{{- $slices := lookup "discovery.k8s.io/v1" "EndpointSlice" "default" "" | default dict }}
+{{- range (dig "items" list $slices) }}
+{{- if eq (dig "metadata" "labels" "kubernetes.io/service-name" "" .) "kubernetes" }}
+{{- range (dig "endpoints" list .) }}
+{{- range (dig "addresses" list .) }}
+{{- $cidrs = append $cidrs (printf "%s/%s" . (contains ":" . | ternary "128" "32")) }}
+{{- end }}
+{{- end }}
+{{- range (dig "ports" list .) }}
+{{- $ports = append $ports (int .port) }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "kubebench.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kubebench.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "kubebench.selectorLabels" . | nindent 6 }}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - ports:
+        - port: http
+          protocol: TCP
+  egress:
+    # Kubernetes API server
+    - ports:
+        {{- range uniq $ports }}
+        - port: {{ . }}
+          protocol: TCP
+        {{- end }}
+      {{- with uniq $cidrs }}
+      to:
+        {{- range . }}
+        - ipBlock:
+            cidr: {{ . }}
+        {{- end }}
+      {{- end }}
+    # DNS
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            {{- toYaml $np.dns.namespaceSelector | nindent 12 }}
+          podSelector:
+            {{- toYaml $np.dns.podSelector | nindent 12 }}
+    {{- with $np.extraEgressCIDRs }}
+    - to:
+        {{- range . }}
+        - ipBlock:
+            cidr: {{ . }}
+        {{- end }}
+    {{- end }}
+    {{- with $np.extraEgress }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+{{- end }}

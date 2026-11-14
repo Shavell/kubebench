@@ -1,12 +1,15 @@
+{{- include "kubebench.validate" . }}
+{{- $secretName := include "kubebench.secretName" . }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "kubebench.fullname" . }}
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "kubebench.labels" . | nindent 4 }}
 spec:
-  replicas: {{ .Values.replicaCount }}
-  # SQLite on an RWO volume: never run two writers at once.
+  # SQLite on a ReadWriteOnce volume: exactly one writer, never two pods at once.
+  replicas: 1
   strategy:
     type: Recreate
   selector:
@@ -14,61 +17,133 @@ spec:
       {{- include "kubebench.selectorLabels" . | nindent 6 }}
   template:
     metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       labels:
-        {{- include "kubebench.selectorLabels" . | nindent 8 }}
+        {{- include "kubebench.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
       serviceAccountName: {{ include "kubebench.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automount }}
+      # Service links would inject KUBEBENCH_*-looking variables for every
+      # Service in the namespace.
+      enableServiceLinks: false
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
         - name: kubebench
           image: {{ include "kubebench.image" . | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
           ports:
             - name: http
               containerPort: 9876
+              protocol: TCP
           env:
             - name: PORT
               value: "9876"
+            - name: KUBEBENCH_DATA_DIR
+              value: /data
             - name: KUBEBENCH_DB
               value: /data/kubebench.db
+            - name: KUBEBENCH_SECURE_COOKIES
+              value: {{ .Values.config.secureCookies | quote }}
+            - name: KUBEBENCH_TRUST_PROXY
+              value: {{ include "kubebench.trustProxy" . | quote }}
+            - name: KUBEBENCH_SESSION_TTL
+              value: {{ .Values.config.sessionTTL | quote }}
+            - name: KUBEBENCH_AUDIT_RETENTION_DAYS
+              value: {{ .Values.config.auditRetentionDays | quote }}
+            - name: KUBEBENCH_ALLOW_PATH_KUBECONFIG
+              value: {{ .Values.config.allowPathKubeconfig | quote }}
+            {{- with $secretName }}
             - name: KUBEBENCH_ADMIN_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "kubebench.secretName" . }}
-                  key: admin-password
+                  name: {{ . }}
+                  key: {{ include "kubebench.secretKey" $ }}
+            {{- end }}
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.startupProbe }}
+          {{- if .enabled }}
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            {{- toYaml (omit . "enabled") | nindent 12 }}
+          {{- end }}
+          {{- end }}
+          {{- with .Values.readinessProbe }}
+          {{- if .enabled }}
           readinessProbe:
             httpGet:
               path: /healthz
               port: http
-            initialDelaySeconds: 3
+            {{- toYaml (omit . "enabled") | nindent 12 }}
+          {{- end }}
+          {{- end }}
+          {{- with .Values.livenessProbe }}
+          {{- if .enabled }}
           livenessProbe:
             httpGet:
               path: /healthz
               port: http
-            initialDelaySeconds: 10
+            {{- toYaml (omit . "enabled") | nindent 12 }}
+          {{- end }}
+          {{- end }}
+          {{- with .Values.resources }}
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           volumeMounts:
             - name: data
               mountPath: /data
+            - name: tmp
+              mountPath: /tmp
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
       volumes:
         - name: data
           {{- if .Values.persistence.enabled }}
           persistentVolumeClaim:
-            claimName: {{ include "kubebench.fullname" . }}-data
+            claimName: {{ include "kubebench.claimName" . }}
           {{- else }}
           emptyDir: {}
           {{- end }}
+        - name: tmp
+          emptyDir: {}
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       {{- with .Values.affinity }}
       affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}

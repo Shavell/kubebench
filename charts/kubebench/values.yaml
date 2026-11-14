@@ -1,78 +1,191 @@
-# Default values for kubebench.
+# Default values for the kubebench chart. Every key is documented in README.md
+# and validated by values.schema.json.
+
+nameOverride: ""
+fullnameOverride: ""
 
 image:
-  repository: ghcr.io/your-org/kubebench
-  tag: "" # defaults to .Chart.AppVersion
+  repository: ghcr.io/shavell/kube-bench
+  # Defaults to the chart appVersion.
+  tag: ""
+  # Optional "sha256:..." digest; pins the image and takes precedence over the tag.
+  digest: ""
   pullPolicy: IfNotPresent
 
-replicaCount: 1 # SQLite on an RWO PVC → keep at 1
+imagePullSecrets: []
 
-# Bootstrap admin credentials. The password is written to a Secret and
-# consumed on first start only (change it in-app afterwards).
+# The bootstrap admin is created on the first start only; the database owns
+# the password afterwards (change it in the UI). The password comes from, in
+# order: auth.existingSecret, auth.adminPassword, or a random value that the
+# chart generates once and keeps across upgrades.
 auth:
-  adminPassword: "admin"
-  # Use an existing secret with key "admin-password" instead of the value above.
+  adminPassword: ""
+  # Existing Secret holding the password (auth.adminPassword is then ignored).
   existingSecret: ""
+  existingSecretKey: admin-password
+  # false (with no existingSecret): no Secret at all. The server starts with
+  # admin/admin and forces a password change at the first sign-in.
+  createSecret: true
 
-# The in-cluster service account is registered automatically and manages
-# THIS cluster. Additional clusters can be added at runtime from the UI.
-rbac:
-  create: true
-  # cluster-admin lets the workbench manage everything (helm, exec,
-  # delete, CRDs). Narrow this for least privilege — see the commented
-  # rules below for a read-mostly baseline.
-  clusterRole: cluster-admin
-  # When clusterRole is empty, these rules are used to build a ClusterRole:
-  rules: []
-  #  - apiGroups: [""]
-  #    resources: [pods, services, nodes, namespaces, events, pods/log, secrets]
-  #    verbs: [get, list]
-  #  - apiGroups: [apps]
-  #    resources: [deployments]
-  #    verbs: [get, list]
+# Server settings, mapped to KUBEBENCH_* environment variables.
+config:
+  # KUBEBENCH_SECURE_COOKIES: auto (Secure on TLS or trusted X-Forwarded-Proto), true, false.
+  secureCookies: auto
+  # KUBEBENCH_TRUST_PROXY: honour X-Forwarded-Proto/For. null = true when ingress.enabled.
+  trustProxy: null
+  # KUBEBENCH_SESSION_TTL: session lifetime (Go duration).
+  sessionTTL: 168h
+  # KUBEBENCH_AUDIT_RETENTION_DAYS: prune older audit rows daily (0 = keep forever).
+  auditRetentionDays: 90
+  # KUBEBENCH_ALLOW_PATH_KUBECONFIG: allow adding clusters by a path on the server's filesystem.
+  allowPathKubeconfig: false
+
+# Additional container environment, e.g. [{name: KUBEBENCH_PLUGINS_DIR, value: /plugins}].
+# Entries listed here override the variables the chart sets.
+extraEnv: []
+# Additional envFrom sources (ConfigMaps/Secrets).
+extraEnvFrom: []
 
 serviceAccount:
   create: true
+  # Defaults to the release fullname (or "default" when create is false).
   name: ""
+  annotations: {}
+  # The in-cluster ServiceAccount token is how KubeBench manages this cluster.
+  automount: true
 
-# State (SQLite: users, sessions, cluster inventory) on a PVC.
+# The ServiceAccount is registered as the "in-cluster" cluster on first start.
+rbac:
+  create: true
+  # cluster-admin: bind the built-in cluster-admin ClusterRole (full workbench).
+  # read-only:     get/list/watch on everything except Secrets (no exec, no changes).
+  # custom:        a ClusterRole made of rbac.rules.
+  preset: cluster-admin
+  readOnly:
+    # CRD API groups readable in addition to the built-in ones
+    # (argoproj.io, snapshot.storage.k8s.io and gateway.networking.k8s.io are included).
+    extraApiGroups: []
+  # PolicyRules of the ClusterRole when preset is custom.
+  rules: []
+
+# SQLite state (users, sessions, cluster inventory, audit log) lives on this
+# volume. The Deployment runs one replica with the Recreate strategy because
+# SQLite on a ReadWriteOnce volume allows exactly one writer.
 persistence:
   enabled: true
-  storageClass: local-path # k3s default; set "" for the cluster default
-  size: 1Gi
+  # Use an existing PVC instead of creating one.
+  existingClaim: ""
+  # "" = the cluster's default StorageClass; "-" = no class (static binding).
+  storageClass: ""
   accessMode: ReadWriteOnce
+  size: 1Gi
+  annotations: {}
+  # Keep the PVC on `helm uninstall` (helm.sh/resource-policy: keep).
+  keep: true
 
 service:
   type: ClusterIP
   port: 80
+  # Only used when type is NodePort or LoadBalancer.
+  nodePort: null
+  annotations: {}
 
 ingress:
   enabled: false
-  # k3s ships Traefik as the default IngressClass.
-  className: traefik
+  # IngressClass, e.g. traefik (k3s) or nginx; empty = the cluster default.
+  className: ""
+  # Shells (WebSocket) and log streams (SSE) are long-lived: raise proxy
+  # timeouts and disable buffering, e.g. for ingress-nginx:
+  #   nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+  #   nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+  #   nginx.ingress.kubernetes.io/proxy-buffering: "off"
   annotations: {}
   hosts:
-    # sslip.io resolves <name>.<node-ip>.sslip.io to the node IP with no
-    # DNS setup — handy for homelab/k3s. Replace with a real host + DNS.
-    - host: kubebench.10.103.0.70.sslip.io
+    - host: kubebench.example.com
       paths:
         - path: /
           pathType: Prefix
+  # TLS example (e.g. with cert-manager: cert-manager.io/cluster-issuer in annotations):
+  #   - secretName: kubebench-tls
+  #     hosts:
+  #       - kubebench.example.com
   tls: []
 
-resources:
-  requests:
-    cpu: 50m
-    memory: 96Mi
-  limits:
-    cpu: 500m
-    memory: 256Mi
+networkPolicy:
+  enabled: false
+  # Ingress is allowed from anywhere to the http port. Egress is limited to
+  # DNS, the Kubernetes API server and the destinations below.
+  apiServer:
+    # API server addresses as CIDRs. Empty: looked up at install time from the
+    # default/kubernetes Service and its EndpointSlices. Policies see the
+    # endpoint address and port after Service translation, so both are
+    # allowed. If nothing is found (helm template), any address is allowed on
+    # the ports below.
+    cidrs: []
+    ports: [443, 6443]
+  dns:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: kube-system
+    podSelector:
+      matchLabels:
+        k8s-app: kube-dns
+  # Extra destinations on any port: remote clusters, Helm repositories, ...
+  extraEgressCIDRs: []
+  # Extra NetworkPolicyEgressRule objects, appended verbatim.
+  extraEgress: []
+
+podAnnotations: {}
+podLabels: {}
 
 podSecurityContext:
   runAsNonRoot: true
   runAsUser: 65532
+  runAsGroup: 65532
   fsGroup: 65532
+  fsGroupChangePolicy: OnRootMismatch
+  seccompProfile:
+    type: RuntimeDefault
 
+# The root filesystem is read-only; /data and an emptyDir on /tmp are writable.
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  capabilities:
+    drop: [ALL]
+  seccompProfile:
+    type: RuntimeDefault
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    memory: 512Mi
+
+# Probes hit GET /healthz on the http port; these are the timing knobs.
+startupProbe:
+  enabled: true
+  periodSeconds: 2
+  timeoutSeconds: 3
+  failureThreshold: 60
+readinessProbe:
+  enabled: true
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+livenessProbe:
+  enabled: true
+  periodSeconds: 20
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+extraVolumes: []
+extraVolumeMounts: []
+
+priorityClassName: ""
+terminationGracePeriodSeconds: 30
 nodeSelector: {}
 tolerations: []
 affinity: {}

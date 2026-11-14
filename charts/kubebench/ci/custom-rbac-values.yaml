@@ -1,0 +1,18 @@
+# Custom RBAC rules, an existing password Secret and an existing PVC.
+auth:
+  existingSecret: kubebench-admin
+  existingSecretKey: password
+rbac:
+  preset: custom
+  rules:
+    - apiGroups: [""]
+      resources: [pods, pods/log, namespaces, nodes, events]
+      verbs: [get, list, watch]
+    - apiGroups: [apps]
+      resources: [deployments, statefulsets, daemonsets, replicasets]
+      verbs: [get, list, watch, patch]
+persistence:
+  existingClaim: kubebench-data
+serviceAccount:
+  annotations:
+    example.com/role: kubebench

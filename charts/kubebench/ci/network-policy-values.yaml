@@ -1,0 +1,14 @@
+# NetworkPolicy with explicit API server CIDRs and extra egress.
+networkPolicy:
+  enabled: true
+  apiServer:
+    cidrs: [10.0.0.10/32, 10.43.0.1/32]
+  extraEgressCIDRs: [192.168.10.0/24]
+  extraEgress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - port: 9090
+          protocol: TCP
