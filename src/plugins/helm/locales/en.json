@@ -1,0 +1,67 @@
+{
+  "manifest": {
+    "name": "Helm",
+    "description": "Helm releases with their revision history, and chart repositories.",
+    "tooltip": "Helm",
+    "sidebarTitle": "Helm"
+  },
+  "commands": {
+    "openReleases": "Helm: Open Releases",
+    "openRepos": "Helm: Open Repositories"
+  },
+  "sidebar": {
+    "releases": "Releases",
+    "repos": "Repositories"
+  },
+  "releases": {
+    "title": "Helm Releases",
+    "loading": "Loading releases…",
+    "unavailable": "Helm releases are unavailable",
+    "columns": {
+      "chart": "Chart",
+      "appVersion": "App Version",
+      "revision": "Revision",
+      "updated": "Updated"
+    }
+  },
+  "release": {
+    "loading": "Loading {{name}}…",
+    "gone": "Release {{name}} no longer exists",
+    "goneHint": "It may have been uninstalled",
+    "editValues": "Edit Values",
+    "viewValues": "View Values",
+    "uninstall": "Uninstall",
+    "uninstallDialog": {
+      "title": "Uninstall release {{name}}?",
+      "message": "Helm deletes the release and every Kubernetes resource it created in namespace {{namespace}}. This cannot be undone.",
+      "done": "Release {{name}} uninstalled."
+    },
+    "rollbackDialog": {
+      "title": "Roll back {{name}} to revision {{revision}}?",
+      "message": "Helm creates a new revision from the chart and values of revision {{revision}}.",
+      "done": "{{name}} rolled back to revision {{revision}}."
+    },
+    "fields": {
+      "chart": "Chart",
+      "appVersion": "App version",
+      "revision": "Revision",
+      "updated": "Last updated"
+    },
+    "history": {
+      "title": "Revision History",
+      "revision": "Revision",
+      "updated": "Updated",
+      "description": "Description",
+      "rollback": "Rollback"
+    }
+  },
+  "repos": {
+    "title": "Helm Repositories",
+    "loading": "Loading repositories…",
+    "unavailable": "Helm repositories are unavailable",
+    "columns": {
+      "url": "URL",
+      "charts": "Charts"
+    }
+  }
+}

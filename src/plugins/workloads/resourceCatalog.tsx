@@ -1,33 +1,41 @@
 import type { ReactNode } from 'react'
 import type { KubeObject } from '@/data/types'
 import { Badge, toneForStatus } from '@/shared/Badge'
+import type { Column } from '@/shared/Table'
+import { tw } from './i18n'
 
-/** Sidebar grouping for the resource tree. */
-export type ResourceGroup =
-  | 'Cluster'
-  | 'Workloads'
-  | 'Config'
-  | 'Network'
-  | 'Storage'
-  | 'Access Control'
+/** Sidebar grouping for the resource tree; the label is the `groups.<id>` key. */
+export type ResourceGroup = 'cluster' | 'workloads' | 'config' | 'network' | 'storage' | 'accessControl'
 
-export interface ResourceColumn {
-  header: string
-  render: (o: KubeObject) => ReactNode
-  sortValue?: (o: KubeObject) => string | number
-  width?: string
-}
+/** A table column without its header: the header is the `columns.<key>` i18n key. */
+export type ColumnSpec<T> = Omit<Column<T>, 'header'>
+
+export type ResourceColumn = ColumnSpec<KubeObject>
 
 export interface ResourceDescriptor {
-  /** Backend catalog key. */
+  /** Backend catalog key; the display label is the `resources.<key>` i18n key. */
   key: string
   /** Kubernetes kind (YAML + detail). */
   kind: string
-  label: string
   icon: string
   group: ResourceGroup
   namespaced: boolean
   columns: ResourceColumn[]
+}
+
+/** Translated, plural display name of a resource list (`resources.<key>`). */
+export function resourceLabel(key: string): string {
+  return tw(`resources.${key}`)
+}
+
+/** Translated label of a rich list tab ("Pods" → `resources.pods`). */
+export function richLabel(resource: string): string {
+  return resourceLabel(resource.toLowerCase())
+}
+
+/** Table columns with their headers translated from `columns.<key>`. */
+export function withHeaders<T>(specs: ColumnSpec<T>[]): Column<T>[] {
+  return specs.map((spec) => ({ ...spec, header: tw(`columns.${spec.key}`) }))
 }
 
 // --- field accessors -------------------------------------------------------
@@ -74,21 +82,22 @@ const num = (o: KubeObject, ...path: string[]): number => {
   const v = get(o, ...path)
   return typeof v === 'number' ? v : 0
 }
+const yesNo = (value: unknown): string => tw(value ? 'common.yes' : 'common.no')
 
 // --- common columns --------------------------------------------------------
 
 const nameCol: ResourceColumn = {
-  header: 'Name',
+  key: 'name',
   render: objName,
   sortValue: objName,
 }
 const nsCol: ResourceColumn = {
-  header: 'Namespace',
+  key: 'namespace',
   render: objNamespace,
   sortValue: objNamespace,
 }
 const ageCol: ResourceColumn = {
-  header: 'Age',
+  key: 'age',
   render: objAge,
   sortValue: (o) => ageMinutes(objAge(o)),
   width: '80px',
@@ -109,108 +118,108 @@ function withCommon(namespaced: boolean, mid: ResourceColumn[]): ResourceColumn[
 export const RESOURCE_CATALOG: ResourceDescriptor[] = [
   // Config
   {
-    key: 'configmaps', kind: 'ConfigMap', label: 'ConfigMaps', icon: 'symbol-key', group: 'Config', namespaced: true,
-    columns: withCommon(true, [{ header: 'Keys', render: (o) => keysBadge(o, 'data') }]),
+    key: 'configmaps', kind: 'ConfigMap', icon: 'symbol-key', group: 'config', namespaced: true,
+    columns: withCommon(true, [{ key: 'keys', render: (o) => keysBadge(o, 'data') }]),
   },
   {
-    key: 'secrets', kind: 'Secret', label: 'Secrets', icon: 'lock', group: 'Config', namespaced: true,
+    key: 'secrets', kind: 'Secret', icon: 'lock', group: 'config', namespaced: true,
     columns: withCommon(true, [
-      { header: 'Type', render: (o) => str(o, 'type'), sortValue: (o) => str(o, 'type') },
-      { header: 'Keys', render: (o) => keysBadge(o, 'data') },
+      { key: 'type', render: (o) => str(o, 'type'), sortValue: (o) => str(o, 'type') },
+      { key: 'keys', render: (o) => keysBadge(o, 'data') },
     ]),
   },
   {
-    key: 'resourcequotas', kind: 'ResourceQuota', label: 'Resource Quotas', icon: 'pie-chart', group: 'Config', namespaced: true,
-    columns: withCommon(true, [{ header: 'Scopes', render: (o) => ((get(o, 'spec', 'scopes') as string[] | undefined) ?? []).join(', ') || '—' }]),
+    key: 'resourcequotas', kind: 'ResourceQuota', icon: 'pie-chart', group: 'config', namespaced: true,
+    columns: withCommon(true, [{ key: 'scopes', render: (o) => ((get(o, 'spec', 'scopes') as string[] | undefined) ?? []).join(', ') || '—' }]),
   },
   {
-    key: 'limitranges', kind: 'LimitRange', label: 'Limit Ranges', icon: 'symbol-ruler', group: 'Config', namespaced: true,
+    key: 'limitranges', kind: 'LimitRange', icon: 'symbol-ruler', group: 'config', namespaced: true,
     columns: withCommon(true, []),
   },
   {
-    key: 'horizontalpodautoscalers', kind: 'HorizontalPodAutoscaler', label: 'Horizontal Pod Autoscalers', icon: 'graph', group: 'Config', namespaced: true,
+    key: 'horizontalpodautoscalers', kind: 'HorizontalPodAutoscaler', icon: 'graph', group: 'config', namespaced: true,
     columns: withCommon(true, [
-      { header: 'Reference', render: (o) => `${str(o, 'spec', 'scaleTargetRef', 'kind')}/${str(o, 'spec', 'scaleTargetRef', 'name')}` },
-      { header: 'Min/Max', render: (o) => `${num(o, 'spec', 'minReplicas')} / ${num(o, 'spec', 'maxReplicas')}` },
-      { header: 'Replicas', render: (o) => str(o, 'status', 'currentReplicas') },
+      { key: 'reference', render: (o) => `${str(o, 'spec', 'scaleTargetRef', 'kind')}/${str(o, 'spec', 'scaleTargetRef', 'name')}` },
+      { key: 'minMax', render: (o) => `${num(o, 'spec', 'minReplicas')} / ${num(o, 'spec', 'maxReplicas')}` },
+      { key: 'replicas', render: (o) => str(o, 'status', 'currentReplicas') },
     ]),
   },
   {
-    key: 'poddisruptionbudgets', kind: 'PodDisruptionBudget', label: 'Pod Disruption Budgets', icon: 'shield', group: 'Config', namespaced: true,
+    key: 'poddisruptionbudgets', kind: 'PodDisruptionBudget', icon: 'shield', group: 'config', namespaced: true,
     columns: withCommon(true, [
-      { header: 'Min Available', render: (o) => str(o, 'spec', 'minAvailable') },
-      { header: 'Max Unavailable', render: (o) => str(o, 'spec', 'maxUnavailable') },
-      { header: 'Healthy', render: (o) => str(o, 'status', 'currentHealthy') },
+      { key: 'minAvailable', render: (o) => str(o, 'spec', 'minAvailable') },
+      { key: 'maxUnavailable', render: (o) => str(o, 'spec', 'maxUnavailable') },
+      { key: 'healthy', render: (o) => str(o, 'status', 'currentHealthy') },
     ]),
   },
   {
-    key: 'priorityclasses', kind: 'PriorityClass', label: 'Priority Classes', icon: 'list-ordered', group: 'Config', namespaced: false,
+    key: 'priorityclasses', kind: 'PriorityClass', icon: 'list-ordered', group: 'config', namespaced: false,
     columns: withCommon(false, [
-      { header: 'Value', render: (o) => str(o, 'value'), sortValue: (o) => num(o, 'value') },
-      { header: 'Global Default', render: (o) => String(get(o, 'globalDefault') ?? false) },
+      { key: 'value', render: (o) => str(o, 'value'), sortValue: (o) => num(o, 'value') },
+      { key: 'globalDefault', render: (o) => yesNo(get(o, 'globalDefault')) },
     ]),
   },
   {
-    key: 'runtimeclasses', kind: 'RuntimeClass', label: 'Runtime Classes', icon: 'server-process', group: 'Config', namespaced: false,
-    columns: withCommon(false, [{ header: 'Handler', render: (o) => str(o, 'handler') }]),
+    key: 'runtimeclasses', kind: 'RuntimeClass', icon: 'server-process', group: 'config', namespaced: false,
+    columns: withCommon(false, [{ key: 'handler', render: (o) => str(o, 'handler') }]),
   },
   {
-    key: 'leases', kind: 'Lease', label: 'Leases', icon: 'watch', group: 'Config', namespaced: true,
-    columns: withCommon(true, [{ header: 'Holder', render: (o) => str(o, 'spec', 'holderIdentity') }]),
+    key: 'leases', kind: 'Lease', icon: 'watch', group: 'config', namespaced: true,
+    columns: withCommon(true, [{ key: 'holder', render: (o) => str(o, 'spec', 'holderIdentity') }]),
   },
   {
-    key: 'mutatingwebhookconfigurations', kind: 'MutatingWebhookConfiguration', label: 'Mutating Webhooks', icon: 'symbol-event', group: 'Config', namespaced: false,
-    columns: withCommon(false, [{ header: 'Webhooks', render: (o) => String(((get(o, 'webhooks') as unknown[]) ?? []).length) }]),
+    key: 'mutatingwebhookconfigurations', kind: 'MutatingWebhookConfiguration', icon: 'symbol-event', group: 'config', namespaced: false,
+    columns: withCommon(false, [{ key: 'webhooks', render: (o) => String(((get(o, 'webhooks') as unknown[]) ?? []).length) }]),
   },
   {
-    key: 'validatingwebhookconfigurations', kind: 'ValidatingWebhookConfiguration', label: 'Validating Webhooks', icon: 'symbol-event', group: 'Config', namespaced: false,
-    columns: withCommon(false, [{ header: 'Webhooks', render: (o) => String(((get(o, 'webhooks') as unknown[]) ?? []).length) }]),
+    key: 'validatingwebhookconfigurations', kind: 'ValidatingWebhookConfiguration', icon: 'symbol-event', group: 'config', namespaced: false,
+    columns: withCommon(false, [{ key: 'webhooks', render: (o) => String(((get(o, 'webhooks') as unknown[]) ?? []).length) }]),
   },
   // Workloads
   {
-    key: 'statefulsets', kind: 'StatefulSet', label: 'StatefulSets', icon: 'database', group: 'Workloads', namespaced: true,
+    key: 'statefulsets', kind: 'StatefulSet', icon: 'database', group: 'workloads', namespaced: true,
     columns: withCommon(true, [
-      { header: 'Ready', render: (o) => `${num(o, 'status', 'readyReplicas')}/${num(o, 'spec', 'replicas')}` },
+      { key: 'ready', render: (o) => `${num(o, 'status', 'readyReplicas')}/${num(o, 'spec', 'replicas')}` },
     ]),
   },
   {
-    key: 'daemonsets', kind: 'DaemonSet', label: 'DaemonSets', icon: 'server-process', group: 'Workloads', namespaced: true,
+    key: 'daemonsets', kind: 'DaemonSet', icon: 'server-process', group: 'workloads', namespaced: true,
     columns: withCommon(true, [
-      { header: 'Ready', render: (o) => `${num(o, 'status', 'numberReady')}/${num(o, 'status', 'desiredNumberScheduled')}` },
+      { key: 'ready', render: (o) => `${num(o, 'status', 'numberReady')}/${num(o, 'status', 'desiredNumberScheduled')}` },
     ]),
   },
   {
-    key: 'replicasets', kind: 'ReplicaSet', label: 'ReplicaSets', icon: 'copy', group: 'Workloads', namespaced: true,
+    key: 'replicasets', kind: 'ReplicaSet', icon: 'copy', group: 'workloads', namespaced: true,
     columns: withCommon(true, [
-      { header: 'Ready', render: (o) => `${num(o, 'status', 'readyReplicas')}/${num(o, 'status', 'replicas')}` },
+      { key: 'ready', render: (o) => `${num(o, 'status', 'readyReplicas')}/${num(o, 'status', 'replicas')}` },
     ]),
   },
   {
-    key: 'jobs', kind: 'Job', label: 'Jobs', icon: 'checklist', group: 'Workloads', namespaced: true,
+    key: 'jobs', kind: 'Job', icon: 'checklist', group: 'workloads', namespaced: true,
     columns: withCommon(true, [
-      { header: 'Completions', render: (o) => `${num(o, 'status', 'succeeded')}/${num(o, 'spec', 'completions')}` },
+      { key: 'completions', render: (o) => `${num(o, 'status', 'succeeded')}/${num(o, 'spec', 'completions')}` },
     ]),
   },
   {
-    key: 'cronjobs', kind: 'CronJob', label: 'CronJobs', icon: 'clock', group: 'Workloads', namespaced: true,
+    key: 'cronjobs', kind: 'CronJob', icon: 'clock', group: 'workloads', namespaced: true,
     columns: withCommon(true, [
-      { header: 'Schedule', render: (o) => str(o, 'spec', 'schedule') },
-      { header: 'Suspend', render: (o) => String(get(o, 'spec', 'suspend') ?? false) },
+      { key: 'schedule', render: (o) => str(o, 'spec', 'schedule') },
+      { key: 'suspend', render: (o) => yesNo(get(o, 'spec', 'suspend')) },
     ]),
   },
   {
-    key: 'replicationcontrollers', kind: 'ReplicationController', label: 'Replication Controllers', icon: 'copy', group: 'Workloads', namespaced: true,
+    key: 'replicationcontrollers', kind: 'ReplicationController', icon: 'copy', group: 'workloads', namespaced: true,
     columns: withCommon(true, [
-      { header: 'Ready', render: (o) => `${num(o, 'status', 'readyReplicas')}/${num(o, 'spec', 'replicas')}` },
+      { key: 'ready', render: (o) => `${num(o, 'status', 'readyReplicas')}/${num(o, 'spec', 'replicas')}` },
     ]),
   },
   // Network
   {
-    key: 'ingresses', kind: 'Ingress', label: 'Ingresses', icon: 'globe', group: 'Network', namespaced: true,
+    key: 'ingresses', kind: 'Ingress', icon: 'globe', group: 'network', namespaced: true,
     columns: withCommon(true, [
-      { header: 'Class', render: (o) => str(o, 'spec', 'ingressClassName') },
+      { key: 'class', render: (o) => str(o, 'spec', 'ingressClassName') },
       {
-        header: 'Hosts',
+        key: 'hosts',
         render: (o) => {
           const rules = (get(o, 'spec', 'rules') as { host?: string }[] | undefined) ?? []
           return rules.map((r) => r.host).filter(Boolean).join(', ') || '—'
@@ -219,93 +228,93 @@ export const RESOURCE_CATALOG: ResourceDescriptor[] = [
     ]),
   },
   {
-    key: 'ingressclasses', kind: 'IngressClass', label: 'Ingress Classes', icon: 'globe', group: 'Network', namespaced: false,
-    columns: withCommon(false, [{ header: 'Controller', render: (o) => str(o, 'spec', 'controller') }]),
+    key: 'ingressclasses', kind: 'IngressClass', icon: 'globe', group: 'network', namespaced: false,
+    columns: withCommon(false, [{ key: 'controller', render: (o) => str(o, 'spec', 'controller') }]),
   },
   {
-    key: 'endpointslices', kind: 'EndpointSlice', label: 'Endpoint Slices', icon: 'plug', group: 'Network', namespaced: true,
+    key: 'endpointslices', kind: 'EndpointSlice', icon: 'plug', group: 'network', namespaced: true,
     columns: withCommon(true, [
-      { header: 'Address Type', render: (o) => str(o, 'addressType') },
-      { header: 'Endpoints', render: (o) => String(((get(o, 'endpoints') as unknown[]) ?? []).length) },
+      { key: 'addressType', render: (o) => str(o, 'addressType') },
+      { key: 'endpoints', render: (o) => String(((get(o, 'endpoints') as unknown[]) ?? []).length) },
     ]),
   },
   {
-    key: 'endpoints', kind: 'Endpoints', label: 'Endpoints', icon: 'plug', group: 'Network', namespaced: true,
+    key: 'endpoints', kind: 'Endpoints', icon: 'plug', group: 'network', namespaced: true,
     columns: withCommon(true, [
       {
-        header: 'Addresses',
+        key: 'addresses',
         render: (o) => {
           const subsets = (get(o, 'subsets') as { addresses?: { ip?: string }[] }[] | undefined) ?? []
           const ips = subsets.flatMap((s) => (s.addresses ?? []).map((a) => a.ip))
-          return ips.length ? `${ips.length} address(es)` : '—'
+          return ips.length ? tw('values.addresses', { count: ips.length }) : '—'
         },
       },
     ]),
   },
   {
-    key: 'networkpolicies', kind: 'NetworkPolicy', label: 'Network Policies', icon: 'shield', group: 'Network', namespaced: true,
+    key: 'networkpolicies', kind: 'NetworkPolicy', icon: 'shield', group: 'network', namespaced: true,
     columns: withCommon(true, [
       {
-        header: 'Policy Types',
+        key: 'policyTypes',
         render: (o) => ((get(o, 'spec', 'policyTypes') as string[] | undefined) ?? []).join(', ') || '—',
       },
     ]),
   },
   // Storage
   {
-    key: 'persistentvolumeclaims', kind: 'PersistentVolumeClaim', label: 'Persistent Volume Claims', icon: 'save', group: 'Storage', namespaced: true,
+    key: 'persistentvolumeclaims', kind: 'PersistentVolumeClaim', icon: 'save', group: 'storage', namespaced: true,
     columns: withCommon(true, [
-      { header: 'Status', render: (o) => <Badge tone={toneForStatus(str(o, 'status', 'phase'))}>{str(o, 'status', 'phase')}</Badge> },
-      { header: 'Capacity', render: (o) => str(o, 'status', 'capacity', 'storage') },
-      { header: 'Storage Class', render: (o) => str(o, 'spec', 'storageClassName') },
+      { key: 'status', render: (o) => <Badge tone={toneForStatus(str(o, 'status', 'phase'))}>{str(o, 'status', 'phase')}</Badge> },
+      { key: 'capacity', render: (o) => str(o, 'status', 'capacity', 'storage') },
+      { key: 'storageClass', render: (o) => str(o, 'spec', 'storageClassName') },
     ]),
   },
   {
-    key: 'persistentvolumes', kind: 'PersistentVolume', label: 'Persistent Volumes', icon: 'save-all', group: 'Storage', namespaced: false,
+    key: 'persistentvolumes', kind: 'PersistentVolume', icon: 'save-all', group: 'storage', namespaced: false,
     columns: withCommon(false, [
-      { header: 'Status', render: (o) => <Badge tone={toneForStatus(str(o, 'status', 'phase'))}>{str(o, 'status', 'phase')}</Badge> },
-      { header: 'Capacity', render: (o) => str(o, 'spec', 'capacity', 'storage') },
-      { header: 'Storage Class', render: (o) => str(o, 'spec', 'storageClassName') },
+      { key: 'status', render: (o) => <Badge tone={toneForStatus(str(o, 'status', 'phase'))}>{str(o, 'status', 'phase')}</Badge> },
+      { key: 'capacity', render: (o) => str(o, 'spec', 'capacity', 'storage') },
+      { key: 'storageClass', render: (o) => str(o, 'spec', 'storageClassName') },
     ]),
   },
   {
-    key: 'storageclasses', kind: 'StorageClass', label: 'Storage Classes', icon: 'layers', group: 'Storage', namespaced: false,
+    key: 'storageclasses', kind: 'StorageClass', icon: 'layers', group: 'storage', namespaced: false,
     columns: withCommon(false, [
-      { header: 'Provisioner', render: (o) => str(o, 'provisioner') },
-      { header: 'Reclaim', render: (o) => str(o, 'reclaimPolicy') },
-      { header: 'Binding', render: (o) => str(o, 'volumeBindingMode') },
+      { key: 'provisioner', render: (o) => str(o, 'provisioner') },
+      { key: 'reclaim', render: (o) => str(o, 'reclaimPolicy') },
+      { key: 'binding', render: (o) => str(o, 'volumeBindingMode') },
     ]),
   },
   // Access Control
   {
-    key: 'serviceaccounts', kind: 'ServiceAccount', label: 'Service Accounts', icon: 'account', group: 'Access Control', namespaced: true,
+    key: 'serviceaccounts', kind: 'ServiceAccount', icon: 'account', group: 'accessControl', namespaced: true,
     columns: withCommon(true, []),
   },
   {
-    key: 'roles', kind: 'Role', label: 'Roles', icon: 'shield', group: 'Access Control', namespaced: true,
+    key: 'roles', kind: 'Role', icon: 'shield', group: 'accessControl', namespaced: true,
     columns: withCommon(true, []),
   },
   {
-    key: 'rolebindings', kind: 'RoleBinding', label: 'Role Bindings', icon: 'references', group: 'Access Control', namespaced: true,
-    columns: withCommon(true, [{ header: 'Role', render: (o) => str(o, 'roleRef', 'name') }]),
+    key: 'rolebindings', kind: 'RoleBinding', icon: 'references', group: 'accessControl', namespaced: true,
+    columns: withCommon(true, [{ key: 'role', render: (o) => str(o, 'roleRef', 'name') }]),
   },
   {
-    key: 'clusterroles', kind: 'ClusterRole', label: 'Cluster Roles', icon: 'shield', group: 'Access Control', namespaced: false,
+    key: 'clusterroles', kind: 'ClusterRole', icon: 'shield', group: 'accessControl', namespaced: false,
     columns: withCommon(false, []),
   },
   {
-    key: 'clusterrolebindings', kind: 'ClusterRoleBinding', label: 'Cluster Role Bindings', icon: 'references', group: 'Access Control', namespaced: false,
-    columns: withCommon(false, [{ header: 'Role', render: (o) => str(o, 'roleRef', 'name') }]),
+    key: 'clusterrolebindings', kind: 'ClusterRoleBinding', icon: 'references', group: 'accessControl', namespaced: false,
+    columns: withCommon(false, [{ key: 'role', render: (o) => str(o, 'roleRef', 'name') }]),
   },
   // Cluster
   {
-    key: 'events', kind: 'Event', label: 'Events', icon: 'bell', group: 'Cluster', namespaced: true,
+    key: 'events', kind: 'Event', icon: 'bell', group: 'cluster', namespaced: true,
     columns: [
-      { header: 'Type', render: (o) => <Badge tone={str(o, 'type') === 'Warning' ? 'warning' : 'neutral'}>{str(o, 'type')}</Badge>, sortValue: (o) => str(o, 'type') },
-      { header: 'Reason', render: (o) => str(o, 'reason') },
-      { header: 'Namespace', render: objNamespace, sortValue: objNamespace },
-      { header: 'Message', render: (o) => str(o, 'message'), width: '40%' },
-      { header: 'Count', render: (o) => str(o, 'count') },
+      { key: 'type', render: (o) => <Badge tone={str(o, 'type') === 'Warning' ? 'warning' : 'neutral'}>{str(o, 'type')}</Badge>, sortValue: (o) => str(o, 'type') },
+      { key: 'reason', render: (o) => str(o, 'reason') },
+      { key: 'namespace', render: objNamespace, sortValue: objNamespace },
+      { key: 'message', render: (o) => str(o, 'message'), width: '40%' },
+      { key: 'count', render: (o) => str(o, 'count') },
       ageCol,
     ],
   },

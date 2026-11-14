@@ -4,15 +4,19 @@ import { ALL_NAMESPACES, useContextStore } from '@/core/store/contextStore'
 import { useProviderQuery, useProviders } from '@/data/DataContext'
 import type { TabDescriptor } from '@/core/plugin/types'
 import type { KubeObject } from '@/data/types'
+import { formatNumber } from '@/i18n/format'
 import { ListFilterBar } from '@/shared/ListFilterBar'
-import { Table, type Column } from '@/shared/Table'
+import { Table } from '@/shared/Table'
 import { Toolbar } from '@/shared/Toolbar'
 import { EmptyState } from '@/shared/EmptyState'
-import { catalogByKey, objName, objNamespace } from '../resourceCatalog'
+import { Unavailable } from '@/shared/Unavailable'
+import { useWorkloadsTranslation } from '../i18n'
+import { catalogByKey, objName, objNamespace, resourceLabel, withHeaders } from '../resourceCatalog'
 import { genericMenu } from '../rowActions'
-import './pages.css'
+import '@/shared/tabPage.css'
 
 export function GenericListPage({ tab }: { tab: TabDescriptor }) {
+  const { t } = useWorkloadsTranslation()
   const key = tab.props?.resourceKey as string
   const descriptor = catalogByKey.get(key)
   const providers = useProviders()
@@ -30,21 +34,16 @@ export function GenericListPage({ tab }: { tab: TabDescriptor }) {
     [key, nsFilter],
   )
 
-  if (!descriptor) return <div className="page-loading">Unknown resource {key}</div>
-  if (query.loading && !query.data) return <div className="page-loading">Loading {descriptor.label}…</div>
+  if (!descriptor) return <div className="page-loading">{t('list.unknownResource', { key })}</div>
+  const label = resourceLabel(key)
+  if (query.loading && !query.data) {
+    return <div className="page-loading">{t('list.loading', { resource: label })}</div>
+  }
 
   const all = query.data ?? []
   const rows = search
     ? all.filter((o) => objName(o).toLowerCase().includes(search.toLowerCase()))
     : all
-
-  const columns: Column<KubeObject>[] = descriptor.columns.map((c) => ({
-    key: c.header,
-    header: c.header,
-    width: c.width,
-    render: c.render,
-    sortValue: c.sortValue,
-  }))
 
   const openDetail = (o: KubeObject) =>
     useLayoutStore.getState().openTab({
@@ -55,7 +54,46 @@ export function GenericListPage({ tab }: { tab: TabDescriptor }) {
       props: { resourceKey: key, namespace: objNamespace(o) || null, name: objName(o) },
     })
 
-  const scopedTitle = descriptor.namespaced && nsFilter ? `${descriptor.label} · ${nsFilter}` : descriptor.label
+  const scopedTitle = descriptor.namespaced && nsFilter ? `${label} · ${nsFilter}` : label
+
+  const body = () => {
+    // A failed request must not pass for an empty list (live mode never shows stand-in data).
+    if (query.error) {
+      return (
+        <Unavailable
+          code={query.errorCode}
+          reason={query.error}
+          title={t('list.loadFailed', { resource: label })}
+        />
+      )
+    }
+    if (rows.length === 0) {
+      return (
+        <EmptyState
+          icon="inbox"
+          title={t('list.empty', { resource: label })}
+          hint={search || nsFilter ? t('list.clearFiltersHint') : undefined}
+        />
+      )
+    }
+    return (
+      <div className="page__scroll">
+        <Table
+          columns={withHeaders(descriptor.columns)}
+          rows={rows}
+          rowKey={(o) => `${objNamespace(o)}/${objName(o)}`}
+          onRowClick={openDetail}
+          onRowContextMenu={(o, e) =>
+            genericMenu(
+              e,
+              { kind: descriptor.kind, apiVersion: o.apiVersion, namespace: objNamespace(o) || undefined, name: objName(o) },
+              providers,
+            )
+          }
+        />
+      </div>
+    )
+  }
 
   return (
     <div className="page">
@@ -64,12 +102,14 @@ export function GenericListPage({ tab }: { tab: TabDescriptor }) {
           search={search}
           onSearch={setSearch}
           filtersActive={Boolean(localNs)}
-          summary={`${rows.length} of ${all.length}`}
+          summary={t('list.summary', { shown: formatNumber(rows.length), total: formatNumber(all.length) })}
         >
           {descriptor.namespaced && (
-            <select title="Namespace filter (this tab)" value={localNs} onChange={(e) => setLocalNs(e.target.value)}>
+            <select title={t('filters.namespaceTitle')} value={localNs} onChange={(e) => setLocalNs(e.target.value)}>
               <option value="">
-                {globalNamespace === ALL_NAMESPACES ? 'ns: all' : `ns: global (${globalNamespace})`}
+                {globalNamespace === ALL_NAMESPACES
+                  ? t('filters.namespaceAll')
+                  : t('filters.namespaceGlobal', { namespace: globalNamespace })}
               </option>
               {(namespaces ?? []).map((ns) => (
                 <option key={ns.name} value={ns.name}>
@@ -80,21 +120,7 @@ export function GenericListPage({ tab }: { tab: TabDescriptor }) {
           )}
         </ListFilterBar>
       </Toolbar>
-      {rows.length === 0 ? (
-        <EmptyState icon="inbox" title={`No ${descriptor.label}`} hint={search || nsFilter ? 'Try clearing the filters' : undefined} />
-      ) : (
-        <div className="page__scroll">
-          <Table
-            columns={columns}
-            rows={rows}
-            rowKey={(o) => `${objNamespace(o)}/${objName(o)}`}
-            onRowClick={openDetail}
-            onRowContextMenu={(o, e) =>
-              genericMenu(e, descriptor.kind, objNamespace(o) || null, objName(o), providers)
-            }
-          />
-        </div>
-      )}
+      {body()}
     </div>
   )
 }

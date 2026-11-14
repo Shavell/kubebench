@@ -30,10 +30,125 @@
     "download": "Download",
     "noData": "No data",
     "error": "Error",
-    "unavailable": "Unavailable"
+    "unavailable": "Unavailable",
+    "details": "Details",
+    "all": "All",
+    "open": "Open",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "add": "Add",
+    "remove": "Remove",
+    "reset": "Reset",
+    "clear": "Clear",
+    "show": "Show",
+    "hide": "Hide",
+    "more": "More",
+    "loadMore": "Load more",
+    "ok": "OK",
+    "submit": "Submit",
+    "select": "Select",
+    "expand": "Expand",
+    "collapse": "Collapse",
+    "upload": "Upload",
+    "export": "Export",
+    "import": "Import",
+    "view": "View",
+    "start": "Start",
+    "stop": "Stop",
+    "pause": "Pause",
+    "resume": "Resume",
+    "restart": "Restart",
+    "scale": "Scale",
+    "rollback": "Rollback",
+    "install": "Install",
+    "uninstall": "Uninstall",
+    "upgrade": "Upgrade",
+    "kind": "Kind",
+    "type": "Type",
+    "labels": "Labels",
+    "annotations": "Annotations",
+    "key": "Key",
+    "value": "Value",
+    "version": "Version",
+    "created": "Created",
+    "updated": "Updated",
+    "message": "Message",
+    "reason": "Reason",
+    "time": "Time",
+    "count": "Count",
+    "source": "Source",
+    "description": "Description",
+    "available": "Available",
+    "readOnly": "Read-only",
+    "optional": "Optional",
+    "required": "Required",
+    "overview": "Overview",
+    "events": "Events",
+    "logs": "Logs",
+    "settings": "Settings",
+    "metrics": "Metrics",
+    "itemCount_one": "{{count}} item",
+    "itemCount_other": "{{count}} items"
   },
   "language": {
     "label": "Language",
     "auto": "Automatic (browser)"
+  },
+  "filters": {
+    "search": "Filter by name",
+    "show": "Show filters",
+    "hide": "Hide filters"
+  },
+  "events": {
+    "loading": "Loading events…",
+    "empty": "No events",
+    "loadFailed": "Could not load events: {{error}}"
+  },
+  "charts": {
+    "usage": "{{value}} / {{total}} {{unit}} · {{percent}}",
+    "overcommitted": "Overcommitted"
+  },
+  "shell": {
+    "panel": {
+      "toggle": "Toggle Panel",
+      "maximize": "Maximize Panel Size",
+      "restore": "Restore Panel Size",
+      "close": "Close Panel"
+    },
+    "commands": {
+      "togglePanel": "View: Toggle Panel",
+      "toggleSidebar": "View: Toggle Sidebar",
+      "closeTab": "View: Close Active Tab",
+      "closeAllTabs": "View: Close All Tabs",
+      "showPlugin": "View: Show {{name}}"
+    },
+    "palette": {
+      "label": "Command palette",
+      "placeholder": "Type a command…",
+      "empty": "No matching commands"
+    },
+    "tabs": {
+      "closeOthers": "Close Others",
+      "closeToRight": "Close to the Right",
+      "closeAll": "Close All"
+    },
+    "editor": {
+      "openHint": "Select a resource from the sidebar to open it",
+      "modulesHint": "Switch modules from the activity bar — Workloads, CRDs, Helm, Metrics"
+    }
+  },
+  "login": {
+    "subtitle": "Sign in to your workbench",
+    "username": "Username",
+    "password": "Password",
+    "signIn": "Sign In",
+    "signingIn": "Signing in…",
+    "errors": {
+      "invalidCredentials": "Invalid username or password",
+      "rateLimited": "Too many failed attempts. Please wait a few minutes and try again.",
+      "network": "Cannot reach the KubeBench server",
+      "failed": "Sign-in failed"
+    }
   }
 }

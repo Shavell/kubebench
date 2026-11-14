@@ -35,7 +35,7 @@
   position: relative;
   height: 6px;
   border-radius: 3px;
-  background: rgba(128, 128, 128, 0.2);
+  background: var(--vscode-charts-gridLines);
   overflow: hidden;
 }
 

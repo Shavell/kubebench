@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import clsx from 'clsx'
 import { Icon } from './Icon'
 import './ListFilterBar.css'
@@ -8,7 +9,7 @@ interface ListFilterBarProps {
   onSearch: (value: string) => void
   /** Whether any non-search filter is active (keeps the funnel highlighted). */
   filtersActive?: boolean
-  /** "X of Y" summary, always visible. */
+  /** Already translated "X of Y" summary, always visible. */
   summary?: string
   /** Extra filter controls (selects etc.), shown when expanded. */
   children?: ReactNode
@@ -26,6 +27,7 @@ export function ListFilterBar({
   summary,
   children,
 }: ListFilterBarProps) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const active = Boolean(search) || filtersActive
   const expanded = open || active
@@ -40,11 +42,12 @@ export function ListFilterBar({
             <input
               value={search}
               onChange={(e) => onSearch(e.target.value)}
-              placeholder="Filter…"
+              placeholder={t('common.filter')}
+              aria-label={t('filters.search')}
               spellCheck={false}
             />
             {search && (
-              <button className="inline-filters__clear" title="Clear" onClick={() => onSearch('')}>
+              <button className="inline-filters__clear" title={t('common.clear')} onClick={() => onSearch('')}>
                 <Icon name="close" size={11} />
               </button>
             )}
@@ -54,7 +57,7 @@ export function ListFilterBar({
       )}
       <button
         className={clsx('inline-filters__toggle', active && 'inline-filters__toggle--active')}
-        title={expanded ? 'Hide filters' : 'Show filters'}
+        title={expanded ? t('filters.hide') : t('filters.show')}
         onClick={() => setOpen((v) => !v)}
       >
         <Icon name={active ? 'filter-filled' : 'filter'} size={15} />

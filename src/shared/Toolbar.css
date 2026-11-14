@@ -30,12 +30,18 @@
   background: var(--vscode-button-background);
   color: var(--vscode-button-foreground);
 }
-.kb-button:hover {
+/* Hover feedback only while enabled; :where() keeps the specificity of a plain :hover. */
+.kb-button:hover:where(:not(:disabled)) {
   background: var(--vscode-button-hoverBackground);
+}
+.kb-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .kb-button--secondary {
   background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
 }
-.kb-button--secondary:hover {
-  background: #45494e;
+.kb-button--secondary:hover:where(:not(:disabled)) {
+  background: var(--vscode-button-secondaryHoverBackground);
 }

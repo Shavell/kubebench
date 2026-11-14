@@ -1,5 +1,10 @@
-import { useTerminalStore } from '../terminalStore'
+import { useTranslation } from 'react-i18next'
+import { usePermission } from '@/core/permissions'
+import { usePanelRequest } from '@/core/plugin/panelRequests'
+import { dataMode } from '@/data/mode'
+import { NS } from '../i18n'
 import { ExecView } from '../ExecView'
+import { podTarget } from './podTarget'
 import './panels.css'
 
 const TRANSCRIPT = [
@@ -11,13 +16,16 @@ const TRANSCRIPT = [
 ]
 
 /**
- * Bottom-panel Terminal. Becomes an interactive container shell when a
- * pod is targeted (via a pod row's "Shell" action), otherwise shows a
- * static sample transcript.
+ * Bottom-panel Terminal. Becomes an interactive container shell once a
+ * `pod-exec` request arrives (e.g. a pod row's "Shell" action), otherwise shows a
+ * hint (or why shell access is denied) plus, in mock mode only, a static
+ * sample transcript (live mode never shows made-up output).
  */
 export function TerminalPanel() {
-  const target = useTerminalStore((s) => s.execTarget)
-  const nonce = useTerminalStore((s) => s.execNonce)
+  const { t } = useTranslation(NS)
+  const exec = usePermission('exec')
+  const request = usePanelRequest('pod-exec')
+  const target = podTarget(request)
 
   if (target) {
     return (
@@ -25,28 +33,35 @@ export function TerminalPanel() {
         namespace={target.namespace}
         pod={target.pod}
         container={target.container}
-        resetKey={nonce}
+        // Every Shell request starts a fresh session, even for the same pod.
+        resetKey={request?.seq}
       />
     )
   }
 
   return (
     <pre className="term">
-      <div className="log__hint">Right-click a pod → Shell to open a container terminal here.</div>
-      {TRANSCRIPT.map((line, i) =>
-        line.prompt ? (
-          <div key={i}>
-            <span className="term__prompt">$ </span>
-            <span className="term__cmd">{line.text}</span>
-          </div>
-        ) : (
-          <div key={i}>{line.text}</div>
-        ),
-      )}
-      <div>
-        <span className="term__prompt">$ </span>
-        <span className="term__cursor" />
+      <div className="log__hint">
+        {exec.allowed ? t('exec.hint') : t('exec.denied', { reason: exec.reason })}
       </div>
+      {dataMode.mode === 'mock' && (
+        <>
+          {TRANSCRIPT.map((line, i) =>
+            line.prompt ? (
+              <div key={i}>
+                <span className="term__prompt">$ </span>
+                <span className="term__cmd">{line.text}</span>
+              </div>
+            ) : (
+              <div key={i}>{line.text}</div>
+            ),
+          )}
+          <div>
+            <span className="term__prompt">$ </span>
+            <span className="term__cursor" />
+          </div>
+        </>
+      )}
     </pre>
   )
 }

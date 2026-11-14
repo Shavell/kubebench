@@ -1,30 +1,35 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
+import type { TFunction } from 'i18next'
+import { useTranslation } from 'react-i18next'
 import { registry } from '@/core/plugin/registry'
 import { useLayoutStore } from '@/core/store/layoutStore'
 import type { CommandContribution } from '@/core/plugin/types'
+import { useManifestText } from '@/i18n'
 import { Icon } from '@/shared/Icon'
 import './CommandPalette.css'
 
-/** Core commands that belong to the shell rather than any plugin. */
-function coreCommands(): CommandContribution[] {
+type ManifestText = ReturnType<typeof useManifestText>
+
+/** Core commands that belong to the shell rather than any plugin (titles translated). */
+function coreCommands(t: TFunction, manifestText: ManifestText): CommandContribution[] {
   const layout = () => useLayoutStore.getState()
   return [
     {
       id: 'core.togglePanel',
-      title: 'View: Toggle Panel',
+      title: t('shell.commands.togglePanel'),
       icon: 'layout-panel',
       run: () => layout().togglePanel(),
     },
     {
       id: 'core.toggleSidebar',
-      title: 'View: Toggle Sidebar',
+      title: t('shell.commands.toggleSidebar'),
       icon: 'layout-sidebar-left',
       run: () => layout().setActivePlugin(layout().activePluginId),
     },
     {
       id: 'core.closeTab',
-      title: 'View: Close Active Tab',
+      title: t('shell.commands.closeTab'),
       icon: 'close',
       run: () => {
         const s = layout()
@@ -33,13 +38,13 @@ function coreCommands(): CommandContribution[] {
     },
     {
       id: 'core.closeAllTabs',
-      title: 'View: Close All Tabs',
+      title: t('shell.commands.closeAllTabs'),
       icon: 'close-all',
       run: () => layout().closeAllTabs(),
     },
     ...registry.activityBarEntries().map((p) => ({
       id: `core.show.${p.id}`,
-      title: `View: Show ${p.name}`,
+      title: t('shell.commands.showPlugin', { name: manifestText(p.id, p.name) }),
       icon: p.activityBar!.icon,
       run: () => {
         const s = layout()
@@ -50,14 +55,21 @@ function coreCommands(): CommandContribution[] {
   ]
 }
 
-/** Case-insensitive subsequence match, like VSCode's fuzzy filter. */
+/**
+ * Case- and accent-insensitive form for matching translated titles:
+ * "is yukleri" finds "İş Yükleri", and dotted/dotless i are interchangeable.
+ */
+function fold(text: string): string {
+  return text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/ı/g, 'i')
+}
+
+/** Subsequence match on folded text, like VSCode's fuzzy filter. */
 function fuzzyMatch(query: string, target: string): boolean {
-  const q = query.toLowerCase()
-  const t = target.toLowerCase()
+  const haystack = fold(target)
   let ti = 0
-  for (const ch of q) {
+  for (const ch of fold(query)) {
     if (ch === ' ') continue
-    ti = t.indexOf(ch, ti)
+    ti = haystack.indexOf(ch, ti)
     if (ti === -1) return false
     ti++
   }
@@ -65,6 +77,8 @@ function fuzzyMatch(query: string, target: string): boolean {
 }
 
 export function CommandPalette() {
+  const { t } = useTranslation()
+  const manifestText = useManifestText()
   const paletteOpen = useLayoutStore((s) => s.paletteOpen)
   const setPaletteOpen = useLayoutStore((s) => s.setPaletteOpen)
   const [query, setQuery] = useState('')
@@ -72,15 +86,15 @@ export function CommandPalette() {
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
-  const commands = useMemo(
-    () => (paletteOpen ? [...coreCommands(), ...registry.commands()] : []),
-    [paletteOpen],
-  )
-
-  const filtered = useMemo(
-    () => commands.filter((c) => fuzzyMatch(query, c.title)),
-    [commands, query],
-  )
+  // Built per render while open so titles follow the current language;
+  // plugin command titles are i18n keys in the contributing plugin's namespace.
+  const commands: CommandContribution[] = paletteOpen
+    ? [
+        ...coreCommands(t, manifestText),
+        ...registry.commands().map((c) => ({ ...c, title: manifestText(c.pluginId, c.title) })),
+      ]
+    : []
+  const filtered = commands.filter((c) => fuzzyMatch(query, c.title))
 
   useEffect(() => {
     if (paletteOpen) {
@@ -116,6 +130,9 @@ export function CommandPalette() {
       e.preventDefault()
       setSelected((i) => Math.max(0, i - 1))
     } else if (e.key === 'Enter') {
+      // Otherwise the browser's default action for this Enter would also
+      // activate whatever the command just focused, e.g. a dialog's button.
+      e.preventDefault()
       const command = filtered[selected]
       if (command) runCommand(command)
     }
@@ -127,14 +144,15 @@ export function CommandPalette() {
         <input
           ref={inputRef}
           className="palette__input"
-          placeholder="Type a command…"
+          placeholder={t('shell.palette.placeholder')}
+          aria-label={t('shell.palette.label')}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={onKeyDown}
           spellCheck={false}
         />
         <div className="palette__list" ref={listRef}>
-          {filtered.length === 0 && <div className="palette__empty">No matching commands</div>}
+          {filtered.length === 0 && <div className="palette__empty">{t('shell.palette.empty')}</div>}
           {filtered.map((command, i) => (
             <div
               key={command.id}

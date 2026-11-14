@@ -1,10 +1,15 @@
-import { useTerminalStore } from '../terminalStore'
+import { useTranslation } from 'react-i18next'
+import { usePanelRequest } from '@/core/plugin/panelRequests'
+import { dataMode } from '@/data/mode'
+import { NS } from '../i18n'
 import { LogsView } from '../LogsView'
+import { podTarget } from './podTarget'
 import './panels.css'
 
 /**
- * Bottom-panel Logs. Shows a selected pod's live logs when a target is
- * set (via a pod row's "Logs" action), otherwise a static sample.
+ * Bottom-panel Logs. Shows a pod's logs once a `pod-logs` request arrives
+ * (e.g. a pod row's "Logs" action), otherwise a hint plus, in mock mode
+ * only, a static sample (live mode never shows made-up lines).
  */
 const SAMPLE_LINES = [
   ['14:30:12.001', 'INFO', 'shop-frontend', 'GET /api/products 200 12ms'],
@@ -20,7 +25,8 @@ const LEVEL_CLASS: Record<string, string> = {
 }
 
 export function LogsPanel() {
-  const target = useTerminalStore((s) => s.logsTarget)
+  const { t } = useTranslation(NS)
+  const target = podTarget(usePanelRequest('pod-logs'))
 
   if (target) {
     return <LogsView namespace={target.namespace} pod={target.pod} container={target.container} compact />
@@ -28,14 +34,15 @@ export function LogsPanel() {
 
   return (
     <pre className="term">
-      <div className="log__hint">Right-click a pod → Logs to stream its output here.</div>
-      {SAMPLE_LINES.map(([ts, level, source, message], i) => (
-        <div key={i}>
-          <span className="log__ts">{ts}</span>{' '}
-          <span className={LEVEL_CLASS[level]}>{level.padEnd(5)}</span>{' '}
-          <span className="log__source">[{source}]</span> {message}
-        </div>
-      ))}
+      <div className="log__hint">{t('logs.hint')}</div>
+      {dataMode.mode === 'mock' &&
+        SAMPLE_LINES.map(([ts, level, source, message], i) => (
+          <div key={i}>
+            <span className="log__ts">{ts}</span>{' '}
+            <span className={LEVEL_CLASS[level]}>{level.padEnd(5)}</span>{' '}
+            <span className="log__source">[{source}]</span> {message}
+          </div>
+        ))}
     </pre>
   )
 }

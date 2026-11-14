@@ -1,9 +1,12 @@
+import { useTranslation } from 'react-i18next'
 import { useLayoutStore } from '@/core/store/layoutStore'
 import { useProviderQuery } from '@/data/DataContext'
 import { Tree, type TreeNode } from '@/shared/Tree'
+import { NS } from './i18n'
+import { openReleasesTab, openReleaseTab, openReposTab, RELEASE_TAB_PREFIX } from './tabs'
 
 export function HelmSidebar() {
-  const openTab = useLayoutStore((s) => s.openTab)
+  const { t } = useTranslation(NS)
   const activeTabId = useLayoutStore((s) => s.activeTabId)
   const { data: releases } = useProviderQuery((p) => p.helm.listReleases(), [])
   const { data: repos } = useProviderQuery((p) => p.helm.listRepositories(), [])
@@ -11,18 +14,18 @@ export function HelmSidebar() {
   const nodes: TreeNode[] = [
     {
       id: 'releases',
-      label: 'Releases',
+      label: t('sidebar.releases'),
       icon: 'package',
       count: releases?.length,
       children: (releases ?? []).map((r) => ({
-        id: `release:${r.name}`,
+        id: `${RELEASE_TAB_PREFIX}${r.name}`,
         label: r.name,
         icon: r.status === 'failed' ? 'error' : 'circle-filled',
       })),
     },
     {
       id: 'repos',
-      label: 'Repositories',
+      label: t('sidebar.repos'),
       icon: 'repo',
       count: repos?.length,
     },
@@ -34,18 +37,11 @@ export function HelmSidebar() {
       selectedId={activeTabId}
       onSelect={(node) => {
         if (node.id === 'releases') {
-          openTab({ id: 'helm-releases', title: 'Helm Releases', icon: 'package', kind: 'helm-releases' })
+          openReleasesTab()
         } else if (node.id === 'repos') {
-          openTab({ id: 'helm-repos', title: 'Helm Repositories', icon: 'repo', kind: 'helm-repos' })
-        } else if (node.id.startsWith('release:')) {
-          const name = node.id.slice('release:'.length)
-          openTab({
-            id: node.id,
-            title: name,
-            icon: 'package',
-            kind: 'helm-release-detail',
-            props: { name },
-          })
+          openReposTab()
+        } else if (node.id.startsWith(RELEASE_TAB_PREFIX)) {
+          openReleaseTab(node.id.slice(RELEASE_TAB_PREFIX.length))
         }
       }}
     />

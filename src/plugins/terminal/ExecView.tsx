@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { usePermission } from '@/core/permissions'
 import { useProviders } from '@/data/DataContext'
 import { dataMode } from '@/data/mode'
+import { NS } from './i18n'
 import './PodExecTab.css'
 
 interface TermLine {
@@ -12,7 +15,8 @@ interface TermLine {
  * Reusable command shell for one container; used by the editor tab and
  * the bottom panel. Each command runs via execCommand (real one-shot
  * `kubectl exec` in live mode, canned mock otherwise). `resetKey` starts
- * a fresh session when it changes.
+ * a fresh session when it changes. Needs exec permission: without it the
+ * view only explains why (read-only cluster or viewer role).
  */
 export function ExecView({
   namespace,
@@ -25,6 +29,8 @@ export function ExecView({
   container: string
   resetKey?: unknown
 }) {
+  const { t } = useTranslation(NS)
+  const exec = usePermission('exec')
   const providers = useProviders()
   const promptText = `${pod.slice(0, 24)}:/#`
   const [lines, setLines] = useState<TermLine[]>([])
@@ -34,13 +40,11 @@ export function ExecView({
   const inputRef = useRef<HTMLInputElement>(null)
   const bodyRef = useRef<HTMLDivElement>(null)
 
-  // (Re)start the session whenever the target or resetKey changes.
+  // (Re)start the session whenever the target or resetKey changes. The
+  // banner is part of the transcript, so it keeps the language it started in.
   useEffect(() => {
-    setLines([
-      {
-        text: `kubectl exec -it ${pod} -c ${container} -- sh   (${dataMode.mode === 'live' ? 'one-shot exec' : 'mock session'})`,
-      },
-    ])
+    const mode = t(dataMode.mode === 'live' ? 'exec.modeLive' : 'exec.modeMock')
+    setLines([{ text: `kubectl exec -it ${pod} -c ${container} -- sh   (${mode})` }])
     setClosed(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [namespace, pod, container, resetKey])
@@ -48,6 +52,14 @@ export function ExecView({
   useEffect(() => {
     bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight })
   }, [lines])
+
+  if (!exec.allowed) {
+    return (
+      <div className="podexec">
+        <div className="podexec__body">{t('exec.denied', { reason: exec.reason })}</div>
+      </div>
+    )
+  }
 
   const onKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== 'Enter' || closed || busy) return
@@ -58,11 +70,7 @@ export function ExecView({
       return
     }
     if (cmd === 'exit') {
-      setLines((prev) => [
-        ...prev,
-        { prompt: true, text: cmd },
-        { text: 'Session ended. Reopen the Shell action to reconnect.' },
-      ])
+      setLines((prev) => [...prev, { prompt: true, text: cmd }, { text: t('exec.ended') }])
       setClosed(true)
       return
     }
@@ -104,6 +112,7 @@ export function ExecView({
               disabled={busy}
               spellCheck={false}
               autoComplete="off"
+              aria-label={t('exec.inputLabel')}
             />
           </div>
         )}

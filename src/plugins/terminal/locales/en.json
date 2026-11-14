@@ -1,0 +1,31 @@
+{
+  "manifest": {
+    "name": "Terminal & Editors",
+    "description": "Problems, logs and terminal panels, plus the YAML, pod logs and shell tabs."
+  },
+  "panels": {
+    "problems": "Problems",
+    "logs": "Logs",
+    "terminal": "Terminal"
+  },
+  "exec": {
+    "modeLive": "one-shot exec",
+    "modeMock": "mock session",
+    "inputLabel": "Shell command",
+    "ended": "Session ended. Reopen the Shell action to reconnect.",
+    "denied": "Shell access is not available: {{reason}}",
+    "hint": "Right-click a pod → Shell to open a container terminal here."
+  },
+  "logs": {
+    "filterLabel": "Filter log lines",
+    "loading": "loading…",
+    "lines_one": "{{lines}} line",
+    "lines_other": "{{lines}} lines",
+    "empty": "No matching log lines",
+    "error": "Could not load logs: {{message}}",
+    "hint": "Right-click a pod → Logs to stream its output here."
+  },
+  "problems": {
+    "unavailable": "Problem detection is unavailable on live clusters"
+  }
+}

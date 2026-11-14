@@ -1,0 +1,13 @@
+/* The replica stepper in the Deployment detail toolbar. */
+.detail__scale {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.detail__scale-count {
+  min-width: 26px;
+  text-align: center;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}

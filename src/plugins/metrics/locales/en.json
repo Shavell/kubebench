@@ -1,0 +1,64 @@
+{
+  "manifest": {
+    "name": "Metrics",
+    "description": "Cluster and node utilization from metrics-server or Prometheus.",
+    "tooltip": "Metrics (metrics-server / Prometheus)",
+    "sidebarTitle": "Metrics"
+  },
+  "commands": {
+    "openOverview": "Metrics: Open Cluster Overview"
+  },
+  "sidebar": {
+    "nodes": "Nodes",
+    "sources": "Sources"
+  },
+  "tabs": {
+    "node": "{{node}} · metrics"
+  },
+  "statusBar": {
+    "usage": "CPU {{cpu}} · Mem {{memory}}",
+    "tooltip": "Cluster resource usage (metrics-server)"
+  },
+  "overview": {
+    "title": "Cluster Overview",
+    "loading": "Loading cluster metrics…",
+    "unavailable": "Cluster metrics are unavailable",
+    "tiles": {
+      "nodes": "Nodes",
+      "nodesDetail": "ready",
+      "pods": "Pods",
+      "podsDetail": "running",
+      "cpu": "CPU",
+      "cpuDetail_one": "of {{cores}} core",
+      "cpuDetail_other": "of {{cores}} cores",
+      "memory": "Memory",
+      "memoryDetail": "of {{amount}} Gi",
+      "disk": "Disk",
+      "diskDetail": "filesystem usage"
+    },
+    "allocation": {
+      "cpu": "CPU Allocation",
+      "memory": "Memory Allocation",
+      "usage": "Usage",
+      "requests": "Requests",
+      "limits": "Limits"
+    }
+  },
+  "node": {
+    "title": "Node Metrics · {{node}}",
+    "loading": "Loading {{node}} metrics…"
+  },
+  "charts": {
+    "clusterCpu": "Cluster CPU · last {{minutes}}m",
+    "clusterMemory": "Cluster Memory · last {{minutes}}m",
+    "cpu": "CPU · last {{minutes}}m",
+    "memory": "Memory · last {{minutes}}m",
+    "network": "Network I/O · last {{minutes}}m",
+    "filesystem": "Filesystem · last {{minutes}}m"
+  },
+  "units": {
+    "cores_one": "core",
+    "cores_other": "cores",
+    "megabytesPerSecond": "MB/s"
+  }
+}

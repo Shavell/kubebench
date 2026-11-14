@@ -1,6 +1,10 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useProviderQuery } from '@/data/DataContext'
+import { CORE_NS } from '@/i18n'
+import { formatNumber } from '@/i18n/format'
 import { Icon } from '@/shared/Icon'
+import { NS } from './i18n'
 import './PodLogsTab.css'
 
 const LEVEL_PATTERNS: [RegExp, string][] = [
@@ -21,8 +25,9 @@ export function LogsView({
   container: string
   compact?: boolean
 }) {
+  const { t } = useTranslation(NS)
   const [filter, setFilter] = useState('')
-  const { data, loading } = useProviderQuery(
+  const { data, loading, error } = useProviderQuery(
     (p) => p.cluster.getPodLogs(namespace, pod, container),
     [namespace, pod, container],
   )
@@ -40,12 +45,17 @@ export function LogsView({
         </span>
         <input
           className="podlogs__filter"
-          placeholder="Filter…"
+          placeholder={t('common.filter', { ns: CORE_NS })}
+          aria-label={t('logs.filterLabel')}
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           spellCheck={false}
         />
-        <span className="podlogs__count">{loading ? 'loading…' : `${lines.length} lines`}</span>
+        <span className="podlogs__count">
+          {loading
+            ? t('logs.loading')
+            : t('logs.lines', { count: lines.length, lines: formatNumber(lines.length) })}
+        </span>
       </div>
       <pre className="podlogs__body">
         {lines.map((line, i) => {
@@ -56,7 +66,11 @@ export function LogsView({
             </div>
           )
         })}
-        {!loading && lines.length === 0 && <div className="podlogs__empty">No matching log lines</div>}
+        {!loading && lines.length === 0 && (
+          <div className="podlogs__empty">
+            {error ? t('logs.error', { message: error }) : t('logs.empty')}
+          </div>
+        )}
       </pre>
     </div>
   )

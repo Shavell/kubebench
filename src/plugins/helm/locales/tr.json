@@ -1,0 +1,67 @@
+{
+  "manifest": {
+    "name": "Helm",
+    "description": "Helm release'leri, revizyon geçmişleri ve chart depoları.",
+    "tooltip": "Helm",
+    "sidebarTitle": "Helm"
+  },
+  "commands": {
+    "openReleases": "Helm: Release'leri aç",
+    "openRepos": "Helm: Depoları aç"
+  },
+  "sidebar": {
+    "releases": "Release'ler",
+    "repos": "Depolar"
+  },
+  "releases": {
+    "title": "Helm release'leri",
+    "loading": "Release'ler yükleniyor…",
+    "unavailable": "Helm release'leri kullanılamıyor",
+    "columns": {
+      "chart": "Chart",
+      "appVersion": "Uygulama sürümü",
+      "revision": "Revizyon",
+      "updated": "Güncellenme"
+    }
+  },
+  "release": {
+    "loading": "{{name}} yükleniyor…",
+    "gone": "{{name}} release'i artık mevcut değil",
+    "goneHint": "Kaldırılmış olabilir",
+    "editValues": "Değerleri düzenle",
+    "viewValues": "Değerleri görüntüle",
+    "uninstall": "Kaldır",
+    "uninstallDialog": {
+      "title": "{{name}} release'i kaldırılsın mı?",
+      "message": "Helm, release'i ve {{namespace}} Namespace'inde oluşturduğu tüm Kubernetes kaynaklarını siler. Bu işlem geri alınamaz.",
+      "done": "{{name}} release'i kaldırıldı."
+    },
+    "rollbackDialog": {
+      "title": "{{name}}, {{revision}} numaralı revizyona geri alınsın mı?",
+      "message": "Helm, {{revision}} numaralı revizyonun chart'ı ve değerleriyle yeni bir revizyon oluşturur.",
+      "done": "{{name}}, {{revision}} numaralı revizyona geri alındı."
+    },
+    "fields": {
+      "chart": "Chart",
+      "appVersion": "Uygulama sürümü",
+      "revision": "Revizyon",
+      "updated": "Son güncelleme"
+    },
+    "history": {
+      "title": "Revizyon geçmişi",
+      "revision": "Revizyon",
+      "updated": "Güncellenme",
+      "description": "Açıklama",
+      "rollback": "Geri al"
+    }
+  },
+  "repos": {
+    "title": "Helm depoları",
+    "loading": "Depolar yükleniyor…",
+    "unavailable": "Helm depoları kullanılamıyor",
+    "columns": {
+      "url": "URL",
+      "charts": "Chart'lar"
+    }
+  }
+}

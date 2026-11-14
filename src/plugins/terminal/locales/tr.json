@@ -1,0 +1,31 @@
+{
+  "manifest": {
+    "name": "Terminal ve düzenleyiciler",
+    "description": "Sorunlar, loglar ve terminal panelleri ile YAML, Pod logları ve shell sekmeleri."
+  },
+  "panels": {
+    "problems": "Sorunlar",
+    "logs": "Loglar",
+    "terminal": "Terminal"
+  },
+  "exec": {
+    "modeLive": "tek seferlik exec",
+    "modeMock": "demo oturumu",
+    "inputLabel": "Shell komutu",
+    "ended": "Oturum sona erdi. Yeniden bağlanmak için Shell eylemini tekrar açın.",
+    "denied": "Shell erişimi kullanılamıyor: {{reason}}",
+    "hint": "Burada bir container terminali açmak için bir Pod'a sağ tıklayın → Shell."
+  },
+  "logs": {
+    "filterLabel": "Log satırlarını filtrele",
+    "loading": "yükleniyor…",
+    "lines_one": "{{lines}} satır",
+    "lines_other": "{{lines}} satır",
+    "empty": "Eşleşen log satırı yok",
+    "error": "Loglar yüklenemedi: {{message}}",
+    "hint": "Çıktısını burada izlemek için bir Pod'a sağ tıklayın → Loglar."
+  },
+  "problems": {
+    "unavailable": "Canlı cluster'larda sorun tespiti kullanılamıyor"
+  }
+}

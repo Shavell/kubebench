@@ -1,62 +1,58 @@
-import { useProviderQuery } from '@/data/DataContext'
+import { useTranslation } from 'react-i18next'
+import { useProviderQuery, type QueryState } from '@/data/DataContext'
 import { useSettingsStore } from '@/core/store/settingsStore'
 import type { TabDescriptor } from '@/core/plugin/types'
-import { TimeSeriesChart } from '@/shared/charts/TimeSeriesChart'
 import { chartColor } from '@/shared/charts/chartTheme'
 import { Toolbar } from '@/shared/Toolbar'
-import '@/plugins/workloads/pages/pages.css'
+import { NS } from '../i18n'
+import { MetricChart } from './MetricChart'
+import '@/shared/tabPage.css'
 import './metrics.css'
 
-export function NodeMetricsPage({ tab }: { tab: TabDescriptor }) {
-  const node = tab.props?.node as string
-  const WINDOW_MINUTES = useSettingsStore((s) => s.metricsWindow)
-  const { data: cpu } = useProviderQuery(
-    (p) => p.metrics.nodeSeries(node, 'cpu', WINDOW_MINUTES),
-    [node, WINDOW_MINUTES],
-  )
-  const { data: memory } = useProviderQuery(
-    (p) => p.metrics.nodeSeries(node, 'memory', WINDOW_MINUTES),
-    [node, WINDOW_MINUTES],
-  )
-  const { data: network } = useProviderQuery(
-    (p) => p.metrics.nodeSeries(node, 'network', WINDOW_MINUTES),
-    [node, WINDOW_MINUTES],
-  )
-  const { data: fs } = useProviderQuery(
-    (p) => p.metrics.nodeSeries(node, 'fs', WINDOW_MINUTES),
-    [node, WINDOW_MINUTES],
-  )
+/** A query has finished: it produced data or failed with a reason. */
+const settled = (q: QueryState<unknown>) => q.data !== null || q.error !== null
 
-  if (!cpu || !memory) return <div className="page-loading">Loading {node} metrics…</div>
+export function NodeMetricsPage({ tab }: { tab: TabDescriptor }) {
+  const { t } = useTranslation(NS)
+  const node = tab.props?.node as string
+  const minutes = useSettingsStore((s) => s.metricsWindow)
+  const cpu = useProviderQuery((p) => p.metrics.nodeSeries(node, 'cpu', minutes), [node, minutes])
+  const memory = useProviderQuery((p) => p.metrics.nodeSeries(node, 'memory', minutes), [node, minutes])
+  const network = useProviderQuery((p) => p.metrics.nodeSeries(node, 'network', minutes), [node, minutes])
+  const fs = useProviderQuery((p) => p.metrics.nodeSeries(node, 'fs', minutes), [node, minutes])
+
+  if (!settled(cpu) || !settled(memory)) {
+    return <div className="page-loading">{t('node.loading', { node })}</div>
+  }
 
   return (
     <div className="page">
-      <Toolbar title={`Node Metrics · ${node}`} />
+      <Toolbar title={t('node.title', { node })} />
       <div className="metrics-page">
         <div className="metrics-charts">
-          <TimeSeriesChart
-            title={`CPU · last ${WINDOW_MINUTES}m`}
-            data={cpu}
+          <MetricChart
+            title={t('charts.cpu', { minutes })}
+            series={cpu}
             color={chartColor('blue')}
             height={220}
           />
-          <TimeSeriesChart
-            title={`Memory · last ${WINDOW_MINUTES}m`}
-            data={memory}
+          <MetricChart
+            title={t('charts.memory', { minutes })}
+            series={memory}
             color={chartColor('purple')}
             height={220}
           />
-          <TimeSeriesChart
-            title={`Network I/O · last ${WINDOW_MINUTES}m`}
-            data={network ?? []}
+          <MetricChart
+            title={t('charts.network', { minutes })}
+            series={network}
             color={chartColor('green')}
-            unit=" MB/s"
+            unit={` ${t('units.megabytesPerSecond')}`}
             domain={[0, 60]}
             height={220}
           />
-          <TimeSeriesChart
-            title={`Filesystem · last ${WINDOW_MINUTES}m`}
-            data={fs ?? []}
+          <MetricChart
+            title={t('charts.filesystem', { minutes })}
+            series={fs}
             color={chartColor('yellow')}
             height={220}
           />

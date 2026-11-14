@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import '@/shared/tabPage.css'
 
 export function DetailRow({ label, value }: { label: string; value: ReactNode }) {
   return (

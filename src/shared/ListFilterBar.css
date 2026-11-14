@@ -19,7 +19,7 @@
   width: 170px;
   padding: 0 6px;
   background: var(--vscode-input-background);
-  border: 1px solid transparent;
+  border: 1px solid var(--vscode-input-border);
   border-radius: 3px;
   color: var(--vscode-descriptionForeground);
 }
@@ -48,7 +48,7 @@
   border-radius: 2px;
 }
 .inline-filters__clear:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--vscode-toolbar-hoverBackground);
 }
 
 .inline-filters select {
@@ -57,7 +57,7 @@
   padding: 0 4px;
   font-size: 12px;
   background: var(--vscode-input-background);
-  border: 1px solid transparent;
+  border: 1px solid var(--vscode-input-border);
   border-radius: 3px;
 }
 .inline-filters select:hover,
@@ -79,7 +79,7 @@
   padding: 0;
 }
 .inline-filters__toggle:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--vscode-toolbar-hoverBackground);
   color: var(--vscode-editor-foreground);
 }
 .inline-filters__toggle--active {

@@ -1,0 +1,32 @@
+{
+  "manifest": {
+    "name": "Özel kaynaklar",
+    "description": "CRD'lere ve bunların örneklerine göz atın.",
+    "tooltip": "Özel kaynaklar (CRD'ler)",
+    "sidebarTitle": "Özel kaynaklar"
+  },
+  "commands": {
+    "openDefinitions": "CRD'ler: Tüm tanımları aç"
+  },
+  "sidebar": {
+    "allDefinitions": "Tüm tanımlar"
+  },
+  "definitions": {
+    "title": "Özel kaynak tanımları",
+    "loading": "CRD'ler yükleniyor…",
+    "unavailable": "Özel kaynak tanımları kullanılamıyor",
+    "columns": {
+      "group": "Grup",
+      "kind": "Tür",
+      "versions": "Sürümler",
+      "scope": "Kapsam",
+      "shortNames": "Kısa adlar"
+    }
+  },
+  "instances": {
+    "loading": "{{crd}} yükleniyor…",
+    "empty": "Özel kaynak bulunamadı",
+    "unavailable": "Özel kaynaklar kullanılamıyor",
+    "viewYaml": "YAML'ı görüntüle"
+  }
+}

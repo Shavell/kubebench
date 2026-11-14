@@ -1,6 +1,11 @@
+import { useTranslation } from 'react-i18next'
+import { dataMode } from '@/data/mode'
+import { EmptyState } from '@/shared/EmptyState'
 import { Icon } from '@/shared/Icon'
+import { NS } from '../i18n'
 import './panels.css'
 
+/** Static sample problems for mock mode; nothing computes problems for a live cluster. */
 const PROBLEMS = [
   {
     severity: 'error',
@@ -35,6 +40,13 @@ const PROBLEMS = [
 ]
 
 export function ProblemsPanel() {
+  const { t } = useTranslation(NS)
+
+  // Live mode never shows made-up data, and there is no live problem source.
+  if (dataMode.mode !== 'mock') {
+    return <EmptyState icon="info" title={t('problems.unavailable')} />
+  }
+
   return (
     <div className="problems">
       {PROBLEMS.map((p, i) => (

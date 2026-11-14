@@ -1,48 +1,47 @@
 import { useLayoutStore } from '@/core/store/layoutStore'
 import { useProviderQuery } from '@/data/DataContext'
 import { Tree, type TreeNode } from '@/shared/Tree'
-import { RESOURCE_CATALOG, type ResourceGroup } from './resourceCatalog'
+import { useWorkloadsTranslation, WORKLOADS_NS } from './i18n'
+import { RESOURCE_CATALOG, resourceLabel, richLabel, type ResourceGroup } from './resourceCatalog'
 
 // Rich types keep their bespoke pages; everything else is generic.
-const RICH: Record<string, { icon: string; label: string }> = {
-  Nodes: { icon: 'server', label: 'Nodes' },
-  Namespaces: { icon: 'folder', label: 'Namespaces' },
-  Pods: { icon: 'package', label: 'Pods' },
-  Deployments: { icon: 'rocket', label: 'Deployments' },
-  Services: { icon: 'plug', label: 'Services' },
+// Keys are the `resource` prop of workloads-list tabs.
+const RICH_ICONS: Record<string, string> = {
+  Nodes: 'server',
+  Namespaces: 'folder',
+  Pods: 'package',
+  Deployments: 'rocket',
+  Services: 'plug',
 }
 
-const GROUP_ORDER: ResourceGroup[] = [
-  'Cluster',
-  'Workloads',
-  'Config',
-  'Network',
-  'Storage',
-  'Access Control',
-]
+const GROUP_ORDER: ResourceGroup[] = ['cluster', 'workloads', 'config', 'network', 'storage', 'accessControl']
 const GROUP_ICON: Record<ResourceGroup, string> = {
-  Cluster: 'vm',
-  Workloads: 'layers',
-  Config: 'settings-gear',
-  Network: 'globe',
-  Storage: 'database',
-  'Access Control': 'shield',
+  cluster: 'vm',
+  workloads: 'layers',
+  config: 'settings-gear',
+  network: 'globe',
+  storage: 'database',
+  accessControl: 'shield',
 }
 
 function openRichList(resource: string, icon: string) {
   useLayoutStore.getState().openTab({
     id: `list:${resource}`,
-    title: resource,
+    title: richLabel(resource),
+    titleKey: `resources.${resource.toLowerCase()}`,
+    titleNs: WORKLOADS_NS,
     icon,
     kind: 'workloads-list',
     props: { resource },
   })
 }
 
-function openGenericList(key: string, label: string, icon: string) {
+function openGenericList(key: string, icon: string) {
   useLayoutStore.getState().openTab({
     id: `reslist:${key}`,
-    title: label,
+    title: resourceLabel(key),
+    titleKey: `resources.${key}`,
+    titleNs: WORKLOADS_NS,
     icon,
     kind: 'generic-list',
     props: { resourceKey: key },
@@ -50,6 +49,7 @@ function openGenericList(key: string, label: string, icon: string) {
 }
 
 export function WorkloadsSidebar() {
+  const { t } = useWorkloadsTranslation()
   const activeTabId = useLayoutStore((s) => s.activeTabId)
 
   // Counts for the rich types (nice to keep the familiar badges).
@@ -59,28 +59,29 @@ export function WorkloadsSidebar() {
   const { data: services } = useProviderQuery((p) => p.cluster.listServices(), [])
   const { data: namespaces } = useProviderQuery((p) => p.cluster.listNamespaces(), [])
 
+  const rich = (resource: string, count: number | undefined): TreeNode => ({
+    id: `list:${resource}`,
+    label: richLabel(resource),
+    icon: RICH_ICONS[resource],
+    count,
+  })
+
   // Build each group's children: rich entries first, then catalog entries.
-  const richByGroup: Record<string, TreeNode[]> = {
-    Cluster: [
-      { id: 'list:Nodes', label: 'Nodes', icon: RICH.Nodes.icon, count: nodes?.length },
-      { id: 'list:Namespaces', label: 'Namespaces', icon: RICH.Namespaces.icon, count: namespaces?.length },
-    ],
-    Workloads: [
-      { id: 'list:Pods', label: 'Pods', icon: RICH.Pods.icon, count: pods?.length },
-      { id: 'list:Deployments', label: 'Deployments', icon: RICH.Deployments.icon, count: deployments?.length },
-    ],
-    Network: [{ id: 'list:Services', label: 'Services', icon: RICH.Services.icon, count: services?.length }],
+  const richByGroup: Partial<Record<ResourceGroup, TreeNode[]>> = {
+    cluster: [rich('Nodes', nodes?.length), rich('Namespaces', namespaces?.length)],
+    workloads: [rich('Pods', pods?.length), rich('Deployments', deployments?.length)],
+    network: [rich('Services', services?.length)],
   }
 
-  const nodes_: TreeNode[] = GROUP_ORDER.map((group) => {
+  const tree: TreeNode[] = GROUP_ORDER.map((group) => {
     const generic = RESOURCE_CATALOG.filter((d) => d.group === group).map((d) => ({
       id: `reslist:${d.key}`,
-      label: d.label,
+      label: resourceLabel(d.key),
       icon: d.icon,
     }))
     return {
       id: `group:${group}`,
-      label: group,
+      label: t(`groups.${group}`),
       icon: GROUP_ICON[group],
       children: [...(richByGroup[group] ?? []), ...generic],
     }
@@ -88,17 +89,17 @@ export function WorkloadsSidebar() {
 
   return (
     <Tree
-      nodes={nodes_}
+      nodes={tree}
       selectedId={activeTabId}
-      defaultExpanded={['group:Cluster', 'group:Workloads', 'group:Network']}
+      defaultExpanded={['group:cluster', 'group:workloads', 'group:network']}
       onSelect={(node) => {
         if (node.id.startsWith('list:')) {
           const resource = node.id.slice('list:'.length)
-          openRichList(resource, RICH[resource]?.icon ?? 'symbol-field')
+          openRichList(resource, RICH_ICONS[resource] ?? 'symbol-field')
         } else if (node.id.startsWith('reslist:')) {
           const key = node.id.slice('reslist:'.length)
           const d = RESOURCE_CATALOG.find((x) => x.key === key)!
-          openGenericList(key, d.label, d.icon)
+          openGenericList(key, d.icon)
         }
       }}
     />

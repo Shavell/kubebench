@@ -20,22 +20,22 @@
 }
 
 .kb-badge--success {
-  background: rgba(137, 209, 133, 0.15);
+  background: color-mix(in srgb, var(--status-running) 15%, transparent);
   color: var(--status-running);
 }
 .kb-badge--warning {
-  background: rgba(204, 167, 0, 0.15);
+  background: color-mix(in srgb, var(--status-pending) 15%, transparent);
   color: var(--status-pending);
 }
 .kb-badge--error {
-  background: rgba(241, 76, 76, 0.15);
+  background: color-mix(in srgb, var(--status-failed) 15%, transparent);
   color: var(--status-failed);
 }
 .kb-badge--info {
-  background: rgba(55, 148, 255, 0.15);
+  background: color-mix(in srgb, var(--vscode-charts-blue) 15%, transparent);
   color: var(--vscode-charts-blue);
 }
 .kb-badge--neutral {
-  background: rgba(157, 157, 157, 0.15);
+  background: color-mix(in srgb, var(--status-unknown) 15%, transparent);
   color: var(--status-unknown);
 }

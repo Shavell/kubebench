@@ -4,13 +4,18 @@ import { ALL_NAMESPACES, useContextStore } from '@/core/store/contextStore'
 import { useProviderQuery, useProviders } from '@/data/DataContext'
 import type { TabDescriptor } from '@/core/plugin/types'
 import type { Deployment, K8sNode, Namespace, Pod, Service } from '@/data/types'
+import { formatNumber } from '@/i18n/format'
 import { Badge } from '@/shared/Badge'
 import { ListFilterBar } from '@/shared/ListFilterBar'
-import { Table, type Column } from '@/shared/Table'
+import { Table } from '@/shared/Table'
 import { Toolbar } from '@/shared/Toolbar'
 import { EmptyState } from '@/shared/EmptyState'
-import { deploymentMenu, podMenu } from '../rowActions'
-import './pages.css'
+import { Unavailable } from '@/shared/Unavailable'
+import { tw, useWorkloadsTranslation } from '../i18n'
+import { richLabel, withHeaders, type ColumnSpec } from '../resourceCatalog'
+import { DeletePodDialog } from '../DeletePodDialog'
+import { deploymentMenu, genericMenu, podMenu } from '../rowActions'
+import '@/shared/tabPage.css'
 
 function openDetail(kind: string, namespace: string | null, name: string, icon: string) {
   useLayoutStore.getState().openTab({
@@ -34,44 +39,51 @@ function ageMinutes(age: string): number {
 
 const PODS_STATUSES = ['Running', 'Pending', 'CrashLoopBackOff', 'ImagePullBackOff', 'Failed', 'Succeeded']
 
-const podColumns: Column<Pod>[] = [
-  { key: 'name', header: 'Name', render: (p) => p.name, sortValue: (p) => p.name },
-  { key: 'ns', header: 'Namespace', render: (p) => p.namespace, sortValue: (p) => p.namespace },
+// Column keys double as i18n keys (`columns.<key>`); see withHeaders.
+const podColumns: ColumnSpec<Pod>[] = [
+  { key: 'name', render: (p) => p.name, sortValue: (p) => p.name },
+  { key: 'namespace', render: (p) => p.namespace, sortValue: (p) => p.namespace },
   {
     key: 'ready',
-    header: 'Ready',
     render: (p) => `${p.readyContainers}/${p.totalContainers}`,
     sortValue: (p) => p.readyContainers / Math.max(1, p.totalContainers),
   },
-  { key: 'status', header: 'Status', render: (p) => <Badge>{p.status}</Badge>, sortValue: (p) => p.status },
-  { key: 'restarts', header: 'Restarts', render: (p) => String(p.restarts), sortValue: (p) => p.restarts },
-  { key: 'age', header: 'Age', render: (p) => p.age, sortValue: (p) => ageMinutes(p.age) },
-  { key: 'node', header: 'Node', render: (p) => p.node || '—', sortValue: (p) => p.node },
+  { key: 'status', render: (p) => <Badge>{p.status}</Badge>, sortValue: (p) => p.status },
+  { key: 'restarts', render: (p) => String(p.restarts), sortValue: (p) => p.restarts },
+  { key: 'age', render: (p) => p.age, sortValue: (p) => ageMinutes(p.age) },
+  { key: 'node', render: (p) => p.node || '—', sortValue: (p) => p.node },
 ]
 
-const nodeColumns: Column<K8sNode>[] = [
-  { key: 'name', header: 'Name', render: (n) => n.name, sortValue: (n) => n.name },
-  { key: 'status', header: 'Status', render: (n) => <Badge>{n.status}</Badge>, sortValue: (n) => n.status },
-  { key: 'roles', header: 'Roles', render: (n) => n.roles.join(', ') },
-  { key: 'version', header: 'Version', render: (n) => n.version },
-  { key: 'cpu', header: 'CPU', render: (n) => `${n.cpuCapacity} cores`, sortValue: (n) => n.cpuCapacity },
-  { key: 'mem', header: 'Memory', render: (n) => `${n.memoryCapacityGi} Gi`, sortValue: (n) => n.memoryCapacityGi },
-  { key: 'age', header: 'Age', render: (n) => n.age, sortValue: (n) => ageMinutes(n.age) },
-  { key: 'ip', header: 'Internal IP', render: (n) => n.internalIP },
+const nodeColumns: ColumnSpec<K8sNode>[] = [
+  { key: 'name', render: (n) => n.name, sortValue: (n) => n.name },
+  { key: 'status', render: (n) => <Badge>{n.status}</Badge>, sortValue: (n) => n.status },
+  { key: 'roles', render: (n) => n.roles.join(', ') },
+  { key: 'version', render: (n) => n.version },
+  {
+    key: 'cpu',
+    render: (n) => tw('values.cores', { count: n.cpuCapacity, value: formatNumber(n.cpuCapacity) }),
+    sortValue: (n) => n.cpuCapacity,
+  },
+  {
+    key: 'memory',
+    render: (n) => `${formatNumber(n.memoryCapacityGi)} Gi`,
+    sortValue: (n) => n.memoryCapacityGi,
+  },
+  { key: 'age', render: (n) => n.age, sortValue: (n) => ageMinutes(n.age) },
+  { key: 'internalIP', render: (n) => n.internalIP },
 ]
 
-const namespaceColumns: Column<Namespace>[] = [
-  { key: 'name', header: 'Name', render: (ns) => ns.name, sortValue: (ns) => ns.name },
-  { key: 'status', header: 'Status', render: (ns) => <Badge>{ns.status}</Badge>, sortValue: (ns) => ns.status },
-  { key: 'age', header: 'Age', render: (ns) => ns.age, sortValue: (ns) => ageMinutes(ns.age) },
+const namespaceColumns: ColumnSpec<Namespace>[] = [
+  { key: 'name', render: (ns) => ns.name, sortValue: (ns) => ns.name },
+  { key: 'status', render: (ns) => <Badge>{ns.status}</Badge>, sortValue: (ns) => ns.status },
+  { key: 'age', render: (ns) => ns.age, sortValue: (ns) => ageMinutes(ns.age) },
 ]
 
-const deploymentColumns: Column<Deployment>[] = [
-  { key: 'name', header: 'Name', render: (d) => d.name, sortValue: (d) => d.name },
-  { key: 'ns', header: 'Namespace', render: (d) => d.namespace, sortValue: (d) => d.namespace },
+const deploymentColumns: ColumnSpec<Deployment>[] = [
+  { key: 'name', render: (d) => d.name, sortValue: (d) => d.name },
+  { key: 'namespace', render: (d) => d.namespace, sortValue: (d) => d.namespace },
   {
     key: 'ready',
-    header: 'Ready',
     render: (d) => (
       <span className={d.readyReplicas < d.replicas ? 'text-warning' : undefined}>
         {d.readyReplicas}/{d.replicas}
@@ -79,24 +91,25 @@ const deploymentColumns: Column<Deployment>[] = [
     ),
     sortValue: (d) => d.readyReplicas / Math.max(1, d.replicas),
   },
-  { key: 'uptodate', header: 'Up-to-date', render: (d) => String(d.upToDate), sortValue: (d) => d.upToDate },
-  { key: 'available', header: 'Available', render: (d) => String(d.available), sortValue: (d) => d.available },
-  { key: 'age', header: 'Age', render: (d) => d.age, sortValue: (d) => ageMinutes(d.age) },
+  { key: 'upToDate', render: (d) => String(d.upToDate), sortValue: (d) => d.upToDate },
+  { key: 'available', render: (d) => String(d.available), sortValue: (d) => d.available },
+  { key: 'age', render: (d) => d.age, sortValue: (d) => ageMinutes(d.age) },
 ]
 
-const serviceColumns: Column<Service>[] = [
-  { key: 'name', header: 'Name', render: (s) => s.name, sortValue: (s) => s.name },
-  { key: 'ns', header: 'Namespace', render: (s) => s.namespace, sortValue: (s) => s.namespace },
-  { key: 'type', header: 'Type', render: (s) => s.type, sortValue: (s) => s.type },
-  { key: 'clusterip', header: 'Cluster IP', render: (s) => s.clusterIP },
-  { key: 'externalip', header: 'External IP', render: (s) => s.externalIP ?? '—' },
-  { key: 'ports', header: 'Ports', render: (s) => s.ports },
-  { key: 'age', header: 'Age', render: (s) => s.age, sortValue: (s) => ageMinutes(s.age) },
+const serviceColumns: ColumnSpec<Service>[] = [
+  { key: 'name', render: (s) => s.name, sortValue: (s) => s.name },
+  { key: 'namespace', render: (s) => s.namespace, sortValue: (s) => s.namespace },
+  { key: 'type', render: (s) => s.type, sortValue: (s) => s.type },
+  { key: 'clusterIP', render: (s) => s.clusterIP },
+  { key: 'externalIP', render: (s) => s.externalIP ?? '—' },
+  { key: 'ports', render: (s) => s.ports },
+  { key: 'age', render: (s) => s.age, sortValue: (s) => ageMinutes(s.age) },
 ]
 
 const NAMESPACED = ['Pods', 'Deployments', 'Services']
 
 export function ResourceListPage({ tab }: { tab: TabDescriptor }) {
+  const { t } = useWorkloadsTranslation()
   const resource = tab.props?.resource as string
   const providers = useProviders()
   const globalNamespace = useContextStore((s) => s.namespace)
@@ -104,9 +117,11 @@ export function ResourceListPage({ tab }: { tab: TabDescriptor }) {
   /** Page-local namespace filter; empty = follow the global status bar filter. */
   const [localNs, setLocalNs] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [deleting, setDeleting] = useState<Pod | null>(null)
 
   const isNamespaced = NAMESPACED.includes(resource)
   const nsFilter = localNs || (globalNamespace === ALL_NAMESPACES ? undefined : globalNamespace)
+  const label = richLabel(resource)
 
   const { data: namespaces } = useProviderQuery((p) => p.cluster.listNamespaces(), [])
 
@@ -132,7 +147,7 @@ export function ResourceListPage({ tab }: { tab: TabDescriptor }) {
   )
 
   if (query.loading && !query.data) {
-    return <div className="page-loading">Loading {resource}…</div>
+    return <div className="page-loading">{t('list.loading', { resource: label })}</div>
   }
 
   const all = query.data ?? []
@@ -142,23 +157,25 @@ export function ResourceListPage({ tab }: { tab: TabDescriptor }) {
     return true
   })
 
-  const scopedTitle = isNamespaced && nsFilter ? `${resource} · ${nsFilter}` : resource
+  const scopedTitle = isNamespaced && nsFilter ? `${label} · ${nsFilter}` : label
 
   const filterBar = (
     <ListFilterBar
       search={search}
       onSearch={setSearch}
       filtersActive={Boolean(localNs || statusFilter)}
-      summary={`${rows.length} of ${all.length}`}
+      summary={t('list.summary', { shown: formatNumber(rows.length), total: formatNumber(all.length) })}
     >
       {isNamespaced && (
         <select
-          title="Namespace filter (this tab)"
+          title={t('filters.namespaceTitle')}
           value={localNs}
           onChange={(e) => setLocalNs(e.target.value)}
         >
           <option value="">
-            {globalNamespace === ALL_NAMESPACES ? 'ns: all' : `ns: global (${globalNamespace})`}
+            {globalNamespace === ALL_NAMESPACES
+              ? t('filters.namespaceAll')
+              : t('filters.namespaceGlobal', { namespace: globalNamespace })}
           </option>
           {(namespaces ?? []).map((ns) => (
             <option key={ns.name} value={ns.name}>
@@ -169,11 +186,11 @@ export function ResourceListPage({ tab }: { tab: TabDescriptor }) {
       )}
       {resource === 'Pods' && (
         <select
-          title="Status filter"
+          title={t('filters.statusTitle')}
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
         >
-          <option value="">status: all</option>
+          <option value="">{t('filters.statusAll')}</option>
           {PODS_STATUSES.map((s) => (
             <option key={s} value={s}>
               {s}
@@ -184,56 +201,85 @@ export function ResourceListPage({ tab }: { tab: TabDescriptor }) {
     </ListFilterBar>
   )
 
+  const body = () => {
+    // A failed request must not pass for an empty list (live mode never shows stand-in data).
+    if (query.error) {
+      return (
+        <Unavailable
+          code={query.errorCode}
+          reason={query.error}
+          title={t('list.loadFailed', { resource: label })}
+        />
+      )
+    }
+    if (rows.length === 0) {
+      return (
+        <EmptyState
+          icon="inbox"
+          title={t('list.empty', { resource: label })}
+          hint={search || statusFilter || nsFilter ? t('list.clearFiltersHint') : undefined}
+        />
+      )
+    }
+    return (
+      <div className="page__scroll">
+        {resource === 'Pods' && (
+          <Table
+            columns={withHeaders(podColumns)}
+            rows={rows as Pod[]}
+            rowKey={(p) => `${p.namespace}/${p.name}`}
+            onRowClick={(p) => openDetail('Pod', p.namespace, p.name, 'package')}
+            onRowContextMenu={(p, e) => podMenu(e, p, providers, setDeleting)}
+          />
+        )}
+        {resource === 'Nodes' && (
+          <Table
+            columns={withHeaders(nodeColumns)}
+            rows={rows as K8sNode[]}
+            rowKey={(n) => n.name}
+            onRowClick={(n) => openDetail('Node', null, n.name, 'server')}
+            onRowContextMenu={(n, e) => genericMenu(e, { kind: 'Node', apiVersion: 'v1', name: n.name }, providers)}
+          />
+        )}
+        {resource === 'Namespaces' && (
+          <Table
+            columns={withHeaders(namespaceColumns)}
+            rows={rows as Namespace[]}
+            rowKey={(ns) => ns.name}
+            onRowContextMenu={(ns, e) =>
+              genericMenu(e, { kind: 'Namespace', apiVersion: 'v1', name: ns.name }, providers)
+            }
+          />
+        )}
+        {resource === 'Deployments' && (
+          <Table
+            columns={withHeaders(deploymentColumns)}
+            rows={rows as Deployment[]}
+            rowKey={(d) => `${d.namespace}/${d.name}`}
+            onRowClick={(d) => openDetail('Deployment', d.namespace, d.name, 'rocket')}
+            onRowContextMenu={(d, e) => deploymentMenu(e, d, providers)}
+          />
+        )}
+        {resource === 'Services' && (
+          <Table
+            columns={withHeaders(serviceColumns)}
+            rows={rows as Service[]}
+            rowKey={(s) => `${s.namespace}/${s.name}`}
+            onRowClick={(s) => openDetail('Service', s.namespace, s.name, 'plug')}
+            onRowContextMenu={(s, e) =>
+              genericMenu(e, { kind: 'Service', apiVersion: 'v1', namespace: s.namespace, name: s.name }, providers)
+            }
+          />
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="page">
       <Toolbar title={scopedTitle}>{filterBar}</Toolbar>
-      {rows.length === 0 ? (
-        <EmptyState
-          icon="inbox"
-          title={`No ${resource}`}
-          hint={search || statusFilter || nsFilter ? 'Try clearing the filters above' : undefined}
-        />
-      ) : (
-        <div className="page__scroll">
-          {resource === 'Pods' && (
-            <Table
-              columns={podColumns}
-              rows={rows as Pod[]}
-              rowKey={(p) => `${p.namespace}/${p.name}`}
-              onRowClick={(p) => openDetail('Pod', p.namespace, p.name, 'package')}
-              onRowContextMenu={(p, e) => podMenu(e, p, providers)}
-            />
-          )}
-          {resource === 'Nodes' && (
-            <Table
-              columns={nodeColumns}
-              rows={rows as K8sNode[]}
-              rowKey={(n) => n.name}
-              onRowClick={(n) => openDetail('Node', null, n.name, 'server')}
-            />
-          )}
-          {resource === 'Namespaces' && (
-            <Table columns={namespaceColumns} rows={rows as Namespace[]} rowKey={(ns) => ns.name} />
-          )}
-          {resource === 'Deployments' && (
-            <Table
-              columns={deploymentColumns}
-              rows={rows as Deployment[]}
-              rowKey={(d) => `${d.namespace}/${d.name}`}
-              onRowClick={(d) => openDetail('Deployment', d.namespace, d.name, 'rocket')}
-              onRowContextMenu={(d, e) => deploymentMenu(e, d, providers)}
-            />
-          )}
-          {resource === 'Services' && (
-            <Table
-              columns={serviceColumns}
-              rows={rows as Service[]}
-              rowKey={(s) => `${s.namespace}/${s.name}`}
-              onRowClick={(s) => openDetail('Service', s.namespace, s.name, 'plug')}
-            />
-          )}
-        </div>
-      )}
+      {body()}
+      <DeletePodDialog pod={deleting} onClose={() => setDeleting(null)} />
     </div>
   )
 }

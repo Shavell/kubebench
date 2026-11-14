@@ -1,45 +1,53 @@
-import { useLayoutStore } from '@/core/store/layoutStore'
+import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useProviderQuery } from '@/data/DataContext'
 import type { CrdDefinition } from '@/data/types'
+import { CORE_NS } from '@/i18n'
+import { EmptyState } from '@/shared/EmptyState'
 import { Table, type Column } from '@/shared/Table'
 import { Toolbar } from '@/shared/Toolbar'
-import '@/plugins/workloads/pages/pages.css'
-
-const columns: Column<CrdDefinition>[] = [
-  { key: 'name', header: 'Name', render: (c) => c.name, sortValue: (c) => c.name },
-  { key: 'group', header: 'Group', render: (c) => c.group, sortValue: (c) => c.group },
-  { key: 'kind', header: 'Kind', render: (c) => c.kind },
-  { key: 'versions', header: 'Versions', render: (c) => c.versions.join(', ') },
-  { key: 'scope', header: 'Scope', render: (c) => c.scope },
-  { key: 'short', header: 'Short Names', render: (c) => c.shortNames.join(', ') || '—' },
-  { key: 'age', header: 'Age', render: (c) => c.age },
-]
+import { NS } from '../i18n'
+import { openInstancesTab } from '../tabs'
+import '@/shared/tabPage.css'
 
 export function CrdListPage() {
-  const { data, loading } = useProviderQuery((p) => p.crd.listCrds(), [])
-  const openTab = useLayoutStore((s) => s.openTab)
+  const { t } = useTranslation(NS)
+  const { data, loading, error } = useProviderQuery((p) => p.crd.listCrds(), [])
 
-  if (loading) return <div className="page-loading">Loading CRDs…</div>
+  const columns = useMemo<Column<CrdDefinition>[]>(
+    () => [
+      { key: 'name', header: t('common.name', { ns: CORE_NS }), render: (c) => c.name, sortValue: (c) => c.name },
+      { key: 'group', header: t('definitions.columns.group'), render: (c) => c.group, sortValue: (c) => c.group },
+      { key: 'kind', header: t('definitions.columns.kind'), render: (c) => c.kind },
+      { key: 'versions', header: t('definitions.columns.versions'), render: (c) => c.versions.join(', ') },
+      { key: 'scope', header: t('definitions.columns.scope'), render: (c) => c.scope },
+      {
+        key: 'short',
+        header: t('definitions.columns.shortNames'),
+        render: (c) => c.shortNames.join(', ') || '—',
+      },
+      { key: 'age', header: t('common.age', { ns: CORE_NS }), render: (c) => c.age },
+    ],
+    [t],
+  )
+
+  if (loading) return <div className="page-loading">{t('definitions.loading')}</div>
 
   return (
     <div className="page">
-      <Toolbar title="Custom Resource Definitions" />
-      <div className="page__scroll">
-        <Table
-          columns={columns}
-          rows={data ?? []}
-          rowKey={(c) => c.name}
-          onRowClick={(c) =>
-            openTab({
-              id: `crd:${c.name}`,
-              title: c.kind,
-              icon: 'symbol-class',
-              kind: 'crd-instances',
-              props: { crdName: c.name },
-            })
-          }
-        />
-      </div>
+      <Toolbar title={t('definitions.title')} />
+      {error ? (
+        <EmptyState icon="warning" title={t('definitions.unavailable')} hint={error} />
+      ) : (
+        <div className="page__scroll">
+          <Table
+            columns={columns}
+            rows={data ?? []}
+            rowKey={(c) => c.name}
+            onRowClick={(c) => openInstancesTab(c.name, c.kind)}
+          />
+        </div>
+      )}
     </div>
   )
 }

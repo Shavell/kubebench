@@ -1,0 +1,64 @@
+{
+  "manifest": {
+    "name": "Metrikler",
+    "description": "metrics-server veya Prometheus'tan alınan cluster ve Node kullanım verileri.",
+    "tooltip": "Metrikler (metrics-server / Prometheus)",
+    "sidebarTitle": "Metrikler"
+  },
+  "commands": {
+    "openOverview": "Metrikler: Cluster genel bakışını aç"
+  },
+  "sidebar": {
+    "nodes": "Node'lar",
+    "sources": "Veri kaynakları"
+  },
+  "tabs": {
+    "node": "{{node}} · metrikler"
+  },
+  "statusBar": {
+    "usage": "CPU {{cpu}} · Bellek {{memory}}",
+    "tooltip": "Cluster kaynak kullanımı (metrics-server)"
+  },
+  "overview": {
+    "title": "Cluster genel bakışı",
+    "loading": "Cluster metrikleri yükleniyor…",
+    "unavailable": "Cluster metrikleri kullanılamıyor",
+    "tiles": {
+      "nodes": "Node'lar",
+      "nodesDetail": "hazır",
+      "pods": "Pod'lar",
+      "podsDetail": "çalışıyor",
+      "cpu": "CPU",
+      "cpuDetail_one": "{{cores}} çekirdek üzerinden",
+      "cpuDetail_other": "{{cores}} çekirdek üzerinden",
+      "memory": "Bellek",
+      "memoryDetail": "{{amount}} Gi üzerinden",
+      "disk": "Disk",
+      "diskDetail": "dosya sistemi kullanımı"
+    },
+    "allocation": {
+      "cpu": "CPU tahsisi",
+      "memory": "Bellek tahsisi",
+      "usage": "Kullanım",
+      "requests": "İstekler",
+      "limits": "Limitler"
+    }
+  },
+  "node": {
+    "title": "Node metrikleri · {{node}}",
+    "loading": "{{node}} metrikleri yükleniyor…"
+  },
+  "charts": {
+    "clusterCpu": "Cluster CPU · son {{minutes}} dk",
+    "clusterMemory": "Cluster belleği · son {{minutes}} dk",
+    "cpu": "CPU · son {{minutes}} dk",
+    "memory": "Bellek · son {{minutes}} dk",
+    "network": "Ağ G/Ç · son {{minutes}} dk",
+    "filesystem": "Dosya sistemi · son {{minutes}} dk"
+  },
+  "units": {
+    "cores_one": "çekirdek",
+    "cores_other": "çekirdek",
+    "megabytesPerSecond": "MB/s"
+  }
+}

@@ -30,10 +30,125 @@
     "download": "İndir",
     "noData": "Veri yok",
     "error": "Hata",
-    "unavailable": "Kullanılamıyor"
+    "unavailable": "Kullanılamıyor",
+    "details": "Ayrıntılar",
+    "all": "Tümü",
+    "open": "Aç",
+    "back": "Geri",
+    "next": "İleri",
+    "previous": "Önceki",
+    "add": "Ekle",
+    "remove": "Kaldır",
+    "reset": "Sıfırla",
+    "clear": "Temizle",
+    "show": "Göster",
+    "hide": "Gizle",
+    "more": "Daha fazla",
+    "loadMore": "Daha fazla yükle",
+    "ok": "Tamam",
+    "submit": "Gönder",
+    "select": "Seç",
+    "expand": "Genişlet",
+    "collapse": "Daralt",
+    "upload": "Yükle",
+    "export": "Dışa aktar",
+    "import": "İçe aktar",
+    "view": "Görüntüle",
+    "start": "Başlat",
+    "stop": "Durdur",
+    "pause": "Duraklat",
+    "resume": "Sürdür",
+    "restart": "Yeniden başlat",
+    "scale": "Ölçekle",
+    "rollback": "Geri al",
+    "install": "Kur",
+    "uninstall": "Kaldır",
+    "upgrade": "Yükselt",
+    "kind": "Tür",
+    "type": "Tip",
+    "labels": "Etiketler",
+    "annotations": "Ek açıklamalar",
+    "key": "Anahtar",
+    "value": "Değer",
+    "version": "Sürüm",
+    "created": "Oluşturulma",
+    "updated": "Güncellenme",
+    "message": "Mesaj",
+    "reason": "Neden",
+    "time": "Zaman",
+    "count": "Sayı",
+    "source": "Kaynak",
+    "description": "Açıklama",
+    "available": "Kullanılabilir",
+    "readOnly": "Salt okunur",
+    "optional": "İsteğe bağlı",
+    "required": "Zorunlu",
+    "overview": "Genel Bakış",
+    "events": "Olaylar",
+    "logs": "Loglar",
+    "settings": "Ayarlar",
+    "metrics": "Metrikler",
+    "itemCount_one": "{{count}} öğe",
+    "itemCount_other": "{{count}} öğe"
   },
   "language": {
     "label": "Dil",
     "auto": "Otomatik (tarayıcı)"
+  },
+  "filters": {
+    "search": "Ada göre filtrele",
+    "show": "Filtreleri göster",
+    "hide": "Filtreleri gizle"
+  },
+  "events": {
+    "loading": "Olaylar yükleniyor…",
+    "empty": "Olay yok",
+    "loadFailed": "Olaylar yüklenemedi: {{error}}"
+  },
+  "charts": {
+    "usage": "{{value}} / {{total}} {{unit}} · {{percent}}",
+    "overcommitted": "Kapasitenin üzerinde tahsis edilmiş"
+  },
+  "shell": {
+    "panel": {
+      "toggle": "Paneli aç/kapat",
+      "maximize": "Paneli büyüt",
+      "restore": "Panel boyutunu geri yükle",
+      "close": "Paneli kapat"
+    },
+    "commands": {
+      "togglePanel": "Görünüm: Paneli aç/kapat",
+      "toggleSidebar": "Görünüm: Kenar çubuğunu aç/kapat",
+      "closeTab": "Görünüm: Etkin sekmeyi kapat",
+      "closeAllTabs": "Görünüm: Tüm sekmeleri kapat",
+      "showPlugin": "Görünüm: {{name}} görünümünü göster"
+    },
+    "palette": {
+      "label": "Komut paleti",
+      "placeholder": "Bir komut yazın…",
+      "empty": "Eşleşen komut yok"
+    },
+    "tabs": {
+      "closeOthers": "Diğerlerini kapat",
+      "closeToRight": "Sağdakileri kapat",
+      "closeAll": "Tümünü kapat"
+    },
+    "editor": {
+      "openHint": "Açmak için kenar çubuğundan bir kaynak seçin",
+      "modulesHint": "Modüller arasında etkinlik çubuğundan geçiş yapın — İş Yükleri, CRD'ler, Helm, Metrikler"
+    }
+  },
+  "login": {
+    "subtitle": "Çalışma alanınıza giriş yapın",
+    "username": "Kullanıcı adı",
+    "password": "Parola",
+    "signIn": "Giriş yap",
+    "signingIn": "Giriş yapılıyor…",
+    "errors": {
+      "invalidCredentials": "Kullanıcı adı veya parola hatalı",
+      "rateLimited": "Çok fazla başarısız deneme yapıldı. Lütfen birkaç dakika bekleyip tekrar deneyin.",
+      "network": "KubeBench sunucusuna ulaşılamıyor",
+      "failed": "Giriş yapılamadı"
+    }
   }
 }

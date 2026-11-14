@@ -1,15 +1,22 @@
 import type { PluginManifest } from '@/core/plugin/types'
-import { useLayoutStore } from '@/core/store/layoutStore'
 import { HelmSidebar } from './HelmSidebar'
+import { NS } from './i18n'
+import en from './locales/en.json'
+import tr from './locales/tr.json'
 import { ReleaseListPage } from './pages/ReleaseListPage'
 import { ReleaseDetailPage } from './pages/ReleaseDetailPage'
 import { RepoListPage } from './pages/RepoListPage'
+import { openReleasesTab, openReposTab } from './tabs'
 
+/** Display strings below are i18n keys in the plugin's namespace (locales/*.json). */
 export const helmPlugin: PluginManifest = {
-  id: 'helm',
-  name: 'Helm',
-  activityBar: { icon: 'package', tooltip: 'Helm', order: 3 },
-  sidebar: { id: 'helm-explorer', title: 'Helm', component: HelmSidebar },
+  id: NS,
+  name: 'manifest.name',
+  description: 'manifest.description',
+  category: 'workloads',
+  locales: { en, tr },
+  activityBar: { icon: 'package', tooltip: 'manifest.tooltip', order: 3 },
+  sidebar: { id: 'helm-explorer', title: 'manifest.sidebarTitle', component: HelmSidebar },
   tabRenderers: [
     { kind: 'helm-releases', component: ReleaseListPage },
     { kind: 'helm-release-detail', component: ReleaseDetailPage },
@@ -18,27 +25,15 @@ export const helmPlugin: PluginManifest = {
   commands: [
     {
       id: 'helm.openReleases',
-      title: 'Helm: Open Releases',
+      title: 'commands.openReleases',
       icon: 'package',
-      run: () =>
-        useLayoutStore.getState().openTab({
-          id: 'helm-releases',
-          title: 'Helm Releases',
-          icon: 'package',
-          kind: 'helm-releases',
-        }),
+      run: openReleasesTab,
     },
     {
       id: 'helm.openRepos',
-      title: 'Helm: Open Repositories',
+      title: 'commands.openRepos',
       icon: 'repo',
-      run: () =>
-        useLayoutStore.getState().openTab({
-          id: 'helm-repos',
-          title: 'Helm Repositories',
-          icon: 'repo',
-          kind: 'helm-repos',
-        }),
+      run: openReposTab,
     },
   ],
 }

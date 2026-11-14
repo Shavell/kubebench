@@ -1,3 +1,5 @@
+import { useId } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Area,
   AreaChart,
@@ -7,6 +9,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { formatNumber, formatPercent } from '@/i18n/format'
 import { CHART_GRID, CHART_TEXT } from './chartTheme'
 import './charts.css'
 
@@ -20,16 +23,22 @@ interface TimeSeriesChartProps {
   title: string
   data: SeriesPoint[]
   color: string
+  /** Suffix appended to values, e.g. " MB/s"; '%' uses the locale's percent format. */
   unit?: string
   height?: number
   /** Fixed y-domain, e.g. [0, 100] for percentages. */
   domain?: [number, number]
 }
 
+/** A value with the chart unit; percentages follow the locale (e.g. "%12,5" in Turkish). */
+function formatValue(value: number, unit: string, fractionDigits: number): string {
+  if (unit === '%') return formatPercent(value / 100, fractionDigits)
+  return `${formatNumber(value, { maximumFractionDigits: fractionDigits })}${unit}`
+}
+
 /**
- * Single-series dark-themed area chart. Charts are deliberately
- * single-series (small multiples over legends) so the title alone
- * names the series.
+ * Single-series area chart. Charts are deliberately single-series
+ * (small multiples over legends) so the title alone names the series.
  */
 export function TimeSeriesChart({
   title,
@@ -39,12 +48,15 @@ export function TimeSeriesChart({
   height = 180,
   domain = [0, 100],
 }: TimeSeriesChartProps) {
-  const gradientId = `grad-${title.replace(/[^a-z0-9]/gi, '')}`
+  // Re-render on language change so the locale-aware formatters below re-run.
+  useTranslation()
+  // Unique per chart instance; translated titles are not safe as SVG ids.
+  const gradientId = `grad-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
   return (
     <div className="kb-chart">
       <div className="kb-chart__title">{title}</div>
       <ResponsiveContainer width="100%" height={height}>
-        <AreaChart data={data} margin={{ top: 6, right: 8, bottom: 0, left: -14 }}>
+        <AreaChart data={data} margin={{ top: 6, right: 8, bottom: 0, left: 0 }}>
           <defs>
             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={color} stopOpacity={0.28} />
@@ -59,12 +71,14 @@ export function TimeSeriesChart({
             axisLine={{ stroke: CHART_GRID }}
             minTickGap={40}
           />
+          {/* "auto" fits the widest tick ("%100", "60 MB/s"); a negative chart margin would clip it again. */}
           <YAxis
+            width="auto"
             domain={domain}
             tick={{ fill: CHART_TEXT, fontSize: 10 }}
             tickLine={false}
             axisLine={false}
-            tickFormatter={(v: number) => `${v}${unit}`}
+            tickFormatter={(v: number) => formatValue(v, unit, 0)}
           />
           <Tooltip
             cursor={{ stroke: CHART_TEXT, strokeDasharray: '3 3' }}
@@ -75,7 +89,7 @@ export function TimeSeriesChart({
               fontSize: 12,
               color: 'var(--vscode-editor-foreground)',
             }}
-            formatter={(value) => [`${Number(value).toFixed(1)}${unit}`, title]}
+            formatter={(value) => [formatValue(Number(value), unit, 1), title]}
           />
           <Area
             type="monotone"

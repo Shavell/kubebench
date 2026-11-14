@@ -1,3 +1,9 @@
+/*
+ * Layout of editor-tab pages that build their own toolbar (.page,
+ * .page__scroll, .page-loading) and of resource detail views (.detail*),
+ * shared by the plugins. New pages can use <Page> (Page.tsx) instead.
+ */
+
 .page {
   height: 100%;
   display: flex;
@@ -67,7 +73,7 @@
   padding: 8px 12px;
   border: 1px solid var(--status-failed);
   border-radius: 4px;
-  background: rgba(241, 76, 76, 0.12);
+  background: color-mix(in srgb, var(--status-failed) 12%, transparent);
   color: var(--status-failed);
   font-size: 12px;
   user-select: text;
@@ -97,38 +103,22 @@
   max-width: 980px;
 }
 
+/* A neutral tint that reads on both themes (input-background is white in
+   Light+); .detail__chip below uses the same one. */
 .detail__code {
   font-family: var(--font-mono);
   font-size: 12px;
-  background: var(--vscode-input-background);
+  background: color-mix(in srgb, var(--vscode-editor-foreground) 12%, transparent);
   padding: 1px 5px;
   border-radius: 3px;
   user-select: text;
-}
-
-.detail__scale {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.detail__scale-count {
-  min-width: 26px;
-  text-align: center;
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-}
-
-.kb-button:disabled {
-  opacity: 0.5;
-  cursor: default;
 }
 
 .detail__chip {
   display: inline-block;
   font-family: var(--font-mono);
   font-size: 11px;
-  background: var(--vscode-input-background);
+  background: color-mix(in srgb, var(--vscode-editor-foreground) 12%, transparent);
   border-radius: 3px;
   padding: 1px 6px;
   margin: 0 6px 4px 0;

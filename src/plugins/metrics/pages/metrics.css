@@ -43,3 +43,22 @@
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 12px;
 }
+
+/* A chart whose series could not be loaded: the reason takes the plot's place. */
+.metrics-chart--unavailable {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 12px;
+}
+
+.metrics-chart__reason {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 120px;
+  font-size: 12px;
+  text-align: center;
+  color: var(--vscode-descriptionForeground);
+}

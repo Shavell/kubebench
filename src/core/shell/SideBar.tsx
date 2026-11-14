@@ -1,9 +1,14 @@
 import { registry } from '@/core/plugin/registry'
+import { useRegistryRevision } from '@/core/plugin/useRegistry'
 import { useLayoutStore } from '@/core/store/layoutStore'
+import { useManifestText } from '@/i18n'
 import { ResizeHandle } from '@/shared/ResizeHandle'
 import './SideBar.css'
 
 export function SideBar() {
+  // Plugins register and get enabled/disabled at runtime; re-render on every change.
+  useRegistryRevision()
+  const manifestText = useManifestText()
   const activePluginId = useLayoutStore((s) => s.activePluginId)
 
   const view = registry.sidebarFor(activePluginId)
@@ -12,7 +17,8 @@ export function SideBar() {
 
   return (
     <div className="sidebar">
-      <div className="sidebar__header">{view.title.toUpperCase()}</div>
+      {/* Uppercased in CSS, which follows <html lang> (Turkish i → İ). */}
+      <div className="sidebar__header">{manifestText(activePluginId, view.title)}</div>
       <div className="sidebar__content">
         <View />
       </div>

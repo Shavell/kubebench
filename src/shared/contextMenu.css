@@ -30,8 +30,10 @@
   color: var(--vscode-list-activeSelectionForeground);
 }
 
+/* Tinted rather than solid red, with the regular text color for contrast in both themes. */
 .ctx-menu__item--danger:hover {
-  background: #6e2b2b;
+  background: color-mix(in srgb, var(--status-failed) 35%, var(--vscode-editorWidget-background));
+  color: var(--vscode-editor-foreground);
 }
 
 .ctx-menu__item--disabled,

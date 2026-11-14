@@ -1,153 +1,164 @@
+import { useTranslation } from 'react-i18next'
 import { useProviderQuery } from '@/data/DataContext'
 import { useSettingsStore } from '@/core/store/settingsStore'
+import type { ResourceAllocation } from '@/data/types'
+import { formatNumber, formatPercent } from '@/i18n/format'
+import { EmptyState } from '@/shared/EmptyState'
 import { StatTile } from '@/shared/charts/StatTile'
 import { UsageBar } from '@/shared/charts/UsageBar'
-import { TimeSeriesChart } from '@/shared/charts/TimeSeriesChart'
 import { chartColor } from '@/shared/charts/chartTheme'
 import { Toolbar } from '@/shared/Toolbar'
-import '@/plugins/workloads/pages/pages.css'
+import { NS } from '../i18n'
+import { MetricChart } from './MetricChart'
+import '@/shared/tabPage.css'
 import './metrics.css'
 
 export function ClusterOverviewPage() {
-  const WINDOW_MINUTES = useSettingsStore((s) => s.metricsWindow)
-  const { data: stats } = useProviderQuery((p) => p.metrics.clusterOverview(), [])
+  const { t } = useTranslation(NS)
+  const minutes = useSettingsStore((s) => s.metricsWindow)
+  const overview = useProviderQuery((p) => p.metrics.clusterOverview(), [])
   const { data: allocation } = useProviderQuery((p) => p.metrics.clusterAllocation(), [])
-  const { data: cpu } = useProviderQuery(
-    (p) => p.metrics.clusterSeries('cpu', WINDOW_MINUTES),
-    [WINDOW_MINUTES],
-  )
-  const { data: memory } = useProviderQuery(
-    (p) => p.metrics.clusterSeries('memory', WINDOW_MINUTES),
-    [WINDOW_MINUTES],
-  )
-  const { data: network } = useProviderQuery(
-    (p) => p.metrics.clusterSeries('network', WINDOW_MINUTES),
-    [WINDOW_MINUTES],
-  )
-  const { data: fs } = useProviderQuery(
-    (p) => p.metrics.clusterSeries('fs', WINDOW_MINUTES),
-    [WINDOW_MINUTES],
-  )
+  const cpu = useProviderQuery((p) => p.metrics.clusterSeries('cpu', minutes), [minutes])
+  const memory = useProviderQuery((p) => p.metrics.clusterSeries('memory', minutes), [minutes])
+  const network = useProviderQuery((p) => p.metrics.clusterSeries('network', minutes), [minutes])
+  const fs = useProviderQuery((p) => p.metrics.clusterSeries('fs', minutes), [minutes])
 
-  if (!stats) return <div className="page-loading">Loading cluster metrics…</div>
+  const stats = overview.data
+  if (!stats) {
+    if (!overview.error) return <div className="page-loading">{t('overview.loading')}</div>
+    return (
+      <div className="page">
+        <Toolbar title={t('overview.title')} />
+        <EmptyState icon="warning" title={t('overview.unavailable')} hint={overview.error} />
+      </div>
+    )
+  }
+
+  // Latest filesystem sample; "—" when the source has no filesystem series.
+  const diskPercent = fs.data?.at(-1)?.value
+  // The backend reports CPU in "cores" (a word to translate) and memory in "Gi" (a symbol).
+  const unitLabel = (a: ResourceAllocation) =>
+    a.unit === 'cores' ? t('units.cores', { count: a.allocatable }) : a.unit
 
   return (
     <div className="page">
-      <Toolbar title="Cluster Overview" />
+      <Toolbar title={t('overview.title')} />
       <div className="metrics-page">
         <div className="metrics-tiles">
           <StatTile
             icon="server"
-            label="Nodes"
-            value={`${stats.readyNodes}/${stats.nodeCount}`}
-            detail="ready"
+            label={t('overview.tiles.nodes')}
+            value={`${formatNumber(stats.readyNodes)}/${formatNumber(stats.nodeCount)}`}
+            detail={t('overview.tiles.nodesDetail')}
           />
           <StatTile
             icon="package"
-            label="Pods"
-            value={`${stats.runningPods}/${stats.podCount}`}
-            detail="running"
+            label={t('overview.tiles.pods')}
+            value={`${formatNumber(stats.runningPods)}/${formatNumber(stats.podCount)}`}
+            detail={t('overview.tiles.podsDetail')}
           />
           <StatTile
             icon="dashboard"
-            label="CPU"
-            value={`${stats.cpuUsagePercent.toFixed(0)}%`}
-            detail={`of ${stats.cpuCapacityCores} cores`}
+            label={t('overview.tiles.cpu')}
+            value={formatPercent(stats.cpuUsagePercent / 100)}
+            detail={t('overview.tiles.cpuDetail', {
+              count: stats.cpuCapacityCores,
+              cores: formatNumber(stats.cpuCapacityCores),
+            })}
             accent={chartColor('blue')}
           />
           <StatTile
             icon="database"
-            label="Memory"
-            value={`${stats.memoryUsagePercent.toFixed(0)}%`}
-            detail={`of ${stats.memoryCapacityGi} Gi`}
+            label={t('overview.tiles.memory')}
+            value={formatPercent(stats.memoryUsagePercent / 100)}
+            detail={t('overview.tiles.memoryDetail', { amount: formatNumber(stats.memoryCapacityGi) })}
             accent={chartColor('purple')}
           />
           <StatTile
             icon="save"
-            label="Disk"
-            value={`${(fs?.[fs.length - 1]?.value ?? 0).toFixed(0)}%`}
-            detail="filesystem usage"
+            label={t('overview.tiles.disk')}
+            value={diskPercent === undefined ? '—' : formatPercent(diskPercent / 100)}
+            detail={t('overview.tiles.diskDetail')}
             accent={chartColor('yellow')}
           />
         </div>
 
         {allocation && (
           <div className="metrics-allocation">
-            <div className="metrics-allocation__col">
-              <div className="metrics-allocation__title">CPU Allocation</div>
-              <UsageBar
-                label="Usage"
-                value={allocation.cpu.usage}
-                total={allocation.cpu.allocatable}
-                unit={allocation.cpu.unit}
-                color={chartColor('blue')}
-              />
-              <UsageBar
-                label="Requests"
-                value={allocation.cpu.requests}
-                total={allocation.cpu.allocatable}
-                unit={allocation.cpu.unit}
-                color={chartColor('blue')}
-              />
-              <UsageBar
-                label="Limits"
-                value={allocation.cpu.limits}
-                total={allocation.cpu.allocatable}
-                unit={allocation.cpu.unit}
-                color={chartColor('blue')}
-              />
-            </div>
-            <div className="metrics-allocation__col">
-              <div className="metrics-allocation__title">Memory Allocation</div>
-              <UsageBar
-                label="Usage"
-                value={allocation.memory.usage}
-                total={allocation.memory.allocatable}
-                unit={allocation.memory.unit}
-                color={chartColor('purple')}
-              />
-              <UsageBar
-                label="Requests"
-                value={allocation.memory.requests}
-                total={allocation.memory.allocatable}
-                unit={allocation.memory.unit}
-                color={chartColor('purple')}
-              />
-              <UsageBar
-                label="Limits"
-                value={allocation.memory.limits}
-                total={allocation.memory.allocatable}
-                unit={allocation.memory.unit}
-                color={chartColor('purple')}
-              />
-            </div>
+            <AllocationColumn
+              title={t('overview.allocation.cpu')}
+              allocation={allocation.cpu}
+              unit={unitLabel(allocation.cpu)}
+              color={chartColor('blue')}
+            />
+            <AllocationColumn
+              title={t('overview.allocation.memory')}
+              allocation={allocation.memory}
+              unit={unitLabel(allocation.memory)}
+              color={chartColor('purple')}
+            />
           </div>
         )}
         <div className="metrics-charts">
-          <TimeSeriesChart
-            title={`Cluster CPU · last ${WINDOW_MINUTES}m`}
-            data={cpu ?? []}
+          <MetricChart
+            title={t('charts.clusterCpu', { minutes })}
+            series={cpu}
             color={chartColor('blue')}
           />
-          <TimeSeriesChart
-            title={`Cluster Memory · last ${WINDOW_MINUTES}m`}
-            data={memory ?? []}
+          <MetricChart
+            title={t('charts.clusterMemory', { minutes })}
+            series={memory}
             color={chartColor('purple')}
           />
-          <TimeSeriesChart
-            title={`Network I/O · last ${WINDOW_MINUTES}m`}
-            data={network ?? []}
+          <MetricChart
+            title={t('charts.network', { minutes })}
+            series={network}
             color={chartColor('green')}
-            unit=" MB/s"
+            unit={` ${t('units.megabytesPerSecond')}`}
             domain={[0, 60]}
           />
-          <TimeSeriesChart
-            title={`Filesystem · last ${WINDOW_MINUTES}m`}
-            data={fs ?? []}
+          <MetricChart
+            title={t('charts.filesystem', { minutes })}
+            series={fs}
             color={chartColor('yellow')}
           />
         </div>
       </div>
+    </div>
+  )
+}
+
+/** Usage, requests and limits of one resource against its allocatable amount. */
+function AllocationColumn({
+  title,
+  allocation,
+  unit,
+  color,
+}: {
+  title: string
+  allocation: ResourceAllocation
+  unit: string
+  color: string
+}) {
+  const { t } = useTranslation(NS)
+  const bars = [
+    { label: t('overview.allocation.usage'), value: allocation.usage },
+    { label: t('overview.allocation.requests'), value: allocation.requests },
+    { label: t('overview.allocation.limits'), value: allocation.limits },
+  ]
+  return (
+    <div className="metrics-allocation__col">
+      <div className="metrics-allocation__title">{title}</div>
+      {bars.map((bar) => (
+        <UsageBar
+          key={bar.label}
+          label={bar.label}
+          value={bar.value}
+          total={allocation.allocatable}
+          unit={unit}
+          color={color}
+        />
+      ))}
     </div>
   )
 }
