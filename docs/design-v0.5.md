@@ -1136,7 +1136,8 @@ UI: Who can…, subjects + effective permissions, risky roles, binding graph.
   listed as the bindings name them (groups stay groups). A subject's
   detail answers `{subject, user, groups, missing?, bindings: [path],
   rules: [{namespace, rules: [rule + path]}]}` (`namespace` `""` =
-  cluster-wide), where the identity includes the implicit groups
+  cluster-wide; a namespace never lists non-resource URL rules, which a
+  RoleBinding does not grant), where the identity includes the implicit groups
   (`system:serviceaccounts`, `system:serviceaccounts:<ns>`,
   `system:authenticated`) and a path's `via` names the group it reaches
   the subject through; `roleMissing` marks a binding to a missing role.

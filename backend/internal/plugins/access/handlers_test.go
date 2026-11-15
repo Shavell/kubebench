@@ -280,3 +280,24 @@ func TestRiskChecks(t *testing.T) {
 		}
 	}
 }
+
+// A RoleBinding never grants non-resource URLs, so its role's URL rules
+// are not effective rules in that namespace; a ClusterRoleBinding's are.
+func TestSubjectDetailNonResourceRulesNeedClusterScope(t *testing.T) {
+	metrics := clusterRole("metrics",
+		rbacv1.PolicyRule{Verbs: l("get"), NonResourceURLs: l("/metrics")},
+		rule(l("get"), l(""), l("pods")))
+	e := newEnv(t, metrics,
+		rb("shop", "metrics", kindClusterRole, "metrics", userSubject("carol")),
+		crb("metrics", "metrics", userSubject("dave")))
+
+	d := decode[SubjectDetail](t, expect(t, e.do(http.MethodGet, "/subjects/User/carol", nil), http.StatusOK, ""))
+	if len(d.Rules) != 1 || d.Rules[0].Namespace != "shop" || len(d.Rules[0].Rules) != 1 ||
+		!slices.Equal(d.Rules[0].Rules[0].Resources, []string{"pods"}) {
+		t.Errorf("carol (RoleBinding) rules = %+v", d.Rules)
+	}
+	d = decode[SubjectDetail](t, expect(t, e.do(http.MethodGet, "/subjects/User/dave", nil), http.StatusOK, ""))
+	if len(d.Rules) != 1 || d.Rules[0].Namespace != "" || len(d.Rules[0].Rules) != 2 {
+		t.Errorf("dave (ClusterRoleBinding) rules = %+v", d.Rules)
+	}
+}

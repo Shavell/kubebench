@@ -200,8 +200,11 @@ export class RbacEngine {
     for (const path of bindings) {
       const role = this.roles.get(refKey(path.role))
       if (!role) continue
+      // A RoleBinding never grants non-resource URLs.
+      const rules = path.scope ? role.rules.filter((rule) => !rule.nonResourceURLs?.length) : role.rules
+      if (rules.length === 0) continue
       const group = byScope.get(path.scope) ?? { namespace: path.scope, rules: [] }
-      group.rules.push(...role.rules.map((rule) => ({ ...rule, path })))
+      group.rules.push(...rules.map((rule) => ({ ...rule, path })))
       byScope.set(path.scope, group)
     }
     const detail: SubjectDetail = {

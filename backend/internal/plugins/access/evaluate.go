@@ -134,6 +134,8 @@ type ScopeRules struct {
 // effectiveRules groups the rules of paths by the scope they grant in:
 // cluster-wide first, then namespaces in order. Rules granted
 // cluster-wide also hold in every namespace; they are listed once.
+// Non-resource URL rules are left out of namespaced scopes: a RoleBinding
+// never grants them (see binding.appliesIn).
 func (s *snapshot) effectiveRules(paths []Path) []ScopeRules {
 	byScope := map[string][]ScopedRule{}
 	for _, p := range paths {
@@ -142,6 +144,9 @@ func (s *snapshot) effectiveRules(paths []Path) []ScopeRules {
 			continue
 		}
 		for _, rule := range ro.Rules {
+			if p.Scope != "" && len(rule.NonResourceURLs) > 0 {
+				continue
+			}
 			byScope[p.Scope] = append(byScope[p.Scope], ScopedRule{PolicyRule: rule, Path: p})
 		}
 	}
