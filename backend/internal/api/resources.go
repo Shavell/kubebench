@@ -40,11 +40,24 @@ func (s *Server) handleServices(w http.ResponseWriter, r *http.Request, c *call)
 	writeResult(w, out, err)
 }
 
+// handleYAML renders one object (§7.2): by apiVersion and kind for any
+// kind the cluster serves, or by kind alone for the kinds v0.4 knew;
+// neat=true strips the fields the API server maintains.
 func (s *Server) handleYAML(w http.ResponseWriter, r *http.Request, c *call) {
 	q := r.URL.Query()
-	text, err := c.rt.ObjectYAML(r.Context(), q.Get("kind"), q.Get("ns"), q.Get("name"))
+	neat, err := flagParam(q, "neat")
 	if err != nil {
-		plugin.WriteK8sError(w, err)
+		writeErr(w, err)
+		return
+	}
+	ref := kube.ObjectRef{APIVersion: q.Get("apiVersion"), Kind: q.Get("kind"), Namespace: q.Get("ns"), Name: q.Get("name")}
+	if ref.Kind == "" || ref.Name == "" {
+		writeErr(w, badRequest("kind and name are required"))
+		return
+	}
+	text, err := c.rt.ObjectYAML(r.Context(), ref, neat)
+	if err != nil {
+		writeClusterErr(w, err)
 		return
 	}
 	plugin.WriteJSON(w, map[string]string{"yaml": text})
