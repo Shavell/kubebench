@@ -278,6 +278,10 @@ export const deployments: Deployment[] = [
   { name: 'metrics-server', namespace: 'monitoring', readyReplicas: 1, replicas: 1, upToDate: 1, available: 1, age: '61d', labels: { app: 'metrics-server' } },
   { name: 'shop-frontend', namespace: 'shop', readyReplicas: 2, replicas: 3, upToDate: 3, available: 2, age: '45d', labels: { app: 'shop-frontend' } },
   { name: 'shop-payments', namespace: 'shop', readyReplicas: 0, replicas: 1, upToDate: 1, available: 0, age: '45d', labels: { app: 'shop-payments' } },
+  // The controllers of the remaining Deployment-owned Pods above.
+  { name: 'shop-cart', namespace: 'shop', readyReplicas: 2, replicas: 2, upToDate: 2, available: 2, age: '45d', labels: { app: 'shop-cart' } },
+  { name: 'cert-manager-cainjector', namespace: 'cert-manager', readyReplicas: 1, replicas: 1, upToDate: 1, available: 1, age: '77d', labels: { app: 'cainjector' } },
+  { name: 'cert-manager-webhook', namespace: 'cert-manager', readyReplicas: 1, replicas: 1, upToDate: 1, available: 1, age: '77d', labels: { app: 'webhook' } },
 ]
 
 export const services: Service[] = [

@@ -23,6 +23,20 @@ function obj(
   }
 }
 
+/** A ReplicaSet owned by Deployment `owner`, with `desired` and `ready` Pods. */
+function replicaSet(name: string, namespace: string, owner: string, age: string, desired: number, ready: number): KubeObject {
+  return obj('ReplicaSet', name, namespace, age, {
+    metadata: {
+      name,
+      namespace,
+      labels: {},
+      ownerReferences: [{ apiVersion: 'apps/v1', kind: 'Deployment', name: owner, controller: true }],
+    },
+    spec: { replicas: desired },
+    status: { replicas: desired, readyReplicas: ready },
+  })
+}
+
 export const genericMock: Record<string, KubeObject[]> = {
   configmaps: [
     obj('ConfigMap', 'kube-root-ca.crt', 'default', '92d', { data: { 'ca.crt': '<1099 bytes>' } }),
@@ -46,9 +60,21 @@ export const genericMock: Record<string, KubeObject[]> = {
     obj('DaemonSet', 'prometheus-node-exporter', 'monitoring', '61d', { status: { numberReady: 3, desiredNumberScheduled: 3 }, spec: { selector: { matchLabels: { app: 'node-exporter' } } } }),
     obj('DaemonSet', 'kube-proxy', 'kube-system', '92d', { status: { numberReady: 3, desiredNumberScheduled: 3 }, spec: { selector: { matchLabels: { app: 'kube-proxy' } } } }),
   ],
+  // One current ReplicaSet per Deployment (named like its Pods), plus the
+  // scaled-down ones of older revisions (named as in mockRollouts).
   replicasets: [
-    obj('ReplicaSet', 'shop-frontend-745bd7c77b', 'shop', '3d', { status: { readyReplicas: 2, replicas: 3 }, spec: { selector: { matchLabels: { app: 'shop-frontend' } } } }),
-    obj('ReplicaSet', 'cert-manager-5c9d8879fd', 'cert-manager', '77d', { status: { readyReplicas: 1, replicas: 1 }, spec: { selector: { matchLabels: { app: 'cert-manager' } } } }),
+    replicaSet('shop-frontend-745bd7c77b', 'shop', 'shop-frontend', '3d', 3, 2),
+    replicaSet('shop-frontend-1ayfw2m', 'shop', 'shop-frontend', '15d', 0, 0),
+    replicaSet('shop-frontend-04ugbcz', 'shop', 'shop-frontend', '45d', 0, 0),
+    replicaSet('shop-cart-6f8d9b5c44', 'shop', 'shop-cart', '3d', 2, 2),
+    replicaSet('shop-payments-79c6cd8b96', 'shop', 'shop-payments', '41m', 1, 0),
+    replicaSet('shop-payments-0mmnp9q', 'shop', 'shop-payments', '45d', 0, 0),
+    replicaSet('coredns-7db6d8ff4d', 'kube-system', 'coredns', '92d', 2, 2),
+    replicaSet('cert-manager-5c9d8879fd', 'cert-manager', 'cert-manager', '77d', 1, 1),
+    replicaSet('cert-manager-cainjector-7d4868cf69', 'cert-manager', 'cert-manager-cainjector', '77d', 1, 1),
+    replicaSet('cert-manager-webhook-7f9f8648b9', 'cert-manager', 'cert-manager-webhook', '77d', 1, 1),
+    replicaSet('prometheus-server-6bcb7d6b8f', 'monitoring', 'prometheus-server', '61d', 1, 1),
+    replicaSet('metrics-server-557ff575fb', 'monitoring', 'metrics-server', '61d', 1, 1),
   ],
   jobs: [
     obj('Job', 'db-migrate-28934', 'shop', '2h', { status: { succeeded: 1 }, spec: { completions: 1, selector: { matchLabels: { 'job-name': 'db-migrate-28934' } } } }),
@@ -58,10 +84,33 @@ export const genericMock: Record<string, KubeObject[]> = {
   ],
   ingresses: [
     obj('Ingress', 'shop-frontend', 'shop', '45d', {
-      spec: { ingressClassName: 'traefik', rules: [{ host: 'shop.example.com' }] },
+      spec: {
+        ingressClassName: 'traefik',
+        tls: [{ hosts: ['shop.example.com'], secretName: 'shop-tls' }],
+        rules: [
+          {
+            host: 'shop.example.com',
+            http: {
+              paths: [
+                { path: '/', pathType: 'Prefix', backend: { service: { name: 'shop-frontend', port: { number: 80 } } } },
+                { path: '/api/cart', pathType: 'Prefix', backend: { service: { name: 'shop-cart', port: { number: 8080 } } } },
+              ],
+            },
+          },
+        ],
+      },
     }),
+    // Its Service is gone: the topology shows the backend as missing.
     obj('Ingress', 'grafana', 'monitoring', '58d', {
-      spec: { ingressClassName: 'traefik', rules: [{ host: 'grafana.example.com' }] },
+      spec: {
+        ingressClassName: 'traefik',
+        rules: [
+          {
+            host: 'grafana.example.com',
+            http: { paths: [{ path: '/', pathType: 'Prefix', backend: { service: { name: 'grafana', port: { number: 3000 } } } }] },
+          },
+        ],
+      },
     }),
   ],
   endpoints: [
