@@ -1,9 +1,12 @@
 package api
 
 import (
+	"context"
 	"net/http"
 	"testing"
+	"time"
 
+	"kubebench/internal/kube"
 	"kubebench/internal/plugin"
 )
 
@@ -123,5 +126,38 @@ func TestInvalidPluginRoutesPanic(t *testing.T) {
 			}()
 			routes(pluginRouter{s: e.srv, p: newFakePlugin("bad"), id: "bad"})
 		}()
+	}
+}
+
+// ctxPlugin is available exactly when Detect gets a live context, like a
+// plugin whose Detect asks the cluster.
+type ctxPlugin struct{ *fakePlugin }
+
+func (p ctxPlugin) Detect(ctx context.Context, rt *kube.Runtime) plugin.Status {
+	p.fakePlugin.Detect(ctx, rt)
+	if err := ctx.Err(); err != nil {
+		return plugin.Status{Reason: err.Error()}
+	}
+	return plugin.Status{Available: true}
+}
+
+// A capability probe slower than the Detect timeout must not leave Detect
+// with an expired context, nor cache what a slow cluster made it report.
+func TestDetectSurvivesASlowProbe(t *testing.T) {
+	p := ctxPlugin{newFakePlugin("slow")}
+	e := newTestEnv(t, nil, p)
+	e.srv.detect.timeout = 50 * time.Millisecond
+	finish := e.runtime().ProbeForTest()
+
+	expect(t, e.do(http.MethodGet, "/api/plugins/slow/items", "bob", nil), http.StatusOK, "")
+	expect(t, e.do(http.MethodGet, "/api/plugins/slow/items", "bob", nil), http.StatusOK, "")
+	if n := p.detects.Load(); n != 2 {
+		t.Fatalf("a status from an unfinished probe was cached (Detect ran %d times)", n)
+	}
+	finish(kube.Capabilities{})
+	expect(t, e.do(http.MethodGet, "/api/plugins/slow/items", "bob", nil), http.StatusOK, "")
+	expect(t, e.do(http.MethodGet, "/api/plugins/slow/items", "bob", nil), http.StatusOK, "")
+	if n := p.detects.Load(); n != 3 {
+		t.Fatalf("after the probe the status must be cached (Detect ran %d times)", n)
 	}
 }
