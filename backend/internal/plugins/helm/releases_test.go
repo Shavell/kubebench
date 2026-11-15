@@ -185,3 +185,25 @@ func TestInstallValidation(t *testing.T) {
 	fails(t, h.do(http.MethodGet, "/releases/shop/Bad_Name", nil), http.StatusBadRequest, "bad_request")
 	fails(t, h.do(http.MethodPost, "/releases/shop/missing/upgrade", UpgradeRequest{}), http.StatusNotFound, "not_found")
 }
+
+// A reset (values-only upgrade, no reuse, empty values) goes back to the
+// chart's defaults even after an upgrade that reused values: reuse must
+// not store the merged values as the chart's defaults.
+func TestResetAfterReuseRestoresChartDefaults(t *testing.T) {
+	h := newHarness(t)
+	id := h.upload(testChart("demo", "0.1.0"))
+	ok[InstallResult](t, h.do(http.MethodPost, "/install", InstallRequest{
+		Name: "web", Namespace: "shop", Chart: ChartRef{UploadID: id}, Values: "greeting: custom\n",
+	}))
+	reused := ok[UpgradeResult](t, h.do(http.MethodPost, "/releases/shop/web/upgrade", UpgradeRequest{Values: "replicas: 3\n", ReuseValues: true}))
+	contains(t, "reused manifest", reused.Manifest, `greeting: "custom"`)
+	contains(t, "reused manifest", reused.Manifest, `replicas: "3"`)
+
+	reset := ok[UpgradeResult](t, h.do(http.MethodPost, "/releases/shop/web/upgrade", UpgradeRequest{}))
+	contains(t, "reset manifest", reset.Manifest, `greeting: "hello"`)
+	contains(t, "reset manifest", reset.Manifest, `replicas: "1"`)
+	all := ok[map[string]string](t, h.do(http.MethodGet, "/releases/shop/web/values?all=true", nil))["values"]
+	if all != "greeting: hello\nreplicas: 1\n" {
+		t.Fatalf("all values after the reset = %q", all)
+	}
+}

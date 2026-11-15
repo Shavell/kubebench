@@ -131,7 +131,11 @@ func upgrade(ctx context.Context, cfg *action.Configuration, namespace, name str
 	up.MaxHistory = maxHistory
 	// Helm reuses the current values when none are given and neither flag
 	// is set; reset instead, so the request's values are the whole truth.
-	up.ReuseValues = in.ReuseValues
+	// Reuse merges the current user values under the request's while
+	// keeping the chart's own defaults: Helm's ReuseValues would instead
+	// store the merged values as the chart's defaults, so a later reset
+	// could never go back to them.
+	up.ResetThenReuseValues = in.ReuseValues
 	up.ResetValues = !in.ReuseValues
 	if in.DryRun {
 		up.DryRun = true

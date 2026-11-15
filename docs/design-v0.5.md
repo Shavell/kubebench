@@ -891,8 +891,10 @@ Shapes (they match `src/plugins/helm/data/types.ts`):
   `chart` keeps the release's current chart (values-only upgrade); with
   `reuseValues` the values are merged over the current ones, without they
   replace them (Helm's `--reset-values`, so an empty text resets to the
-  chart defaults). Upgrades and rollbacks keep 10 revisions; nothing waits
-  for readiness (no `--wait`); hooks and deletions time out after 5 min.
+  chart defaults). Reuse is Helm's `--reset-then-reuse-values`: the chart's
+  own defaults stay the defaults, so a later reset returns to them.
+  Upgrades and rollbacks keep 10 revisions; nothing waits for readiness
+  (no `--wait`); hooks and deletions time out after 5 min.
 - Dry runs (`dryRun=true` in the query or the body flag) use Helm's
   server-side dry run: rendered with the cluster's API versions and
   lookups, nothing created, the namespace not created either. Because a
