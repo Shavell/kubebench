@@ -50,7 +50,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request, _ *call) {
 		writeErr(w, err)
 		return
 	}
-	key := limiterKey{ip: s.clientIP(r), username: body.Username}
+	key := newLimiterKey(s.clientIP(r), body.Username)
 	if err := s.throttled(w, key); err != nil {
 		writeErr(w, err)
 		return
@@ -115,7 +115,7 @@ func (s *Server) handleChangePassword(w http.ResponseWriter, r *http.Request, c 
 		return
 	}
 	// Guessing the current password is throttled like logins.
-	key := limiterKey{ip: s.clientIP(r), username: c.user.Username}
+	key := newLimiterKey(s.clientIP(r), c.user.Username)
 	if err := s.throttled(w, key); err != nil {
 		writeErr(w, err)
 		return

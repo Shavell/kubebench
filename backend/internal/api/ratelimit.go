@@ -1,6 +1,7 @@
 package api
 
 import (
+	"crypto/sha256"
 	"net"
 	"net/http"
 	"strings"
@@ -17,7 +18,18 @@ const (
 	loginMaxKeys = 10000
 )
 
-type limiterKey struct{ ip, username string }
+// limiterKey identifies a (client IP, username) pair. The username is kept
+// as a digest: login attempts name arbitrary usernames of up to the 1 MiB
+// body limit, and the table must not keep them (loginMaxKeys bounds the
+// number of keys, so their size has to be fixed).
+type limiterKey struct {
+	ip       string // parsed from RemoteAddr or X-Forwarded-For, so short
+	username [sha256.Size]byte
+}
+
+func newLimiterKey(ip, username string) limiterKey {
+	return limiterKey{ip: ip, username: sha256.Sum256([]byte(username))}
+}
 
 type failureWindow struct {
 	count int
