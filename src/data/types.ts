@@ -490,3 +490,31 @@ export interface CronJobRun {
   namespace: string
   job: string
 }
+
+// ---- Updates and What's new (design §7.11) ----
+
+/** Which releases the update check reports: none, releases, or prereleases too. */
+export type UpdateMode = 'off' | 'stable' | 'prerelease'
+
+/** GET /api/updates: the latest check for the server's update mode. */
+export interface UpdateStatus {
+  mode: UpdateMode
+  /** KUBEBENCH_UPDATE_MODE, the mode until an admin chooses one. */
+  defaultMode: UpdateMode
+  /** The build version, or "unknown" for development and snapshot builds. */
+  current: string
+  /** The newest release the mode admits; empty when none is published. */
+  latest: string
+  available: boolean
+  prerelease: boolean
+  /** RFC 3339, or null. */
+  publishedAt: string | null
+  /** The release page (the releases page when there is no release); may be empty. */
+  url: string
+  /** Release notes as published: Markdown source, never HTML. */
+  notes: string
+  /** Time of the last successful check (RFC 3339), or null. */
+  checkedAt: string | null
+  /** Why the last check failed; empty after a success. */
+  error: string
+}

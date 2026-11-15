@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useLayoutStore } from '@/core/store/layoutStore'
 import { useSettingsStore } from '@/core/store/settingsStore'
+import { UpdatesDialogs } from '@/core/updates/UpdatesDialogs'
 import { refreshData } from '@/data/DataContext'
 import { ContextMenuHost } from '@/shared/contextMenu'
 import { Toaster } from '@/shared/Toaster'
@@ -72,6 +73,7 @@ export function Shell() {
       <CommandPalette />
       <ContextMenuHost />
       <WorkbenchDialogs />
+      <UpdatesDialogs />
       <TabCloseGuard />
       <SessionGuard />
       <Toaster />

@@ -11,6 +11,7 @@ import { ChangePasswordScreen } from '@/core/shell/ChangePasswordScreen'
 import { LoginScreen } from '@/core/shell/LoginScreen'
 import { Shell } from '@/core/shell/Shell'
 import { createWorkbenchPlugin } from '@/core/shell/workbenchPlugin'
+import { createUpdatesPlugin } from '@/core/updates/updatesPlugin'
 import { DataContext } from '@/data/DataContext'
 import { dataMode } from '@/data/mode'
 import type { DataProviders } from '@/data/providers'
@@ -22,9 +23,9 @@ export interface StartOptions {
   adminPlugins: PluginManifest[]
 }
 
-/** Contributions that depend on the session: the workbench's own commands and the admin plugins. */
+/** Contributions that depend on the session: the workbench's own commands, updates and the admin plugins. */
 function registerSessionPlugins(providers: DataProviders, options: StartOptions): void {
-  const plugins = [createWorkbenchPlugin(providers)]
+  const plugins = [createWorkbenchPlugin(providers), createUpdatesPlugin(providers)]
   if (dataMode.permissions?.isAdmin) plugins.push(...options.adminPlugins)
   for (const plugin of plugins) {
     if (!registry.get(plugin.id)) registry.register(plugin)
