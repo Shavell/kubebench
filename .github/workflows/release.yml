@@ -42,6 +42,9 @@ jobs:
     name: Draft GitHub release
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    # The write token is handed only to the steps that need it (tag push,
+    # GoReleaser, gh); it is never stored in .git/config, where npm install
+    # scripts, tests and builds could read it.
     permissions:
       contents: write # push the tag, create the draft release, upload assets
     outputs:
@@ -64,6 +67,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # tags and history for GoReleaser and scripts/version.sh
+          persist-credentials: false
 
       - name: Release an existing tag as it is
         id: tag
@@ -88,7 +92,8 @@ jobs:
       - uses: azure/setup-helm@v5
         with:
           version: ${{ env.HELM_VERSION }}
-      - run: npm ci --no-audit --no-fund
+      # No dependency needs an install script; none runs in this job.
+      - run: npm ci --ignore-scripts --no-audit --no-fund
 
       - name: Check versions, CHANGELOG and manifests
         env:
@@ -101,11 +106,12 @@ jobs:
         if: steps.tag.outputs.exists == 'false'
         env:
           TAG: ${{ steps.version.outputs.tag }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -a "$TAG" -m "KubeBench $TAG"
-          git push origin "refs/tags/$TAG"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "refs/tags/$TAG"
 
       - name: Extract the release notes
         env:
@@ -122,11 +128,13 @@ jobs:
           helm package charts/kubebench --destination build/extra
           cp deploy/kubernetes/kubebench.yaml install.sh build/extra/
 
+      # --skip=before: the frontend was built above, without the token in its
+      # environment; GoReleaser's `make embed` hook would rebuild it with one.
       - name: GoReleaser
         uses: goreleaser/goreleaser-action@v7
         with:
           version: "~> v2"
-          args: release --clean --release-notes ${{ runner.temp }}/release-notes.md
+          args: release --clean --skip=before --release-notes ${{ runner.temp }}/release-notes.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
