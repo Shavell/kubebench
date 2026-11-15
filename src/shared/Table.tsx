@@ -1,6 +1,8 @@
 import clsx from 'clsx'
-import { useMemo, useState, type ReactNode } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { Icon } from './Icon'
+import { useVirtualRows } from './useVirtualRows'
+import { moveIndex } from './virtualRange'
 import './form/form.css'
 import './Table.css'
 
@@ -23,6 +25,9 @@ export interface TableSelection<T> {
   allLabel: string
 }
 
+/** Tables with more rows than this render only the rows near the viewport. */
+export const VIRTUALIZE_ABOVE = 300
+
 interface TableProps<T> {
   columns: Column<T>[]
   rows: T[]
@@ -33,8 +38,19 @@ interface TableProps<T> {
   selection?: TableSelection<T>
 }
 
+/**
+ * Sortable table of the workbench. Rows the user can act on (click, context
+ * menu, selection) are reachable from the keyboard: the table takes focus,
+ * ↑/↓, Home/End and PageUp/PageDown move the active row, Enter opens it,
+ * Space toggles its checkbox and Shift+F10 (or the menu key) opens its
+ * context menu. Above VIRTUALIZE_ABOVE rows only the rows near the viewport
+ * of the scrolling ancestor are rendered.
+ */
 export function Table<T>({ columns, rows, rowKey, onRowClick, onRowContextMenu, selection }: TableProps<T>) {
   const [sort, setSort] = useState<{ key: string; dir: 1 | -1 } | null>(null)
+  /** The keyboard's active row, by key, so it survives sorting and refreshes. */
+  const [activeKey, setActiveKey] = useState<string | null>(null)
+  const tableRef = useRef<HTMLTableElement>(null)
 
   const sorted = useMemo(() => {
     if (!sort) return rows
@@ -48,6 +64,12 @@ export function Table<T>({ columns, rows, rowKey, onRowClick, onRowContextMenu, 
     })
   }, [rows, sort, columns])
 
+  const keys = useMemo(() => sorted.map(rowKey), [sorted, rowKey])
+  const virtual = useVirtualRows(tableRef, sorted.length, sorted.length > VIRTUALIZE_ABOVE)
+  const columnWidths = useFrozenColumnWidths(tableRef, virtual.windowed, columns)
+  const interactive = Boolean(onRowClick || onRowContextMenu || selection)
+  const activeIndex = activeKey === null ? -1 : keys.indexOf(activeKey)
+
   const toggleSort = (col: Column<T>) => {
     if (!col.sortValue) return
     setSort((s) =>
@@ -55,14 +77,13 @@ export function Table<T>({ columns, rows, rowKey, onRowClick, onRowContextMenu, 
     )
   }
 
-  const shownKeys = selection ? sorted.map(rowKey) : []
-  const selectedShown = selection ? shownKeys.filter((k) => selection.selected.has(k)).length : 0
-  const allShown = shownKeys.length > 0 && selectedShown === shownKeys.length
+  const selectedShown = selection ? keys.filter((k) => selection.selected.has(k)).length : 0
+  const allShown = keys.length > 0 && selectedShown === keys.length
 
   const toggleAll = () => {
     if (!selection) return
     const next = new Set(selection.selected)
-    for (const key of shownKeys) {
+    for (const key of keys) {
       if (allShown) next.delete(key)
       else next.add(key)
     }
@@ -76,10 +97,83 @@ export function Table<T>({ columns, rows, rowKey, onRowClick, onRowContextMenu, 
     selection.onChange(next)
   }
 
+  const activate = (index: number) => {
+    if (index < 0) return
+    setActiveKey(keys[index])
+    virtual.scrollToIndex(index)
+  }
+
+  const onKeyDown = (event: KeyboardEvent<HTMLTableElement>) => {
+    // Keys typed into a row's checkbox or a cell's own controls stay theirs.
+    if (event.target !== event.currentTarget || event.altKey || event.ctrlKey || event.metaKey) return
+    const page = Math.max(1, Math.floor((tableRef.current?.parentElement?.clientHeight ?? 0) / virtual.rowHeight) - 1)
+    const moves: Record<string, number> = {
+      ArrowDown: 1,
+      ArrowUp: -1,
+      PageDown: page,
+      PageUp: -page,
+      Home: -sorted.length,
+      End: sorted.length,
+    }
+    const delta = moves[event.key]
+    if (delta !== undefined && !event.shiftKey) {
+      event.preventDefault()
+      activate(moveIndex(activeIndex, delta, sorted.length))
+      return
+    }
+    const row = activeIndex >= 0 ? sorted[activeIndex] : undefined
+    if (!row) return
+    if (event.key === 'Enter' && onRowClick) {
+      event.preventDefault()
+      onRowClick(row)
+    } else if (event.key === ' ' && selection) {
+      event.preventDefault()
+      toggleRow(keys[activeIndex])
+    } else if ((event.key === 'ContextMenu' || (event.key === 'F10' && event.shiftKey)) && onRowContextMenu) {
+      event.preventDefault()
+      openRowMenu(activeIndex)
+    }
+  }
+
+  /** Opens the active row's context menu next to its first cell, like a right-click there. */
+  const openRowMenu = (index: number) => {
+    const tr = tableRef.current?.querySelector<HTMLTableRowElement>(`tr[data-row-index="${index}"]`)
+    if (!tr) return
+    const rect = tr.getBoundingClientRect()
+    tr.dispatchEvent(
+      new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: rect.left + 24, clientY: rect.bottom }),
+    )
+  }
+
+  const { start, end } = virtual.range
+  const spacer = (height: number, position: string) =>
+    height > 0 && (
+      <tr key={position} className="kb-table__spacer" aria-hidden="true" style={{ height }}>
+        <td colSpan={columns.length + (selection ? 1 : 0)} />
+      </tr>
+    )
+
   return (
-    <table className="kb-table">
+    <table
+      ref={tableRef}
+      className={clsx('kb-table', columnWidths && 'kb-table--fixed', interactive && 'kb-table--interactive')}
+      tabIndex={interactive ? 0 : undefined}
+      aria-rowcount={virtual.windowed ? sorted.length + 1 : undefined}
+      onKeyDown={interactive ? onKeyDown : undefined}
+      onFocus={(event) => {
+        // Tabbing into the table starts on the first row.
+        if (event.target === event.currentTarget && activeIndex < 0 && sorted.length > 0) setActiveKey(keys[0])
+      }}
+    >
+      {columnWidths && (
+        <colgroup>
+          {columnWidths.map((width, i) => (
+            <col key={i} style={{ width: `${width}%` }} />
+          ))}
+        </colgroup>
+      )}
       <thead>
-        <tr>
+        <tr aria-rowindex={virtual.windowed ? 1 : undefined}>
           {selection && (
             <th className="kb-table__select">
               <input
@@ -88,7 +182,7 @@ export function Table<T>({ columns, rows, rowKey, onRowClick, onRowContextMenu, 
                 aria-label={selection.allLabel}
                 title={selection.allLabel}
                 checked={allShown}
-                disabled={shownKeys.length === 0}
+                disabled={keys.length === 0}
                 ref={(box) => {
                   if (box) box.indeterminate = selectedShown > 0 && !allShown
                 }}
@@ -99,7 +193,7 @@ export function Table<T>({ columns, rows, rowKey, onRowClick, onRowContextMenu, 
           {columns.map((col) => (
             <th
               key={col.key}
-              style={col.width ? { width: col.width } : undefined}
+              style={col.width && !columnWidths ? { width: col.width } : undefined}
               className={col.sortValue ? 'kb-table__th--sortable' : undefined}
               onClick={() => toggleSort(col)}
             >
@@ -112,17 +206,35 @@ export function Table<T>({ columns, rows, rowKey, onRowClick, onRowContextMenu, 
         </tr>
       </thead>
       <tbody>
-        {sorted.map((row) => {
-          const key = rowKey(row)
+        {spacer(start * virtual.rowHeight, 'before')}
+        {sorted.slice(start, end).map((row, offset) => {
+          const index = start + offset
+          const key = keys[index]
           const selected = selection?.selected.has(key) ?? false
           return (
             <tr
               key={key}
+              data-row-index={index}
+              aria-rowindex={virtual.windowed ? index + 2 : undefined}
               className={
-                clsx(onRowClick && 'kb-table__row--clickable', selected && 'kb-table__row--selected') || undefined
+                clsx(
+                  onRowClick && 'kb-table__row--clickable',
+                  selected && 'kb-table__row--selected',
+                  index === activeIndex && 'kb-table__row--active',
+                ) || undefined
               }
-              onClick={() => onRowClick?.(row)}
-              onContextMenu={onRowContextMenu ? (e) => onRowContextMenu(row, e) : undefined}
+              onClick={() => {
+                setActiveKey(key)
+                onRowClick?.(row)
+              }}
+              onContextMenu={
+                onRowContextMenu
+                  ? (e) => {
+                      setActiveKey(key)
+                      onRowContextMenu(row, e)
+                    }
+                  : undefined
+              }
             >
               {selection && (
                 // Ticking a box must not also open the row.
@@ -142,7 +254,38 @@ export function Table<T>({ columns, rows, rowKey, onRowClick, onRowContextMenu, 
             </tr>
           )
         })}
+        {spacer((sorted.length - end) * virtual.rowHeight, 'after')}
       </tbody>
     </table>
   )
+}
+
+/**
+ * While rows are windowed, the browser would size auto-layout columns from
+ * the rendered rows only, so widths would jump while scrolling. The widths
+ * of the first rendering are kept instead (as percentages, so they follow
+ * the table's width), until windowing ends or the columns change.
+ */
+function useFrozenColumnWidths<T>(
+  tableRef: React.RefObject<HTMLTableElement | null>,
+  windowed: boolean,
+  columns: Column<T>[],
+): number[] | null {
+  const [widths, setWidths] = useState<{ columns: string; values: number[] } | null>(null)
+  const columnsKey = columns.map((c) => c.key).join('\u0000')
+
+  useLayoutEffect(() => {
+    if (!windowed) {
+      setWidths(null)
+      return
+    }
+    if (widths?.columns === columnsKey) return
+    const table = tableRef.current
+    const cells = table?.tHead?.rows[0]?.cells
+    if (!table || !cells || table.offsetWidth === 0) return
+    const total = table.offsetWidth
+    setWidths({ columns: columnsKey, values: [...cells].map((cell) => (cell.offsetWidth / total) * 100) })
+  }, [windowed, columnsKey, widths, tableRef])
+
+  return windowed && widths?.columns === columnsKey ? widths.values : null
 }

@@ -68,3 +68,27 @@
 .kb-table__row--selected.kb-table__row--clickable:hover {
   background: var(--vscode-list-inactiveSelectionBackground);
 }
+
+/* Keyboard navigation: the table takes focus, the active row is outlined (like VS Code lists). */
+.kb-table--interactive:focus {
+  outline: none;
+}
+.kb-table--interactive:focus .kb-table__row--active {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+.kb-table--interactive:focus .kb-table__row--active:not(.kb-table__row--selected) {
+  background: var(--vscode-list-hoverBackground);
+}
+
+/* Windowed tables (above VIRTUALIZE_ABOVE rows): frozen column widths and spacer rows. */
+.kb-table--fixed {
+  table-layout: fixed;
+}
+.kb-table--fixed td {
+  max-width: none;
+}
+.kb-table__spacer td {
+  padding: 0;
+  border: none;
+}

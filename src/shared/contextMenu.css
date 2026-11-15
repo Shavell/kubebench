@@ -59,3 +59,12 @@
   margin: 4px 8px;
   background: var(--vscode-panel-border);
 }
+
+/* Keyboard focus (menus opened with Shift+F10 or the menu key). */
+.ctx-menu__item:focus {
+  outline: none;
+}
+.ctx-menu__item:focus:not(:disabled) {
+  background: var(--vscode-list-activeSelectionBackground);
+  color: var(--vscode-list-activeSelectionForeground);
+}

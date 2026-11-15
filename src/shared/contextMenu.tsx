@@ -4,6 +4,8 @@ import clsx from 'clsx'
 import { Icon } from './Icon'
 import './contextMenu.css'
 
+const ITEM_SELECTOR = '.ctx-menu__item:not(:disabled)'
+
 export type ContextMenuItem =
   | {
       type?: 'item'
@@ -50,10 +52,21 @@ export function ContextMenuHost() {
   const { open, x, y, items, close } = useContextMenuStore()
   const menuRef = useRef<HTMLDivElement>(null)
 
+  // Keyboard use: the first item takes focus, Esc gives it back to the opener.
+  const opener = useRef<HTMLElement | null>(null)
+  const restoreFocus = () => {
+    if (opener.current?.isConnected) opener.current.focus()
+    opener.current = null
+  }
   useEffect(() => {
     if (!open) return
+    opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    menuRef.current?.querySelector<HTMLElement>(ITEM_SELECTOR)?.focus()
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close()
+      if (e.key === 'Escape') {
+        restoreFocus()
+        close()
+      }
     }
     window.addEventListener('mousedown', close)
     window.addEventListener('blur', close)
@@ -80,20 +93,47 @@ export function ContextMenuHost() {
 
   if (!open) return null
 
+  /** ↑/↓, Home and End move between the enabled items. */
+  const onMenuKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const items = [...(menuRef.current?.querySelectorAll<HTMLElement>(ITEM_SELECTOR) ?? [])]
+    if (items.length === 0) return
+    const index = items.indexOf(document.activeElement as HTMLElement)
+    const next =
+      e.key === 'ArrowDown'
+        ? items[(index + 1) % items.length]
+        : e.key === 'ArrowUp'
+          ? items[(index - 1 + items.length) % items.length]
+          : e.key === 'Home'
+            ? items[0]
+            : e.key === 'End'
+              ? items[items.length - 1]
+              : undefined
+    if (next) {
+      e.preventDefault()
+      next.focus()
+    } else if (e.key === 'Tab') {
+      e.preventDefault()
+    }
+  }
+
   return (
     <div
       ref={menuRef}
       className="ctx-menu"
+      role="menu"
       style={{ left: x, top: y }}
       onMouseDown={(e) => e.stopPropagation()}
       onContextMenu={(e) => e.preventDefault()}
+      onKeyDown={onMenuKeyDown}
     >
       {items.map((item, i) =>
         item.type === 'separator' ? (
-          <div key={i} className="ctx-menu__separator" />
+          <div key={i} className="ctx-menu__separator" role="separator" />
         ) : (
           <button
             key={i}
+            type="button"
+            role="menuitem"
             className={clsx(
               'ctx-menu__item',
               item.danger && 'ctx-menu__item--danger',
@@ -101,7 +141,11 @@ export function ContextMenuHost() {
             )}
             disabled={item.disabled}
             title={item.title}
+            // The pointer and the keyboard share one highlight: the focused item.
+            onMouseEnter={(e) => !item.disabled && e.currentTarget.focus()}
             onClick={() => {
+              // Back to the opener first, so a dialog the item opens returns focus there.
+              restoreFocus()
               close()
               item.onClick()
             }}
