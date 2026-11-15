@@ -175,13 +175,13 @@ Report security issues privately, not in a pull request: see
 
 ## License
 
-KubeBench is source-available. The license has not been chosen yet; the
-license file will be added before the first public release.
+KubeBench is licensed under the [GNU General Public License v3.0](LICENSE)
+(`GPL-3.0-only`). By contributing you agree that your contribution is
+licensed under the same terms (inbound = outbound).
 
-## Contributor License Agreement
+## Developer Certificate of Origin
 
-Contributions require agreeing to a Contributor License Agreement (CLA).
-The CLA lets the project offer KubeBench under commercial licenses as well
-as under its public license. The agreement and how to accept it will be
-published together with the license; a pull request is merged only once its
-author has accepted it.
+Every commit must carry a `Signed-off-by:` line (`git commit -s`), which
+certifies the [Developer Certificate of Origin 1.1](https://developercertificate.org/):
+you wrote the change or otherwise have the right to submit it under the
+project's license.

@@ -50,8 +50,8 @@ FROM gcr.io/distroless/static-debian13:nonroot
 ARG VERSION=dev
 ARG COMMIT=none
 ARG DATE=unknown
-# TODO: set once the project picks a license (org.opencontainers.image.licenses).
 LABEL org.opencontainers.image.title="KubeBench" \
+      org.opencontainers.image.licenses="GPL-3.0-only" \
       org.opencontainers.image.description="VSCode-style Kubernetes workbench: workloads, logs, shells, YAML, Helm and metrics for many clusters in one web UI" \
       org.opencontainers.image.url="https://github.com/Shavell/kube-bench" \
       org.opencontainers.image.source="https://github.com/Shavell/kube-bench" \

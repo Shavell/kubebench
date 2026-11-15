@@ -1,6 +1,5 @@
 # Notes: KubeBench vs KubelizeMe
 
-*Türkçe: [kubelizeme-comparison.tr.md](kubelizeme-comparison.tr.md)*
 
 These notes record how KubeBench differs from **KubelizeMe**, a desktop
 Kubernetes IDE that we used as a reference while planning v0.5. They

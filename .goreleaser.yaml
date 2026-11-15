@@ -81,7 +81,7 @@ nfpms:
       YAML, Helm releases, CRDs and metrics for many clusters, with users,
       per-cluster roles and an audit log. The package runs it as the systemd
       service kubebench.service, configured in /etc/kubebench/kubebench.env.
-    # TODO: set once the project picks a license
+    license: GPL-3.0-only
     section: admin
     priority: optional
     bindir: /usr/bin

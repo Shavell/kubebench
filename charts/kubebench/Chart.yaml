@@ -19,4 +19,5 @@ keywords:
 maintainers:
   - name: Shavell
     url: https://github.com/Shavell
-# TODO: set once the project picks a license (artifacthub.io/license annotation).
+annotations:
+  artifacthub.io/license: GPL-3.0-only

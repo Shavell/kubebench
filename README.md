@@ -1,7 +1,5 @@
 # KubeBench
 
-*Türkçe: [README.tr.md](README.tr.md)*
-
 KubeBench is a VS Code-style workbench for Kubernetes that runs in the
 browser: an activity bar, a tabbed editor area, a bottom panel with
 terminals and logs, a command palette and a status bar, with a module for
@@ -208,5 +206,4 @@ packages, snapshot release). Contribution rules: [CONTRIBUTING.md](CONTRIBUTING.
 
 ## License
 
-KubeBench is source-available. The license has not been chosen yet; the
-license file will be added before the first public release. Contributions are accepted under the [Contributor License Agreement](CONTRIBUTING.md#contributor-license-agreement).
+KubeBench is free software, licensed under the [GNU General Public License v3.0](LICENSE) (`GPL-3.0-only`). Contributions are accepted under the same license with a [Developer Certificate of Origin](CONTRIBUTING.md#developer-certificate-of-origin) sign-off.
