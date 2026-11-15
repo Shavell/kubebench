@@ -1,111 +1,212 @@
 # KubeBench
 
-A VSCode-style dashboard & workbench for Kubernetes: activity bar, tabbed
-editor area, bottom panel and command palette — with pluggable modules for
-workloads, CRDs, Helm, metrics, cluster inventory and user management.
+*Türkçe: [README.tr.md](README.tr.md)*
 
-Frontend: React 19 + TS + Vite. Backend: a single Go binary (client-go, Helm
-SDK, SQLite) that embeds the built frontend and is **deployable into the
-cluster it manages**. The UI is written against typed provider interfaces and
-falls back to a deterministic **mock** cluster when no backend is reachable.
+KubeBench is a VS Code-style workbench for Kubernetes that runs in the
+browser: an activity bar, a tabbed editor area, a bottom panel with
+terminals and logs, a command palette and a status bar, with a module for
+every part of daily cluster work. It is one Go binary with the UI embedded,
+made for teams: it runs **inside the cluster it manages**, on a VM, in
+Docker or on your laptop, keeps cluster credentials on the server and gives
+every user a role per cluster.
+
+![Pod details in the Workloads view](docs/images/workloads.png)
+
+## Highlights
+
+- **Workloads** — every built-in resource type grouped by Cluster,
+  Workloads, Config, Network, Storage and Access Control, with rich pages for
+  Pods, Deployments and Nodes (utilization charts, containers, events,
+  logs), events filters and recent warnings, namespace favourites, and
+  windowed tables for large lists.
+- **Editor** — YAML view (full or "neat"), edit with a diff review,
+  server-side dry run and apply; create resources from templates or
+  imported files; labels and annotations editor; delete with a propagation
+  choice; Secret values revealed on demand.
+- **Operations** — scale and restart Deployments, StatefulSets, DaemonSets
+  and ReplicaSets; rollout history, rollback and pause; Node cordon, drain
+  and taints; force and bulk Pod delete; debug containers; CronJob trigger
+  and suspend; namespace create and delete.
+- **Terminal and logs** — real shells over WebSocket (xterm.js, several
+  sessions, resize) and streaming logs with follow, previous container,
+  timestamps, filtering, download and multi-Pod selection by label.
+- **Helm** — releases, history, values per revision with diffs, rollback,
+  uninstall, install and upgrade with dry-run diffs, chart repositories,
+  search, and chart upload for offline clusters.
+- **Argo CD** — applications by project with sync and health, resource
+  tree, sync (prune, dry run, revision, selected resources), refresh,
+  rollback, delete, projects and ApplicationSets; through the Argo CD CRDs,
+  no API token.
+- **Storage** — overview of classes and capacity; PVC, PV and StorageClass
+  wizards with validation, YAML preview and dry run; PVC clone, restore from
+  snapshot and expansion.
+- **Security** — posture scan of about 25 checks (Pod Security Standards,
+  workload hygiene, RBAC, network policies, secrets in env vars, namespaces)
+  with a score, accepted risks shared by the team, and Markdown/CSV export.
+- **Access** — RBAC explorer: "who can …", effective permissions of a
+  subject with the binding path, risky roles, binding graph and
+  SubjectAccessReview checks.
+- **Topology** — namespace graph Ingress → Service → Pod ← ReplicaSet ←
+  Deployment, PVC → PV and ConfigMap/Secret references, with focus on one
+  object.
+- **Metrics** — cluster overview, allocation (requests and limits against
+  allocatable) and per-node pages from metrics-server or an auto-discovered
+  Prometheus.
+- **CRDs** — custom resources grouped by API group, with CRD-specific
+  columns.
+- **Extensions** — admins enable and disable plugins; external UI plugins
+  load at runtime through the `window.KubeBench` SDK.
+- **Users and Audit** (admins) — users, per-cluster roles, and an audit log
+  of every change, shell and admin action.
+- **Live updates** — views refresh when the cluster changes (shared
+  informers, Server-Sent Events), with a Live / Polling indicator.
+- **Command palette** — kubectl-style commands (`get pods -n shop`,
+  `describe deploy/web`, `logs`, `exec`, `ns`, `ctx`) with aliases, and
+  keyboard shortcuts (`?` lists them).
+- **Update check and What's new** — admins see new GitHub releases with
+  their notes and upgrade steps; every user sees what changed after an
+  upgrade. Turn it off for air-gapped installs.
+- **EKS, AKS and GKE** — provider and version support detection with an
+  end-of-life notice, and in-process sign-in for the clouds' kubeconfigs
+  (per-cluster credentials or the server's cloud identity).
+- **English, Turkish and German** UI, light, dark and system themes.
+
+| | |
+|---|---|
+| ![Helm release](docs/images/helm.png) | ![Argo CD application](docs/images/argocd.png) |
+| Helm release with hooks, values, manifest and history | Argo CD application with its resource tree |
+| ![Security posture](docs/images/security.png) | ![Topology](docs/images/topology.png) |
+| Security posture score by category | Namespace topology |
+| ![Cluster overview](docs/images/metrics.png) | ![PVC wizard](docs/images/storage.png) |
+| Cluster overview with recent warnings and allocation | PersistentVolumeClaim wizard with live YAML preview |
+| ![Risky roles](docs/images/access.png) | ![Light theme in Turkish](docs/images/light-tr.png) |
+| Risky roles in the Access plugin | Light theme, Turkish UI |
+
+The screenshots show the built-in demo data (`?demo`).
+
+## Trust by design
+
+- **Credentials stay on the server.** The browser talks only to KubeBench;
+  KubeBench talks to the clusters.
+- **Roles per cluster.** Global `admin` or `user`; on each assigned cluster
+  `viewer` (read) or `operator` (read, change, shell). Clusters can be
+  flagged **read-only** for everyone and tagged as development, staging or
+  production; production asks you to type the name before destructive
+  actions.
+- **Audit log** of every change, shell and admin action, refused attempts
+  included.
+- **Secret values are redacted** everywhere unless someone with shell
+  permission reveals them, which is audited.
+- **Honest data.** Live mode never shows sample data: a missing capability
+  (no Prometheus, no Argo CD, no RBAC access) is shown as unavailable with
+  the reason.
+
+Details: [SECURITY.md](SECURITY.md) and [docs/security.md](docs/security.md).
 
 ## Quick start
 
-```bash
-npm install
+Every release on [GitHub](https://github.com/Shavell/kube-bench/releases)
+ships the container image, the Helm chart, plain manifests, `.deb`/`.rpm`
+packages, archives for Linux, macOS and Windows, the installer and an
+offline bundle. The full guide, including TLS, reverse proxies, upgrades,
+backups and air-gapped installs, is [docs/deployment.md](docs/deployment.md).
 
-# Mock mode (no backend, no auth)
-npm run dev                                       # http://localhost:5173
-
-# Live mode: Go backend against a kubeconfig, then the dev frontend
-KUBECONFIG=/path/to/kubeconfig npm run server:go  # http://localhost:9876
-npm run dev                                        # sign in as admin/admin
-```
-
-## Deploy into a cluster
+### Kubernetes
 
 ```bash
-docker build -t ghcr.io/your-org/kubebench:0.1.0 .
-helm install kubebench charts/kubebench -n kubebench --create-namespace \
-  --set image.repository=ghcr.io/your-org/kubebench \
-  --set auth.adminPassword=changeme
+# Helm (OCI)
+helm install kubebench oci://ghcr.io/shavell/charts/kubebench --version 0.5.0 \
+  --namespace kubebench --create-namespace
+kubectl -n kubebench get secret kubebench-auth -o jsonpath='{.data.admin-password}' | base64 -d; echo
+kubectl -n kubebench port-forward svc/kubebench 8080:80      # http://localhost:8080, user admin
+
+# or plain manifests (password admin, changed at the first sign-in)
+kubectl apply -f https://github.com/Shavell/kube-bench/releases/download/v0.5.0/kubebench.yaml
 ```
 
-One container, one PVC (SQLite on **`local-path`** by default for k3s), a
-ServiceAccount bound to `cluster-admin`, a Service and optional Ingress. The
-in-cluster ServiceAccount is auto-registered as the managed cluster. Full
-guide: [`docs/deployment.md`](docs/deployment.md).
+KubeBench registers the cluster it runs in as `in-cluster` through its
+ServiceAccount; the chart's `rbac.preset` (`cluster-admin`, `read-only`,
+`custom`) decides what it may do there. Add more clusters in the Clusters
+view. Chart values: [charts/kubebench/README.md](charts/kubebench/README.md).
 
-## Auth & multi-user
+### Virtual machine
 
-- Local username/password login; DB-backed HttpOnly session cookies.
-- **admin** manages the cluster inventory and users; **user** sees only the
-  clusters assigned to them (Users module). Each user has an active cluster;
-  add remote clusters by pasting a kubeconfig (Clusters module).
+```bash
+# installer: picks .deb, .rpm or the tarball, verifies checksums, starts the service
+curl -fsSL https://raw.githubusercontent.com/Shavell/kube-bench/main/install.sh | sudo bash
 
-## Modules
+# or the packages
+sudo apt install ./kubebench_0.5.0_amd64.deb
+sudo dnf install ./kubebench-0.5.0-1.x86_64.rpm
+```
 
-| Module | What it does |
-|---|---|
-| **Clusters** | Inventory of kubeconfig paths / API addresses; add, remove, activate (switches your active cluster and reloads the app) |
-| **Workloads** | Grouped resource tree — **Cluster** (Nodes, Namespaces, Events), **Workloads** (Pods, Deployments, StatefulSets, DaemonSets, ReplicaSets, ReplicationControllers, Jobs, CronJobs), **Config** (ConfigMaps, Secrets, ResourceQuotas, LimitRanges, HPAs, PodDisruptionBudgets, PriorityClasses, RuntimeClasses, Leases, Mutating/Validating Webhooks), **Network** (Services, Ingresses, IngressClasses, EndpointSlices, Endpoints, NetworkPolicies), **Storage** (PVCs, PVs, StorageClasses), **Access Control** (ServiceAccounts, Roles/Bindings, ClusterRoles/Bindings). Rich detail (utilization charts, env, requests/limits, events, logs, exec, delete/scale/restart) for pods/deployments/nodes; generic list+detail+YAML for the rest. Secret values are redacted. |
-| **CRDs** | CRD discovery grouped by API group, custom resource lists with CRD-specific columns |
-| **Helm** | Releases with revision history, per-revision rollback, uninstall, editable values, repositories |
-| **Metrics** | Cluster Overview: usage tiles (CPU/Mem/Disk), **allocation panels** (requests/limits/usage vs allocatable, with overcommit marker), utilization charts (CPU, memory, network, filesystem); per-node metric pages; status bar CPU/Mem item |
-| **Settings** | Gear icon (activity bar bottom): theme, **metrics source**, metrics window, auto refresh, terminal font size — persisted in localStorage |
-| **Users** (admin) | Create/delete users, assign clusters per user |
+The installer prints a generated admin password; the packages start with
+`admin`/`admin`. Configuration lives in `/etc/kubebench/kubebench.env`, data
+in `/var/lib/kubebench`. Without internet access:
+`sudo bash install.sh --offline kubebench-offline-0.5.0.tar.gz`.
 
-Shell features: command palette (`Cmd/Ctrl+Shift+P` or `F1`), tab context menu
-(Close / Close Others / Close to the Right / Close All), resizable sidebar and
-bottom panel (Problems / Logs / Terminal), namespace filter in the status bar.
+### Docker
 
-## Metrics sources
+```bash
+docker run -d --name kubebench -p 9876:9876 -v kubebench-data:/data \
+  -e KUBEBENCH_ADMIN_PASSWORD='choose-a-password' ghcr.io/shavell/kube-bench:0.5.0
+```
 
-Utilization series come from one of two backends, selectable in Settings:
+Open http://localhost:9876 and sign in as `admin`. KubeBench asks for a new
+password at the first sign-in, whatever the install method.
 
-- **Prometheus** (preferred, auto-discovered): queried through the Kubernetes
-  API server's `services/proxy`. Supports full history and network +
-  filesystem metrics (node-exporter). Discovery matches common service names
-  (`prometheus`, `prometheus-server`, `kube-prometheus-stack-prometheus`, …).
-- **metrics-server**: instant usage only; the backend samples it every 15s
-  into a ring buffer, so history accumulates while the backend runs. Network
-  and filesystem charts need Prometheus and say so when it is missing.
+### On your machine
 
-## Live-mode capability matrix
+```bash
+KUBEBENCH_LISTEN_ADDR=127.0.0.1:9876 KUBECONFIG=~/.kube/config ./kubebench
+```
 
-On activation the backend probes what the cluster credential allows and
-reports capabilities to the UI (`/api/info`). Live mode never shows mock
-data: a module whose capability is missing explains why instead. Auth
-supports bearer tokens **and** client certificates.
+## Development
 
-| Capability | Needs | When unavailable |
-|---|---|---|
-| Resource lists / detail / YAML / events | `list`, `get` | error shown |
-| Pod logs | `pods/log` | error shown |
-| Usage & allocation metrics | metrics-server, or `services/proxy` + Prometheus | unavailable, with the reason |
-| Delete pod, scale/restart deployment | `delete pods`, `patch deployments` | RBAC error banner |
-| Helm (releases, history, values, install, upgrade, rollback, uninstall) | `secrets` access (Helm SDK in the backend) | unavailable, with the reason |
-| CRD browsing (defs + instances + YAML) | `customresourcedefinitions` + CR groups | unavailable, with the reason |
-| Exec (terminal, one-shot commands) | `pods/exec` | unavailable, with the reason |
+Requirements: Node.js 24 and npm, Go (the version in `backend/go.mod`),
+make. Optional: Docker, Helm, kubectl and a local cluster (k3d or kind).
+
+```bash
+npm ci
+
+# UI only, on deterministic demo data (no backend needed)
+npm run dev                                         # http://localhost:5173
+
+# UI + backend against a cluster
+KUBECONFIG=/path/to/kubeconfig npm run server:go    # http://localhost:9876
+npm run dev                                          # proxies /api to :9876
+
+# the embedded production build
+make build && ./bin/kubebench
+```
+
+Checks before a pull request:
+
+```bash
+npx tsc -b && npm run build && npm run lint && npm run i18n:check && npm test
+cd backend && go vet ./... && go test ./... && go build ./...
+```
+
+`make help` lists every target (tests, lint, chart lint, manifests, image,
+packages, snapshot release). Contribution rules: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Documentation
 
-- [`docs/design-go-backend.md`](docs/design-go-backend.md) — Go backend
-  architecture: packages, DB schema, auth, cluster runtime
-- [`docs/deployment.md`](docs/deployment.md) — Docker image, Helm chart, RBAC,
-  configuration
-- [`docs/architecture.md`](docs/architecture.md) — frontend layers, plugin
-  API, data providers, how to add a module
-- [`docs/backend.md`](docs/backend.md) — where the HTTP API is specified
-  ([`docs/design-v0.5.md`](docs/design-v0.5.md) §3–§7)
-
-## Scripts
-
-| Command | |
+| Document | Contents |
 |---|---|
-| `npm run dev` | Vite dev server (proxies `/api` to `:9876`) |
-| `npm run server:go` | Go backend (reads `KUBECONFIG`, port `9876`) |
-| `npm run build` | Type-check + production build |
-| `npm run lint` | Oxlint |
-| `docker build -t kubebench .` | Build the deployable image |
-| `helm install … charts/kubebench` | Deploy into a cluster |
+| [docs/deployment.md](docs/deployment.md) | Installing, TLS, upgrades, backups, cloud clusters |
+| [docs/configuration.md](docs/configuration.md) | Every environment variable and chart value |
+| [docs/security.md](docs/security.md) | Security model, threat model, hardening checklist |
+| [docs/architecture.md](docs/architecture.md) | Backend packages, router, plugin platform, frontend layers |
+| [docs/plugins.md](docs/plugins.md) | Writing core, backend and external plugins; the SDK |
+| [docs/api.md](docs/api.md) | HTTP API reference |
+| [docs/i18n.md](docs/i18n.md) | Translations and adding a language |
+| [docs/releasing.md](docs/releasing.md) | Versioning and cutting a release |
+| [docs/design-v0.5.md](docs/design-v0.5.md) | The v0.5 implementation contract |
+| [docs/notes/kubelizeme-comparison.md](docs/notes/kubelizeme-comparison.md) | How KubeBench compares with KubelizeMe |
+| [CHANGELOG.md](CHANGELOG.md) | Release history |
+
+## License
+
+KubeBench is source-available. The license has not been chosen yet; the
+license file will be added before the first public release. Contributions are accepted under the [Contributor License Agreement](CONTRIBUTING.md#contributor-license-agreement).

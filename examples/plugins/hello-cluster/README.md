@@ -4,7 +4,7 @@ An external (runtime-loaded) UI plugin for KubeBench, as described in
 [`docs/design-v0.5.md` §6.8](../../../docs/design-v0.5.md). It adds an
 activity bar entry, a side bar view, a command and a tab that lists the
 namespaces of the active cluster through KubeBench's read-only Kubernetes
-API. Its texts are available in English and Turkish.
+API. Its texts are available in English, Turkish and German.
 
 Use it as the starting point for your own plugin.
 
