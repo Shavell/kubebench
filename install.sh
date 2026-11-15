@@ -573,25 +573,13 @@ random_password() {
 # --- service -----------------------------------------------------------------
 
 # healthy BIN reports whether the running server answers `kubebench
-# healthcheck` (GET 127.0.0.1:$PORT/healthz). A server bound to one specific
-# non-loopback address is not reachable that way; the unit state decides then.
+# healthcheck`, which reads the same env file and probes /healthz on the
+# listen address (loopback when it listens on all interfaces).
 healthy() {
-  local listen port host
-  listen="$(env_get KUBEBENCH_LISTEN_ADDR)"
-  port="$(env_get PORT)"
-  if [[ -n "$listen" ]]; then
-    port="${listen##*:}"
-    host="${listen%:*}"
-    case "$host" in
-      "" | 0.0.0.0 | "[::]" | 127.0.0.1 | localhost) ;;
-      *) return 0 ;;
-    esac
-  fi
   (
     set +u -a
     # shellcheck disable=SC1090 # the env file is written by this installer
     . "$ENV_FILE"
-    export PORT="${port:-9876}"
     exec "$1" healthcheck
   ) >/dev/null 2>&1
 }
