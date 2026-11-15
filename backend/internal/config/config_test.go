@@ -161,3 +161,26 @@ func TestNamespace(t *testing.T) {
 		t.Fatalf("Namespace = %q, %v", c.Namespace, err)
 	}
 }
+
+func TestUpdateSettings(t *testing.T) {
+	c, err := FromEnv(env(nil), false)
+	if err != nil || c.UpdateMode != "stable" || c.UpdateURL != DefaultUpdateURL {
+		t.Fatalf("defaults: mode %q, url %q, %v", c.UpdateMode, c.UpdateURL, err)
+	}
+	c, err = FromEnv(env(map[string]string{
+		"KUBEBENCH_UPDATE_MODE": "Off",
+		"KUBEBENCH_UPDATE_URL":  "http://mirror.internal/releases.json",
+	}), false)
+	if err != nil || c.UpdateMode != "off" || c.UpdateURL != "http://mirror.internal/releases.json" {
+		t.Fatalf("explicit: mode %q, url %q, %v", c.UpdateMode, c.UpdateURL, err)
+	}
+	_, err = FromEnv(env(map[string]string{
+		"KUBEBENCH_UPDATE_MODE": "nightly",
+		"KUBEBENCH_UPDATE_URL":  "ftp://mirror.internal/releases",
+	}), false)
+	for _, key := range []string{"KUBEBENCH_UPDATE_MODE", "KUBEBENCH_UPDATE_URL"} {
+		if err == nil || !strings.Contains(err.Error(), key+":") {
+			t.Errorf("error does not mention %s: %v", key, err)
+		}
+	}
+}

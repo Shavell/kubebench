@@ -1,0 +1,122 @@
+{
+  "manifest": {
+    "name": "Güncellemeler",
+    "description": "Yeni KubeBench sürümlerini GitHub'dan denetler ve bir yükseltmeden sonra nelerin değiştiğini gösterir."
+  },
+  "commands": {
+    "whatsNew": "Yardım: Yenilikler",
+    "checkNow": "Yardım: Güncellemeleri denetle"
+  },
+  "modes": {
+    "off": "Kapalı",
+    "stable": "Kararlı sürümler",
+    "prerelease": "Kararlı sürümler ve ön sürümler"
+  },
+  "settings": {
+    "title": "Güncellemeler",
+    "mode": {
+      "label": "Güncelleme denetimi",
+      "help": "KubeBench'in yöneticilere hangi GitHub sürümlerini bildireceği. Kapalı iken GitHub'a hiç bağlanılmaz; internet erişimi olmayan kurulumlarda bunu kullanın.",
+      "serverDefault": "Sunucunun varsayılanı \"{{mode}}\" (KUBEBENCH_UPDATE_MODE).",
+      "adminOnly": "Bunu yalnızca yöneticiler değiştirebilir."
+    },
+    "current": {
+      "label": "Çalışan sürüm",
+      "unknown": "Bir geliştirme derlemesi: sürümlerle karşılaştırılmaz."
+    },
+    "latest": {
+      "label": "Son sürüm",
+      "none": "Henüz yayımlanmış sürüm yok",
+      "off": "Denetlenmedi: güncelleme denetimi kapalı",
+      "pending": "Henüz denetlenmedi",
+      "upToDate": "v{{version}}, güncel",
+      "available": "v{{version}}, güncelleme var",
+      "plain": "v{{version}}"
+    },
+    "checked": {
+      "label": "Son denetim",
+      "never": "Henüz yok"
+    },
+    "error": {
+      "label": "Son denetim başarısız oldu"
+    },
+    "checkNow": "Şimdi denetle",
+    "checking": "Denetleniyor…",
+    "checkOff": "Şimdi denetlemek için güncelleme denetimini açın.",
+    "showNotes": "Sürüm notları…",
+    "loadFailed": "Güncelleme durumu yüklenemedi"
+  },
+  "notices": {
+    "modeSaved": "Güncelleme denetimi: {{mode}}",
+    "upToDate": "KubeBench v{{version}} güncel.",
+    "noReleases": "Henüz yayımlanmış bir KubeBench sürümü yok.",
+    "unknownCurrent": "Bu bir geliştirme derlemesi. Son sürüm v{{version}}.",
+    "checkFailed": "Güncelleme denetimi başarısız oldu",
+    "saveFailed": "Güncelleme modu kaydedilemedi",
+    "markSeenFailed": "Bu sürümün değişikliklerini gördüğünüz kaydedilemedi"
+  },
+  "statusBar": {
+    "available": "Güncelleme var: v{{version}}",
+    "tooltip": "KubeBench v{{version}} yayımlandı. Sürüm notları ve yükseltme adımları için tıklayın."
+  },
+  "available": {
+    "title": "Güncelleme var",
+    "summary": "KubeBench v{{latest}} yayımlandı. Şu an v{{current}} sürümünü kullanıyorsunuz.",
+    "summaryUnknown": "KubeBench v{{latest}} yayımlandı.",
+    "published": "Yayımlanma: {{date}}",
+    "prerelease": "Ön sürüm",
+    "notes": "Sürüm notları",
+    "noNotes": "Bu sürümün notu yok.",
+    "releasePage": "Sürüm sayfasını açın",
+    "howTo": "Nasıl yükseltilir",
+    "backup": "Önce yedek alın: KubeBench veritabanını açılışta yeni şemaya taşır ve eski bir sürüm onu artık açamaz.",
+    "guide": "Yükseltme kılavuzu",
+    "copy": "Komutu kopyala",
+    "close": "Kapat"
+  },
+  "methods": {
+    "helm": {
+      "title": "Helm",
+      "hint": "Chart değerlerinizi yeni chart'ın varsayılanlarının üzerine korur."
+    },
+    "manifests": {
+      "title": "Düz manifest'ler",
+      "hint": "Yeni sürümün manifest'ini uygular."
+    },
+    "packages": {
+      "title": ".deb ve .rpm paketleri",
+      "hint": "Yeni paketi sürüm sayfasından indirin; /etc/kubebench içindeki yapılandırma korunur ve servis yeniden başlar."
+    },
+    "installer": {
+      "title": "install.sh",
+      "hint": "Kurulum betiğini yeniden çalıştırmak yerinde yükseltir; yapılandırma ve veriler korunur."
+    },
+    "docker": {
+      "title": "Docker",
+      "hint": "Yeni imajı çekin, ardından container'ı aynı volume ile yeniden oluşturun."
+    }
+  },
+  "whatsNew": {
+    "title": "v{{version}} sürümündeki yenilikler",
+    "intro": "KubeBench v{{version}} sürümünde değişenler şunlar.",
+    "introSince": "KubeBench v{{from}} sürümünden v{{version}} sürümüne güncellendi. Değişenler şunlar.",
+    "fullChangelog": "Tüm değişiklik günlüğü",
+    "close": "Anladım"
+  },
+  "changelog": {
+    "tab": "Yenilikler",
+    "title": "KubeBench'teki yenilikler",
+    "version": "v{{version}}",
+    "running": "Çalışan",
+    "empty": "Bu derlemenin değişiklik günlüğü yok."
+  },
+  "about": {
+    "latest": "Son sürüm",
+    "available": "v{{version}} yayımlandı",
+    "upToDate": "Güncel",
+    "off": "Güncelleme denetimi kapalı",
+    "none": "Henüz sürüm yok",
+    "unknown": "Denetlenmedi",
+    "whatsNew": "Yenilikler"
+  }
+}

@@ -88,10 +88,6 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request, c *call) {
 	writeOK(w)
 }
 
-func (s *Server) handleMe(w http.ResponseWriter, _ *http.Request, c *call) {
-	plugin.WriteJSON(w, viewMe(c.user))
-}
-
 // handleChangePassword sets the caller's own password (§4.2). It clears a
 // forced change and signs out the caller's other sessions.
 func (s *Server) handleChangePassword(w http.ResponseWriter, r *http.Request, c *call) {

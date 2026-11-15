@@ -24,6 +24,7 @@ See [`../v0.5-handoff.md`](../v0.5-handoff.md) §6.
 | W2c | `topology` | Topology plugin (frontend only) | 19889 |
 | W3 | `live-updates` | Shared informers + SSE invalidation | 19890 |
 | W3 | `ux-polish` | Namespace pins, kubectl-like palette, shortcuts, table virtualization | 19891 |
+| W3 | `updates` | GitHub release check, update mode, What's new | 19899 |
 
 ---
 
@@ -281,3 +282,52 @@ Checks: Go tests with fakes; read-only `GET /api/deployments/history` against th
 - "Copy name" / "Copy YAML" actions.
 - Events view: Warning-only filter and group by reason.
 - A cluster dashboard card with recent warnings.
+
+## F12 `updates` — Updates and What's new (§7.11)
+
+Requested by the product owner: "the product can track through GitHub
+whether it is up to date; Settings has an update mode; there is a What's new
+screen".
+
+Backend:
+- New package `internal/updates`: a checker for the GitHub Releases API of
+  `Shavell/kube-bench` (`KUBEBENCH_UPDATE_URL`, for tests and mirrors).
+  It honours `HTTPS_PROXY`/`NO_PROXY`, has a 10 s timeout, sends
+  `If-None-Match` and caches results for about 6 h. It never blocks
+  startup and makes no request at all when the mode is `off`.
+- SemVer comparison with `main.version`: `dev`, git-describe and snapshot
+  builds report `current: "unknown"` and never nag.
+- Modes `off` | `stable` | `prerelease`, default `KUBEBENCH_UPDATE_MODE`
+  (`stable`). The admin's choice is persisted in `app_settings` (store
+  migration v3), not in the plugin KV.
+- Routes:
+  - `GET /api/updates` (authed);
+  - `PUT /api/settings/updates` (admin, audited);
+  - `POST /api/updates/check` (admin, audited);
+  - `lastSeenVersion` in `GET /api/auth/me`, stored by `PATCH /api/auth/me`
+    (`users.last_seen_version`, migration v3).
+- Config, `packaging/kubebench.env`, the chart (`config.updateMode`) and the
+  deploy docs gain both variables. Air-gapped installs use `off`:
+  `install.sh --offline` sets it, the offline bundle README documents it.
+
+Frontend:
+- Settings → Updates: mode selector for admins, read-only for others,
+  "Check now", the last check and the error reason.
+- Status bar item "Update available: vX.Y.Z" for admins, opening a dialog
+  with the release notes (Markdown subset renderer, no HTML injection) and
+  the upgrade steps per install method, linking `docs/deployment.md#upgrades`.
+  About shows the latest version to everyone.
+- What's new: `CHANGELOG.md` bundled with `?raw`, parsed by its Keep a
+  Changelog sections. It is shown once per user after an upgrade, and the
+  command "Help: What's New" and an About link show the full changelog.
+- Mock mode: a deterministic fake release; the demo user has seen the
+  current version.
+
+Tests:
+- Go: an httptest fake GitHub covering latest stable, prerelease, `304` with
+  ETag, a rate-limit `403`, a network error, malformed JSON and version
+  comparison (v prefix, prerelease ordering).
+- A store migration test and API permission tests.
+- Live: the real GitHub API ("no releases published" stays calm); a local
+  fake via `KUBEBENCH_UPDATE_URL` showing an available update in the UI;
+  What's new appearing once after the build version changes.

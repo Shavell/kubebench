@@ -39,6 +39,11 @@ config:
   auditRetentionDays: 90
   # KUBEBENCH_ALLOW_PATH_KUBECONFIG: allow adding clusters by a path on the server's filesystem.
   allowPathKubeconfig: false
+  # KUBEBENCH_UPDATE_MODE: default update check against GitHub releases:
+  # off (no requests; air-gapped clusters), stable or prerelease. Admins can
+  # change it in Settings. With networkPolicy.enabled the check needs egress
+  # to api.github.com:443 (networkPolicy.extraEgressCIDRs).
+  updateMode: stable
 
 # Additional container environment, e.g. [{name: KUBEBENCH_PLUGINS_DIR, value: /plugins}].
 # Entries listed here override the variables the chart sets.

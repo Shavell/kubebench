@@ -47,6 +47,8 @@ import type {
   RestartableKind,
   RolloutHistory,
   ScalableKind,
+  UpdateMode,
+  UpdateStatus,
 } from './types'
 
 /**
@@ -178,6 +180,20 @@ export interface DataProviders {
   audit: AuditProvider
   plugins: PluginsProvider
   workloadOps: WorkloadOpsProvider
+  updates: UpdatesProvider
+}
+
+/** Release checks and the What's new state of the signed-in user (design §7.11). */
+export interface UpdatesProvider {
+  /** The latest check (the server checks first when its cached result expired). */
+  status(): Promise<UpdateStatus>
+  /** Admin: stores the update mode and returns the status in it. */
+  setMode(mode: UpdateMode): Promise<UpdateStatus>
+  /** Admin: checks now; rejected with `conflict` while the mode is off. */
+  checkNow(): Promise<UpdateStatus>
+  /** The version whose What's new the user last closed; empty until then. */
+  lastSeenVersion(): Promise<string>
+  markSeen(version: string): Promise<void>
 }
 
 /**

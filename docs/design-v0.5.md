@@ -93,6 +93,8 @@ cluster-to-cluster compare, port-forward, light/dark per-plugin theming.
 | `KUBEBENCH_ALLOW_KUBECONFIG_EXEC` | `false` | Let pasted kubeconfigs run exec credential plugins and auth providers and read server-side files (certificate, key and token files). This gives every admin command execution as the server's account |
 | `KUBECONFIG` | — | Dev/VM convenience: seeds the inventory on first run (a path list is merged the way kubectl merges it) |
 | `KUBEBENCH_NAMESPACE` | in a pod: the pod's namespace | The namespace KubeBench runs in; deleting a namespace of that name is refused unless forced (§7.3) |
+| `KUBEBENCH_UPDATE_MODE` | `stable` | Default update check mode (§7.11): `off` (never contacts GitHub; use it for air-gapped installs), `stable` (new releases) or `prerelease` (also prereleases). An admin's choice in Settings overrides it |
+| `KUBEBENCH_UPDATE_URL` | `https://api.github.com/repos/Shavell/kube-bench/releases` | Releases endpoint the update check reads: GitHub's "list releases" JSON (a mirror or a GitHub Enterprise API works). `http` or `https` |
 
 The backend parses these once into `internal/config.Config`; invalid values
 are all reported at once and the binary exits with status 2. Ports, in `PORT`
@@ -284,7 +286,8 @@ route answers `409 no_cluster` instead. Without any usable cluster,
 `cluster` is `null` and `clusterError` says why.
 
 `POST /api/auth/login` and `GET /api/auth/me` return
-`{"id","username","role","mustChangePassword"}`.
+`{"id","username","role","mustChangePassword"}`; `GET /api/auth/me` adds
+`"lastSeenVersion"` (§7.11).
 
 ### 4.2 Users & password
 
@@ -1203,6 +1206,103 @@ Implementation (`src/plugins/topology`, no backend routes):
 heartbeat comments every 25 s, backed by per-cluster shared informers that
 start lazily and stop when unused. Frontend: scoped invalidation
 (`refreshData(topic?)`), status bar "Live" indicator, Settings toggle.
+
+### 7.11 Updates and What's new (core)
+
+KubeBench tells administrators when a newer release is published on
+GitHub, and tells every user what changed after an upgrade. Nothing here
+installs anything: upgrading stays the operator's job (§8,
+`docs/deployment.md#upgrades`).
+
+**Update check** (`backend/internal/updates`):
+
+- Reads `KUBEBENCH_UPDATE_URL` (§2; GitHub's "list releases" JSON of
+  `Shavell/kube-bench`, `per_page=20` added unless the URL sets it) with
+  `Accept: application/vnd.github+json`, `X-GitHub-Api-Version: 2022-11-28`
+  and `User-Agent: KubeBench/<version>`. The proxy comes from
+  `HTTPS_PROXY`/`HTTP_PROXY`/`NO_PROXY`; 10 s timeout; the response is
+  capped at 4 MiB.
+- Results are cached for 6 h and revalidated with `If-None-Match` (a `304`
+  keeps the cached list and only moves `checkedAt`). A failed check is
+  retried after 15 min at the earliest; a rate limit (`403`/`429` with
+  `X-RateLimit-Remaining: 0` or `Retry-After`) waits for
+  `Retry-After`/`X-RateLimit-Reset` (at most 6 h). A failure keeps the
+  last good result and reports `error` next to it.
+- Checks are lazy: the first `GET /api/updates` after the cache expired
+  fetches (concurrent callers share one request, which outlives a caller
+  that goes away). Startup never makes or waits for a request. Mode `off`
+  never contacts the URL at all.
+- Releases: drafts and tags that are not SemVer (`v` prefix allowed) are
+  ignored; a release is a prerelease when GitHub flags it or its version
+  has a prerelease part. `latest` is the highest version the mode admits:
+  `stable` → non-prereleases only, `prerelease` → all. An empty list and a
+  `404` (the repository has no public releases yet) both mean "no releases
+  published": `latest` and `error` are empty.
+- The build version (`main.version`) is compared by SemVer precedence. It
+  is reported as `current: "unknown"` (never "update available") unless it
+  is a release `X.Y.Z` or a release candidate
+  `X.Y.Z-<alpha|beta|rc|pre|preview>[N][.<id>…]` whose identifiers carry no
+  `-`: `dev`, git-describe (`0.5.0-3-gabc1234`), untagged
+  (`0.5.0-abc1234`), `-dirty` and GoReleaser snapshot
+  (`0.5.1-snapshot-abc1234`) builds do not nag.
+- Mode: `off` | `stable` | `prerelease`. The default is
+  `KUBEBENCH_UPDATE_MODE` (default `stable`); an admin's choice is stored in
+  `app_settings` (key `updates.mode`, store migration v3) and wins over the
+  default from then on.
+
+**API**:
+
+- `GET /api/updates` (authed) →
+  `{"mode","defaultMode","current","latest","available","prerelease","publishedAt","url","notes","checkedAt","error"}`.
+  `latest`, `url` (the release page; the repository's releases page when
+  there is none) and `notes` (the release body: Markdown source, never
+  HTML) describe the newest admitted release, empty when there is none;
+  `publishedAt` and `checkedAt` are RFC 3339 or `null`; `available` means
+  `latest` is newer than a known `current`.
+- `PUT /api/settings/updates` (admin, audited; target `setting/updates`,
+  detail `{"mode":…}`) `{"mode":"off"|"stable"|"prerelease"}` → the status
+  as `GET` returns it.
+- `POST /api/updates/check` (admin, audited) checks now (still conditional
+  on the ETag) → the status; `409 conflict` while the mode is `off`.
+- `GET /api/auth/me` gains `"lastSeenVersion"` (`""` until the user first
+  closed What's new); `PATCH /api/auth/me` (authed, not audited)
+  `{"lastSeenVersion":"0.5.0"}` (1–64 characters) stores it
+  (`users.last_seen_version`, migration v3) → the `me` view.
+
+**Frontend** (`src/core/updates`: a core plugin `updates` registered at boot
+like the workbench plugin, strings in its own `updates` namespace):
+
+- Provider `updates` (`status`, `setMode`, `checkNow`, `lastSeenVersion`,
+  `markSeen`). Mock: a deterministic fake release one patch above the app
+  version, published 2026-11-01, with notes; the demo user has already
+  seen the current version, so demo boots show no dialog.
+- Settings → **Updates**: the mode (a select for admins; read-only with the
+  reason for others), current and latest version, "Check now" (admins;
+  disabled while off), the last check time and the error reason, or "No
+  releases published yet".
+- Status bar (admins only): "Update available: vX.Y.Z", opening the
+  **Update available** dialog: version, date, prerelease badge, the release
+  notes through a tiny Markdown subset renderer (headings, lists,
+  paragraphs, `code`, **bold**, links with `http(s)` targets only; React
+  text nodes, never `innerHTML`), the release page link, and how to
+  upgrade per install method (Helm, manifests, .deb/.rpm, install.sh,
+  Docker) with a link to `docs/deployment.md#upgrades`.
+- About (everyone): the latest release next to the version, and a "What's
+  new" link.
+- **What's new**: `CHANGELOG.md` is bundled at build time (Vite `?raw`) and
+  parsed by its Keep a Changelog sections (`## [x.y.z] - date`, `### Added`
+  …; `[Unreleased]` is skipped). Once per user and version: when the app
+  version is a release version (as above) newer than the user's
+  `lastSeenVersion`, or that is empty, the "What's new in vX" dialog shows
+  the sections newer than `lastSeenVersion` up to the app version (only
+  the app version's when it is empty); closing it stores the version. With
+  no matching section the version is stored silently. "Help: What's New"
+  (command) and the About link open the `changelog` tab with the whole
+  changelog. "Help: Check for Updates" (admins) checks now and opens the
+  Update available dialog or reports the result.
+- Air-gapped installs use `off`: `install.sh --offline` writes
+  `KUBEBENCH_UPDATE_MODE=off`, the offline bundle README says so, and the
+  chart has `config.updateMode` (default `stable`).
 
 ## 8. Distribution
 

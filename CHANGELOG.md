@@ -56,6 +56,12 @@ those commits.
   `install.sh` installer (online and offline), offline bundles, a Makefile,
   GitHub Actions workflows (manual for now) and Dependabot.
 - `kubebench --version`, `kubebench healthcheck`, `GET /api/version`.
+- Update checks: administrators see new GitHub releases in the status bar
+  with their notes and the upgrade steps for each install method; the mode
+  (`off`, `stable`, `prerelease`) is set in Settings or with
+  `KUBEBENCH_UPDATE_MODE`, and air-gapped installs turn it off. After an
+  upgrade every user sees What's new once; Help: What's New shows the whole
+  changelog.
 
 ### Changed
 

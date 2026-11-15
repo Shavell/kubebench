@@ -12,6 +12,7 @@ import (
 var migrations = []func(tx *sql.Tx) error{
 	migrateV1,
 	migrateV2,
+	migrateV3,
 }
 
 func (s *Store) migrate() error {
@@ -126,6 +127,19 @@ CREATE TABLE plugin_kv (
 		return err
 	}
 	return reencodeSessionExpiry(tx)
+}
+
+// migrateV3 adds server-wide settings (the update check mode) and the
+// release whose What's new each user has seen (docs/design-v0.5.md §7.11).
+func migrateV3(tx *sql.Tx) error {
+	_, err := tx.Exec(`
+CREATE TABLE app_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+);
+ALTER TABLE users ADD COLUMN last_seen_version TEXT NOT NULL DEFAULT '';`)
+	return err
 }
 
 // reencodeSessionExpiry rewrites v0.4 session expiries (stored in Go's

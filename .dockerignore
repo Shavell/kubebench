@@ -1,5 +1,5 @@
 # Build context for the Dockerfile. The build reads package*.json,
-# index.html, vite.config.ts, tsconfig*.json, public/, src/ and backend/;
+# index.html, vite.config.ts, tsconfig*.json, CHANGELOG.md, public/, src/ and backend/;
 # scripts/ stays in the context for build steps. Everything below is never
 # needed (and some of it should never reach the build daemon).
 
@@ -33,6 +33,8 @@ packaging
 docs
 examples
 *.md
+# ...except the changelog, which the frontend bundles for What's new.
+!CHANGELOG.md
 *.tgz
 *.tar.gz
 install.sh

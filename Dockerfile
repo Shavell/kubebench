@@ -17,7 +17,8 @@ WORKDIR /src
 COPY package.json package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --no-audit --no-fund
-COPY index.html vite.config.ts tsconfig*.json ./
+# CHANGELOG.md is bundled for What's new (src/core/updates/changelog.ts).
+COPY index.html vite.config.ts tsconfig*.json CHANGELOG.md ./
 COPY public/ public/
 COPY src/ src/
 RUN npm run build

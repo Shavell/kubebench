@@ -66,7 +66,8 @@
           "description": "Go duration, at least 1m."
         },
         "auditRetentionDays": { "type": "integer", "minimum": 0 },
-        "allowPathKubeconfig": { "type": "boolean" }
+        "allowPathKubeconfig": { "type": "boolean" },
+        "updateMode": { "enum": ["off", "stable", "prerelease"] }
       }
     },
     "extraEnv": { "$ref": "#/definitions/objectList" },

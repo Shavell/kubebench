@@ -141,10 +141,12 @@ sudo bash install.sh --offline . --method tarball --port 8080
 
 The installer verifies the package against \`packages/checksums.txt\`,
 creates the \`kubebench\` user, writes \`/etc/kubebench/kubebench.env\` with a
-generated admin password (printed once) and starts \`kubebench.service\`.
+generated admin password (printed once) and \`KUBEBENCH_UPDATE_MODE=off\` (see
+[Update checks](#update-checks)) and starts \`kubebench.service\`.
 Without the installer: \`sudo dpkg -i packages/kubebench_*_amd64.deb\` or
-\`sudo rpm -i packages/kubebench-*.x86_64.rpm\`, then sign in as admin/admin and
-change the password.
+\`sudo rpm -i packages/kubebench-*.x86_64.rpm\`, set \`KUBEBENCH_UPDATE_MODE=off\`
+in \`/etc/kubebench/kubebench.env\`, restart the service, then sign in as
+admin/admin and change the password.
 
 ## Kubernetes
 
@@ -180,7 +182,7 @@ skopeo copy "docker-archive:\$image" docker://registry.example.internal/kube-ben
 
 \`\`\`bash
 helm install kubebench kubernetes/$chart_file \\
-  --namespace kubebench --create-namespace
+  --namespace kubebench --create-namespace --set config.updateMode=off
 # images pushed to a private registry:
 #   --set image.repository=registry.example.internal/kube-bench
 \`\`\`
@@ -193,10 +195,21 @@ Read the generated admin password with the command printed by Helm (NOTES).
 # with a private registry, rewrite the image first:
 #   sed -i 's#ghcr.io/shavell/kube-bench#registry.example.internal/kube-bench#' kubernetes/kubebench.yaml
 kubectl apply -f kubernetes/kubebench.yaml
+kubectl -n kubebench set env deployment/kubebench KUBEBENCH_UPDATE_MODE=off
 \`\`\`
 
 Then \`kubectl -n kubebench port-forward svc/kubebench 8080:80\`, open
 http://localhost:8080, sign in as admin/admin and set a new password.
+
+## Update checks
+
+KubeBench asks GitHub for new releases unless \`KUBEBENCH_UPDATE_MODE\` is
+\`off\`. Without internet access the check can only fail, so the steps above
+turn it off: \`install.sh --offline\` writes it to the env file, the Helm
+command sets \`config.updateMode=off\`, the kubectl steps set it on the
+Deployment. Administrators see the mode in Settings > Updates. A mirror of
+the releases list inside the network works too: set
+\`KUBEBENCH_UPDATE_URL\` to it and the mode to \`stable\`.
 
 ## Notes
 

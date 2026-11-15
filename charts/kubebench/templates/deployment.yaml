@@ -72,6 +72,8 @@ spec:
               value: {{ .Values.config.auditRetentionDays | quote }}
             - name: KUBEBENCH_ALLOW_PATH_KUBECONFIG
               value: {{ .Values.config.allowPathKubeconfig | quote }}
+            - name: KUBEBENCH_UPDATE_MODE
+              value: {{ .Values.config.updateMode | quote }}
             {{- with $secretName }}
             - name: KUBEBENCH_ADMIN_PASSWORD
               valueFrom:

@@ -17,6 +17,8 @@ func (s *Server) routes() {
 	s.handle("POST /api/clusters/activate", accessAuthed, s.handleActivateCluster)
 	s.handle("GET /api/plugins", accessAuthed, s.handleListPlugins)
 	s.handle("GET /plugins/{id}/{file...}", accessAuthed, s.handlePluginFile)
+	s.handle("PATCH /api/auth/me", accessAuthed, s.handleUpdateMe)
+	s.handle("GET /api/updates", accessAuthed, s.handleUpdates)
 
 	// Global admins: users, the cluster inventory, plugins, the audit log.
 	s.handle("GET /api/users", accessAdmin, s.handleListUsers)
@@ -29,6 +31,8 @@ func (s *Server) routes() {
 	s.handle("DELETE /api/clusters", accessAdmin, s.handleDeleteCluster)
 	s.handle("PUT /api/plugins/{id}", accessAdmin, s.handleSetPluginEnabled)
 	s.handle("GET /api/audit", accessAdmin, s.handleListAudit)
+	s.handle("PUT /api/settings/updates", accessAdmin, s.handleSetUpdateMode)
+	s.handle("POST /api/updates/check", accessAdmin, s.handleCheckUpdates)
 
 	// The active cluster: reads.
 	s.handle("GET /api/nodes", accessRead, s.handleNodes)

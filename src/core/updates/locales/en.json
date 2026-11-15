@@ -1,0 +1,122 @@
+{
+  "manifest": {
+    "name": "Updates",
+    "description": "Checks GitHub for new KubeBench releases and shows what changed after an upgrade."
+  },
+  "commands": {
+    "whatsNew": "Help: What's New",
+    "checkNow": "Help: Check for Updates"
+  },
+  "modes": {
+    "off": "Off",
+    "stable": "Stable releases",
+    "prerelease": "Stable releases and prereleases"
+  },
+  "settings": {
+    "title": "Updates",
+    "mode": {
+      "label": "Update checks",
+      "help": "Which GitHub releases KubeBench tells administrators about. Off never contacts GitHub; use it for air-gapped installs.",
+      "serverDefault": "The server's default is \"{{mode}}\" (KUBEBENCH_UPDATE_MODE).",
+      "adminOnly": "Only administrators can change this."
+    },
+    "current": {
+      "label": "Running version",
+      "unknown": "A development build: it is not compared with releases."
+    },
+    "latest": {
+      "label": "Latest release",
+      "none": "No releases published yet",
+      "off": "Not checked: update checks are off",
+      "pending": "Not checked yet",
+      "upToDate": "v{{version}}, up to date",
+      "available": "v{{version}}, update available",
+      "plain": "v{{version}}"
+    },
+    "checked": {
+      "label": "Last checked",
+      "never": "Not yet"
+    },
+    "error": {
+      "label": "Last check failed"
+    },
+    "checkNow": "Check now",
+    "checking": "Checking…",
+    "checkOff": "Turn update checks on to check now.",
+    "showNotes": "Release notes…",
+    "loadFailed": "Could not load the update status"
+  },
+  "notices": {
+    "modeSaved": "Update checks: {{mode}}",
+    "upToDate": "KubeBench v{{version}} is up to date.",
+    "noReleases": "No KubeBench releases are published yet.",
+    "unknownCurrent": "This is a development build. The latest release is v{{version}}.",
+    "checkFailed": "The update check failed",
+    "saveFailed": "Could not save the update mode",
+    "markSeenFailed": "Could not remember that you have seen this version's changes"
+  },
+  "statusBar": {
+    "available": "Update available: v{{version}}",
+    "tooltip": "KubeBench v{{version}} is available. Click for the release notes and how to upgrade."
+  },
+  "available": {
+    "title": "Update available",
+    "summary": "KubeBench v{{latest}} is available. You are running v{{current}}.",
+    "summaryUnknown": "KubeBench v{{latest}} is available.",
+    "published": "Published {{date}}",
+    "prerelease": "Prerelease",
+    "notes": "Release notes",
+    "noNotes": "This release has no notes.",
+    "releasePage": "Open the release page",
+    "howTo": "How to upgrade",
+    "backup": "Back up first: KubeBench migrates its database when it starts, and an older version cannot open it again.",
+    "guide": "Upgrade guide",
+    "copy": "Copy the command",
+    "close": "Close"
+  },
+  "methods": {
+    "helm": {
+      "title": "Helm",
+      "hint": "Keeps your chart values on top of the new chart's defaults."
+    },
+    "manifests": {
+      "title": "Plain manifests",
+      "hint": "Applies the new release's manifest."
+    },
+    "packages": {
+      "title": ".deb and .rpm packages",
+      "hint": "Download the new package from the release page; the configuration in /etc/kubebench is kept and the service restarts."
+    },
+    "installer": {
+      "title": "install.sh",
+      "hint": "Running the installer again upgrades in place and keeps the configuration and data."
+    },
+    "docker": {
+      "title": "Docker",
+      "hint": "Pull the new image, then recreate the container with the same volume."
+    }
+  },
+  "whatsNew": {
+    "title": "What's new in v{{version}}",
+    "intro": "Here is what changed in KubeBench v{{version}}.",
+    "introSince": "KubeBench was updated from v{{from}} to v{{version}}. Here is what changed.",
+    "fullChangelog": "Full changelog",
+    "close": "Got it"
+  },
+  "changelog": {
+    "tab": "What's New",
+    "title": "What's new in KubeBench",
+    "version": "v{{version}}",
+    "running": "Running",
+    "empty": "This build has no changelog."
+  },
+  "about": {
+    "latest": "Latest release",
+    "available": "v{{version}} available",
+    "upToDate": "Up to date",
+    "off": "Update checks are off",
+    "none": "No releases yet",
+    "unknown": "Not checked",
+    "whatsNew": "What's new"
+  }
+}

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -63,7 +64,17 @@ type Config struct {
 	// a pod, by default the pod's own). Deleting it is refused unless
 	// forced. Empty when unknown.
 	Namespace string
+
+	// UpdateMode is the default update check mode (KUBEBENCH_UPDATE_MODE):
+	// "off", "stable" or "prerelease". An admin's choice overrides it.
+	UpdateMode string
+	// UpdateURL is the releases endpoint the update check reads
+	// (KUBEBENCH_UPDATE_URL): GitHub's "list releases" JSON.
+	UpdateURL string
 }
+
+// DefaultUpdateURL lists the releases of KubeBench's GitHub repository.
+const DefaultUpdateURL = "https://api.github.com/repos/Shavell/kube-bench/releases"
 
 // TLS reports whether the server terminates TLS itself.
 func (c *Config) TLS() bool { return c.TLSCert != "" }
@@ -141,6 +152,17 @@ func FromEnv(lookup func(string) (string, bool), inCluster bool) (*Config, error
 	c.AllowPathKubeconfig = p.boolean("KUBEBENCH_ALLOW_PATH_KUBECONFIG", !inCluster)
 	c.Kubeconfig = p.str("KUBECONFIG", "")
 	c.Namespace = p.str("KUBEBENCH_NAMESPACE", "")
+
+	switch mode := strings.ToLower(p.str("KUBEBENCH_UPDATE_MODE", "stable")); mode {
+	case "off", "stable", "prerelease":
+		c.UpdateMode = mode
+	default:
+		p.fail("KUBEBENCH_UPDATE_MODE", "must be off, stable or prerelease")
+	}
+	c.UpdateURL = p.str("KUBEBENCH_UPDATE_URL", DefaultUpdateURL)
+	if u, err := url.Parse(c.UpdateURL); err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		p.fail("KUBEBENCH_UPDATE_URL", "must be an http or https URL")
+	}
 
 	if len(p.errs) > 0 {
 		return nil, errors.Join(p.errs...)

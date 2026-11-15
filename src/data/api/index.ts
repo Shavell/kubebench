@@ -11,6 +11,7 @@ import { createApiCluster } from './cluster'
 import { createApiCrd } from './crd'
 import { createApiMetrics } from './metrics'
 import { createApiWorkloadOps } from './workloadOps'
+import { createApiUpdates } from './updates'
 
 /**
  * Live providers backed by the Go backend (`/api`). Capabilities come from
@@ -28,5 +29,6 @@ export function createApiProviders(capabilities: LiveCapabilities): DataProvider
     audit: createApiAudit(),
     plugins: createApiPlugins(),
     workloadOps: createApiWorkloadOps(),
+    updates: createApiUpdates(),
   }
 }
