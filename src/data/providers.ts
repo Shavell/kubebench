@@ -21,8 +21,6 @@ import type {
   CrdDefinition,
   CustomResource,
   Deployment,
-  HelmRelease,
-  HelmRepo,
   K8sNode,
   KubeObject,
   MetricKind,
@@ -104,15 +102,6 @@ export interface CrdProvider {
   listCustomResources(crdName: string): Promise<CustomResource[]>
 }
 
-export interface HelmProvider {
-  listReleases(): Promise<HelmRelease[]>
-  listRepositories(): Promise<HelmRepo[]>
-  getReleaseValuesYaml(name: string, namespace: string): Promise<string>
-  /** Creates a new revision that restores the given one, like `helm rollback`. */
-  rollbackRelease(name: string, namespace: string, revision: number): Promise<void>
-  uninstallRelease(name: string, namespace: string): Promise<void>
-}
-
 export interface MetricsProvider {
   listSources(): Promise<MetricsSourceInfo[]>
   clusterOverview(): Promise<ClusterStats>
@@ -176,7 +165,6 @@ export interface PluginsProvider {
 export interface DataProviders {
   cluster: ClusterProvider
   crd: CrdProvider
-  helm: HelmProvider
   metrics: MetricsProvider
   inventory: InventoryProvider
   users: UsersProvider

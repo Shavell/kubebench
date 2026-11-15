@@ -1,22 +1,30 @@
 {
   "manifest": {
     "name": "Helm",
-    "description": "Helm releases with their revision history, and chart repositories.",
+    "description": "Helm releases: install, upgrade, roll back and uninstall, with chart repositories.",
     "tooltip": "Helm",
     "sidebarTitle": "Helm"
   },
   "commands": {
     "openReleases": "Helm: Open Releases",
-    "openRepos": "Helm: Open Repositories"
+    "openRepos": "Helm: Open Repositories",
+    "install": "Helm: Install Chart"
   },
   "sidebar": {
     "releases": "Releases",
-    "repos": "Repositories"
+    "repos": "Repositories",
+    "install": "Install Chart"
   },
   "releases": {
     "title": "Helm Releases",
     "loading": "Loading releases…",
     "unavailable": "Helm releases are unavailable",
+    "summary": "{{shown}} of {{total}}",
+    "install": "Install Chart",
+    "repositories": "Repositories",
+    "empty": "No Helm releases",
+    "emptyIn": "No Helm releases in namespace {{namespace}}",
+    "emptyHint": "Install a chart from a repository, an OCI registry or an uploaded archive.",
     "columns": {
       "chart": "Chart",
       "appVersion": "App Version",
@@ -26,42 +34,220 @@
   },
   "release": {
     "loading": "Loading {{name}}…",
+    "unavailable": "The release is unavailable",
     "gone": "Release {{name}} no longer exists",
     "goneHint": "It may have been uninstalled",
-    "editValues": "Edit Values",
-    "viewValues": "View Values",
+    "upgrade": "Upgrade",
+    "upgradeUninstalled": "An uninstalled release cannot be upgraded; roll it back first",
     "uninstall": "Uninstall",
+    "revisionOption": "Revision {{revision}} ({{status}})",
+    "revisionLatest": "Revision {{revision}} ({{status}}, latest)",
+    "tabs": {
+      "overview": "Overview",
+      "values": "Values",
+      "manifest": "Manifest",
+      "notes": "Notes",
+      "history": "History"
+    },
+    "fields": {
+      "namespace": "Namespace",
+      "chart": "Chart",
+      "appVersion": "App version",
+      "revision": "Revision",
+      "firstDeployed": "First deployed",
+      "updated": "Last deployed",
+      "description": "Description"
+    },
+    "chart": {
+      "title": "Chart",
+      "description": "Description",
+      "home": "Home page",
+      "sources": "Sources",
+      "keywords": "Keywords",
+      "kubeVersion": "Kubernetes versions",
+      "deprecated": "Deprecated",
+      "deprecatedHint": "The chart's maintainers have deprecated it"
+    },
+    "hooks": {
+      "title": "Hooks",
+      "none": "The chart has no hooks.",
+      "kind": "Kind",
+      "events": "Events",
+      "lastRun": "Last run",
+      "completed": "Completed",
+      "neverRun": "Never run"
+    },
+    "values": {
+      "revision": "Revision",
+      "all": "Include the chart's default values",
+      "loading": "Loading values…",
+      "none": "# No user-supplied values",
+      "aria": "Values of {{name}}"
+    },
+    "manifest": {
+      "revision": "Revision",
+      "loading": "Loading the manifest…",
+      "aria": "Manifest of {{name}}"
+    },
+    "notes": {
+      "none": "The chart has no notes"
+    },
+    "history": {
+      "revision": "Revision",
+      "chart": "Chart",
+      "appVersion": "App version",
+      "updated": "Updated",
+      "description": "Description",
+      "rollback": "Rollback"
+    },
+    "compare": {
+      "title": "Compare values",
+      "from": "From",
+      "to": "To",
+      "revision": "Revision {{revision}}",
+      "same": "Revisions {{from}} and {{to}} have the same user-supplied values."
+    },
     "uninstallDialog": {
       "title": "Uninstall release {{name}}?",
-      "message": "Helm deletes the release and every Kubernetes resource it created in namespace {{namespace}}. This cannot be undone.",
-      "done": "Release {{name}} uninstalled."
+      "message": "Helm deletes the release and every Kubernetes resource it created in namespace {{namespace}}.",
+      "keepHistory": "Keep the release history",
+      "keepHistoryHint": "The release stays listed as uninstalled and can be rolled back later.",
+      "done": "Release {{name}} uninstalled.",
+      "doneKept": "Release {{name}} uninstalled; its history was kept."
     },
     "rollbackDialog": {
       "title": "Roll back {{name}} to revision {{revision}}?",
       "message": "Helm creates a new revision from the chart and values of revision {{revision}}.",
-      "done": "{{name}} rolled back to revision {{revision}}."
-    },
-    "fields": {
-      "chart": "Chart",
-      "appVersion": "App version",
-      "revision": "Revision",
-      "updated": "Last updated"
-    },
-    "history": {
-      "title": "Revision History",
-      "revision": "Revision",
-      "updated": "Updated",
-      "description": "Description",
-      "rollback": "Rollback"
+      "done": "{{name}} rolled back to revision {{revision}} (new revision {{newRevision}})."
     }
+  },
+  "upgrade": {
+    "tabTitle": "Upgrade {{name}}",
+    "title": "Upgrade {{name}}",
+    "chart": "Chart",
+    "currentChart": "Current chart ({{chart}})",
+    "version": "Version",
+    "versionOption": "{{version}} (app {{appVersion}})",
+    "versionCurrent": "{{version}} (app {{appVersion}}, installed)",
+    "reuseValues": "Reuse the current values",
+    "reuseValuesHint": "Merge the values below over the release's current values instead of replacing them",
+    "noRepoChart": "No added repository has the chart {{chart}}; the upgrade keeps the current chart.",
+    "valuesReplaceHint": "These values replace the release's current user-supplied values; an empty editor resets the release to the chart's defaults.",
+    "valuesMergeHint": "These values are merged over the release's current values.",
+    "valuesAria": "Values for the upgrade of {{name}}",
+    "dryRun": "Dry Run",
+    "upgrade": "Upgrade",
+    "tabs": {
+      "values": "Values",
+      "diff": "Manifest diff",
+      "notes": "Notes"
+    },
+    "diffHint": "Changes from revision {{from}} to revision {{to}}, from the dry run. Nothing has been changed yet.",
+    "noChanges": "The dry run renders the same manifest: the upgrade changes no resources.",
+    "currentManifest": "Revision {{revision}} (deployed)",
+    "newManifest": "After the upgrade",
+    "done": "{{name}} upgraded to revision {{revision}}."
+  },
+  "install": {
+    "title": "Install Chart",
+    "steps": {
+      "label": "Install steps",
+      "chart": "Chart",
+      "values": "Values",
+      "review": "Dry run"
+    },
+    "source": {
+      "label": "Chart source",
+      "repo": "Added repository",
+      "oci": "OCI registry",
+      "upload": "Uploaded archive (.tgz)"
+    },
+    "repo": {
+      "search": "Search charts",
+      "searchPlaceholder": "Name, description or keyword",
+      "results": "Charts",
+      "noResults": "No chart of the added repositories matches.",
+      "noRepos": "No chart repository has been added yet.",
+      "openRepos": "Open Repositories",
+      "version": "Version",
+      "versionOption": "{{version}} (app {{appVersion}})"
+    },
+    "oci": {
+      "ref": "Chart reference",
+      "refHelp": "An oci:// reference without a tag, e.g. oci://ghcr.io/stefanprodan/charts/podinfo",
+      "version": "Version",
+      "versionHelp": "Leave empty for the newest version"
+    },
+    "upload": {
+      "pick": "Choose Archive…",
+      "hint": "A packaged chart (.tgz, at most 20 MiB), e.g. from helm package or helm pull. It can be installed for 24 hours."
+    },
+    "values": {
+      "appVersion": "app {{version}}",
+      "name": "Release name",
+      "nameInvalid": "Lower-case letters, digits, '-' and '.', at most 53 characters",
+      "namespace": "Namespace",
+      "namespaceInvalid": "Not a valid namespace name",
+      "namespaceNew": "This namespace does not exist yet: create it below.",
+      "createNamespace": "Create namespace",
+      "createNamespaceHint": "Create the namespace if it does not exist",
+      "values": "Values",
+      "valuesHint": "The chart's default values; change what you need. These values are stored with the release."
+    },
+    "review": {
+      "hint": "The dry run of {{name}} in namespace {{namespace}} renders the manifest below. Nothing has been created yet.",
+      "manifest": "Manifest",
+      "notes": "Notes"
+    },
+    "back": "Back",
+    "next": "Next",
+    "dryRun": "Dry Run",
+    "install": "Install",
+    "done": "Release {{name}} installed in namespace {{namespace}}."
   },
   "repos": {
     "title": "Helm Repositories",
     "loading": "Loading repositories…",
     "unavailable": "Helm repositories are unavailable",
+    "empty": "No chart repositories",
+    "emptyHint": "An administrator adds the repositories charts are installed from; they are shared by every cluster.",
+    "update": "Update",
+    "updateHint": "Download every repository's index again (helm repo update)",
+    "updated_one": "{{count}} repository updated.",
+    "updated_other": "{{count}} repositories updated.",
+    "updateFailed": "Could not update: {{names}}",
+    "noIndex": "Not downloaded",
+    "authYes": "Credentials",
+    "authNo": "Public",
+    "remove": "Remove {{name}}",
     "columns": {
       "url": "URL",
-      "charts": "Charts"
+      "charts": "Charts",
+      "updated": "Index updated",
+      "auth": "Access"
+    },
+    "add": {
+      "open": "Add Repository",
+      "title": "Add a chart repository",
+      "description": "KubeBench downloads the repository's index before adding it. Credentials are stored on the server and never shown again.",
+      "name": "Name",
+      "nameInvalid": "Letters, digits, '.', '_' and '-', at most 64 characters",
+      "url": "URL",
+      "urlInvalid": "An http:// or https:// URL",
+      "username": "Username",
+      "password": "Password",
+      "credentialsHelp": "Only for private repositories",
+      "credentialsBoth": "Give both a username and a password, or neither",
+      "cancel": "Cancel",
+      "submit": "Add",
+      "done_one": "Repository {{name}} added with {{count}} chart.",
+      "done_other": "Repository {{name}} added with {{count}} charts."
+    },
+    "removeDialog": {
+      "title": "Remove repository {{name}}?",
+      "message": "Charts can no longer be installed from it. Installed releases are not affected.",
+      "confirm": "Remove",
+      "done": "Repository {{name}} removed."
     }
   }
 }

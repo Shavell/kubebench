@@ -308,26 +308,6 @@ export interface CustomResource {
   extra: Record<string, string>
 }
 
-export type HelmReleaseStatus = 'deployed' | 'failed' | 'pending-upgrade' | 'superseded'
-
-export interface HelmRelease {
-  name: string
-  namespace: string
-  chart: string
-  chartVersion: string
-  appVersion: string
-  revision: number
-  status: HelmReleaseStatus
-  updated: string
-  history: { revision: number; status: HelmReleaseStatus; updated: string; description: string }[]
-}
-
-export interface HelmRepo {
-  name: string
-  url: string
-  chartCount: number
-}
-
 export interface MetricPoint {
   time: string
   value: number
