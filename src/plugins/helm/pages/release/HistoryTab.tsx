@@ -25,6 +25,7 @@ export function HistoryTab({
 }) {
   const { t } = useTranslation(NS)
   const write = usePermission('write')
+  const exec = usePermission('exec')
   const { history, namespace, name } = release
   // A release that is uninstalled (kept history) can roll back to its own latest revision.
   const uninstalled = release.status === 'uninstalled'
@@ -73,7 +74,8 @@ export function HistoryTab({
           ))}
         </tbody>
       </table>
-      {history.length > 1 && <ValuesComparison release={release} />}
+      {/* Values often hold credentials: comparing them needs exec, like the Values tab. */}
+      {history.length > 1 && exec.allowed && <ValuesComparison release={release} />}
     </div>
   )
 }

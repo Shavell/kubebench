@@ -110,6 +110,9 @@ export function InstallPage({ tab }: { tab: TabDescriptor }) {
 
   const stepIndex = STEPS.indexOf(session.step)
   const valuesReady = !nameError(session.name) && !namespaceError(session.namespace)
+  // The server connects to whatever host an OCI reference names, so
+  // loading one needs write, like the dry run and the install (§7.4).
+  const nextDenied = chart !== null && 'ref' in chart && !write.allowed
 
   return (
     <div className="page">
@@ -169,12 +172,24 @@ export function InstallPage({ tab }: { tab: TabDescriptor }) {
           </Button>
         )}
         {session.step === 'chart' && (
-          <Button icon="arrow-right" busy={busy === 'next'} disabled={!chart || busy !== null} onClick={() => void toValues()}>
+          <Button
+            icon="arrow-right"
+            busy={busy === 'next'}
+            disabled={!chart || nextDenied || busy !== null}
+            title={nextDenied ? (write.reason ?? undefined) : undefined}
+            onClick={() => void toValues()}
+          >
             {t('install.next')}
           </Button>
         )}
         {session.step === 'values' && (
-          <Button icon="beaker" busy={busy === 'dryRun'} disabled={!valuesReady || busy !== null} onClick={() => void dryRun()}>
+          <Button
+            icon="beaker"
+            busy={busy === 'dryRun'}
+            disabled={!write.allowed || !valuesReady || busy !== null}
+            title={write.reason ?? undefined}
+            onClick={() => void dryRun()}
+          >
             {t('install.dryRun')}
           </Button>
         )}

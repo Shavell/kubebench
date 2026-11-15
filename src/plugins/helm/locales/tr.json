@@ -82,7 +82,8 @@
       "all": "Chart'ın varsayılan değerlerini dahil et",
       "loading": "Değerler yükleniyor…",
       "none": "# Kullanıcının verdiği değer yok",
-      "aria": "{{name}} değerleri"
+      "aria": "{{name}} değerleri",
+      "execRequired": "Release değerleri çoğu zaman kimlik bilgileri içerir; bu yüzden onları okumak, bir Secret'ı göstermekle aynı izni gerektirir."
     },
     "manifest": {
       "revision": "Revizyon",

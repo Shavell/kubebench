@@ -129,7 +129,8 @@ export function UpgradePage({ tab }: { tab: TabDescriptor }) {
           variant="secondary"
           icon="beaker"
           busy={busy === 'dryRun'}
-          disabled={busy !== null || session.values === null}
+          disabled={!write.allowed || busy !== null || session.values === null}
+          title={write.reason ?? undefined}
           onClick={() => void run(true)}
         >
           {t('upgrade.dryRun')}
@@ -188,7 +189,9 @@ export function UpgradePage({ tab }: { tab: TabDescriptor }) {
                 {session.reuseValues ? t('upgrade.valuesMergeHint') : t('upgrade.valuesReplaceHint')}
               </div>
               <div className="helm-pane__editor">
-                {session.values === null ? (
+                {session.values === null && currentValues.error ? (
+                  <Unavailable compact code={currentValues.errorCode} reason={currentValues.error} />
+                ) : session.values === null ? (
                   <div className="page-loading">{t('release.values.loading')}</div>
                 ) : (
                   <CodeEditor value={values} onChange={(text) => change({ values: text })} ariaLabel={t('upgrade.valuesAria', { name })} />

@@ -5,11 +5,14 @@ import type { HelmChartRef, HelmRelease, HelmRepoUpdate } from './types'
 const path = (namespace: string, name: string, suffix = '') =>
   `/releases/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}${suffix}`
 
-/** Query parameters of GET /charts/values for a chart reference. */
-function chartParams(chart: HelmChartRef): Record<string, string | undefined> {
-  if ('uploadId' in chart) return { uploadId: chart.uploadId }
-  if ('ref' in chart) return { ref: chart.ref, version: chart.version }
-  return { repo: chart.repo, chart: chart.name, version: chart.version }
+/**
+ * The default-values route and query of a chart reference: OCI charts
+ * have their own route, which needs write (the caller names the host).
+ */
+function chartValuesQuery(chart: HelmChartRef): [string, Record<string, string | undefined>] {
+  if ('uploadId' in chart) return ['/charts/values', { uploadId: chart.uploadId }]
+  if ('ref' in chart) return ['/charts/oci/values', { ref: chart.ref, version: chart.version }]
+  return ['/charts/values', { repo: chart.repo, chart: chart.name, version: chart.version }]
 }
 
 /** The Helm plugin's backend routes (`/api/plugins/helm`). */
@@ -32,8 +35,7 @@ export function createLiveHelm(api: PluginApi): HelmData {
     uninstall: async (namespace, name, keepHistory) => {
       await api.del(path(namespace, name), { keepHistory: keepHistory || undefined })
     },
-    // dryRun goes in the query too: the router lets a viewer's dry run
-    // through only when the query asks for one (design §3.2).
+    // dryRun goes in the query as well as the body; either asks for one.
     install: (request) => api.post('/install', request, { dryRun: request.dryRun || undefined }),
     upgrade: (namespace, name, request) =>
       api.post(path(namespace, name, '/upgrade'), request, { dryRun: request.dryRun || undefined }),
@@ -46,7 +48,7 @@ export function createLiveHelm(api: PluginApi): HelmData {
     updateRepos: async () => (await api.post<{ repos: HelmRepoUpdate[] }>('/repos/update')).repos,
 
     searchCharts: (query) => api.get('/charts/search', { q: query }),
-    chartValues: (chart) => api.get('/charts/values', chartParams(chart)),
+    chartValues: (chart) => api.get(...chartValuesQuery(chart)),
     uploadChart: (file) => {
       const form = new FormData()
       form.append('chart', file, file.name)

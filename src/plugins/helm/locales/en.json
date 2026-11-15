@@ -82,7 +82,8 @@
       "all": "Include the chart's default values",
       "loading": "Loading values…",
       "none": "# No user-supplied values",
-      "aria": "Values of {{name}}"
+      "aria": "Values of {{name}}",
+      "execRequired": "Release values often hold credentials, so reading them needs the same permission as revealing a Secret."
     },
     "manifest": {
       "revision": "Revision",
