@@ -286,7 +286,8 @@ route answers `409 no_cluster` instead. Without any usable cluster,
 `cluster` is `null` and `clusterError` says why.
 
 `POST /api/auth/login` and `GET /api/auth/me` return
-`{"id","username","role","mustChangePassword"}`.
+`{"id","username","role","mustChangePassword"}`; `GET /api/auth/me` adds
+`"lastSeenVersion"` (§7.11).
 
 ### 4.2 Users & password
 
