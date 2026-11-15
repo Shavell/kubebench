@@ -89,7 +89,8 @@ resource names, the forced password change, the moved Helm routes).
   Kubeconfigs from `aws eks`, `gcloud` and `az aks` work without exec
   plugins: KubeBench gets the tokens itself, with per-cluster credentials
   (AWS access key or profile, GCP service-account key, Azure service
-  principal) or the server's own cloud identity.
+  principal) or, when `KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY` is on (or the
+  kubeconfig was added by path), the server's own cloud identity.
 - Distribution: multi-arch container image `ghcr.io/shavell/kube-bench`,
   Helm chart on `oci://ghcr.io/shavell/charts`, plain manifests
   (`deploy/kubernetes/kubebench.yaml`), `.deb` and `.rpm` packages with a
@@ -145,6 +146,14 @@ resource names, the forced password change, the moved Helm routes).
 
 ### Fixed
 
+- A deleted cluster's runtime can no longer be rebuilt by a request that
+  raced the delete, editing a cluster stops its background work on the old
+  record at once, and removing an unreachable cluster no longer stalls
+  requests for the other clusters.
+- An unreadable `KUBEBENCH_TLS_CERT`/`KUBEBENCH_TLS_KEY` is a configuration
+  error (exit status 2) found before anything starts.
+- The release archives, packages, image, offline bundle and chart carry
+  the GPL-3.0 license text.
 - Events of one object no longer include events of other kinds with the same
   name.
 - Deleting a user or cluster removes its sessions and assignments.
@@ -163,9 +172,14 @@ resource names, the forced password change, the moved Helm routes).
   server-side path.
 - Pasted kubeconfigs may no longer run exec plugins or auth providers or
   read files on the server unless `KUBEBENCH_ALLOW_KUBECONFIG_EXEC=true`;
-  kubeconfigs added by path still may. The EKS, GKE and AKS sign-ins are
-  handled in process instead; GCP credential files that could read files,
-  call URLs or run commands are refused.
+  kubeconfigs added by path still may, unless the path lies in a directory
+  KubeBench fills from requests (the Helm cache, plugin data, external
+  plugins). The EKS, GKE and AKS sign-ins are handled in process instead;
+  pasted ones need per-cluster credentials unless
+  `KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY=true` lends them the server's own
+  cloud identity (whose token goes to the API server the kubeconfig
+  names). GCP credential files that could read files, call URLs or run
+  commands are refused.
 - Secret values no longer leak to viewers through kubectl's
   `last-applied-configuration` annotation or through Helm release
   manifests, dry runs and upgrade diffs; Secret dry runs need the same
@@ -174,18 +188,27 @@ resource names, the forced password change, the moved Helm routes).
   endpoints no longer follow redirects, which would send the stored
   credential elsewhere, and the passthrough no longer serves the cluster's
   content type from KubeBench's origin. Helm's clients are pinned to the
-  API server's host, and OCI chart downloads use HTTPS only and need write
-  access.
+  API server's host, and OCI chart downloads use HTTPS only, need write
+  access and are POST requests (`POST /api/plugins/helm/charts/oci/values`),
+  so that the Origin check covers them; GETs of write and exec routes sent
+  from another site are refused.
 - Terminals, log streams and live-update streams end when the session, the
-  cluster assignment or the permission they need goes away; terminals may
-  only start interactive shells; per-user stream limits apply.
+  cluster assignment or the permission they need goes away, and when the
+  server shuts down (terminals are hung up, so their shells do not keep
+  running in the container); terminals may only start interactive shells;
+  per-user stream limits apply.
 - Every change is attributed to the `kubebench` field manager, and every
   Pod of a bulk delete is recorded in the audit log.
 - Request bodies must arrive within a minute; the database is created
-  readable by its owner only; audit rows have a size limit and requests
-  too long to be recorded completely are refused.
+  readable by its owner only; audit rows have a size limit, requests too
+  long to be recorded completely are refused, and long lists (cluster
+  assignments, labels, taints) are recorded across several rows.
 - The chart's NetworkPolicy can restrict who reaches the pod
-  (`networkPolicy.ingressFrom`), as needed behind an Ingress.
+  (`networkPolicy.ingressFrom`), as needed behind an Ingress. Rendered
+  offline (`helm template`, GitOps) without `networkPolicy.apiServer.cidrs`
+  it fails instead of allowing every destination on the API server ports.
+- Plugin routes refuse a misspelt `dryRun` (anything but `true` or
+  `false`) instead of making the change for real.
 - The security report export escapes Markdown and HTML, and CSV cells that
   a spreadsheet would run as formulas.
 

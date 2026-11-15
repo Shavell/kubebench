@@ -92,6 +92,7 @@ cluster-to-cluster compare, port-forward, light/dark per-plugin theming.
 | `KUBEBENCH_AUDIT_RETENTION_DAYS` | `90` | Audit rows older than this are pruned daily (0 = keep forever) |
 | `KUBEBENCH_ALLOW_PATH_KUBECONFIG` | `true` outside a cluster, `false` in-cluster | Allow adding clusters by server-side file path |
 | `KUBEBENCH_ALLOW_KUBECONFIG_EXEC` | `false` | Let pasted kubeconfigs run exec credential plugins and auth providers and read server-side files (certificate, key and token files). This gives every admin command execution as the server's account |
+| `KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY` | `false` | Let pasted EKS, GKE and AKS kubeconfigs sign in with the server's own cloud identity (§7.12). This gives every admin that identity's token |
 | `KUBECONFIG` | — | Dev/VM convenience: seeds the inventory on first run (a path list is merged the way kubectl merges it) |
 | `KUBEBENCH_NAMESPACE` | in a pod: the pod's namespace | The namespace KubeBench runs in; deleting a namespace of that name is refused unless forced (§7.3) |
 | `KUBEBENCH_UPDATE_MODE` | `stable` | Default update check mode (§7.11): `off` (never contacts GitHub; use it for air-gapped installs), `stable` (new releases) or `prerelease` (also prereleases). An admin's choice in Settings overrides it |
@@ -213,8 +214,12 @@ error text. Pruned per `KUBEBENCH_AUDIT_RETENTION_DAYS`.
   every other route ignores it. Handlers may refine target and detail once
   they have read the body.
 - Rows are bounded: action, target and detail keep at most 200, 512 and
-  1000 characters (a handler whose record is longer, such as a bulk delete,
-  writes it across several rows). An audited request whose URL parameters do not fit (a
+  1000 characters (a handler whose record is a list that can be longer,
+  such as a bulk delete, a user's cluster assignments
+  (`{"assignments":["<clusterId>:<role>",…]}`), namespace labels
+  (`{"labels":["k=v",…]}`), node taints or the keys of a metadata patch
+  (`{"keys":["label:<key>","annotation:<key>",…]}`), writes it across
+  several rows, each with `"part":"<i>/<n>"`). An audited request whose URL parameters do not fit (a
   target over 512 or a default detail over 1000 characters) is refused
   with `400 bad_request` before its handler runs, so a row always shows a
   command or any other parameter completely.
@@ -245,6 +250,9 @@ error text. Pruned per `KUBEBENCH_AUDIT_RETENTION_DAYS`.
 - Non-GET requests with an `Origin` header that does not match the request
   host → `403 forbidden` (CSRF defence in depth; WebSocket upgrades too).
   `X-Forwarded-Host` is only compared when `KUBEBENCH_TRUST_PROXY` is set.
+  A GET or HEAD of a write or exec route marked `Sec-Fetch-Site:
+  cross-site` (a link or navigation from another site, which the Lax
+  cookie accompanies) → `403 forbidden` too.
 - Session cookie `kubebench_session`: HttpOnly, SameSite=Lax, Secure per
   `KUBEBENCH_SECURE_COOKIES`. Expired sessions pruned hourly.
 - `users.must_change_password`: set for the bootstrap admin (the default
@@ -272,7 +280,7 @@ error text. Pruned per `KUBEBENCH_AUDIT_RETENTION_DAYS`.
                            "support": {"status": "supported", "endDate": "2027-02-28", "basis": "kubernetes"}, "detected": true}},
   "permissions": {"role": "admin", "canRead": true, "canWrite": true, "canExec": true, "isAdmin": true, "readOnly": false},
   "capabilities": {"crds": true, "helm": true, "exec": true},
-  "features": {"pathKubeconfig": true, "externalPlugins": true},
+  "features": {"pathKubeconfig": true, "externalPlugins": true, "ambientCloudIdentity": false},
   "clusterError": ""
 }
 ```
@@ -323,10 +331,17 @@ route answers `409 no_cluster` instead. Without any usable cluster,
   plugins or auth providers are rejected the same way: pasted content is
   untrusted, and would otherwise run commands or read files as the server's
   account. A kubeconfig added by path is one of the server's own files and
-  may use them. The EKS, GKE and AKS exec plugins (`aws eks get-token`,
+  may use them, unless it lies in a directory KubeBench writes with
+  content from requests (a plugin's data directory under
+  `KUBEBENCH_DATA_DIR`, e.g. the Helm repository cache, or
+  `KUBEBENCH_PLUGINS_DIR`; symbolic links resolved): such a path is
+  refused with `403 forbidden`. The EKS, GKE and AKS exec plugins (`aws eks get-token`,
   `aws-iam-authenticator`, `gke-gcloud-auth-plugin`, `kubelogin get-token`)
-  are exempt: they are never run but replaced in process (§7.12), with the
-  server's ambient cloud identity or per-cluster `"credentials"`.
+  are exempt: they are never run but replaced in process (§7.12), with
+  per-cluster `"credentials"` or the server's ambient cloud identity; a
+  pasted kubeconfig may use the latter only when
+  `KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY` is set (otherwise `403
+  forbidden`).
   Kubeconfigs added by path are stored flattened (referenced
   certificate files embedded).
 
@@ -704,6 +719,13 @@ and `new-resource` with `{namespace?, kind?}` (see 7.2);
   log streams open; more are refused with `429 rate_limited` before the
   upgrade or stream starts. A log stream whose client stops reading ends
   once a write has waited 10 s.
+- When the server shuts down (SIGINT/SIGTERM) it ends them before the
+  HTTP server's graceful shutdown (10 s): every terminal is hung up like
+  an idle one (Ctrl+C, Ctrl+D, then cut after 5 s) and ends with
+  `{"type":"error","message":"the server is shutting down"}`, log streams
+  end with `event: error` and watch streams (§7.10) with `event: end`,
+  both carrying that text. The server waits for the terminals within the
+  grace period; new terminals are refused with `503`.
 - UI: xterm.js terminal (`@xterm/xterm` + fit addon), multiple sessions as
   sub-tabs in the bottom Terminal panel, container picker, reconnect;
   logs viewer with follow/pause, tail size, previous container, timestamps,
@@ -902,7 +924,7 @@ Secret and is audited), `GET /releases/{ns}/{name}/manifest?revision=`,
 `GET /repos`, `POST /repos {name,url,username?,password?}` (admin),
 `DELETE /repos/{name}` (admin), `POST /repos/update` (write),
 `GET /charts/search?q=`, `GET /charts/values?repo=&chart=&version=`,
-`GET /charts/oci/values?ref=&version=` (write),
+`POST /charts/oci/values {ref,version}` (write),
 `POST /charts/upload` (multipart `.tgz`, write; for offline installs).
 Install and upgrade are `write` with or without `dryRun`; every other
 read is `read`.
@@ -946,8 +968,9 @@ Shapes (they match `src/plugins/helm/data/types.ts`):
   chart in its cached index; `{ref}` must be `oci://` (no digest);
   `{uploadId}` an unexpired upload. Local paths and plain URLs are never
   accepted. `GET /charts/values` takes `repo`+`chart` or `uploadId`
-  (plus `version`) as query parameters, `GET /charts/oci/values` takes
-  `ref` (plus `version`); both → `{chart,values}` (values.yaml as
+  (plus `version`) as query parameters, `POST /charts/oci/values` takes
+  `{ref, version}` as its body (a POST, so that the origin check keeps
+  cross-site pages from triggering the fetch); both → `{chart,values}` (values.yaml as
   written). Added repositories are the admin's allow-list of chart
   sources; an OCI reference names any host the server then connects to,
   so every OCI fetch needs `write` (an OCI `ref` on `/charts/values` is a
@@ -1255,8 +1278,8 @@ start lazily and stop when unused. Frontend: scoped invalidation
   collected for 500 ms (`namespace` `""` = cluster-scoped, or anywhere
   after more than 256 pending changes); `event: end` with the reason when
   the server ends the stream: the cluster's runtime was rebuilt or removed,
-  or the caller's session/assignment ended (checked every heartbeat, like
-  log streams). Clients may reconnect after `end`.
+  the caller's session/assignment ended (checked every heartbeat, like
+  log streams) or the server shuts down (§7.1). Clients may reconnect after `end`.
 - **Hub** (`internal/watch`, one per Runtime, closed with it): one dynamic
   informer per resource, keeping only object metadata, started on the
   first subscription and stopped 5 min after the last subscriber left.
@@ -1496,7 +1519,17 @@ are resolved on the first request, never while the runtime is built.
   the cluster record (`clusters.credentials`, store migration v4) like
   the kubeconfig (the database is `0600`), write-only, changing them
   rebuilds the runtime.
-- **Security**: only admins add and edit clusters (unchanged). **An admin
+- **Security**: only admins add and edit clusters (unchanged). The token
+  of the identity goes to the API server the kubeconfig names, whatever
+  host that is, so the server's own identity is lent to pasted
+  kubeconfigs only with `KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY`: without
+  it, `POST /api/clusters` with pasted content and `PATCH` (removing the
+  credentials or setting an AWS `profile`, which reads the server's
+  files) answer `403 forbidden` when the recognised stanza would sign in
+  without credentials of its own. Kubeconfigs added by path (the server's
+  files) and seeded from `KUBECONFIG` are not affected; `/api/info`
+  reports the setting as `features.ambientCloudIdentity`. With the
+  setting, **an admin
   can make the server sign in with its ambient cloud identity** (the
   pod's IRSA role, GKE or Azure workload identity, the VM's instance
   profile/managed identity, the server's environment and `~/.aws`/gcloud

@@ -18,11 +18,12 @@ exits with status 2. Values are trimmed; an empty value counts as unset.
 | `KUBEBENCH_ADMIN_PASSWORD` | `admin` | Password of the bootstrap `admin` user, read only when the database is new. A value other than the default must be 8 characters to 72 bytes. Either way the admin must change it at the first sign-in |
 | `KUBEBENCH_SECURE_COOKIES` | `auto` | `Secure` attribute of the session cookie: `auto` (when the request is TLS, or carries a trusted `X-Forwarded-Proto: https`), `true` or `false` |
 | `KUBEBENCH_TRUST_PROXY` | `false` | Honour `X-Forwarded-Proto`, `X-Forwarded-For` and `X-Forwarded-Host`; enable only behind a reverse proxy that sets them |
-| `KUBEBENCH_TLS_CERT`, `KUBEBENCH_TLS_KEY` | unset | Serve HTTPS directly; set both or neither |
+| `KUBEBENCH_TLS_CERT`, `KUBEBENCH_TLS_KEY` | unset | Serve HTTPS directly; set both or neither. Both files are loaded at startup: an unreadable certificate or key is a configuration error |
 | `KUBEBENCH_SESSION_TTL` | `168h` | Session lifetime as a Go duration, at least `1m` |
 | `KUBEBENCH_AUDIT_RETENTION_DAYS` | `90` | Audit rows older than this are pruned daily; `0` keeps them forever |
 | `KUBEBENCH_ALLOW_PATH_KUBECONFIG` | `true` outside a cluster, `false` inside | Let admins add clusters by a kubeconfig path on the server |
 | `KUBEBENCH_ALLOW_KUBECONFIG_EXEC` | `false` | Let **pasted** kubeconfigs run exec credential plugins and auth providers and read files on the server. Every admin can then run commands as the server's user. The EKS, GKE and AKS exec stanzas need no opt-in (they are handled in process); kubeconfigs added by path may always use exec plugins |
+| `KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY` | `false` | Let **pasted** EKS, GKE and AKS kubeconfigs (and AWS profile credentials) sign in with the server's own cloud identity: workload identity, instance profile or managed identity, `AWS_*`/`AZURE_*` variables, `~/.aws` and gcloud files. The token goes to the API server the kubeconfig names, so every admin can then obtain it. Off: such clusters need per-cluster credentials. Kubeconfigs added by path are not affected |
 | `KUBECONFIG` | unset | Seeds the cluster inventory on the first start; a path list (`a:b`) is merged the way kubectl merges it |
 | `KUBEBENCH_NAMESPACE` | in a pod: the pod's namespace | The namespace KubeBench runs in; deleting a namespace of that name from KubeBench is refused unless forced |
 | `KUBEBENCH_UPDATE_MODE` | `stable` | Default update check: `off` (never contacts GitHub), `stable` or `prerelease`. An admin's choice in Settings > Updates overrides it |
@@ -55,6 +56,7 @@ its values:
 | `config.sessionTTL` | `KUBEBENCH_SESSION_TTL` | `168h` |
 | `config.auditRetentionDays` | `KUBEBENCH_AUDIT_RETENTION_DAYS` | `90` |
 | `config.allowPathKubeconfig` | `KUBEBENCH_ALLOW_PATH_KUBECONFIG` | `false` |
+| `config.allowAmbientCloudIdentity` | `KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY` | `false` |
 | `config.updateMode` | `KUBEBENCH_UPDATE_MODE` | `stable` |
 | `auth.existingSecret` / `auth.adminPassword` / generated | `KUBEBENCH_ADMIN_PASSWORD` | a random password kept across upgrades |
 

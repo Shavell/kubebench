@@ -27,7 +27,8 @@ CHANGELOG says how.
   first usable cluster when none is active.
 - **Origin check.** A non-GET request (and a WebSocket upgrade) whose
   `Origin` header does not match the request host is refused with
-  `403 forbidden`.
+  `403 forbidden`, and so is a GET of a write or exec route that a
+  browser marks `Sec-Fetch-Site: cross-site`.
 - **Bodies** are JSON (`Content-Type: application/json`) unless stated.
   They must arrive within one minute. Most query parameters that name an
   object are `ns` and `name`.
@@ -117,7 +118,7 @@ capability probe and provider detection:
                            "detected": true}},
   "permissions": {"role": "admin", "canRead": true, "canWrite": true, "canExec": true, "isAdmin": true, "readOnly": false},
   "capabilities": {"crds": true, "helm": true, "exec": true},
-  "features": {"pathKubeconfig": true, "externalPlugins": true},
+  "features": {"pathKubeconfig": true, "externalPlugins": true, "ambientCloudIdentity": false},
   "clusterError": ""
 }
 ```
@@ -140,8 +141,8 @@ Without a usable cluster, `cluster` is `null` and `clusterError` says why.
 |---|---|---|---|---|
 | GET | `/api/clusters` | authed | — | `ClusterEntry[]`: `{"id","name","source","active","context"?,"server"?,"address"?,"error"?,"readOnly","environment","role","platform"}`; admins also get `kubeconfigPath`, `cloudAuth` and `cloudCredentials` (the provider only, never the secrets). Listing never connects to a cluster |
 | POST | `/api/clusters/activate` | authed | `?name=` | `{"ok":true}`; `403` without an assignment, `400` for address bookmarks or a cluster that cannot be reached |
-| POST | `/api/clusters` | admin | `{"name", "content"? \| "path"? \| "address"?, "context"?, "credentials"?}` (the v0.4 query form `?name=&path=&address=&context=` still works) | `{"ok":true,"id"}`; `path` needs `features.pathKubeconfig`, else `403`; pasted kubeconfigs that run exec plugins, auth providers or read server files are refused with `403` unless `KUBEBENCH_ALLOW_KUBECONFIG_EXEC=true` (EKS, GKE and AKS stanzas are handled in process) |
-| PATCH | `/api/clusters/{id}` | admin | `{"name"?, "readOnly"?, "environment"?: ""\|"development"\|"staging"\|"production", "credentials"?: object\|null}` | `{"ok":true}` |
+| POST | `/api/clusters` | admin | `{"name", "content"? \| "path"? \| "address"?, "context"?, "credentials"?}` (the v0.4 query form `?name=&path=&address=&context=` still works) | `{"ok":true,"id"}`; `path` needs `features.pathKubeconfig`, else `403`, and a path inside a directory KubeBench writes from requests (the plugins' data directories such as the Helm cache, the external plugins directory) is refused with `403`; pasted kubeconfigs that run exec plugins, auth providers or read server files are refused with `403` unless `KUBEBENCH_ALLOW_KUBECONFIG_EXEC=true` (EKS, GKE and AKS stanzas are handled in process); pasted EKS, GKE and AKS kubeconfigs without credentials of their own (none, or an AWS `profile`) are refused with `403` unless `features.ambientCloudIdentity` (`KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY`) |
+| PATCH | `/api/clusters/{id}` | admin | `{"name"?, "readOnly"?, "environment"?: ""\|"development"\|"staging"\|"production", "credentials"?: object\|null}` | `{"ok":true}`; removing the credentials of an EKS, GKE or AKS kubeconfig, or replacing them with an AWS `profile`, is refused with `403` unless `features.ambientCloudIdentity` |
 | DELETE | `/api/clusters` | admin | `?name=` | `{"ok":true}`; sessions' active cluster and assignments go with it |
 
 Cloud `credentials` (§7.12) are one of
@@ -303,7 +304,7 @@ Available when the credential can list the Helm release Secrets.
 | POST | `/repos/update` | write | — | `{"repos":[{"name","ok","error"?}]}` |
 | GET | `/charts/search` | read | `?q=` | ≤ 100 charts with their versions |
 | GET | `/charts/values` | read | `?repo=&chart=&version=` or `?uploadId=` | `{"chart","values"}` |
-| GET | `/charts/oci/values` | write | `?ref=oci://…&version=` | `{"chart","values"}` |
+| POST | `/charts/oci/values` | write | `{"ref":"oci://…","version"}` | `{"chart","values"}` |
 | POST | `/charts/upload` | write | multipart field `chart` (`.tgz`, ≤ 20 MiB) | `{"uploadId","chart","expiresAt"}` (24 h) |
 
 Install and upgrade dry runs need `write` and are audited: Helm's

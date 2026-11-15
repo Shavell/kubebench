@@ -52,10 +52,11 @@ disclose the issue.
   providers or read server files unless `KUBEBENCH_ALLOW_KUBECONFIG_EXEC=true`;
   adding clusters by server path is controlled by
   `KUBEBENCH_ALLOW_PATH_KUBECONFIG` (off inside a cluster).
-- **Cloud identity.** EKS, GKE and AKS tokens are obtained in process. An
-  admin who adds such a cluster without per-cluster credentials makes
-  KubeBench use the server's own cloud identity, so grant that identity only
-  what KubeBench should have.
+- **Cloud identity.** EKS, GKE and AKS tokens are obtained in process.
+  Pasted kubeconfigs need per-cluster credentials unless
+  `KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY=true`, which lets every admin use
+  (and obtain the token of) the server's own cloud identity; grant that
+  identity only what KubeBench should have.
 - **Sessions.** HttpOnly SameSite cookies, `Secure` on TLS, login throttling,
   Origin checks on state-changing requests, forced password changes for
   passwords someone else knows.

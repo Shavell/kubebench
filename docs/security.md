@@ -88,7 +88,9 @@ data). Rows are pruned after `KUBEBENCH_AUDIT_RETENTION_DAYS` (default 90;
 - Logins are throttled: 10 failures per client IP and username in 15
   minutes → `429`. Wrong current passwords count too.
 - State-changing requests and WebSocket upgrades must carry an `Origin`
-  matching the host (CSRF defence in depth on top of SameSite).
+  matching the host (CSRF defence in depth on top of SameSite). GETs of
+  write and exec routes (such as Helm release values) are refused when the
+  browser marks them as sent from another site.
 - Terminals, log streams and watch streams are re-authorized at every
   heartbeat and end when the session, the assignment or the permission
   ends. Per-user limits: 10 terminals, 20 log streams, 16 watch streams.
@@ -109,7 +111,12 @@ server's account.
 - `KUBEBENCH_ALLOW_PATH_KUBECONFIG` (default on outside a cluster, off
   inside): admins may add clusters by a path on the server. Such
   kubeconfigs are the server's own files and may use exec plugins; they are
-  stored flattened.
+  stored flattened. Paths inside the directories KubeBench itself fills
+  from requests (each plugin's data directory under
+  `KUBEBENCH_DATA_DIR`, such as the Helm repository cache and chart
+  uploads, and `KUBEBENCH_PLUGINS_DIR`) are refused, symbolic links
+  resolved: a repository index written there is not a file of the
+  server's.
 - The runtime's clients never follow HTTP redirects, so a hostile API
   server cannot bounce the stored credential elsewhere. Helm's clients are
   pinned to the API server's host.
@@ -118,19 +125,26 @@ server's account.
 
 The EKS, GKE and AKS exec stanzas (`aws eks get-token`,
 `aws-iam-authenticator`, `gke-gcloud-auth-plugin`, `kubelogin`) are never
-run; KubeBench obtains the token itself. That has one important
-consequence:
+run; KubeBench obtains the token itself and sends it as a bearer token to
+the API server the kubeconfig names, **whatever host that is**. A
+kubeconfig pointing at a host of the admin's choosing would therefore hand
+them the token, which works outside KubeBench (a GCP token with the
+`cloud-platform` scope, a replayable EKS token).
 
-> **An admin can make KubeBench sign in with the server's ambient cloud
-> identity** (IRSA or EKS Pod Identity role, GKE or Azure workload identity,
-> the VM's instance profile or managed identity, `AWS_*`/`AZURE_*`
-> variables, `~/.aws` and gcloud files of the server's user) for any
-> cluster they add, simply by pasting a kubeconfig with a matching stanza.
-
-Give that identity only the cloud permissions KubeBench should have (or
-none), or use **per-cluster credentials** (AWS access key or profile, GCP
-service-account key of type `service_account`, Azure service principal),
-which are stored with the cluster and never returned. GCP external-account
+- `KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY=false` (default): pasted EKS,
+  GKE and AKS kubeconfigs must come with **per-cluster credentials** (AWS
+  access key, GCP service-account key of type `service_account`, Azure
+  service principal), stored with the cluster and never returned. Without
+  them, or with an AWS profile (read from the server's files), adding or
+  editing the cluster is refused. Kubeconfigs added by path, which are the
+  server's own files, are not affected.
+- `KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY=true`: **an admin can make
+  KubeBench sign in with the server's ambient cloud identity** (IRSA or EKS
+  Pod Identity role, GKE or Azure workload identity, the VM's instance
+  profile or managed identity, `AWS_*`/`AZURE_*` variables, `~/.aws` and
+  gcloud files of the server's user) for any cluster they add, and so
+  obtain its token. Turn it on only if every admin may hold that identity,
+  and give it only the cloud permissions KubeBench should have. GCP external-account
 and impersonation files are refused because they can read files, call URLs
 or run commands.
 
@@ -160,6 +174,8 @@ or run commands.
 - [ ] Use least-privilege credentials per cluster: the cluster's RBAC is
       the ceiling for everyone.
 - [ ] Leave `KUBEBENCH_ALLOW_KUBECONFIG_EXEC` off.
+- [ ] Leave `KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY` off unless every admin
+  may hold the server's cloud identity; prefer per-cluster credentials.
 - [ ] Back up the data directory and protect the backups like credentials.
 
 **Kubernetes (Helm chart)**

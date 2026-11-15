@@ -219,7 +219,9 @@ convert-kubeconfig`) sign in through exec plugins: `aws eks get-token`,
 `aws-iam-authenticator`, `gke-gcloud-auth-plugin` and `kubelogin`.
 KubeBench does not run them (they are not in the image): it recognises
 these stanzas and gets the tokens itself, so such a kubeconfig can be
-pasted without `KUBEBENCH_ALLOW_KUBECONFIG_EXEC`. Any other exec command
+pasted without `KUBEBENCH_ALLOW_KUBECONFIG_EXEC`. A pasted one needs
+per-cluster credentials unless `KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY` is
+on (see below). Any other exec command
 still needs that setting. The Clusters view shows the detected provider
 (EKS, AKS, GKE, k3s, …) and warns when the Kubernetes version leaves the
 provider's standard support. Details:
@@ -232,7 +234,10 @@ Which identity signs in, per cluster:
   or an AWS profile, a GCP service-account key (JSON), or an Azure service
   principal (tenant id, client id, client secret). They are stored in the
   database next to the kubeconfig and never shown again.
-- Otherwise **the server's own cloud identity**:
+- Otherwise **the server's own cloud identity**, for kubeconfigs added by
+  path or seeded from `KUBECONFIG`, and for pasted ones only with
+  `KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY=true` (chart:
+  `config.allowAmbientCloudIdentity`):
   - AWS: the SDK's default chain (`AWS_*` variables, `~/.aws` files of the
     server's user and the profile the kubeconfig names, IRSA web identity,
     EKS Pod Identity, ECS, EC2 instance profile). A `--role-arn` in the
@@ -244,15 +249,18 @@ Which identity signs in, per cluster:
     interactive modes (`devicecode`, `azurecli`, …) fall back to those
     three in that order. The Azure CLI is never run.
 
-**Security: an administrator can make KubeBench use the server's ambient
-cloud identity for any cluster they add**, simply by pasting a kubeconfig
-with one of these stanzas. Give that identity only the cloud access
-KubeBench should have (for EKS, also an access entry or `aws-auth` mapping
-with the Kubernetes permissions you intend), or leave it without one and
-use per-cluster credentials.
+**Security: with `KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY` on, an
+administrator can make KubeBench use the server's ambient cloud identity
+for any cluster they add**, simply by pasting a kubeconfig with one of
+these stanzas, and can obtain its token by naming an API server of their
+own. Turn it on only if every admin may hold that identity, and give it
+only the cloud access KubeBench should have (for EKS, also an access entry
+or `aws-auth` mapping with the Kubernetes permissions you intend).
+Otherwise leave it off and use per-cluster credentials.
 
 In Kubernetes, bind the chart's ServiceAccount to a cloud identity with
-`serviceAccount.annotations` (and `podLabels` for Azure):
+`serviceAccount.annotations` (and `podLabels` for Azure), and set
+`config.allowAmbientCloudIdentity: true`:
 
 ```yaml
 # EKS: IAM roles for service accounts (IRSA)

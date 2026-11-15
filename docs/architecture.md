@@ -43,7 +43,10 @@ answers `--version` and the `healthcheck` command, opens the store
 on a new database (`bootstrap.go`), starts the backend plugins
 (`plugin.StartAll`), builds the API server and serves HTTP or HTTPS. Two
 background jobs (`jobs.go`) prune expired sessions hourly and old audit
-rows daily. On SIGINT/SIGTERM it shuts down gracefully.
+rows daily. On SIGINT/SIGTERM it shuts down gracefully: the API server
+first hangs up the terminals and ends the log and watch streams with the
+reason (`api.Server.Shutdown`), then the HTTP server lets the remaining
+requests finish.
 
 ### Packages
 
@@ -52,7 +55,7 @@ rows daily. On SIGINT/SIGTERM it shuts down gracefully.
 | `internal/config` | Reads and validates every `PORT`/`KUBEBENCH_*` variable once; reports all problems together |
 | `internal/store` | SQLite (modernc, no cgo), file mode `0600`, `foreign_keys` on. Users, sessions, clusters (kubeconfig, flags, cloud credentials), per-cluster assignments, audit log, plugin settings and plugin KV, app settings. Schema migrations by `PRAGMA user_version`; a newer schema is refused |
 | `internal/password` | The password policy (8 characters to 72 bytes) and bcrypt |
-| `internal/kube` | `Manager` caches one `Runtime` per cluster and rebuilds it when the stored record changes. A `Runtime` holds the typed, dynamic and metrics clients (redirects never followed), a cached RESTMapper (`ResolveKind`, `ResolveResource`), the capability probe, the metrics-server sampler, Prometheus discovery, provider detection, the watch hub, and the operations: lists, YAML (with Secret redaction and "neat"), server-side apply and merge-patch edits (field manager `kubebench`), deletes, node/workload/pod/CronJob/namespace operations, drain, debug containers, terminals and log streams |
+| `internal/kube` | `Manager` caches one `Runtime` per cluster and rebuilds it when the stored record changes (an edit closes it at once, a deleted cluster's id never gets one again; runtimes are closed in the background, outside the manager's lock). A `Runtime` holds the typed, dynamic and metrics clients (redirects never followed), a cached RESTMapper (`ResolveKind`, `ResolveResource`), the capability probe, the metrics-server sampler, Prometheus discovery, provider detection, the watch hub, and the operations: lists, YAML (with Secret redaction and "neat"), server-side apply and merge-patch edits (field manager `kubebench`), deletes, node/workload/pod/CronJob/namespace operations, drain, debug containers, terminals and log streams |
 | `internal/watch` | The live-update hub of one Runtime: metadata-only dynamic informers per resource, started on the first subscriber and stopped 5 min after the last, with per-cluster and per-user limits (§7.10) |
 | `internal/api` | The HTTP layer: route table, router, auth, handlers, SSE and WebSocket helpers, Origin check, login rate limit, audit writer, external plugin files, the `/api/k8s` passthrough |
 | `internal/plugin` | The backend plugin contract (`Plugin`, `Router`, `Context`, `KV`, access levels, `Starter`) and shared response helpers |
