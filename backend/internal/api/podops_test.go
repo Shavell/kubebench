@@ -2,9 +2,12 @@ package api
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -49,6 +52,60 @@ func TestBulkDeletePods(t *testing.T) {
 	}
 	if len(e.mutations()) != before {
 		t.Fatal("an invalid bulk delete reached the cluster")
+	}
+}
+
+// The audit log lists every pod of a bulk delete, across as many rows as
+// the list needs, rather than cutting the list off at the row's size.
+func TestBulkDeleteAuditsEveryPod(t *testing.T) {
+	e := newTestEnv(t, nil)
+	items := make([]map[string]string, kube.MaxBulkDelete)
+	for i := range items {
+		items[i] = map[string]string{"namespace": "production", "name": fmt.Sprintf("payments-api-7d9f8c6b5-%05d", i)}
+	}
+	expect(t, e.do(http.MethodPost, "/api/pods/bulk-delete", "alice", map[string]any{"items": items}), http.StatusOK, "")
+
+	recorded := map[string]bool{}
+	parts := 0
+	for _, row := range e.audit() {
+		if row.Action != "POST /api/pods/bulk-delete" {
+			continue
+		}
+		parts++
+		if n := utf8.RuneCountInString(row.Detail); n > maxAuditDetail || strings.HasSuffix(row.Detail, "…") {
+			t.Fatalf("row of %d characters was cut: %s", n, row.Detail)
+		}
+		var detail struct {
+			Pods []string `json:"pods"`
+			Part string   `json:"part"`
+		}
+		if err := json.Unmarshal([]byte(row.Detail), &detail); err != nil || detail.Part == "" {
+			t.Fatalf("detail %q: %v", row.Detail, err)
+		}
+		for _, p := range detail.Pods {
+			recorded[p] = true
+		}
+	}
+	if parts < 2 || len(recorded) != len(items) {
+		t.Fatalf("%d rows recorded %d of %d pods", parts, len(recorded), len(items))
+	}
+}
+
+func TestAuditParts(t *testing.T) {
+	fields := map[string]any{"force": true}
+	if got := auditParts(fields, "pods", []string{"a/b"}); len(got) != 1 || got[0] != `{"force":true,"pods":["a/b"]}` {
+		t.Fatalf("one part = %q", got)
+	}
+	long := make([]string, 100)
+	for i := range long {
+		long[i] = fmt.Sprintf("namespace-%03d/%s", i, strings.Repeat("x", 40))
+	}
+	got := auditParts(fields, "pods", long)
+	if len(got) < 2 || !strings.Contains(got[0], `"part":"1/`) || !strings.Contains(got[len(got)-1], fmt.Sprintf(`"part":"%d/%d"`, len(got), len(got))) {
+		t.Fatalf("parts = %q", got)
+	}
+	if _, ok := fields["pods"]; ok {
+		t.Fatal("auditParts changed its fields argument")
 	}
 }
 

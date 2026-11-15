@@ -57,6 +57,16 @@ func (c *call) setAudit(target, detail string) {
 	}
 }
 
+// setAuditParts records the request as one row per detail (see
+// auditParts), all with the same action, target and status: for handlers
+// whose record does not fit the size of one row.
+func (c *call) setAuditParts(details []string) {
+	if c.audit == nil || len(details) == 0 {
+		return
+	}
+	c.audit.detail, c.audit.more = details[0], details[1:]
+}
+
 // handle registers a core route.
 func (s *Server) handle(pattern string, a access, h handlerFunc) { s.register(pattern, a, nil, h) }
 

@@ -202,7 +202,8 @@ error text. Pruned per `KUBEBENCH_AUDIT_RETENTION_DAYS`.
   every other route ignores it. Handlers may refine target and detail once
   they have read the body.
 - Rows are bounded: action, target and detail keep at most 200, 512 and
-  1000 characters. An audited request whose URL parameters do not fit (a
+  1000 characters (a handler whose record is longer, such as a bulk delete,
+  writes it across several rows). An audited request whose URL parameters do not fit (a
   target over 512 or a default detail over 1000 characters) is refused
   with `400 bad_request` before its handler runs, so a row always shows a
   command or any other parameter completely.
@@ -774,7 +775,9 @@ Details settled by the implementation:
   `scale` subresource. `/api/deployments/scale|restart` keep working.
 - `DELETE /api/pods?force=true` deletes with grace period 0. Bulk delete
   takes 1–200 items and answers `{"results":[{"namespace","name","error"?}]}`
-  in order; its audit detail lists the pods.
+  in order; its audit detail lists the pods (`{"failed","force","pods"}`).
+  A list too long for one row is recorded across several rows of the same
+  request, each with `"part":"<i>/<n>"`, so no pod is left out.
 - Debug: `image` defaults to `busybox:1.37`, `target` must name a container
   of the pod; answers `{"namespace","pod","container"}`, the container being
   `debugger-xxxxx` with stdin and TTY.

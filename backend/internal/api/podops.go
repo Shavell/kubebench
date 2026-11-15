@@ -32,7 +32,8 @@ func (s *Server) handleBulkDeletePods(w http.ResponseWriter, r *http.Request, c 
 			failed++
 		}
 	}
-	c.setAudit("", auditJSON(map[string]any{"force": body.Force, "failed": failed, "pods": pods}))
+	// Up to 200 pods do not fit one row; every pod is recorded all the same.
+	c.setAuditParts(auditParts(map[string]any{"force": body.Force, "failed": failed}, "pods", pods))
 	plugin.WriteJSON(w, map[string][]kube.PodDeleteResult{"results": results})
 }
 

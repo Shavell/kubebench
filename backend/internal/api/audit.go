@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
+	"maps"
 	"net"
 	"net/http"
 	"slices"
@@ -55,6 +57,9 @@ type auditWriter struct {
 	action string
 	target string
 	detail string
+	// more are the details of further rows of the same request, for a
+	// record that does not fit one row (see call.setAuditParts).
+	more []string
 
 	status  int
 	errBody bytes.Buffer
@@ -134,15 +139,52 @@ func (a *auditWriter) finish() {
 				detail = msg
 			}
 		}
-		a.s.writeAudit(store.AuditEntry{
-			Username: a.c.user.Username,
-			Cluster:  a.c.clusterName(),
-			Action:   a.action,
-			Target:   a.target,
-			Status:   status,
-			Detail:   detail,
-		})
+		for _, d := range append([]string{detail}, a.more...) {
+			a.s.writeAudit(store.AuditEntry{
+				Username: a.c.user.Username,
+				Cluster:  a.c.clusterName(),
+				Action:   a.action,
+				Target:   a.target,
+				Status:   status,
+				Detail:   d,
+			})
+		}
 	})
+}
+
+// auditParts renders fields plus items (under key) as audit details of at
+// most maxAuditDetail characters each, so that no item is cut off: one
+// detail when everything fits, else one per share of items, each with
+// "part":"<i>/<n>". A single item must fit one detail.
+func auditParts(fields map[string]any, key string, items []string) []string {
+	render := func(share []string, part string) string {
+		row := maps.Clone(fields)
+		row[key] = share
+		if part != "" {
+			row["part"] = part
+		}
+		return auditJSON(row)
+	}
+	var shares [][]string
+	var current []string
+	for _, item := range items {
+		next := append(slices.Clip(current), item)
+		// Sized with the widest part label a bulk request can need.
+		if len(current) > 0 && utf8.RuneCountInString(render(next, "999/999")) > maxAuditDetail {
+			shares = append(shares, current)
+			next = []string{item}
+		}
+		current = next
+	}
+	shares = append(shares, current)
+	if len(shares) == 1 {
+		return []string{render(shares[0], "")}
+	}
+	details := make([]string, len(shares))
+	for i, share := range shares {
+		details[i] = render(share, fmt.Sprintf("%d/%d", i+1, len(shares)))
+	}
+	return details
 }
 
 // writeAudit appends a row; a failure is logged but never fails the request.
