@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -134,6 +135,11 @@ func (s *Server) handleAddCluster(w http.ResponseWriter, r *http.Request, c *cal
 				"adding clusters by server-side path is disabled (KUBEBENCH_ALLOW_PATH_KUBECONFIG); paste the kubeconfig instead"))
 			return
 		}
+		if dir := s.requestWrittenDir(body.Path); dir != "" {
+			writeErr(w, errorf(http.StatusForbidden, plugin.CodeForbidden,
+				"%s is inside %s, which KubeBench writes with content from requests; add a kubeconfig of the server's own instead", body.Path, dir))
+			return
+		}
 		content, err := kube.ReadKubeconfig(body.Path)
 		if err != nil {
 			writeErr(w, badRequest("cannot read the kubeconfig %s: %v", body.Path, err))
@@ -165,12 +171,52 @@ func (s *Server) handleAddCluster(w http.ResponseWriter, r *http.Request, c *cal
 		audit["credentials"] = cloudauth.ProviderOf(credentials) // the provider only, never the values
 		c.setAudit("", auditJSON(audit))
 	}
+	// A pasted kubeconfig may not lend itself the server's cloud identity;
+	// one added by path is the server's own file.
+	if body.Content != "" {
+		if err := s.ambientIdentityError(&cluster); err != nil {
+			writeErr(w, err)
+			return
+		}
+	}
 	id, err := s.store.AddCluster(cluster)
 	if err != nil {
 		writeErr(w, err)
 		return
 	}
 	plugin.WriteJSON(w, map[string]any{"ok": true, "id": id})
+}
+
+// requestWrittenDir is the directory of path's that KubeBench fills with
+// content that requests supply (Helm repository indexes and chart uploads,
+// other plugins' data, external plugins), or "" when path is outside all
+// of them. A kubeconfig added by path is trusted as one of the server's
+// own files (it may run exec plugins), which such a file is not.
+func (s *Server) requestWrittenDir(path string) string {
+	dirs := []string{s.cfg.PluginsDir}
+	for _, p := range s.plugins {
+		dirs = append(dirs, filepath.Join(s.cfg.DataDir, p.Manifest().ID))
+	}
+	target := resolvedPath(path)
+	for _, dir := range dirs {
+		if rel, err := filepath.Rel(resolvedPath(dir), target); err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+			return dir
+		}
+	}
+	return ""
+}
+
+// resolvedPath is path made absolute with its symbolic links resolved, as
+// far as they exist.
+func resolvedPath(path string) string {
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return filepath.Clean(path)
+	}
+	if real, err := filepath.EvalSymlinks(abs); err == nil {
+		return real
+	}
+	return abs
 }
 
 // checkKubeconfig validates kubeconfig content for the given context ("" =
@@ -196,7 +242,8 @@ func (s *Server) checkKubeconfig(content, contextName string, pasted bool) error
 		return nil
 	}
 	// The clouds' exec plugins are not run but replaced in process
-	// (§7.12), so they need no exception.
+	// (§7.12), so they need no exception here; the identity they sign in
+	// with is checked by ambientIdentityError.
 	if refs := serverSideReferences(kc.Clusters[ctx.Cluster], kc.AuthInfos[ctx.AuthInfo]); len(refs) > 0 {
 		return errorf(http.StatusForbidden, plugin.CodeForbidden,
 			"the kubeconfig uses %s, which this server does not allow in pasted kubeconfigs (KUBEBENCH_ALLOW_KUBECONFIG_EXEC); embed the credentials as *-data fields or a token",
@@ -252,12 +299,14 @@ func (s *Server) handleDeleteCluster(w http.ResponseWriter, r *http.Request, _ *
 		writeErr(w, err)
 		return
 	}
-	s.manager.Drop(cluster.ID)
+	s.manager.Remove(cluster.ID)
 	writeOK(w)
 }
 
-// handleUpdateCluster renames a cluster or changes its safety flags (§4.3).
-// The cluster's runtime picks the new record up on its next use.
+// handleUpdateCluster renames a cluster or changes its safety flags or
+// credentials (§4.3). The cluster's runtime is closed, so its background
+// work (sampler, live updates) stops using the old record at once; the
+// next request builds one for the new record.
 func (s *Server) handleUpdateCluster(w http.ResponseWriter, r *http.Request, c *call) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
@@ -325,10 +374,21 @@ func (s *Server) handleUpdateCluster(w http.ResponseWriter, r *http.Request, c *
 		writeErr(w, badRequest("invalid environment %q: use development, staging, production or empty", *update.Environment))
 		return
 	}
+	if update.Credentials != nil {
+		// Removing the credentials, or replacing them with an AWS profile,
+		// would sign in with the server's own identity.
+		changed := *cluster
+		changed.Credentials = *update.Credentials
+		if err := s.ambientIdentityError(&changed); err != nil {
+			writeErr(w, err)
+			return
+		}
+	}
 	if err := s.store.UpdateCluster(id, update); err != nil {
 		writeErr(w, err)
 		return
 	}
+	s.manager.Drop(id)
 	writeOK(w)
 }
 

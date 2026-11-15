@@ -81,6 +81,7 @@ function parseServerInfo(body: unknown): ServerInfo {
     features: {
       pathKubeconfig: bool(features.pathKubeconfig),
       externalPlugins: bool(features.externalPlugins),
+      ambientCloudIdentity: bool(features.ambientCloudIdentity),
     },
     clusterError: str(body.clusterError),
   }

@@ -137,8 +137,10 @@
     "help": {
       "keep": "The stored {{provider}} credentials stay as they are. They are never shown again.",
       "server": "EKS, GKE and AKS kubeconfigs sign in with the KubeBench server's own cloud identity (pod or VM identity, environment). Other kubeconfigs use their own credentials.",
+      "serverOff": "This server does not lend its own cloud identity to added clusters (KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY), so EKS, GKE and AKS kubeconfigs need their own credentials. Other kubeconfigs use their own credentials.",
       "aws-keys": "An IAM access key, for a kubeconfig that runs aws eks get-token or aws-iam-authenticator. Stored with the cluster and never shown again.",
       "aws-profile": "A profile from the AWS configuration files of the KubeBench server.",
+      "aws-profileOff": "AWS profiles are read from the KubeBench server's own files, which this server does not allow for added clusters (KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY). Use an access key instead.",
       "gcp": "A service-account key file (JSON), for a kubeconfig that uses gke-gcloud-auth-plugin. Stored with the cluster and never shown again.",
       "azure": "A service principal with a client secret, for a kubeconfig that uses kubelogin. Stored with the cluster and never shown again."
     },

@@ -95,6 +95,8 @@ export interface ServerFeatures {
   pathKubeconfig: boolean
   /** The server has a plugins directory for external (runtime-loaded) UI plugins. */
   externalPlugins: boolean
+  /** Pasted EKS, GKE and AKS kubeconfigs may sign in with the server's own cloud identity. */
+  ambientCloudIdentity: boolean
 }
 
 /** The session as described by GET /api/info (design §4.1), normalised. */

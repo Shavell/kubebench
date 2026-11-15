@@ -27,6 +27,9 @@ type clusterSummary struct {
 type features struct {
 	PathKubeconfig  bool `json:"pathKubeconfig"`
 	ExternalPlugins bool `json:"externalPlugins"`
+	// AmbientCloudIdentity: pasted EKS, GKE and AKS kubeconfigs may sign
+	// in with the server's own cloud identity (§7.12).
+	AmbientCloudIdentity bool `json:"ambientCloudIdentity"`
 }
 
 type infoView struct {
@@ -55,8 +58,9 @@ func (s *Server) handleInfo(w http.ResponseWriter, r *http.Request, c *call) {
 		MustChangePassword: c.user.MustChangePassword,
 		Permissions:        permissionsFor(c.user, "", nil),
 		Features: features{
-			PathKubeconfig:  s.cfg.AllowPathKubeconfig,
-			ExternalPlugins: isDir(s.cfg.PluginsDir),
+			PathKubeconfig:       s.cfg.AllowPathKubeconfig,
+			ExternalPlugins:      isDir(s.cfg.PluginsDir),
+			AmbientCloudIdentity: s.cfg.AllowAmbientCloudIdentity,
 		},
 	}
 	cluster, role, err := s.selectCluster(c.user)

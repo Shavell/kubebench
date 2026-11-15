@@ -1,5 +1,6 @@
 import { useRef, type ChangeEvent } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useDataMode } from '@/data/mode'
 import type { CloudCredentialProvider } from '@/data/types'
 import { Button } from '@/shared/Button'
 import { Field, Select, Textarea, TextInput } from '@/shared/form'
@@ -34,6 +35,9 @@ interface CloudCredentialsFieldsProps {
  */
 export function CloudCredentialsFields({ draft, onChange, modes, problems, disabled, stored }: CloudCredentialsFieldsProps) {
   const { t } = useTranslation(CLUSTERS_NS)
+  // Without the server's opt-in, its own identity (and its AWS profiles) cannot sign in.
+  const ambientAllowed = useDataMode().features?.ambientCloudIdentity !== false
+  const helpKey = !ambientAllowed && (draft.mode === 'server' || draft.mode === 'aws-profile') ? `${draft.mode}Off` : draft.mode
   const keyFile = useRef<HTMLInputElement>(null)
   const set = (field: CredentialField) => (value: string) => onChange({ ...draft, [field]: value })
 
@@ -64,7 +68,7 @@ export function CloudCredentialsFields({ draft, onChange, modes, problems, disab
 
   return (
     <>
-      <Field label={t('credentials.label')} help={t(`credentials.help.${draft.mode}`, { provider: stored ? t(`credentials.providers.${stored}`) : '' })}>
+      <Field label={t('credentials.label')} help={t(`credentials.help.${helpKey}`, { provider: stored ? t(`credentials.providers.${stored}`) : '' })}>
         <Select
           value={draft.mode}
           // A new mode starts empty: secrets typed for another mode are not carried over.

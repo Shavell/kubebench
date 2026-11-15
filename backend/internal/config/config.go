@@ -57,6 +57,9 @@ type Config struct {
 	// AllowKubeconfigExec lets pasted kubeconfigs run exec credential
 	// plugins and auth providers and read files on the server.
 	AllowKubeconfigExec bool
+	// AllowAmbientCloudIdentity lets pasted kubeconfigs sign in to EKS,
+	// GKE and AKS with the server's own cloud identity.
+	AllowAmbientCloudIdentity bool
 	// Kubeconfig is the KUBECONFIG path list used to seed the inventory on first run.
 	Kubeconfig string
 	InCluster  bool
@@ -147,6 +150,9 @@ func FromEnv(lookup func(string) (string, bool), inCluster bool) (*Config, error
 	// commands or reading the files it names would give every admin the
 	// server's account, so that is off unless the operator opts in.
 	c.AllowKubeconfigExec = p.boolean("KUBEBENCH_ALLOW_KUBECONFIG_EXEC", false)
+	// Signing in with the server's own cloud identity hands its token to
+	// whatever API server a pasted kubeconfig names, so that is opt-in too.
+	c.AllowAmbientCloudIdentity = p.boolean("KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY", false)
 	// Reading kubeconfigs from server-side paths only makes sense when the
 	// server runs on the operator's machine, not inside a pod.
 	c.AllowPathKubeconfig = p.boolean("KUBEBENCH_ALLOW_PATH_KUBECONFIG", !inCluster)

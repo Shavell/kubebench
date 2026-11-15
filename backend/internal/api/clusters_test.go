@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -127,4 +128,46 @@ func TestAddClusterGatesServerSideFiles(t *testing.T) {
 		http.StatusBadRequest, plugin.CodeBadRequest)
 	expect(t, open.do(http.MethodPost, "/api/clusters", "admin", map[string]string{"name": "from-path", "content": testKubeconfig}),
 		http.StatusConflict, plugin.CodeConflict)
+}
+
+// A path kubeconfig is trusted as one of the server's own files, so it may
+// not be one KubeBench wrote from a request: a Helm repository's index
+// (bytes of the repository's choosing) in the helm plugin's cache would
+// otherwise run its exec plugin as the server's user.
+func TestAddClusterByPathRefusesRequestWrittenFiles(t *testing.T) {
+	e := newTestEnv(t, nil, newFakePlugin("helm"))
+	cache := filepath.Join(e.srv.cfg.DataDir, "helm", "cache")
+	if err := os.MkdirAll(cache, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	index := filepath.Join(cache, "evil-index.yaml")
+	if err := os.WriteFile(index, []byte(kubeconfigWithExec()), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	// The same file through a symbolic link elsewhere, and a plugin file.
+	link := filepath.Join(t.TempDir(), "config")
+	if err := os.Symlink(index, link); err != nil {
+		t.Fatal(err)
+	}
+	external := filepath.Join(e.srv.cfg.PluginsDir, "x", "plugin.json")
+	if err := os.MkdirAll(filepath.Dir(external), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(external, []byte(kubeconfigWithExec()), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{index, link, filepath.Join(cache, "..", "cache", "evil-index.yaml"), external} {
+		expect(t, e.do(http.MethodPost, "/api/clusters", "admin", map[string]string{"name": "evil", "path": path}),
+			http.StatusForbidden, plugin.CodeForbidden)
+	}
+	if _, err := e.store.ClusterByName("evil"); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("a refused path was added: %v", err)
+	}
+
+	// The server's other files, next to its data directory, still work.
+	own := filepath.Join(e.srv.cfg.DataDir, "kubeconfig")
+	if err := os.WriteFile(own, []byte(kubeconfigWithExec()), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	expect(t, e.do(http.MethodPost, "/api/clusters", "admin", map[string]string{"name": "own", "path": own}), http.StatusOK, "")
 }

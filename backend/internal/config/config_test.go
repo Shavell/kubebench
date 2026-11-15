@@ -123,6 +123,21 @@ func TestKubeconfigExecIsOptIn(t *testing.T) {
 	}
 }
 
+// The server's own cloud identity is not lent to pasted kubeconfigs unless
+// the operator opts in, inside and outside a cluster.
+func TestAmbientCloudIdentityIsOptIn(t *testing.T) {
+	for _, inCluster := range []bool{false, true} {
+		c, err := FromEnv(env(nil), inCluster)
+		if err != nil || c.AllowAmbientCloudIdentity {
+			t.Fatalf("inCluster=%v: AllowAmbientCloudIdentity = %v (err %v)", inCluster, c.AllowAmbientCloudIdentity, err)
+		}
+	}
+	c, err := FromEnv(env(map[string]string{"KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY": "true"}), false)
+	if err != nil || !c.AllowAmbientCloudIdentity {
+		t.Fatalf("explicit opt-in ignored: %v", err)
+	}
+}
+
 func TestValidationReportsEveryProblem(t *testing.T) {
 	_, err := FromEnv(env(map[string]string{
 		"PORT":                           "http",

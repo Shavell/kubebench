@@ -12,6 +12,7 @@ import (
 	fakediscovery "k8s.io/client-go/discovery/fake"
 
 	"kubebench/internal/cloud"
+	"kubebench/internal/cloudauth"
 	"kubebench/internal/plugin"
 	"kubebench/internal/store"
 )
@@ -83,8 +84,11 @@ func TestClusterPlatform(t *testing.T) {
 	}
 }
 
+// ambientOptIn lends the server's own cloud identity to pasted kubeconfigs.
+var ambientOptIn = map[string]string{"KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY": "true"}
+
 func TestAddClusterWithCloudExec(t *testing.T) {
-	e := newTestEnv(t, nil) // KUBEBENCH_ALLOW_KUBECONFIG_EXEC unset
+	e := newTestEnv(t, ambientOptIn) // KUBEBENCH_ALLOW_KUBECONFIG_EXEC unset
 	// The EKS plugin is handled in process: no exec opt-in needed. Any
 	// other command still is refused.
 	expect(t, e.do(http.MethodPost, "/api/clusters", "admin", map[string]string{"name": "eks", "content": eksKubeconfig}),
@@ -102,8 +106,41 @@ func TestAddClusterWithCloudExec(t *testing.T) {
 	}
 }
 
-func TestClusterCredentialsAreWriteOnly(t *testing.T) {
+// Without the opt-in, a pasted EKS, GKE or AKS kubeconfig must bring its
+// own identity: the server's token would otherwise go to whatever API
+// server the kubeconfig names.
+func TestAmbientCloudIdentityNeedsOptIn(t *testing.T) {
 	e := newTestEnv(t, nil)
+	attacker := strings.Replace(eksKubeconfig, "https://ABCDEF0123.gr7.eu-west-1.eks.amazonaws.com", "https://attacker.example", 1)
+	keys := map[string]string{"provider": "aws", "accessKeyId": "AKIAEXAMPLE", "secretAccessKey": awsSecret}
+	profile := map[string]string{"provider": "aws", "profile": "prod"}
+	for _, creds := range []any{nil, profile} {
+		rec := e.do(http.MethodPost, "/api/clusters", "admin", map[string]any{"name": "eks", "content": attacker, "credentials": creds})
+		expect(t, rec, http.StatusForbidden, plugin.CodeForbidden)
+		if !strings.Contains(rec.Body.String(), "KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY") {
+			t.Fatalf("the refusal does not name the setting: %s", rec.Body.String())
+		}
+	}
+	rec := e.do(http.MethodPost, "/api/clusters", "admin", map[string]any{"name": "eks", "content": attacker, "credentials": keys})
+	expect(t, rec, http.StatusOK, "")
+	id := int64(decode[map[string]any](t, rec)["id"].(float64))
+
+	// Edits may not fall back to the server's identity either.
+	path := "/api/clusters/" + strconv.FormatInt(id, 10)
+	for _, creds := range []any{nil, profile} {
+		expect(t, e.do(http.MethodPatch, path, "admin", map[string]any{"credentials": creds}), http.StatusForbidden, plugin.CodeForbidden)
+	}
+	if c, _ := e.store.GetCluster(id); cloudauth.ProviderOf(c.Credentials) != "aws" || !strings.Contains(c.Credentials, "AKIAEXAMPLE") {
+		t.Fatalf("a refused edit changed the credentials: %s", c.Credentials)
+	}
+	expect(t, e.do(http.MethodPatch, path, "admin", map[string]any{"readOnly": true}), http.StatusOK, "")
+
+	// Kubeconfigs without a cloud stanza are not affected.
+	expect(t, e.do(http.MethodPost, "/api/clusters", "admin", map[string]string{"name": "plain", "content": testKubeconfig}), http.StatusOK, "")
+}
+
+func TestClusterCredentialsAreWriteOnly(t *testing.T) {
+	e := newTestEnv(t, ambientOptIn)
 	creds := map[string]string{"provider": "aws", "accessKeyId": "AKIAEXAMPLE", "secretAccessKey": awsSecret}
 	rec := e.do(http.MethodPost, "/api/clusters", "admin", map[string]any{"name": "eks", "content": eksKubeconfig, "credentials": creds})
 	expect(t, rec, http.StatusOK, "")

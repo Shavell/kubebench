@@ -40,7 +40,7 @@ export function mockServerInfo(): ServerInfo {
     },
     capabilities: { crds: true, helm: true, exec: true },
     // The mock has no server side for runtime-loaded plugins.
-    features: { pathKubeconfig: true, externalPlugins: false },
+    features: { pathKubeconfig: true, externalPlugins: false, ambientCloudIdentity: true },
     clusterError: '',
   }
 }

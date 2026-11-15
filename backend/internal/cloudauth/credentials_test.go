@@ -66,3 +66,21 @@ func TestCredentialsRoundTrip(t *testing.T) {
 		t.Fatal("broken credentials parsed")
 	}
 }
+
+func TestCredentialsOwnIdentity(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		creds *Credentials
+		want  bool
+	}{
+		{"none: the server's ambient identity", nil, false},
+		{"an AWS profile of the server's files", &Credentials{Provider: AWS, Profile: "prod"}, false},
+		{"an AWS access key", &Credentials{Provider: AWS, AccessKeyID: "AKIA", SecretAccessKey: "s"}, true},
+		{"a GCP service-account key", &Credentials{Provider: GCP, ServiceAccountJSON: "{}"}, true},
+		{"an Azure service principal", &Credentials{Provider: Azure, TenantID: "t", ClientID: "c", ClientSecret: "s"}, true},
+	} {
+		if got := tc.creds.OwnIdentity(); got != tc.want {
+			t.Errorf("%s: OwnIdentity = %v, want %v", tc.name, got, tc.want)
+		}
+	}
+}

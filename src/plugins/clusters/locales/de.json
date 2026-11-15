@@ -137,8 +137,10 @@
     "help": {
       "keep": "Die gespeicherten {{provider}}-Anmeldeinformationen bleiben unverändert. Sie werden nie wieder angezeigt.",
       "server": "kubeconfigs für EKS, GKE und AKS melden sich mit der eigenen Cloud-Identität des KubeBench-Servers an (Pod- oder VM-Identität, Umgebung). Andere kubeconfigs verwenden ihre eigenen Anmeldeinformationen.",
+      "serverOff": "Dieser Server leiht hinzugefügten Clustern nicht seine eigene Cloud-Identität (KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY), daher brauchen kubeconfigs für EKS, GKE und AKS eigene Anmeldeinformationen. Andere kubeconfigs verwenden ihre eigenen Anmeldeinformationen.",
       "aws-keys": "Ein IAM-Zugriffsschlüssel für eine kubeconfig, die aws eks get-token oder aws-iam-authenticator ausführt. Wird mit dem Cluster gespeichert und nie wieder angezeigt.",
       "aws-profile": "Ein Profil aus den AWS-Konfigurationsdateien des KubeBench-Servers.",
+      "aws-profileOff": "AWS-Profile werden aus den eigenen Dateien des KubeBench-Servers gelesen, was dieser Server für hinzugefügte Cluster nicht erlaubt (KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY). Verwenden Sie stattdessen einen Zugriffsschlüssel.",
       "gcp": "Eine Dienstkonto-Schlüsseldatei (JSON) für eine kubeconfig, die gke-gcloud-auth-plugin verwendet. Wird mit dem Cluster gespeichert und nie wieder angezeigt.",
       "azure": "Ein Dienstprinzipal mit einem geheimen Clientschlüssel für eine kubeconfig, die kubelogin verwendet. Wird mit dem Cluster gespeichert und nie wieder angezeigt."
     },

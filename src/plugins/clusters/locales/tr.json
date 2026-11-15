@@ -137,8 +137,10 @@
     "help": {
       "keep": "Kayıtlı {{provider}} kimlik bilgileri olduğu gibi kalır. Bir daha gösterilmezler.",
       "server": "EKS, GKE ve AKS kubeconfig'leri KubeBench sunucusunun kendi bulut kimliğiyle (pod ya da VM kimliği, ortam değişkenleri) oturum açar. Diğer kubeconfig'ler kendi kimlik bilgilerini kullanır.",
+      "serverOff": "Bu sunucu kendi bulut kimliğini eklenen cluster'lara vermez (KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY); bu nedenle EKS, GKE ve AKS kubeconfig'lerinin kendi kimlik bilgileri olmalıdır. Diğer kubeconfig'ler kendi kimlik bilgilerini kullanır.",
       "aws-keys": "aws eks get-token ya da aws-iam-authenticator çalıştıran bir kubeconfig için IAM erişim anahtarı. Cluster'la birlikte saklanır ve bir daha gösterilmez.",
       "aws-profile": "KubeBench sunucusunun AWS yapılandırma dosyalarındaki bir profil.",
+      "aws-profileOff": "AWS profilleri KubeBench sunucusunun kendi dosyalarından okunur ve bu sunucu bunu eklenen cluster'lar için kabul etmez (KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY). Bunun yerine bir erişim anahtarı kullanın.",
       "gcp": "gke-gcloud-auth-plugin kullanan bir kubeconfig için service account anahtar dosyası (JSON). Cluster'la birlikte saklanır ve bir daha gösterilmez.",
       "azure": "kubelogin kullanan bir kubeconfig için client secret'lı bir service principal. Cluster'la birlikte saklanır ve bir daha gösterilmez."
     },

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"net/http"
 	"time"
 
 	"k8s.io/client-go/tools/clientcmd"
@@ -12,6 +13,7 @@ import (
 	"kubebench/internal/cloud"
 	"kubebench/internal/cloudauth"
 	"kubebench/internal/kube"
+	"kubebench/internal/plugin"
 	"kubebench/internal/store"
 )
 
@@ -120,4 +122,28 @@ func decodeCredentials(raw json.RawMessage, c *store.Cluster) (encoded string, r
 		return "", false, badRequest("%v", err)
 	}
 	return creds.Encode(), false, nil
+}
+
+// ambientIdentityError refuses a kubeconfig cluster that would sign in to
+// EKS, GKE or AKS with the server's own cloud identity (no per-cluster
+// credentials, or an AWS profile of the server's files) unless
+// KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY is set (§7.12). The token of
+// that identity goes to whatever API server the kubeconfig names, so an
+// admin could otherwise collect it with a kubeconfig pointing at a host
+// of their own.
+func (s *Server) ambientIdentityError(c *store.Cluster) error {
+	if s.cfg.AllowAmbientCloudIdentity {
+		return nil
+	}
+	provider := cloudAuthOf(c)
+	if provider == "" {
+		return nil
+	}
+	creds, err := cloudauth.ParseCredentials(c.Credentials)
+	if err == nil && creds.OwnIdentity() {
+		return nil
+	}
+	return errorf(http.StatusForbidden, plugin.CodeForbidden,
+		"the kubeconfig signs in to %s with the KubeBench server's own cloud identity, which this server does not allow (KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY); give the cluster its own credentials (an access key, a service-account key or a service principal)",
+		provider)
 }

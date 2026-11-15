@@ -127,6 +127,14 @@ func ParseCredentials(stored string) (*Credentials, error) {
 	return &c, nil
 }
 
+// OwnIdentity reports whether c names an identity of its own rather than
+// one of the server's: an AWS profile is read from the server's
+// configuration files, and no credentials at all mean the server's
+// ambient identity.
+func (c *Credentials) OwnIdentity() bool {
+	return c != nil && !(c.Provider == AWS && c.Profile != "")
+}
+
 // Encode serializes validated credentials for storage.
 func (c *Credentials) Encode() string {
 	b, _ := json.Marshal(c) // plain strings cannot fail to marshal
