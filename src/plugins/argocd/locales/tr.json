@@ -1,0 +1,207 @@
+{
+  "manifest": {
+    "name": "Argo CD",
+    "description": "Argo CD uygulamaları, projeleri ve ApplicationSet'leri: senkronizasyon ve sağlık durumu, senkronizasyon, geri alma, yenileme ve silme.",
+    "tooltip": "Argo CD",
+    "sidebarTitle": "Argo CD"
+  },
+  "commands": {
+    "openApplications": "Argo CD: Uygulamaları aç",
+    "openProjects": "Argo CD: Projeleri aç",
+    "openApplicationSets": "Argo CD: ApplicationSet'leri aç"
+  },
+  "sidebar": {
+    "applications": "Uygulamalar",
+    "projects": "Projeler",
+    "applicationSets": "ApplicationSet'ler"
+  },
+  "columns": {
+    "sync": "Senkronizasyon",
+    "health": "Sağlık",
+    "operation": "İşlem",
+    "source": "Kaynak",
+    "destination": "Hedef",
+    "autoSync": "Otomatik senkronizasyon",
+    "lastSynced": "Son senkronizasyon"
+  },
+  "actions": {
+    "reload": "Yeniden yükle",
+    "sync": "Senkronize et",
+    "refresh": "Yenile",
+    "hardRefresh": "Tam yenile",
+    "delete": "Sil"
+  },
+  "states": {
+    "Synced": "Senkronize",
+    "OutOfSync": "Senkronize değil",
+    "Unknown": "Bilinmiyor",
+    "Healthy": "Sağlıklı",
+    "Progressing": "İlerliyor",
+    "Degraded": "Bozulmuş",
+    "Suspended": "Askıya alınmış",
+    "Missing": "Eksik",
+    "Running": "Çalışıyor",
+    "Terminating": "Sonlandırılıyor",
+    "Succeeded": "Başarılı",
+    "Failed": "Başarısız",
+    "Error": "Hata",
+    "SyncFailed": "Senkronizasyon başarısız",
+    "Pruned": "Temizlendi",
+    "PruneSkipped": "Temizleme atlandı",
+    "Deleting": "Siliniyor"
+  },
+  "applications": {
+    "title": "Argo CD uygulamaları",
+    "loading": "Uygulamalar yükleniyor…",
+    "unavailable": "Argo CD uygulamaları kullanılamıyor",
+    "empty": "Argo CD uygulaması yok",
+    "emptyHint": "Argo CD'de oluşturulan uygulamalar burada görünür.",
+    "noMatch": "Aramayla eşleşen uygulama yok",
+    "project": "{{project}} projesi · {{count}}",
+    "summary": "{{shown}} / {{total}}"
+  },
+  "overview": {
+    "status": "Durum",
+    "healthMessage": "Sağlık mesajı",
+    "project": "Proje",
+    "source": "Kaynak",
+    "sources": "Kaynaklar",
+    "destination": "Hedef",
+    "revision": "Senkronize revizyon",
+    "autoSync": "Otomatik senkronizasyon",
+    "autoOn": "Otomatik",
+    "autoPrune": "temizleme",
+    "selfHeal": "kendi kendini onarma",
+    "autoOff": "Manuel",
+    "syncOptions": "Senkronizasyon seçenekleri",
+    "lastSynced": "Son senkronizasyon",
+    "reconciled": "Son karşılaştırma",
+    "images": "İmajlar",
+    "urls": "URL'ler"
+  },
+  "detail": {
+    "loading": "{{name}} yükleniyor…",
+    "unavailable": "{{name}} uygulaması gösterilemiyor",
+    "operationRunning": "Bu uygulamada bir işlem çalışıyor; bitmesini bekleyin.",
+    "automated": "Otomatik senkronizasyon",
+    "tabs": {
+      "resources": "Kaynaklar",
+      "operation": "İşlem",
+      "history": "Geçmiş",
+      "conditions": "Koşullar"
+    },
+    "resources": {
+      "empty": "Yönetilen kaynak yok",
+      "emptyHint": "Argo CD, uygulamayı kaynağıyla karşılaştırdıktan sonra kaynakları listeler.",
+      "requiresPruning": "temizlenmesi gerekiyor",
+      "yaml": "YAML'ı aç",
+      "yamlOf": "{{name}} YAML'ını aç",
+      "clusterScoped": "Cluster kapsamlı"
+    },
+    "history": {
+      "empty": "Uygulama henüz senkronize edilmedi",
+      "autoSyncBlocks": "Otomatik senkronizasyon açıkken Argo CD geri alma yapamaz; önce kapatın.",
+      "id": "Kimlik",
+      "revision": "Revizyon",
+      "source": "Kaynak",
+      "deployedAt": "Dağıtım zamanı",
+      "initiatedBy": "Başlatan",
+      "actions": "İşlemler",
+      "current": "Geçerli",
+      "rollback": "Geri al",
+      "rollbackHint": "{{id}} numaralı dağıtımın revizyonuna ve kaynağına geri senkronize et"
+    },
+    "operation": {
+      "none": "Henüz işlem çalışmadı",
+      "dryRun": "deneme çalıştırması",
+      "prune": "temizleme",
+      "phase": "Aşama",
+      "message": "Mesaj",
+      "revision": "Revizyon",
+      "initiatedBy": "Başlatan",
+      "startedAt": "Başlangıç",
+      "finishedAt": "Bitiş",
+      "options": "Seçenekler",
+      "retries": "Yeniden denemeler",
+      "results": "Sonuçlar",
+      "kind": "Tür",
+      "resource": "Kaynak",
+      "status": "Durum",
+      "phaseColumn": "Senkronizasyon aşaması"
+    }
+  },
+  "conditions": {
+    "empty": "Bildirilen koşul yok",
+    "type": "Tür",
+    "message": "Mesaj",
+    "since": "Başlangıç"
+  },
+  "sync": {
+    "title": "{{name}} uygulamasını senkronize et",
+    "description": "Argo CD, seçilen revizyonun manifest'lerini cluster'a uygular.",
+    "cancel": "İptal",
+    "submit": "Senkronize et",
+    "submitDryRun": "Deneme çalıştırması",
+    "revision": "Revizyon",
+    "revisionHelp": "Bir branch, tag ya da commit. Hedef revizyonu ({{target}}) senkronize etmek için boş bırakın.",
+    "revisionMultiSource": "Uygulamanın birden fazla kaynağı var; her biri kendi hedef revizyonunda senkronize edilir.",
+    "prune": "Temizle",
+    "pruneHelp": "Artık kaynakta bulunmayan kaynakları sil.",
+    "dryRun": "Deneme çalıştırması",
+    "dryRunHelp": "Yalnızca senkronizasyonu denetle; cluster'da hiçbir şey değişmez.",
+    "options": "Senkronizasyon seçenekleri",
+    "resources": "Kaynaklar",
+    "selective": "Yalnızca seçilen kaynakları senkronize et",
+    "selectiveHelp": "Varsayılan olarak uygulamanın tüm kaynakları senkronize edilir.",
+    "noneSelected": "En az bir kaynak seçin.",
+    "started": "{{name}} senkronizasyonu başlatıldı.",
+    "startedDryRun": "{{name}} için deneme senkronizasyonu başlatıldı."
+  },
+  "refresh": {
+    "hint": "Uygulamayı kaynağıyla yeniden karşılaştır",
+    "hardHint": "Manifest'leri önbelleği atlayarak kaynaktan yeniden üret ve karşılaştır",
+    "done": "{{name}} için yenileme istendi.",
+    "hardDone": "{{name}} için tam yenileme istendi."
+  },
+  "rollback": {
+    "title": "{{name}}, {{id}} numaralı dağıtıma geri alınsın mı?",
+    "message": "Argo CD, uygulamayı dağıtıldığı kaynakla {{revision}} revizyonuna senkronize eder. Senkronizasyon hook'ları çalışmaz.",
+    "started": "{{name}} uygulamasının {{id}} numaralı dağıtıma geri alınması başlatıldı."
+  },
+  "delete": {
+    "title": "{{name}} uygulaması silinsin mi?",
+    "message": "Argo CD uygulaması silinir. Bu işlem geri alınamaz.",
+    "cascade": "Yönetilen kaynakları da sil (kademeli)",
+    "cascadeOn": "Argo CD, uygulamadan önce dağıttığı tüm kaynakları ({{namespace}} Namespace'inde ve diğer yerlerde) siler.",
+    "cascadeOff": "{{namespace}} Namespace'indeki ve diğer yerlerdeki kaynaklar cluster'da kalır, artık Argo CD tarafından yönetilmez.",
+    "done": "{{name}} uygulaması silindi; kaynakları korundu.",
+    "doneCascade": "{{name}} uygulaması kaynaklarıyla birlikte siliniyor."
+  },
+  "projects": {
+    "title": "Argo CD projeleri",
+    "loading": "Projeler yükleniyor…",
+    "unavailable": "Argo CD projeleri kullanılamıyor",
+    "empty": "Argo CD projesi yok",
+    "columns": {
+      "applications": "Uygulamalar",
+      "sourceRepos": "Kaynak depolar",
+      "destinations": "Hedefler",
+      "clusterResources": "Cluster kaynakları",
+      "roles": "Roller",
+      "syncWindows": "Senkronizasyon pencereleri"
+    }
+  },
+  "applicationSets": {
+    "title": "ApplicationSet'ler",
+    "loading": "ApplicationSet'ler yükleniyor…",
+    "unavailable": "ApplicationSet'ler kullanılamıyor",
+    "empty": "ApplicationSet yok",
+    "columns": {
+      "generators": "Üreteçler",
+      "template": "Uygulama adı",
+      "project": "Proje",
+      "applications": "Uygulamalar",
+      "condition": "Koşul"
+    }
+  }
+}
