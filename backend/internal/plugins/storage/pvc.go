@@ -219,7 +219,7 @@ func createPVC(w http.ResponseWriter, r *http.Request, c *plugin.Context) {
 	if ds := req.DataSource; ds != nil {
 		detail["dataSource"] = ds.Kind + "/" + ds.Name
 	}
-	auditCreate(r, c, "pvc", req.Namespace+"/"+req.Name, detail)
+	auditCreate(c, "pvc", req.Namespace+"/"+req.Name, detail)
 
 	created, err := c.Runtime.CS.CoreV1().PersistentVolumeClaims(req.Namespace).Create(r.Context(), spec.object(), createOptions(r))
 	if err != nil {

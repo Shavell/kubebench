@@ -100,14 +100,14 @@ type CreateResult struct {
 	Warnings   []string `json:"warnings,omitempty"`
 }
 
-// auditCreate adds the row that names a created object, which the router's
-// own row cannot: its target comes from the URL, and the object is named in
-// the body. Dry runs are not audited (§3.4).
-func auditCreate(r *http.Request, c *plugin.Context, kind, target string, detail map[string]any) {
-	if plugin.IsDryRun(r) || c.Audit == nil {
+// auditCreate names the created object in the router's row for the request:
+// the URL only gives its kind, the body names it. Dry runs are not audited
+// (§3.4), so SetAudit does nothing for them.
+func auditCreate(c *plugin.Context, kind, target string, detail map[string]any) {
+	if c.SetAudit == nil {
 		return
 	}
-	c.Audit("storage."+kind+".create", kind+"/"+target, auditJSON(detail))
+	c.SetAudit(kind+"/"+target, auditJSON(detail))
 }
 
 func auditJSON(v map[string]any) string {

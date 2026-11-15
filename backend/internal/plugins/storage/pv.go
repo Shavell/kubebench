@@ -315,7 +315,7 @@ func createPV(w http.ResponseWriter, r *http.Request, c *plugin.Context) {
 	if len(req.Nodes) > 0 {
 		detail["nodes"] = req.Nodes
 	}
-	auditCreate(r, c, "pv", req.Name, detail)
+	auditCreate(c, "pv", req.Name, detail)
 
 	created, err := c.Runtime.CS.CoreV1().PersistentVolumes().Create(r.Context(), spec.object(), createOptions(r))
 	if err != nil {

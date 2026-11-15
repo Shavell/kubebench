@@ -86,8 +86,8 @@ func resizePVC(w http.ResponseWriter, r *http.Request, c *plugin.Context) {
 		writeErr(w, err)
 		return
 	}
-	if c.Audit != nil {
-		c.Audit("storage.pvc.resize", "pvc/"+ns+"/"+name, auditJSON(map[string]any{"from": from.String(), "to": size.String()}))
+	if c.SetAudit != nil {
+		c.SetAudit("", auditJSON(map[string]any{"from": from.String(), "to": size.String()}))
 	}
 	classes, err := classExpansion(r.Context(), c.Runtime)
 	if err != nil {

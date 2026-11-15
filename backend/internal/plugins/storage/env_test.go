@@ -30,7 +30,7 @@ type env struct {
 	cs     *fake.Clientset
 	rt     *kube.Runtime
 	mux    *http.ServeMux
-	audits []string // "action target detail" of extra audit rows
+	audits []string // "target detail" given to SetAudit
 	access map[string]plugin.Access
 }
 
@@ -68,8 +68,8 @@ func newEnv(t *testing.T, opts envOptions, objects ...runtime.Object) *env {
 func (e *env) Handle(method, path string, a plugin.Access, h plugin.HandlerFunc) {
 	e.access[method+" "+path] = a
 	e.mux.HandleFunc(method+" "+path, func(w http.ResponseWriter, r *http.Request) {
-		h(w, r, &plugin.Context{Runtime: e.rt, Audit: func(action, target, detail string) {
-			e.audits = append(e.audits, action+" "+target+" "+detail)
+		h(w, r, &plugin.Context{Runtime: e.rt, SetAudit: func(target, detail string) {
+			e.audits = append(e.audits, target+" "+detail)
 		}})
 	})
 }

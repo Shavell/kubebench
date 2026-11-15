@@ -147,7 +147,7 @@ func createStorageClass(w http.ResponseWriter, r *http.Request, c *plugin.Contex
 			warnings = append(warnings, warning)
 		}
 	}
-	auditCreate(r, c, "storageclass", req.Name, map[string]any{
+	auditCreate(c, "storageclass", req.Name, map[string]any{
 		"provisioner": req.Provisioner, "reclaimPolicy": spec.reclaim, "volumeBindingMode": spec.binding,
 		"allowVolumeExpansion": req.AllowVolumeExpansion, "isDefault": req.IsDefault,
 	})

@@ -62,7 +62,7 @@ func TestCreatePVSources(t *testing.T) {
 	if pv := get("disk"); pv.Spec.CSI.Driver != "ebs.csi.aws.com" || pv.Spec.CSI.VolumeHandle != "vol-0abc" || pv.Spec.CSI.VolumeAttributes["type"] != "gp3" {
 		t.Fatalf("csi volume = %+v", pv.Spec)
 	}
-	if len(e.audits) != 4 || !strings.HasPrefix(e.audits[1], `storage.pv.create pv/loc {"capacity":"20Gi","nodes":["node-b"],"reclaimPolicy":"Retain","source":"local","storageClass":"manual"}`) {
+	if len(e.audits) != 4 || !strings.HasPrefix(e.audits[1], `pv/loc {"capacity":"20Gi","nodes":["node-b"],"reclaimPolicy":"Retain","source":"local","storageClass":"manual"}`) {
 		t.Fatalf("audits = %v", e.audits)
 	}
 }

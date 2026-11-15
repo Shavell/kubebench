@@ -45,7 +45,7 @@ func TestCreatePVC(t *testing.T) {
 		"labels": map[string]string{"app": "db"},
 	}
 
-	// A dry run reaches the API server as one, and is not audited.
+	// A dry run reaches the API server as one.
 	res := decode[CreateResult](t, expect(t, e.do(http.MethodPost, "/pvcs?dryRun=true", body), http.StatusOK, ""))
 	if !res.DryRun || res.Name != "data" || res.Namespace != "apps" || res.Kind != "PersistentVolumeClaim" {
 		t.Fatalf("dry-run result = %+v", res)
@@ -54,9 +54,7 @@ func TestCreatePVC(t *testing.T) {
 	if opts := create.GetCreateOptions(); len(opts.DryRun) != 1 || opts.DryRun[0] != metav1.DryRunAll || opts.FieldManager != fieldManager {
 		t.Fatalf("create options = %+v", opts)
 	}
-	if len(e.audits) != 0 {
-		t.Fatalf("dry run audited: %v", e.audits)
-	}
+	e.audits = nil // the router does not record dry runs (§3.4)
 	if err := e.cs.CoreV1().PersistentVolumeClaims("apps").Delete(context.Background(), "data", metav1.DeleteOptions{}); err != nil {
 		t.Fatal(err) // the fake ignores dry runs
 	}
@@ -74,7 +72,7 @@ func TestCreatePVC(t *testing.T) {
 		*pvc.Spec.VolumeMode != corev1.PersistentVolumeFilesystem {
 		t.Fatalf("created claim = %+v", pvc.Spec)
 	}
-	if len(e.audits) != 1 || !strings.HasPrefix(e.audits[0], `storage.pvc.create pvc/apps/data {"accessModes":["ReadWriteOnce"],"size":"5Gi","storageClass":"fast"}`) {
+	if len(e.audits) != 1 || !strings.HasPrefix(e.audits[0], `pvc/apps/data {"accessModes":["ReadWriteOnce"],"size":"5Gi","storageClass":"fast"}`) {
 		t.Fatalf("audit = %v", e.audits)
 	}
 

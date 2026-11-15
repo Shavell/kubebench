@@ -73,7 +73,7 @@ func TestResizePVC(t *testing.T) {
 	if q := requested(pvc); q.String() != "3Gi" {
 		t.Fatalf("request = %s", q.String())
 	}
-	if len(e.audits) != 1 || e.audits[0] != `storage.pvc.resize pvc/apps/data {"from":"1Gi","to":"3Gi"}` {
+	if len(e.audits) != 1 || e.audits[0] != ` {"from":"1Gi","to":"3Gi"}` {
 		t.Fatalf("audit = %v", e.audits)
 	}
 }

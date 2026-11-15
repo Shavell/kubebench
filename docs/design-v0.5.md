@@ -994,9 +994,10 @@ Bodies are validated server-side (DNS-1123 names, quantities, access modes).
   grow is `400`, a claim that is not Bound or whose class does not allow
   expansion `409 conflict`. `GET /snapshots` without the CRDs is
   `503 capability_unavailable`.
-- Audit: the router's row plus a `storage.<pvc|pv|storageclass>.create` /
-  `storage.pvc.resize` row naming the object (`pvc/<ns>/<name>`), since the
-  body names it.
+- Audit: one router row per mutation. Creates refine it through
+  `SetAudit` with the object the body names (`pvc/<ns>/<name>`, `pv/<name>`,
+  `storageclass/<name>`) and a short JSON detail (size, class, source);
+  resize adds `{"from","to"}` to the row whose target the URL already names.
 
 UI: overview, PVC/PV/StorageClass lists, wizards — PVC (storage class,
 access modes, size+unit, volume mode, bind to an Available PV, clone from
