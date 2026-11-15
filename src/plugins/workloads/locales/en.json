@@ -223,6 +223,7 @@
     },
     "reveal": {
       "title": "Reveal the values of Secret {{name}}?",
+      "titleShown": "Values of Secret {{name}}",
       "warning": "The values are shown in plain text, here only, and are not kept once you close this dialog. Revealing is recorded in the audit log. Make sure nobody is looking over your shoulder.",
       "confirm": "Reveal",
       "shown": "These are the Secret's real values. They are gone when you close this dialog.",

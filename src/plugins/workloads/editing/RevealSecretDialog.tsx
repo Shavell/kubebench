@@ -69,7 +69,7 @@ export function RevealSecretDialog({ target, onClose }: { target: ObjectRef; onC
       size={values ? 'large' : 'small'}
       icon={values ? 'unlock' : 'warning'}
       role={values ? 'dialog' : 'alertdialog'}
-      title={t('editing.reveal.title', { name: target.name })}
+      title={t(values ? 'editing.reveal.titleShown' : 'editing.reveal.title', { name: target.name })}
       description={values ? t('editing.reveal.shown') : t('editing.reveal.warning', { namespace: target.namespace })}
       busy={busy}
       onClose={onClose}

@@ -223,6 +223,7 @@
     },
     "reveal": {
       "title": "{{name}} adlı Secret'ın değerleri gösterilsin mi?",
+      "titleShown": "{{name}} adlı Secret'ın değerleri",
       "warning": "Değerler yalnızca burada, düz metin olarak gösterilir ve bu pencereyi kapattığınızda saklanmaz. Değerlerin gösterilmesi denetim kaydına yazılır. Ekranınızı kimsenin görmediğinden emin olun.",
       "confirm": "Göster",
       "shown": "Bunlar Secret'ın gerçek değerleridir. Bu pencereyi kapattığınızda kaybolurlar.",
