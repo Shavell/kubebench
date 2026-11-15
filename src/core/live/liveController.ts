@@ -115,7 +115,8 @@ export function startLiveUpdates(live: LiveProvider): () => void {
         if (firstOpen && missedChanges) {
           missedChanges = false
           refreshData()
-        } else if (previous?.mode === 'starting' && status.mode === 'live') {
+        } else if (previous && previous.mode !== 'live' && status.mode === 'live') {
+          // Synced after starting or polling: changes meanwhile were not reported.
           refreshTopics([{ topic: status.topic, namespace: '' }])
         }
         publish()
