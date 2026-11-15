@@ -46,33 +46,43 @@ export interface QueryState<T> {
   errorCode: string | null
 }
 
+const LOADING: QueryState<never> = { data: null, loading: true, error: null, errorCode: null }
+
+function sameDeps(a: DependencyList, b: DependencyList): boolean {
+  return a.length === b.length && a.every((value, i) => Object.is(value, b[i]))
+}
+
 /**
  * Runs an async query, re-running it when `deps` change or when
- * refreshData() is called. Keeps the previous data while reloading.
+ * refreshData() is called. A refresh keeps the previous data while
+ * reloading; new `deps` never show the data of the old ones (a page reused
+ * for another resource must not render the old rows with its new columns).
  */
 export function useQuery<T>(query: () => Promise<T>, deps: DependencyList): QueryState<T> {
   const version = useDataVersion()
-  const [state, setState] = useState<QueryState<T>>({
-    data: null,
-    loading: true,
-    error: null,
-    errorCode: null,
-  })
+  // `deps` names the inputs the state was loaded for.
+  const [state, setState] = useState<{ deps: DependencyList; value: QueryState<T> }>({ deps, value: LOADING })
 
   useEffect(() => {
     let cancelled = false
-    setState((s) => ({ ...s, loading: true, error: null, errorCode: null }))
+    setState((s) => ({
+      deps,
+      value: sameDeps(s.deps, deps) ? { ...s.value, loading: true, error: null, errorCode: null } : LOADING,
+    }))
     query()
       .then((data) => {
-        if (!cancelled) setState({ data, loading: false, error: null, errorCode: null })
+        if (!cancelled) setState({ deps, value: { data, loading: false, error: null, errorCode: null } })
       })
       .catch((err: unknown) => {
         if (cancelled) return
         setState({
-          data: null,
-          loading: false,
-          error: errorMessage(err),
-          errorCode: isApiError(err) ? err.code : null,
+          deps,
+          value: {
+            data: null,
+            loading: false,
+            error: errorMessage(err),
+            errorCode: isApiError(err) ? err.code : null,
+          },
         })
       })
     return () => {
@@ -82,7 +92,7 @@ export function useQuery<T>(query: () => Promise<T>, deps: DependencyList): Quer
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...deps, version])
 
-  return state
+  return sameDeps(state.deps, deps) ? state.value : LOADING
 }
 
 /** useQuery over the core data providers, so plugin UIs never touch fetch mechanics. */
