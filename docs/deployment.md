@@ -281,28 +281,10 @@ identity serve the same purpose; environment variables go into
 
 ## Configuration
 
-KubeBench reads its configuration from the environment once at startup and
-refuses to start with an invalid value (every problem is reported at once).
-
-| Variable | Default | Meaning |
-|---|---|---|
-| `PORT` | `9876` | HTTP port |
-| `KUBEBENCH_LISTEN_ADDR` | `:$PORT` | Full bind address (overrides `PORT`), e.g. `127.0.0.1:9876` |
-| `KUBEBENCH_DB` | `kubebench.db` | SQLite file |
-| `KUBEBENCH_DATA_DIR` | directory of `KUBEBENCH_DB` | Writable state: Helm repository cache, uploads, plugins |
-| `KUBEBENCH_PLUGINS_DIR` | `$KUBEBENCH_DATA_DIR/plugins` | External (frontend) plugins |
-| `KUBEBENCH_ADMIN_PASSWORD` | `admin` | Bootstrap admin password (first start only, 8 characters to 72 bytes); it must be changed at the first sign-in |
-| `KUBEBENCH_SECURE_COOKIES` | `auto` | `auto` (Secure on TLS or a trusted `X-Forwarded-Proto: https`), `true`, `false` |
-| `KUBEBENCH_TRUST_PROXY` | `false` | Honour `X-Forwarded-Proto/For` (behind an ingress or reverse proxy) |
-| `KUBEBENCH_TLS_CERT` / `KUBEBENCH_TLS_KEY` | (unset) | Serve HTTPS directly |
-| `KUBEBENCH_SESSION_TTL` | `168h` | Session lifetime (Go duration) |
-| `KUBEBENCH_AUDIT_RETENTION_DAYS` | `90` | Audit rows older than this are pruned daily (`0` = keep forever) |
-| `KUBEBENCH_ALLOW_PATH_KUBECONFIG` | `true` outside a cluster, `false` inside | Allow adding clusters by a path on the server |
-| `KUBEBENCH_ALLOW_KUBECONFIG_EXEC` | `false` | Let pasted kubeconfigs run exec credential plugins and auth providers and read files on the server (the EKS, GKE and AKS plugins need no opt-in: see [Cloud clusters](#cloud-clusters-eks-aks-gke)). **Every admin can then run commands as the server's user**; add such clusters by path instead where possible |
-| `KUBECONFIG` | (unset) | Seeds the cluster inventory on the first start; a list (`a:b`) is merged like kubectl does |
-| `KUBEBENCH_NAMESPACE` | in a pod: its namespace | The namespace KubeBench runs in; deleting a namespace of that name from KubeBench is refused unless forced |
-| `KUBEBENCH_UPDATE_MODE` | `stable` | Update check against GitHub releases: `stable`, `prerelease` (also prereleases) or `off` (no requests; use it for air-gapped installs). Administrators can change it in Settings > Updates; see [Update checks](#update-checks) |
-| `KUBEBENCH_UPDATE_URL` | `https://api.github.com/repos/Shavell/kube-bench/releases` | Releases list the check reads (GitHub's JSON); a mirror inside the network works too |
+KubeBench reads its configuration from the environment once at startup
+and refuses to start with an invalid value (every problem is reported at
+once). Every variable, its default and its meaning:
+[configuration.md](configuration.md).
 
 Where each deployment sets them:
 

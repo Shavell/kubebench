@@ -1,5 +1,12 @@
 # Design: Go backend
 
+> **Historical document.** This is the design note of the first Go backend
+> (v0.1, when it replaced the Node proxy, which was removed in v0.5). Parts
+> of it are out of date: roles, the audit log, the plugin platform, live
+> updates and cloud sign-in came with v0.5. For the current backend see
+> [`architecture.md`](architecture.md), [`api.md`](api.md) and the v0.5
+> contract [`design-v0.5.md`](design-v0.5.md).
+
 Replaces the Node proxy with a single Go binary that is deployable *into* the
 cluster it manages. Drivers for the rewrite:
 
