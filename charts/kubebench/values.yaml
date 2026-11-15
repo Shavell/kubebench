@@ -113,8 +113,20 @@ ingress:
 
 networkPolicy:
   enabled: false
-  # Ingress is allowed from anywhere to the http port. Egress is limited to
-  # DNS, the Kubernetes API server and the destinations below.
+  # Egress is limited to DNS, the Kubernetes API server and the destinations
+  # below; ingress to the http port to the peers in ingressFrom.
+  #
+  # NetworkPolicyPeer objects allowed to reach the http port; empty: anyone.
+  # With an Ingress (config.trustProxy), allow only the ingress controller:
+  # KubeBench then trusts X-Forwarded-For, and a client that bypasses the
+  # controller could forge it, e.g. to evade login throttling. For Traefik on k3s:
+  #   - namespaceSelector:
+  #       matchLabels:
+  #         kubernetes.io/metadata.name: kube-system
+  #     podSelector:
+  #       matchLabels:
+  #         app.kubernetes.io/name: traefik
+  ingressFrom: []
   apiServer:
     # API server addresses as CIDRs. Empty: looked up at install time from the
     # default/kubernetes Service and its EndpointSlices. Policies see the

@@ -169,6 +169,7 @@
       "additionalProperties": false,
       "properties": {
         "enabled": { "type": "boolean" },
+        "ingressFrom": { "$ref": "#/definitions/objectList" },
         "apiServer": {
           "type": "object",
           "additionalProperties": false,

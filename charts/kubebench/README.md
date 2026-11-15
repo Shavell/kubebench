@@ -96,14 +96,32 @@ ingress:
 With an Ingress, `config.trustProxy` defaults to `true` so that KubeBench
 honours `X-Forwarded-Proto/For` (secure cookies behind TLS, client IPs in
 the audit log and login rate limiting). Keep the Service `ClusterIP` then;
-anyone who can reach the pod directly could forge those headers. On k3s
-without DNS, `kubebench.<node-ip>.sslip.io` makes a handy host name.
+anyone who can reach the pod directly could forge those headers, so allow
+only the ingress controller with `networkPolicy.ingressFrom` (see
+[NetworkPolicy](#networkpolicy)). On k3s without DNS,
+`kubebench.<node-ip>.sslip.io` makes a handy host name.
 
 ## NetworkPolicy
 
-`networkPolicy.enabled=true` allows ingress from anywhere to the HTTP port,
-and egress only to DNS, the Kubernetes API server and the destinations you
-add. Most CNIs apply egress rules after Service translation, so the policy
+`networkPolicy.enabled=true` allows ingress to the HTTP port from the
+peers in `networkPolicy.ingressFrom` (from anywhere when it is empty), and
+egress only to DNS, the Kubernetes API server and the destinations you
+add. Behind an Ingress, list the ingress controller's pods there, for
+Traefik on k3s:
+
+```yaml
+networkPolicy:
+  enabled: true
+  ingressFrom:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: traefik
+```
+
+Most CNIs apply egress rules after Service translation, so the policy
 must allow the API server *endpoints* (often `:6443`), not only the
 `kubernetes` Service on `:443`. The chart looks both up at install time;
 set `networkPolicy.apiServer.cidrs` when rendering offline (`helm template`,
@@ -200,6 +218,7 @@ kubectl -n kubebench delete pvc/kubebench-data secret/kubebench-auth
 | `ingress.hosts` | `kubebench.example.com`, `/` | Hosts and paths. |
 | `ingress.tls` | `[]` | TLS entries (`secretName`, `hosts`). |
 | `networkPolicy.enabled` | `false` | Create a NetworkPolicy (see [NetworkPolicy](#networkpolicy)). |
+| `networkPolicy.ingressFrom` | `[]` | NetworkPolicyPeers allowed to reach the HTTP port; empty = anyone. |
 | `networkPolicy.apiServer.cidrs` | `[]` | API server CIDRs; empty = looked up at install time. |
 | `networkPolicy.apiServer.ports` | `[443, 6443]` | API server ports (looked-up endpoint ports are added). |
 | `networkPolicy.dns.namespaceSelector` | `kube-system` | Namespace of the cluster DNS. |

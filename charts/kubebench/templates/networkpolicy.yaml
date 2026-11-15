@@ -48,6 +48,10 @@ spec:
     - ports:
         - port: http
           protocol: TCP
+      {{- with $np.ingressFrom }}
+      from:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
   egress:
     # Kubernetes API server
     - ports:
