@@ -1,6 +1,5 @@
 import { registerTranslations } from '@/i18n'
-import en from './locales/en.json'
-import tr from './locales/tr.json'
+import { localeBundles } from '@/i18n/bundles'
 
 /**
  * i18n namespace of the updates module (= its plugin id). Registered on
@@ -9,6 +8,6 @@ import tr from './locales/tr.json'
  */
 export const UPDATES_NS = 'updates'
 
-export const updatesLocales = { en, tr }
+export const updatesLocales = localeBundles(import.meta.glob('./locales/*.json', { eager: true, import: 'default' }))
 
 registerTranslations(UPDATES_NS, updatesLocales)

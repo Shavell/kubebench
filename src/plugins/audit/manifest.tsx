@@ -1,8 +1,7 @@
 import { lazyComponent } from '@/core/plugin/lazyComponent'
 import type { PluginManifest } from '@/core/plugin/types'
+import { localeBundles } from '@/i18n/bundles'
 import { AuditSidebar } from './AuditSidebar'
-import en from './locales/en.json'
-import tr from './locales/tr.json'
 import { AUDIT_NS } from './namespace'
 import { AUDIT_TAB_KIND, openAuditTab } from './tabs'
 
@@ -20,7 +19,7 @@ export const auditPlugin: PluginManifest = {
   description: 'manifest.description',
   category: 'core',
   core: true,
-  locales: { en, tr },
+  locales: localeBundles(import.meta.glob('./locales/*.json', { eager: true, import: 'default' })),
   activityBar: { icon: 'history', tooltip: 'manifest.tooltip', order: 6 },
   sidebar: { id: 'audit-recent', title: 'manifest.sidebarTitle', component: AuditSidebar },
   tabRenderers: [{ kind: AUDIT_TAB_KIND, component: AuditPage }],

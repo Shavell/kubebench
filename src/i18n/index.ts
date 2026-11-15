@@ -1,8 +1,8 @@
 import i18n from 'i18next'
 import { initReactI18next, useTranslation } from 'react-i18next'
 import { useSettingsStore } from '@/core/store/settingsStore'
-import en from './locales/en.json'
-import tr from './locales/tr.json'
+import { localeBundles } from './bundles'
+import { languageMatcher } from './languageMatch'
 
 /**
  * Internationalization (i18next + react-i18next).
@@ -16,50 +16,63 @@ import tr from './locales/tr.json'
  *   The `ns:key` syntax is disabled (nsSeparator=false) so literal UI
  *   strings containing ':' are safe as fallbacks; pass `{ ns }` instead.
  *
- * Adding a language: add it to SUPPORTED_LANGUAGES, add a
- * `locales/<code>.json` next to every `locales/en.json`, then run
- * `npm run i18n:check`. See docs/i18n.md.
+ * The language set is data: every `src/i18n/locales/<code>.json` is a
+ * supported language, named by its own `language.name`. Adding a language
+ * means adding a `locales/<code>.json` next to every `locales/en.json`
+ * (namespaces load their bundles with `localeBundles`), then running
+ * `npm run i18n:check`.
  */
 
-export const SUPPORTED_LANGUAGES = [
-  { code: 'en', label: 'English' },
-  { code: 'tr', label: 'Türkçe' },
-] as const
+const coreBundles = localeBundles(import.meta.glob('./locales/*.json', { eager: true, import: 'default' }))
 
-export type LanguageCode = (typeof SUPPORTED_LANGUAGES)[number]['code']
+/** A supported language code, the basename of a `src/i18n/locales/*.json` file. */
+export type LanguageCode = string
 /** What the user picked in Settings; 'auto' follows the browser. */
 export type LanguagePreference = LanguageCode | 'auto'
 
 export const DEFAULT_LANGUAGE: LanguageCode = 'en'
 export const CORE_NS = 'core'
 
+function languageName(code: string): string {
+  const name = (coreBundles[code] as { language?: { name?: unknown } }).language?.name
+  return typeof name === 'string' ? name : code
+}
+
+/** The UI languages, each named in its own language: the default first, then by code. */
+export const SUPPORTED_LANGUAGES: readonly { code: LanguageCode; label: string }[] = Object.keys(coreBundles)
+  .sort((a, b) => Number(b === DEFAULT_LANGUAGE) - Number(a === DEFAULT_LANGUAGE) || a.localeCompare(b))
+  .map((code) => ({ code, label: languageName(code) }))
+
 const supportedCodes = new Set<string>(SUPPORTED_LANGUAGES.map((l) => l.code))
 
-export function isSupportedLanguage(code: string): code is LanguageCode {
+export function isSupportedLanguage(code: string): boolean {
   return supportedCodes.has(code)
+}
+
+/** The supported language for a BCP 47 tag: the exact tag ("pt-BR"), else its base ("de-AT" → "de"). */
+export const matchLanguage: (tag: string) => LanguageCode | undefined = languageMatcher([...supportedCodes])
+
+/** The browser's preferred language tags, most preferred first. */
+export function browserLanguages(): string[] {
+  if (typeof navigator === 'undefined') return []
+  return [...(navigator.languages ?? []), navigator.language].filter(Boolean)
 }
 
 /**
  * Resolves a stored preference ('auto', a supported code, or anything
  * stale from localStorage) to a concrete supported language code.
  */
-export function resolveLanguage(pref: LanguagePreference | string): LanguageCode {
+export function resolveLanguage(pref: LanguagePreference): LanguageCode {
   if (pref !== 'auto' && isSupportedLanguage(pref)) return pref
-  const candidates =
-    typeof navigator !== 'undefined' ? [...(navigator.languages ?? []), navigator.language] : []
-  for (const candidate of candidates) {
-    if (!candidate) continue
-    const base = candidate.toLowerCase().split('-')[0]
-    if (isSupportedLanguage(base)) return base
+  for (const candidate of browserLanguages()) {
+    const code = matchLanguage(candidate)
+    if (code) return code
   }
   return DEFAULT_LANGUAGE
 }
 
 void i18n.use(initReactI18next).init({
-  resources: {
-    en: { [CORE_NS]: en },
-    tr: { [CORE_NS]: tr },
-  },
+  resources: Object.fromEntries(Object.entries(coreBundles).map(([code, bundle]) => [code, { [CORE_NS]: bundle }])),
   lng: resolveLanguage(useSettingsStore.getState().language),
   fallbackLng: DEFAULT_LANGUAGE,
   supportedLngs: SUPPORTED_LANGUAGES.map((l) => l.code),

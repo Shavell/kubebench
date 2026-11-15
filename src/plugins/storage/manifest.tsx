@@ -1,8 +1,7 @@
 import { lazyComponent } from '@/core/plugin/lazyComponent'
 import type { PluginManifest } from '@/core/plugin/types'
+import { localeBundles } from '@/i18n/bundles'
 import { NS } from './i18n'
-import en from './locales/en.json'
-import tr from './locales/tr.json'
 import { StorageSidebar } from './StorageSidebar'
 import { openClassWizard, openListTab, openPvcWizard, openPvWizard, TAB_KINDS } from './tabs'
 
@@ -23,7 +22,7 @@ export const storagePlugin: PluginManifest = {
   description: 'manifest.description',
   category: 'storage',
   backendPlugin: NS,
-  locales: { en, tr },
+  locales: localeBundles(import.meta.glob('./locales/*.json', { eager: true, import: 'default' })),
   activityBar: { icon: 'database', tooltip: 'manifest.tooltip' },
   sidebar: { id: 'storage-explorer', title: 'manifest.sidebarTitle', component: StorageSidebar },
   tabRenderers: [

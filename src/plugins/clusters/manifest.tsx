@@ -1,8 +1,7 @@
 import { lazyComponent } from '@/core/plugin/lazyComponent'
 import type { PluginManifest } from '@/core/plugin/types'
+import { localeBundles } from '@/i18n/bundles'
 import { ClustersSidebar } from './ClustersSidebar'
-import en from './locales/en.json'
-import tr from './locales/tr.json'
 import { CLUSTERS_NS } from './namespace'
 import { INVENTORY_TAB_KIND, openInventoryTab } from './tabs'
 
@@ -16,7 +15,7 @@ export const clustersPlugin: PluginManifest = {
   description: 'manifest.description',
   category: 'core',
   core: true,
-  locales: { en, tr },
+  locales: localeBundles(import.meta.glob('./locales/*.json', { eager: true, import: 'default' })),
   activityBar: { icon: 'server-environment', tooltip: 'manifest.tooltip', order: 0 },
   sidebar: { id: 'clusters-explorer', title: 'manifest.sidebarTitle', component: ClustersSidebar },
   tabRenderers: [{ kind: INVENTORY_TAB_KIND, component: ClustersPage }],

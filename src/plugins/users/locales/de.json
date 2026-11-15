@@ -1,0 +1,108 @@
+{
+  "manifest": {
+    "name": "Benutzer",
+    "description": "Benutzerkonten, ihre globale Rolle und ihre Rolle auf jedem Cluster. Nur für Administratoren.",
+    "tooltip": "Benutzer",
+    "sidebarTitle": "Benutzer"
+  },
+  "commands": {
+    "open": "Benutzer: Benutzer verwalten"
+  },
+  "tab": {
+    "title": "Benutzer"
+  },
+  "page": {
+    "title": "Benutzer"
+  },
+  "sidebar": {
+    "users": "Benutzer"
+  },
+  "columns": {
+    "user": "Benutzer",
+    "role": "Rolle",
+    "access": "Clusterzugriff",
+    "status": "Status",
+    "actions": "Aktionen"
+  },
+  "table": {
+    "you": "(Sie)",
+    "mustChangePassword": "Muss Kennwort ändern",
+    "loading": "Benutzer werden geladen…",
+    "empty": "Keine Benutzer"
+  },
+  "access": {
+    "allClusters": "Alle Cluster (Administrator)",
+    "noClusters": "Kein Clusterzugriff",
+    "none": "Kein Zugriff"
+  },
+  "roles": {
+    "admin": "Administrator",
+    "user": "Benutzer",
+    "viewer": "Betrachter",
+    "operator": "Operator"
+  },
+  "actions": {
+    "refresh": "Aktualisieren",
+    "add": "Benutzer hinzufügen",
+    "cancel": "Abbrechen",
+    "editAccess": "Zugriff bearbeiten",
+    "resetPassword": "Kennwort zurücksetzen",
+    "resetOwnHint": "Ändern Sie Ihr eigenes Kennwort über das Benutzermenü in der Statusleiste.",
+    "deleteNamed": "{{name}} löschen",
+    "deleteOwnHint": "Sie können Ihr eigenes Konto nicht löschen."
+  },
+  "fields": {
+    "username": "Benutzername",
+    "initialPassword": "Anfangskennwort",
+    "newPassword": "Neues Kennwort",
+    "confirmPassword": "Neues Kennwort bestätigen",
+    "role": "Rolle",
+    "roleHelp": "Administratoren verwalten Benutzer, Cluster, Plug-ins und das Überwachungsprotokoll und haben vollen Zugriff auf jeden Cluster."
+  },
+  "create": {
+    "title": "Benutzer hinzufügen",
+    "description": "Der Benutzer meldet sich einmal mit diesem Kennwort an und muss dann ein neues wählen.",
+    "usernameHelp": "Buchstaben, Ziffern, „.“, „_“, „@“ und „-“; bis zu 64 Zeichen.",
+    "passwordHelp": "Mindestens {{count}} Zeichen. Teilen Sie es dem Benutzer über einen sicheren Kanal mit.",
+    "submit": "Benutzer hinzufügen",
+    "done": "Benutzer {{name}} hinzugefügt. Bei der ersten Anmeldung muss das Kennwort geändert werden.",
+    "errors": {
+      "username": "Geben Sie 1 bis 64 Buchstaben, Ziffern, „.“, „_“, „@“ oder „-“ ein, beginnend mit einem Buchstaben oder einer Ziffer.",
+      "taken": "Ein Benutzer mit diesem Namen ist bereits vorhanden.",
+      "password": "Das Kennwort muss mindestens {{count}} Zeichen lang sein."
+    }
+  },
+  "reset": {
+    "title": "Kennwort von {{name}} zurücksetzen",
+    "description": "{{name}} wird überall abgemeldet und muss bei der nächsten Anmeldung ein neues Kennwort wählen.",
+    "help": "Mindestens {{count}} Zeichen. Teilen Sie es dem Benutzer über einen sicheren Kanal mit.",
+    "submit": "Kennwort zurücksetzen",
+    "done": "Kennwort von {{name}} zurückgesetzt. Bei der nächsten Anmeldung muss ein neues gewählt werden.",
+    "errors": {
+      "password": "Das Kennwort muss mindestens {{count}} Zeichen lang sein.",
+      "mismatch": "Die Kennwörter stimmen nicht überein."
+    }
+  },
+  "edit": {
+    "title": "Zugriff von {{name}}",
+    "clusterAccess": "Clusterzugriff",
+    "accessHelp": "Betrachter können auf einem Cluster alles ansehen; Operatoren können zusätzlich Ressourcen ändern und Shells öffnen. Ein schreibgeschützter Cluster sperrt Änderungen für alle.",
+    "adminAccess": "Administratoren haben vollen Zugriff auf jeden Cluster. Die folgenden Rollen gelten wieder, wenn der Benutzer zum regulären Benutzer wird.",
+    "noClusters": "Es sind noch keine Cluster registriert.",
+    "submit": "Speichern",
+    "done": "Zugriff von {{name}} aktualisiert.",
+    "errors": {
+      "lastAdmin": "Mindestens ein Administrator muss bleiben. Machen Sie zuerst einen anderen Benutzer zum Administrator."
+    }
+  },
+  "delete": {
+    "title": "{{name}} löschen?",
+    "message": "Das Konto, seine Sitzungen und seine Clusterzuweisungen werden entfernt. Einträge im Überwachungsprotokoll bleiben erhalten.",
+    "confirm": "Löschen",
+    "done": "Benutzer {{name}} gelöscht.",
+    "errors": {
+      "self": "Sie können Ihr eigenes Konto nicht löschen.",
+      "lastAdmin": "Der letzte Administrator kann nicht gelöscht werden. Machen Sie zuerst einen anderen Benutzer zum Administrator."
+    }
+  }
+}

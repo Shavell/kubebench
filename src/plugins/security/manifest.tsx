@@ -1,9 +1,8 @@
 import { lazyComponent } from '@/core/plugin/lazyComponent'
 import type { PluginManifest } from '@/core/plugin/types'
+import { localeBundles } from '@/i18n/bundles'
 import { runScan } from './actions'
 import { NS } from './i18n'
-import en from './locales/en.json'
-import tr from './locales/tr.json'
 import { SecuritySidebar } from './SecuritySidebar'
 import { openFindings, openSecurityTab, TAB_KINDS } from './tabs'
 
@@ -26,7 +25,7 @@ export const securityPlugin: PluginManifest = {
   description: 'manifest.description',
   category: 'security',
   backendPlugin: NS,
-  locales: { en, tr },
+  locales: localeBundles(import.meta.glob('./locales/*.json', { eager: true, import: 'default' })),
   activityBar: { icon: 'shield', tooltip: 'manifest.tooltip' },
   sidebar: { id: 'security-explorer', title: 'manifest.sidebarTitle', component: SecuritySidebar },
   tabRenderers: [

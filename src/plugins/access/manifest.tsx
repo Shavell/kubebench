@@ -1,9 +1,8 @@
 import { lazyComponent } from '@/core/plugin/lazyComponent'
 import type { PluginManifest } from '@/core/plugin/types'
+import { localeBundles } from '@/i18n/bundles'
 import { AccessSidebar } from './AccessSidebar'
 import { NS } from './i18n'
-import en from './locales/en.json'
-import tr from './locales/tr.json'
 import { openListTab, openSubject, TAB_KINDS } from './tabs'
 
 // Tab pages load on first use (separate chunks), keeping the main bundle small.
@@ -20,7 +19,7 @@ export const accessPlugin: PluginManifest = {
   description: 'manifest.description',
   category: 'security',
   backendPlugin: NS,
-  locales: { en, tr },
+  locales: localeBundles(import.meta.glob('./locales/*.json', { eager: true, import: 'default' })),
   activityBar: { icon: 'key', tooltip: 'manifest.tooltip' },
   sidebar: { id: 'access-explorer', title: 'manifest.sidebarTitle', component: AccessSidebar },
   tabRenderers: [

@@ -1,0 +1,168 @@
+{
+  "manifest": {
+    "name": "Cluster",
+    "description": "Das Cluster-Inventar: den aktiven Cluster wechseln; Administratoren fügen Cluster hinzu und legen ihre Umgebung und den Schreibschutz fest.",
+    "tooltip": "Cluster",
+    "sidebarTitle": "Cluster"
+  },
+  "commands": {
+    "openInventory": "Cluster: Inventar öffnen"
+  },
+  "tab": {
+    "title": "Cluster"
+  },
+  "page": {
+    "title": "Cluster"
+  },
+  "sidebar": {
+    "clusters": "Cluster"
+  },
+  "columns": {
+    "name": "Name",
+    "environment": "Umgebung",
+    "access": "Änderungen",
+    "role": "Ihre Rolle",
+    "server": "API-Server",
+    "status": "Status",
+    "actions": "Aktionen",
+    "platform": "Plattform"
+  },
+  "table": {
+    "loading": "Cluster werden geladen…",
+    "empty": "Keine Cluster",
+    "emptyAdminHint": "Fügen Sie zum Einstieg einen Cluster mit seiner kubeconfig hinzu.",
+    "emptyUserHint": "Ein Administrator hat Ihnen noch keinen Zugriff auf einen Cluster gewährt."
+  },
+  "status": {
+    "active": "Aktiv",
+    "registered": "Registriert",
+    "bookmark": "Lesezeichen",
+    "error": "Fehler"
+  },
+  "environment": {
+    "none": "Nicht festgelegt",
+    "development": "Entwicklung",
+    "staging": "Staging",
+    "production": "Produktion"
+  },
+  "roles": {
+    "admin": "Administrator",
+    "operator": "Operator",
+    "viewer": "Betrachter",
+    "none": "Kein Zugriff"
+  },
+  "readOnly": {
+    "label": "Schreibgeschützt",
+    "hint": "Änderungen und Shell-Zugriff sind auf diesem Cluster für alle gesperrt, auch für Administratoren.",
+    "writable": "Erlaubt"
+  },
+  "actions": {
+    "refresh": "Aktualisieren",
+    "add": "Cluster hinzufügen",
+    "cancel": "Abbrechen",
+    "activate": "Aktivieren",
+    "activateHint": "Zu diesem Cluster wechseln; die Workbench wird neu geladen.",
+    "bookmarkHint": "Per Adresse hinzugefügte Einträge sind Lesezeichen ohne Anmeldeinformationen und können nicht aktiviert werden.",
+    "edit": "Bearbeiten",
+    "removeNamed": "{{name}} entfernen"
+  },
+  "note": {
+    "live": "Der KubeBench-Server speichert jede kubeconfig in seiner eigenen Datenbank; nur per Adresse hinzugefügte Cluster sind Lesezeichen.",
+    "mock": "Demomodus: Das Inventar wird in diesem Browser gespeichert, und jeder Eintrag zeigt dieselben Beispieldaten."
+  },
+  "remove": {
+    "title": "{{name}} entfernen?",
+    "message": "KubeBench vergisst den Cluster: Seine gespeicherten Anmeldeinformationen und der Zugriff der Benutzer darauf werden gelöscht. Der Cluster selbst wird nicht verändert.",
+    "messageActive": "Dies ist der aktive Cluster. KubeBench vergisst ihn – seine gespeicherten Anmeldeinformationen und der Zugriff der Benutzer darauf werden gelöscht – und wechselt zu einem anderen Cluster. Der Cluster selbst wird nicht verändert.",
+    "confirm": "Entfernen",
+    "done": "Cluster {{name}} entfernt."
+  },
+  "edit": {
+    "title": "{{name}} bearbeiten",
+    "submit": "Speichern",
+    "done": "Cluster {{name}} aktualisiert."
+  },
+  "form": {
+    "name": "Name",
+    "environment": "Umgebung",
+    "environmentHelp": "Produktionscluster erhalten eine rote Statusleiste und fragen vor destruktiven Aktionen nach dem Ressourcennamen.",
+    "readOnly": "Schreibgeschützt",
+    "readOnlyHelp": "Sperrt Änderungen und Shell-Zugriff für alle, auch für Administratoren. Lesen bleibt möglich.",
+    "errors": {
+      "name": "Geben Sie einen Namen mit 1 bis {{max}} Zeichen ein.",
+      "nameTaken": "Ein Cluster mit diesem Namen ist bereits vorhanden.",
+      "content": "Fügen Sie die kubeconfig ein oder laden Sie sie aus einer Datei.",
+      "path": "Geben Sie den Pfad der kubeconfig-Datei auf dem Server ein.",
+      "address": "Geben Sie eine http://- oder https://-Adresse ein.",
+      "fileTooLarge": "{{name}} ist zu groß für eine kubeconfig."
+    }
+  },
+  "add": {
+    "title": "Cluster hinzufügen",
+    "submit": "Cluster hinzufügen",
+    "done": "Cluster {{name}} hinzugefügt.",
+    "nameHelp": "Wie der Cluster in KubeBench angezeigt wird.",
+    "source": "Anmeldeinformationen",
+    "sources": {
+      "content": "kubeconfig einfügen",
+      "path": "kubeconfig-Datei auf dem Server",
+      "address": "Nur API-Adresse (Lesezeichen)"
+    },
+    "sourceHelp": {
+      "content": "Der Server speichert die kubeconfig. Betten Sie Zertifikate und Tokens darin ein: Verweise auf Dateien oder Credential-Plug-ins sind möglicherweise nicht erlaubt. Die Plug-ins für EKS, GKE und AKS schon: Bei ihnen meldet sich KubeBench selbst an.",
+      "path": "Der Server liest die Datei einmal und speichert ihren Inhalt.",
+      "address": "Merkt sich nur die Adresse; KubeBench kann sich nicht mit einem Lesezeichen verbinden."
+    },
+    "kubeconfig": "Kubeconfig",
+    "loadFile": "Aus Datei laden…",
+    "path": "Pfad auf dem Server",
+    "address": "Adresse des API-Servers",
+    "context": "Kontext",
+    "contextHelp": "Leer lassen, um den aktuellen Kontext der kubeconfig zu verwenden."
+  },
+  "platform": {
+    "unknownHint": "Wird erkannt, sobald sich jemand mit dem Cluster verbindet."
+  },
+  "credentials": {
+    "label": "Cloud-Anmeldung",
+    "modes": {
+      "keep": "Gespeicherte Anmeldeinformationen behalten",
+      "keepStored": "Gespeicherte {{provider}}-Anmeldeinformationen behalten",
+      "server": "Cloud-Identität des Servers",
+      "aws-keys": "AWS-Zugriffsschlüssel",
+      "aws-profile": "AWS-Profil",
+      "gcp": "GCP-Dienstkontoschlüssel",
+      "azure": "Azure-Dienstprinzipal"
+    },
+    "help": {
+      "keep": "Die gespeicherten {{provider}}-Anmeldeinformationen bleiben unverändert. Sie werden nie wieder angezeigt.",
+      "server": "kubeconfigs für EKS, GKE und AKS melden sich mit der eigenen Cloud-Identität des KubeBench-Servers an (Pod- oder VM-Identität, Umgebung). Andere kubeconfigs verwenden ihre eigenen Anmeldeinformationen.",
+      "aws-keys": "Ein IAM-Zugriffsschlüssel für eine kubeconfig, die aws eks get-token oder aws-iam-authenticator ausführt. Wird mit dem Cluster gespeichert und nie wieder angezeigt.",
+      "aws-profile": "Ein Profil aus den AWS-Konfigurationsdateien des KubeBench-Servers.",
+      "gcp": "Eine Dienstkonto-Schlüsseldatei (JSON) für eine kubeconfig, die gke-gcloud-auth-plugin verwendet. Wird mit dem Cluster gespeichert und nie wieder angezeigt.",
+      "azure": "Ein Dienstprinzipal mit einem geheimen Clientschlüssel für eine kubeconfig, die kubelogin verwendet. Wird mit dem Cluster gespeichert und nie wieder angezeigt."
+    },
+    "providers": {
+      "aws": "AWS",
+      "gcp": "GCP",
+      "azure": "Azure"
+    },
+    "accessKeyId": "Zugriffsschlüssel-ID",
+    "secretAccessKey": "Geheimer Zugriffsschlüssel",
+    "sessionToken": "Sitzungstoken",
+    "sessionTokenHelp": "Nur für temporäre Anmeldeinformationen.",
+    "profile": "Profilname",
+    "serviceAccountJson": "Dienstkontoschlüssel (JSON)",
+    "loadKey": "Schlüsseldatei laden…",
+    "tenantId": "Mandanten-ID",
+    "clientId": "Client-ID",
+    "clientSecret": "Geheimer Clientschlüssel",
+    "errors": {
+      "required": "Dieses Feld ist erforderlich.",
+      "profile": "Geben Sie einen Profilnamen ein (Buchstaben, Ziffern und _.+=,@-).",
+      "serviceAccount": "Fügen Sie einen Dienstkontoschlüssel ein: JSON mit \"type\": \"service_account\".",
+      "guid": "Geben Sie eine GUID wie 00000000-0000-0000-0000-000000000000 ein.",
+      "fileTooLarge": "{{name}} ist zu groß für einen Dienstkontoschlüssel."
+    }
+  }
+}

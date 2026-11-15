@@ -1,9 +1,8 @@
 import { lazyComponent } from '@/core/plugin/lazyComponent'
 import { openNewResourceTab } from '@/core/plugin/editorTabs'
 import type { PluginManifest } from '@/core/plugin/types'
+import { localeBundles } from '@/i18n/bundles'
 import { EDITOR_NS } from './i18n'
-import en from './locales/en.json'
-import tr from './locales/tr.json'
 
 // Tab pages load on first use (separate chunks), keeping the main bundle small.
 const NewResourceTab = lazyComponent(() => import('./NewResourceTab').then((m) => m.NewResourceTab))
@@ -21,7 +20,7 @@ export const editorPlugin: PluginManifest = {
   description: 'manifest.description',
   category: 'core',
   core: true,
-  locales: { en, tr },
+  locales: localeBundles(import.meta.glob('./locales/*.json', { eager: true, import: 'default' })),
   tabRenderers: [
     { kind: 'yaml', component: YamlEditorTab },
     { kind: 'new-resource', component: NewResourceTab },

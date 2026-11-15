@@ -1,8 +1,7 @@
 import { lazyComponent } from '@/core/plugin/lazyComponent'
 import type { PluginManifest } from '@/core/plugin/types'
+import { localeBundles } from '@/i18n/bundles'
 import { ExtensionsSidebar } from './ExtensionsSidebar'
-import en from './locales/en.json'
-import tr from './locales/tr.json'
 import { EXTENSIONS_NS } from './namespace'
 import { EXTENSION_TAB_KIND } from './tabs'
 
@@ -20,7 +19,7 @@ export const extensionsPlugin: PluginManifest = {
   description: 'manifest.description',
   category: 'core',
   core: true,
-  locales: { en, tr },
+  locales: localeBundles(import.meta.glob('./locales/*.json', { eager: true, import: 'default' })),
   activityBar: { icon: 'extensions', tooltip: 'manifest.tooltip', order: 90 },
   sidebar: { id: 'extensions-list', title: 'manifest.sidebarTitle', component: ExtensionsSidebar },
   // "View: Show Extensions" comes with the activity bar entry.

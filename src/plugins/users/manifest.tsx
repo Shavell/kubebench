@@ -1,7 +1,6 @@
 import { lazyComponent } from '@/core/plugin/lazyComponent'
 import type { PluginManifest } from '@/core/plugin/types'
-import en from './locales/en.json'
-import tr from './locales/tr.json'
+import { localeBundles } from '@/i18n/bundles'
 import { USERS_NS } from './namespace'
 import { openUsersTab, USERS_TAB_KIND } from './tabs'
 import { UsersSidebar } from './UsersSidebar'
@@ -20,7 +19,7 @@ export const usersPlugin: PluginManifest = {
   description: 'manifest.description',
   category: 'core',
   core: true,
-  locales: { en, tr },
+  locales: localeBundles(import.meta.glob('./locales/*.json', { eager: true, import: 'default' })),
   activityBar: { icon: 'organization', tooltip: 'manifest.tooltip', order: 5 },
   sidebar: { id: 'users-explorer', title: 'manifest.sidebarTitle', component: UsersSidebar },
   tabRenderers: [{ kind: USERS_TAB_KIND, component: UsersPage }],

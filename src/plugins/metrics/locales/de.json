@@ -1,0 +1,74 @@
+{
+  "manifest": {
+    "name": "Metriken",
+    "description": "Auslastung von Cluster und Nodes aus metrics-server oder Prometheus.",
+    "tooltip": "Metriken (metrics-server / Prometheus)",
+    "sidebarTitle": "Metriken"
+  },
+  "commands": {
+    "openOverview": "Metriken: Clusterübersicht öffnen"
+  },
+  "sidebar": {
+    "nodes": "Nodes",
+    "sources": "Quellen"
+  },
+  "tabs": {
+    "node": "{{node}} · Metriken"
+  },
+  "statusBar": {
+    "usage": "CPU {{cpu}} · Speicher {{memory}}",
+    "tooltip": "Ressourcennutzung des Clusters (metrics-server)"
+  },
+  "overview": {
+    "title": "Clusterübersicht",
+    "loading": "Clustermetriken werden geladen…",
+    "unavailable": "Clustermetriken sind nicht verfügbar",
+    "tiles": {
+      "nodes": "Nodes",
+      "nodesDetail": "bereit",
+      "pods": "Pods",
+      "podsDetail": "aktiv",
+      "cpu": "CPU",
+      "cpuDetail_one": "von {{cores}} Kern",
+      "cpuDetail_other": "von {{cores}} Kernen",
+      "memory": "Arbeitsspeicher",
+      "memoryDetail": "von {{amount}} Gi",
+      "disk": "Datenträger",
+      "diskDetail": "Dateisystemnutzung"
+    },
+    "allocation": {
+      "cpu": "CPU-Zuteilung",
+      "memory": "Arbeitsspeicherzuteilung",
+      "usage": "Nutzung",
+      "requests": "Requests",
+      "limits": "Limits"
+    },
+    "warnings": {
+      "title": "Aktuelle Warnungen",
+      "tab": "Warnungsereignisse",
+      "unavailable": "Ereignisse sind nicht verfügbar",
+      "loading": "Ereignisse werden geladen…",
+      "none": "Keine Warnungsereignisse",
+      "count_one": "{{value}} Warnung",
+      "count_other": "{{value}} Warnungen",
+      "viewAll": "Alle anzeigen"
+    }
+  },
+  "node": {
+    "title": "Node-Metriken · {{node}}",
+    "loading": "Metriken von {{node}} werden geladen…"
+  },
+  "charts": {
+    "clusterCpu": "Cluster-CPU · letzte {{minutes}} min",
+    "clusterMemory": "Cluster-Arbeitsspeicher · letzte {{minutes}} min",
+    "cpu": "CPU · letzte {{minutes}} min",
+    "memory": "Arbeitsspeicher · letzte {{minutes}} min",
+    "network": "Netzwerk-E/A · letzte {{minutes}} min",
+    "filesystem": "Dateisystem · letzte {{minutes}} min"
+  },
+  "units": {
+    "cores_one": "Kern",
+    "cores_other": "Kerne",
+    "megabytesPerSecond": "MB/s"
+  }
+}

@@ -1,9 +1,8 @@
 import { lazyComponent } from '@/core/plugin/lazyComponent'
 import type { PluginManifest, ResourceRef } from '@/core/plugin/types'
 import { ALL_NAMESPACES, useContextStore } from '@/core/store/contextStore'
+import { localeBundles } from '@/i18n/bundles'
 import { NS } from './i18n'
-import en from './locales/en.json'
-import tr from './locales/tr.json'
 import type { TopologyKind } from './model/types'
 import { FOCUSABLE_KINDS, ICON, openTopology, TAB_KIND } from './tabs'
 import { TopologySidebar } from './TopologySidebar'
@@ -31,7 +30,7 @@ export const topologyPlugin: PluginManifest = {
   name: 'manifest.name',
   description: 'manifest.description',
   category: 'workloads',
-  locales: { en, tr },
+  locales: localeBundles(import.meta.glob('./locales/*.json', { eager: true, import: 'default' })),
   activityBar: { icon: ICON, tooltip: 'manifest.tooltip' },
   sidebar: { id: 'topology-namespaces', title: 'manifest.sidebarTitle', component: TopologySidebar },
   tabRenderers: [{ kind: TAB_KIND, component: TopologyPage }],

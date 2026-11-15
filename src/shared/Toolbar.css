@@ -1,21 +1,31 @@
 .kb-toolbar {
   display: flex;
+  flex-wrap: wrap; /* actions move below the title when both do not fit (long translations) */
   align-items: center;
   justify-content: space-between;
+  gap: 8px 16px;
   padding: 10px 16px;
   border-bottom: 1px solid var(--vscode-panel-border);
   flex-shrink: 0;
 }
 
 .kb-toolbar__title {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 15px;
   font-weight: 600;
 }
 
 .kb-toolbar__actions {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   align-items: center;
   gap: 8px;
+  margin-left: auto;
 }
 
 .kb-button {
@@ -26,6 +36,7 @@
   font-size: 12px;
   border: none;
   border-radius: 2px;
+  white-space: nowrap;
   cursor: pointer;
   background: var(--vscode-button-background);
   color: var(--vscode-button-foreground);

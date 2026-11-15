@@ -1,8 +1,7 @@
 import { lazyComponent } from '@/core/plugin/lazyComponent'
 import type { PluginManifest } from '@/core/plugin/types'
+import { localeBundles } from '@/i18n/bundles'
 import { NS } from './i18n'
-import en from './locales/en.json'
-import tr from './locales/tr.json'
 import { TerminalPanel } from './panels/TerminalPanel'
 import { LogsPanel } from './panels/LogsPanel'
 import { ProblemsPanel } from './panels/ProblemsPanel'
@@ -27,7 +26,7 @@ export const terminalPlugin: PluginManifest = {
   description: 'manifest.description',
   category: 'core',
   core: true,
-  locales: { en, tr },
+  locales: localeBundles(import.meta.glob('./locales/*.json', { eager: true, import: 'default' })),
   bottomPanelTabs: [
     { id: 'problems', title: 'panels.problems', component: ProblemsPanel, order: 1 },
     // Other plugins open these with showInPanel('pod-logs' | 'pod-exec', {namespace, pod, container}).

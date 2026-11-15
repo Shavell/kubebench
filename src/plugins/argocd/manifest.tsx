@@ -1,9 +1,8 @@
 import { lazyComponent } from '@/core/plugin/lazyComponent'
 import type { PluginManifest } from '@/core/plugin/types'
+import { localeBundles } from '@/i18n/bundles'
 import { ArgoSidebar } from './ArgoSidebar'
 import { NS } from './i18n'
-import en from './locales/en.json'
-import tr from './locales/tr.json'
 import {
   APPLICATION_SETS_TAB_ID,
   APPLICATIONS_TAB_ID,
@@ -31,7 +30,7 @@ export const argocdPlugin: PluginManifest = {
   description: 'manifest.description',
   category: 'gitops',
   backendPlugin: NS,
-  locales: { en, tr },
+  locales: localeBundles(import.meta.glob('./locales/*.json', { eager: true, import: 'default' })),
   activityBar: { icon: 'git-merge', tooltip: 'manifest.tooltip' },
   sidebar: { id: 'argocd-explorer', title: 'manifest.sidebarTitle', component: ArgoSidebar },
   tabRenderers: [

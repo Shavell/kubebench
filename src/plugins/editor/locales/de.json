@@ -1,0 +1,99 @@
+{
+  "manifest": {
+    "name": "Ressourceneditor",
+    "description": "YAML-Ansicht und -Editor mit Prüfung der Unterschiede, Probelauf und serverseitigem Anwenden sowie neuen Ressourcen aus Vorlagen oder Dateien."
+  },
+  "commands": {
+    "newResource": "Ressourcen: Neue Ressource…"
+  },
+  "yaml": {
+    "ariaLabel": "YAML von {{name}}",
+    "loading": "{{name}} wird geladen…",
+    "loadFailed": "{{name}} konnte nicht geladen werden",
+    "neat": "Bereinigt",
+    "neatHint": "Ausblenden, was der Cluster verwaltet: status, managedFields, uid, resourceVersion, generation, Zeitstempel und Tool-Annotations",
+    "reload": "Neu laden",
+    "reloadHint": "Das Objekt erneut aus dem Cluster lesen",
+    "edit": "Bearbeiten",
+    "editHint": "YAML bearbeiten, Änderungen prüfen, einen Probelauf ausführen und anwenden",
+    "cancel": "Abbrechen",
+    "review": "Änderungen prüfen",
+    "backToEdit": "Zurück zur Bearbeitung",
+    "noChanges": "Noch keine Änderungen",
+    "dryRun": "Probelauf",
+    "apply": "Anwenden",
+    "live": "Live (bereinigt)",
+    "edited": "Ihre Änderungen",
+    "editHintBanner": "Sie bearbeiten das bereinigte YAML. Bis Sie anwenden, erreicht nichts den Cluster; ein Probelauf validiert die Änderungen auf dem Server, ohne sie zu speichern.",
+    "reviewHint": "Prüfen Sie die Änderungen gegenüber dem Live-Objekt. Rechts können Sie weiter bearbeiten; „Anwenden“ sendet nur Ihre Änderungen und entfernt, was Sie entfernt haben.",
+    "secretHint": "Die Werte des Secrets werden als Platzhalter angezeigt. Lassen Sie einen Platzhalter unverändert, um den Wert zu behalten; ein geänderter oder neuer Wert muss der echte sein (Base64 in data, Klartext in stringData).",
+    "discardTitle": "Änderungen verwerfen?",
+    "discardMessage": "Ihre Änderungen an {{name}} wurden nicht angewendet und gehen verloren.",
+    "discard": "Verwerfen",
+    "applied": "{{name}} angewendet"
+  },
+  "apply": {
+    "dryRunTitle": "Probelauf",
+    "appliedTitle": "Angewendet",
+    "dismiss": "Ergebnisse ausblenden",
+    "state": {
+      "created": "erstellt",
+      "configured": "konfiguriert",
+      "unchanged": "unverändert",
+      "failed": "fehlgeschlagen"
+    },
+    "dryState": {
+      "created": "würde erstellt",
+      "configured": "würde konfiguriert",
+      "unchanged": "unverändert",
+      "failed": "würde fehlschlagen"
+    },
+    "count": {
+      "created": "{{count}} erstellt",
+      "configured": "{{count}} konfiguriert",
+      "unchanged": "{{count}} unverändert",
+      "failed": "{{count}} fehlgeschlagen"
+    },
+    "dryCount": {
+      "created": "{{count}} würden erstellt",
+      "configured": "{{count}} würden konfiguriert",
+      "unchanged": "{{count}} unverändert",
+      "failed": "{{count}} würden fehlschlagen"
+    },
+    "conflictTitle": "Felder, die einem anderen Field Manager gehören",
+    "conflictHint": "Das Manifest ändert Felder, die ein anderer Field Manager (ein Controller, kubectl, ein GitOps-Tool) gesetzt hat; siehe den Fehler oben. Erzwungenes Anwenden überschreibt sie und macht KubeBench zu ihrem Besitzer, ihr Manager kann sie jedoch zurücksetzen.",
+    "force": "Anwenden erzwingen",
+    "forceTitle": "Anwenden von {{name}} erzwingen?",
+    "forceMessage": "Die Felder, die anderen Field Managern gehören, werden mit den Werten Ihres Manifests überschrieben, und KubeBench wird ihr Besitzer."
+  },
+  "newResource": {
+    "title": "Neue Ressource",
+    "template": "Vorlage",
+    "namespace": "Namespace",
+    "namespaceHint": "Namespace der Vorlage und der Objekte, die keinen angeben",
+    "import": "Dateien importieren…",
+    "importedOption": "Importierte Dateien",
+    "importedFrom": "Importiert aus {{files}}. Objekte ohne Namespace kommen in den oben ausgewählten Namespace.",
+    "hint": "Beginnen Sie mit einer Vorlage oder importieren Sie YAML- oder JSON-Dateien (oder legen Sie sie hier ab); beliebig viele Dokumente. Objekte ohne Namespace kommen in den oben ausgewählten Namespace.",
+    "drop": "YAML- oder JSON-Dateien zum Importieren hier ablegen",
+    "tooLarge": "Die Dateien sind größer als {{size}} MiB, mehr als ein Anwenden verarbeiten kann.",
+    "replaceTitle": "Ihren Text ersetzen?",
+    "replaceMessage": "Der Editor enthält Änderungen, die nicht angewendet wurden. Beim Ersetzen des Textes werden sie verworfen.",
+    "replace": "Ersetzen",
+    "applied": "Ressourcen angewendet",
+    "open": "Öffnen",
+    "templates": {
+      "deployment": "Deployment",
+      "service": "Service",
+      "configMap": "ConfigMap",
+      "secret": "Secret",
+      "ingress": "Ingress",
+      "job": "Job",
+      "cronJob": "CronJob",
+      "namespace": "Namespace",
+      "persistentVolumeClaim": "PersistentVolumeClaim",
+      "serviceAccount": "ServiceAccount",
+      "roleBinding": "Role + RoleBinding"
+    }
+  }
+}

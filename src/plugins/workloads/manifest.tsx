@@ -1,12 +1,11 @@
 import { lazyComponent } from '@/core/plugin/lazyComponent'
 import type { PluginManifest } from '@/core/plugin/types'
 import { useLayoutStore } from '@/core/store/layoutStore'
+import { localeBundles } from '@/i18n/bundles'
 import { WorkloadsSidebar } from './WorkloadsSidebar'
 import { WORKLOADS_NS } from './i18n'
 import { workloadKinds } from './kinds'
 import { richLabel } from './resourceCatalog'
-import en from './locales/en.json'
-import tr from './locales/tr.json'
 
 // Tab pages load on first use (separate chunks), keeping the main bundle small.
 const ResourceDetailPage = lazyComponent(() => import('./pages/ResourceDetailPage').then((m) => m.ResourceDetailPage))
@@ -29,7 +28,7 @@ export const workloadsPlugin: PluginManifest = {
   description: 'manifest.description',
   category: 'workloads',
   core: true,
-  locales: { en, tr },
+  locales: localeBundles(import.meta.glob('./locales/*.json', { eager: true, import: 'default' })),
   activityBar: { icon: 'layers', tooltip: 'manifest.tooltip', order: 1 },
   sidebar: { id: 'workloads-explorer', title: 'manifest.sidebarTitle', component: WorkloadsSidebar },
   tabRenderers: [

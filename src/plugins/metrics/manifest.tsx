@@ -1,8 +1,7 @@
 import { lazyComponent } from '@/core/plugin/lazyComponent'
 import type { PluginManifest } from '@/core/plugin/types'
+import { localeBundles } from '@/i18n/bundles'
 import { NS } from './i18n'
-import en from './locales/en.json'
-import tr from './locales/tr.json'
 import { MetricsSidebar } from './MetricsSidebar'
 import { StatusBarMetrics } from './StatusBarMetrics'
 import { openOverviewTab } from './tabs'
@@ -17,7 +16,7 @@ export const metricsPlugin: PluginManifest = {
   name: 'manifest.name',
   description: 'manifest.description',
   category: 'observability',
-  locales: { en, tr },
+  locales: localeBundles(import.meta.glob('./locales/*.json', { eager: true, import: 'default' })),
   activityBar: { icon: 'graph-line', tooltip: 'manifest.tooltip', order: 4 },
   sidebar: { id: 'metrics-explorer', title: 'manifest.sidebarTitle', component: MetricsSidebar },
   tabRenderers: [

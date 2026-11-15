@@ -1,10 +1,10 @@
-import en from '@/core/locales/en.json'
-import tr from '@/core/locales/tr.json'
+import { platformLocales } from '@/core/locales'
 import type { PluginManifest } from '@/core/plugin/types'
 import { signOut } from '@/core/session/signOut'
 import type { DataProviders } from '@/data/providers'
 import { dataMode } from '@/data/mode'
 import { i18n } from '@/i18n'
+import { subtreeBundles } from '@/i18n/bundles'
 import { notify } from '@/shared/notify'
 import { useWorkbenchDialog } from './workbenchDialogs'
 
@@ -24,7 +24,7 @@ export function createWorkbenchPlugin(providers: DataProviders): PluginManifest 
     description: 'manifest.description',
     category: 'core',
     core: true,
-    locales: { en: en.workbench, tr: tr.workbench },
+    locales: subtreeBundles(platformLocales, 'workbench'),
     commands: [
       { id: 'workbench.about', title: 'commands.about', icon: 'info', run: () => show('about') },
       { id: 'workbench.shortcuts', title: 'commands.shortcuts', icon: 'keyboard', keybinding: '?', run: () => show('shortcuts') },

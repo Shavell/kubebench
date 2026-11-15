@@ -2,11 +2,13 @@ import { i18n } from '@/i18n'
 
 /**
  * Monaco's own UI strings (find widget, context menu, read-only notice) for
- * the app languages; English is built in. Monaco reads them once, while its
+ * the app languages Monaco ships a pack for; English is built in, and an
+ * app language without an entry here shows Monaco's English strings. Monaco reads them once, while its
  * modules evaluate, so the language active when the first editor opens is
  * kept until the page reloads.
  */
 const MONACO_MESSAGES: Record<string, () => Promise<unknown>> = {
+  de: () => import('monaco-editor/nls/lang/de.js'),
   tr: () => import('monaco-editor/nls/lang/tr.js'),
 }
 

@@ -1,13 +1,23 @@
-import { i18n } from './index'
+import { browserLanguages, i18n, matchLanguage } from './index'
+import { regionalLocale } from './languageMatch'
 
 /** Locale-aware formatting helpers bound to the active UI language. */
 
+/**
+ * The locale numbers and dates are formatted in: the browser's regional
+ * variant of the UI language when it lists one (UI "de" with a de-AT browser
+ * → "de-AT"), else the UI language.
+ */
+export function formatLocale(): string {
+  return regionalLocale(i18n.language, browserLanguages(), matchLanguage)
+}
+
 export function formatNumber(value: number, options?: Intl.NumberFormatOptions): string {
-  return new Intl.NumberFormat(i18n.language, options).format(value)
+  return new Intl.NumberFormat(formatLocale(), options).format(value)
 }
 
 export function formatPercent(fraction: number, maximumFractionDigits = 0): string {
-  return new Intl.NumberFormat(i18n.language, {
+  return new Intl.NumberFormat(formatLocale(), {
     style: 'percent',
     maximumFractionDigits,
   }).format(fraction)
@@ -17,7 +27,7 @@ export function formatDateTime(value: string | number | Date, options?: Intl.Dat
   const date = value instanceof Date ? value : new Date(value)
   if (Number.isNaN(date.getTime())) return String(value)
   return new Intl.DateTimeFormat(
-    i18n.language,
+    formatLocale(),
     options ?? { dateStyle: 'medium', timeStyle: 'short' },
   ).format(date)
 }

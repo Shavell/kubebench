@@ -1,6 +1,5 @@
 import { registerTranslations } from '@/i18n'
-import en from './en.json'
-import tr from './tr.json'
+import { localeBundles } from '@/i18n/bundles'
 
 /**
  * i18n namespace for core-level UI that is not part of the `core` bundle:
@@ -10,4 +9,7 @@ import tr from './tr.json'
  */
 export const PLATFORM_NS = 'platform'
 
-registerTranslations(PLATFORM_NS, { en, tr })
+/** The platform bundles by language (every `./<code>.json`). */
+export const platformLocales = localeBundles(import.meta.glob('./*.json', { eager: true, import: 'default' }))
+
+registerTranslations(PLATFORM_NS, platformLocales)

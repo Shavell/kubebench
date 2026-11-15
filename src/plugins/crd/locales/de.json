@@ -1,0 +1,32 @@
+{
+  "manifest": {
+    "name": "Custom Resources",
+    "description": "CustomResourceDefinitions und ihre Instanzen durchsuchen.",
+    "tooltip": "Custom Resources (CRDs)",
+    "sidebarTitle": "Custom Resources"
+  },
+  "commands": {
+    "openDefinitions": "CRDs: Alle Definitionen öffnen"
+  },
+  "sidebar": {
+    "allDefinitions": "Alle Definitionen"
+  },
+  "definitions": {
+    "title": "Custom Resource Definitions",
+    "loading": "CRDs werden geladen…",
+    "unavailable": "Custom Resource Definitions sind nicht verfügbar",
+    "columns": {
+      "group": "Gruppe",
+      "kind": "Kind",
+      "versions": "Versionen",
+      "scope": "Bereich",
+      "shortNames": "Kurznamen"
+    }
+  },
+  "instances": {
+    "loading": "{{crd}} werden geladen…",
+    "empty": "Keine Custom Resources",
+    "unavailable": "Custom Resources sind nicht verfügbar",
+    "viewYaml": "YAML anzeigen"
+  }
+}

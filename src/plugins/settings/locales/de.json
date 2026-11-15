@@ -1,0 +1,104 @@
+{
+  "manifest": {
+    "name": "Einstellungen",
+    "description": "Einstellungen für Darstellung, Sprache, Daten und Terminal sowie die Einstellungen anderer Plug-ins."
+  },
+  "commands": {
+    "open": "Einstellungen: Einstellungen öffnen"
+  },
+  "tab": {
+    "title": "Einstellungen"
+  },
+  "page": {
+    "title": "Einstellungen"
+  },
+  "sections": {
+    "appearance": "Darstellung",
+    "data": "Daten",
+    "terminal": "Terminal und Protokolle",
+    "about": "Info",
+    "shortcuts": "Tastenkombinationen",
+    "aliases": "Befehlsaliase"
+  },
+  "appearance": {
+    "theme": {
+      "label": "Farbdesign",
+      "help": "Wählen Sie Dunkel oder Hell, oder folgen Sie Ihrem Betriebssystem.",
+      "dark": "Dunkel",
+      "light": "Hell",
+      "system": "System ({{theme}})"
+    },
+    "language": {
+      "label": "Sprache",
+      "help": "Sprache der Benutzeroberfläche. „Automatisch“ folgt Ihrem Browser.",
+      "auto": "Automatisch ({{language}})"
+    }
+  },
+  "data": {
+    "metricsSource": {
+      "label": "Metrikquelle",
+      "help": "Woher die Auslastungsreihen stammen.",
+      "helpPrometheus": "Woher die Auslastungsreihen stammen. Prometheus wurde gefunden; es liefert zusätzlich Netzwerk- und Dateisystemmetriken und einen längeren Verlauf.",
+      "helpPrometheusAt": "Woher die Auslastungsreihen stammen. Prometheus wurde unter {{location}} gefunden; es liefert zusätzlich Netzwerk- und Dateisystemmetriken und einen längeren Verlauf.",
+      "helpNoPrometheus": "Woher die Auslastungsreihen stammen. In diesem Cluster wurde kein Prometheus gefunden, daher wird metrics-server verwendet, und Netzwerk- und Dateisystemdiagramme sind nicht verfügbar.",
+      "auto": "Automatisch (Prometheus bevorzugen)",
+      "prometheus": "Prometheus",
+      "prometheusUnavailable": "Prometheus (nicht verfügbar)",
+      "metricsServer": "metrics-server"
+    },
+    "metricsWindow": {
+      "label": "Metrikzeitraum",
+      "help": "Wie viel Auslastungsverlauf die Diagramme zeigen.",
+      "minutes_one": "{{count}} Minute",
+      "minutes_other": "{{count}} Minuten"
+    },
+    "autoRefresh": {
+      "label": "Automatische Aktualisierung",
+      "help": "Ressourcenlisten regelmäßig neu laden. „Aus“ bedeutet nur manuelle Aktualisierung.",
+      "off": "Aus",
+      "every_one": "Jede Sekunde",
+      "every_other": "Alle {{count}} Sekunden"
+    },
+    "liveUpdates": {
+      "label": "Live-Updates",
+      "help": "Ansichten aktualisieren, sobald sich der Cluster ändert. Ressourcentypen, die der Server nicht überwachen kann, werden zeitgesteuert aktualisiert – im Intervall der automatischen Aktualisierung oder alle 30 Sekunden."
+    }
+  },
+  "terminal": {
+    "fontSize": {
+      "label": "Schriftgröße",
+      "help": "Schriftgröße der Terminal-, Exec- und Protokollansichten.",
+      "value": "{{size}} px"
+    }
+  },
+  "about": {
+    "version": "Version",
+    "build": "{{version}} (Commit {{commit}})",
+    "dataSource": "Datenquelle",
+    "live": "Live-Cluster",
+    "mock": "Demo (Beispieldaten)",
+    "context": "Kontext",
+    "noCluster": "Keiner",
+    "server": "API-Server",
+    "storage": "Einstellungen werden in diesem Browser gespeichert."
+  },
+  "shortcuts": {
+    "enabled": {
+      "label": "Tastenkombinationen",
+      "help": "Schalten Sie sie aus, wenn der Browser oder ein Remotedesktop diese Tasten benötigt. Die Befehlspalette (Strg+Umschalt+P oder F1) öffnet sich immer."
+    }
+  },
+  "aliases": {
+    "help": "Kurznamen für Befehle der Palette, in diesem Browser für Ihr Konto gespeichert. Ein Alias ersetzt das erste eingegebene Wort: Mit kgp = get pods führt „kgp -n shop“ den Befehl „get pods -n shop“ aus.",
+    "empty": "Noch keine Aliase.",
+    "name": "Alias",
+    "expansion": "Befehl",
+    "add": "Alias hinzufügen",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "edit": "Bearbeiten",
+    "remove": "Entfernen",
+    "editLabel": "Alias {{name}} bearbeiten",
+    "removeLabel": "Alias {{name}} entfernen"
+  }
+}

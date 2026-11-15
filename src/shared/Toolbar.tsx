@@ -10,7 +10,9 @@ interface ToolbarProps {
 export function Toolbar({ title, children }: ToolbarProps) {
   return (
     <div className="kb-toolbar">
-      <span className="kb-toolbar__title">{title}</span>
+      <span className="kb-toolbar__title" title={title}>
+        {title}
+      </span>
       <div className="kb-toolbar__actions">{children}</div>
     </div>
   )

@@ -10,7 +10,7 @@ Goals, in priority order:
    read-only clusters and an audit log for a multi-user web tool.
 2. **Plugin platform** — backend + frontend plugin contracts, enable/disable,
    capability detection, runtime-loaded external (frontend) plugins.
-3. **Multi-language UI** — i18next, English + Turkish, per-plugin namespaces.
+3. **Multi-language UI** — i18next, English + Turkish + German, per-plugin namespaces.
 4. **Daily operations parity** (inspired by the KubelizeMe comparison, see
    `docs/notes/kubelizeme-comparison.md`): real PTY shell, streaming logs,
    YAML apply/dry-run/diff, node/workload operations, Helm install/upgrade.
@@ -31,7 +31,8 @@ cluster-to-cluster compare, port-forward, light/dark per-plugin theming.
   `plugins/*`; plugins never import each other or `core/shell`; cross-plugin
   flows go through tab kinds (`useLayoutStore.getState().openTab(...)`).
 - **Every user-visible string goes through i18n** (`useTranslation(ns)`),
-  with both `en.json` and `tr.json` entries. `npm run i18n:check` must pass.
+  with an entry in every language (`en.json`, `tr.json`, `de.json`).
+  `npm run i18n:check` must pass.
 - **Mock + live**: every data capability has a deterministic mock
   implementation (seeded RNG, no `Date.now()`/`Math.random()` in mock data
   generation) and a live implementation. **Live mode never falls back to
@@ -492,16 +493,26 @@ func WriteK8sError(w http.ResponseWriter, err error) // maps apierrors → statu
 
 ### 6.1 i18n (`src/i18n`)
 
-Already in place: `i18next` + `react-i18next`, languages `en`, `tr`;
+Already in place: `i18next` + `react-i18next`, languages `en`, `tr`, `de`;
 `core` namespace in `src/i18n/locales/<lang>.json`; plugin namespaces via
-`PluginManifest.locales = { en, tr }` (files `src/plugins/<id>/locales/<lang>.json`);
+`PluginManifest.locales` (files `src/plugins/<id>/locales/<lang>.json`, loaded
+with `localeBundles(import.meta.glob('./locales/*.json', …))`);
 `useManifestText()`/`translateManifestText()` for manifest strings;
 `setLanguagePreference()`; `formatNumber/formatDateTime/formatBytes` in
 `src/i18n/format.ts`; `npm run i18n:check`.
 
+The language set is data: every `src/i18n/locales/<code>.json` is a
+supported language, named in Settings by its own `language.name`; detection
+matches the browser's tags exactly, then by base language (`de-AT` → `de`),
+and formatting uses the browser's regional variant of the UI language.
+Adding a language means adding `<code>.json` next to every `en.json` (and,
+optionally, Monaco's message pack in `src/shared/editor/monacoLocale.ts`);
+`npm run i18n:check` requires every locales directory to ship it.
+
 Conventions: nested keys grouped by screen (`releases.columns.chart`);
 `{{var}}` interpolation; plurals via i18next `_one`/`_other` suffixes;
-Kubernetes nouns (Pod, Deployment, namespace, …) stay untranslated in `tr`.
+Kubernetes nouns (Pod, Deployment, namespace, …) stay untranslated in `tr`
+and `de` (German: formal "Sie", VS Code terminology).
 
 ### 6.2 API client (`src/data/apiClient.ts`)
 

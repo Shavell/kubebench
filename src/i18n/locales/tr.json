@@ -92,6 +92,7 @@
     "itemCount_other": "{{count}} öğe"
   },
   "language": {
+    "name": "Türkçe",
     "label": "Dil",
     "auto": "Otomatik (tarayıcı)"
   },

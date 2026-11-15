@@ -25,7 +25,8 @@ Rules that matter here:
   capability `/api/info` reports missing rejects with `capability_unavailable`
   and the UI shows the reason.
 - After mutations call `refreshData()` (invalidation bus in `data/DataContext.tsx`).
-- **i18n**: every user-visible string goes through i18next (`en` + `tr`);
+- **i18n**: every user-visible string goes through i18next (`en`, `tr`,
+  `de`; the language set is the files in `src/i18n/locales`);
   core strings in `src/i18n/locales`, platform strings in `src/core/locales`,
   plugin strings in `src/plugins/<id>/locales` (namespace = plugin id).
   Manifest display strings are keys. `npm run i18n:check` must pass.

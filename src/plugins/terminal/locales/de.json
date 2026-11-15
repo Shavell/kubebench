@@ -1,0 +1,106 @@
+{
+  "manifest": {
+    "name": "Terminal und Editoren",
+    "description": "Probleme, Live-Protokolle und Terminalsitzungen im Panel sowie die Protokoll- und Shell-Tabs."
+  },
+  "panels": {
+    "problems": "Probleme",
+    "logs": "Protokolle",
+    "terminal": "Terminal"
+  },
+  "shell": {
+    "sessions": "Terminalsitzungen",
+    "newSession": "Neues Terminal",
+    "newSessionTitle": "Neue Terminalsitzung",
+    "noSessions": "Keine Terminalsitzung",
+    "hint": "Öffnen Sie hier eine, oder klicken Sie mit der rechten Maustaste auf einen Pod → Shell.",
+    "closeSession": "Sitzung schließen",
+    "closeSessionOf": "Sitzung in {{pod}} ({{container}}) schließen",
+    "namespace": "Namespace",
+    "pod": "Pod",
+    "container": "Container",
+    "noPods": "In diesem Namespace gibt es keine Pods.",
+    "reconnect": "Neu verbinden",
+    "copy": "Kopieren",
+    "paste": "Einfügen",
+    "selectAll": "Alles auswählen",
+    "clear": "Leeren",
+    "nothingSelected": "Markieren Sie Text im Terminal, um ihn zu kopieren.",
+    "copyFailed": "Kopieren in die Zwischenablage fehlgeschlagen",
+    "pasteFailed": "Die Zwischenablage konnte nicht gelesen werden",
+    "pasteHint": "Fügen Sie stattdessen mit Strg+V (⌘V unter macOS) ein.",
+    "mock": "Demo",
+    "mockHint": "Simulierte Shell: Die Demodaten beantworten die Befehle, in keinem Container wird etwas ausgeführt.",
+    "loadFailed": "Das Terminal konnte nicht geladen werden",
+    "badTarget": "Dieser Tab gibt keinen Namespace, Pod und Container an.",
+    "status": {
+      "loading": "Terminal wird geladen…",
+      "loadFailed": "Terminal nicht geladen",
+      "connecting": "Verbindung wird hergestellt…",
+      "open": "Verbunden",
+      "exited": "Beendet mit Code {{code}}",
+      "failed": "Sitzung beendet: {{message}}",
+      "refused": "Die Verbindung wurde abgelehnt",
+      "lost": "Verbindung verloren"
+    }
+  },
+  "logs": {
+    "noTarget": "Kein Protokoll geöffnet",
+    "hint": "Klicken Sie mit der rechten Maustaste auf einen Pod → Protokolle, um seine Ausgabe hier zu verfolgen.",
+    "badTarget": "Dieser Tab gibt keinen Namespace, Pod und Container an.",
+    "filterLabel": "Protokollzeilen filtern",
+    "container": "Container",
+    "tail": "Anfängliche Zeilen",
+    "tailLines_one": "Letzte {{lines}} Zeile",
+    "tailLines_other": "Letzte {{lines}} Zeilen",
+    "tailAll": "Gesamtes Protokoll",
+    "previous": "Vorherige Instanz des Containers",
+    "timestamps": "Zeitstempel",
+    "wrap": "Zeilen umbrechen",
+    "colorize": "Nach Stufe einfärben",
+    "follow": "Verfolgen",
+    "pause": "Anhalten",
+    "download": "Als .log herunterladen",
+    "clear": "Leeren",
+    "reconnect": "Neu verbinden",
+    "lines_one": "{{lines}} Zeile",
+    "lines_other": "{{lines}} Zeilen",
+    "linesFiltered_one": "{{shown}} von {{total}} Zeile",
+    "linesFiltered_other": "{{shown}} von {{total}} Zeilen",
+    "pods_one": "{{pods}} Pod",
+    "pods_other": "{{pods}} Pods",
+    "podsOf_one": "{{shown}} von {{total}} Pod",
+    "podsOf_other": "{{shown}} von {{total}} Pods",
+    "linesLabel": "Protokollzeilen",
+    "toBottom": "Neueste Zeile",
+    "noMatch": "Keine Zeile entspricht dem Filter.",
+    "waiting": "Warten auf das Protokoll…",
+    "emptyLog": "Das Protokoll ist leer.",
+    "noLinesYet": "Noch keine Protokollzeilen.",
+    "status": {
+      "connecting": "Verbindung wird hergestellt…",
+      "live": "Wird verfolgt",
+      "paused_one": "Angehalten · {{lines}} neue Zeile",
+      "paused_other": "Angehalten · {{lines}} neue Zeilen",
+      "ended": "Beendet",
+      "retrying": "Getrennt, neuer Versuch in {{seconds}} s"
+    },
+    "notice": {
+      "ended": "Ende des Protokolls.",
+      "resumed": "Wieder verbunden: Die zwischenzeitlich geschriebenen Zeilen folgen."
+    }
+  },
+  "workloadLogs": {
+    "action": "Protokolle (alle Pods)",
+    "tabTitle": "{{name}} · Protokolle",
+    "badTarget": "Dieser Tab gibt keinen Namespace oder weder einen Label-Selektor noch eine Arbeitslast an.",
+    "resolving": "Pods werden ermittelt…",
+    "loadFailed": "Die Pods von {{title}} konnten nicht ermittelt werden",
+    "noSelector": "{{title}} hat keinen Pod-Selektor",
+    "unsupportedKind": "Protokolle aller Pods sind für {{kind}}-Objekte nicht verfügbar.",
+    "notFound": "{{kind}} {{name}} wurde nicht gefunden."
+  },
+  "problems": {
+    "unavailable": "Die Problemerkennung ist auf Live-Clustern nicht verfügbar"
+  }
+}

@@ -92,6 +92,7 @@
     "itemCount_other": "{{count}} items"
   },
   "language": {
+    "name": "English",
     "label": "Language",
     "auto": "Automatic (browser)"
   },

@@ -1,7 +1,7 @@
 import clsx from 'clsx'
 import { memo, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { i18n } from '@/i18n'
+import { formatLocale } from '@/i18n/format'
 import { Icon } from '@/shared/Icon'
 import { NS } from '../i18n'
 import { timestampMillis, type LogEntry } from './logLine'
@@ -155,16 +155,17 @@ const timeFormats = new Map<string, Intl.DateTimeFormat>()
 function formatTime(ts: string): string {
   const millis = timestampMillis(ts)
   if (Number.isNaN(millis)) return ts
-  let format = timeFormats.get(i18n.language)
+  const locale = formatLocale()
+  let format = timeFormats.get(locale)
   if (!format) {
-    format = new Intl.DateTimeFormat(i18n.language, {
+    format = new Intl.DateTimeFormat(locale, {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
       fractionalSecondDigits: 3,
       hour12: false,
     })
-    timeFormats.set(i18n.language, format)
+    timeFormats.set(locale, format)
   }
   return format.format(millis)
 }

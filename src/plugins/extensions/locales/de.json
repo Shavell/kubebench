@@ -1,0 +1,87 @@
+{
+  "manifest": {
+    "name": "Erweiterungen",
+    "description": "Listet alle Plug-ins mit Version, Quelle und Status auf; Administratoren aktivieren oder deaktivieren Plug-ins für alle.",
+    "tooltip": "Erweiterungen",
+    "sidebarTitle": "Erweiterungen"
+  },
+  "groups": {
+    "core": "Kern",
+    "builtin": "Integriert",
+    "external": "Extern"
+  },
+  "sidebar": {
+    "catalogFailed": "Der Plug-in-Status konnte nicht vom Server geladen werden, daher wird die Verfügbarkeit nicht geprüft: {{error}}"
+  },
+  "status": {
+    "enabled": "Aktiviert",
+    "disabled": "Deaktiviert",
+    "available": "Verfügbar",
+    "unavailable": "Nicht verfügbar",
+    "loadFailed": "Laden fehlgeschlagen",
+    "core": "Kern",
+    "conflict": "ID-Konflikt"
+  },
+  "toggle": {
+    "enabled": "{{name}} ist für alle aktiviert.",
+    "disabled": "{{name}} ist für alle deaktiviert.",
+    "loadFailed": "{{name}} ist aktiviert, aber sein Skript konnte nicht geladen werden."
+  },
+  "detail": {
+    "unknown": "Es gibt kein Plug-in mit der ID „{{id}}“.",
+    "version": "Version {{version}}",
+    "coreHint": "Teil der Workbench selbst; kann nicht deaktiviert werden.",
+    "enable": "Aktivieren",
+    "disable": "Deaktivieren",
+    "adminOnly": "Nur Administratoren können Plug-ins aktivieren oder deaktivieren.",
+    "disableConfirm": {
+      "title": "{{name}} deaktivieren?",
+      "message": "{{name}} wird für alle Benutzer ausgeschaltet: Seine Ansichten, Befehle und Aktionen verschwinden, bis ein Administrator es wieder aktiviert."
+    },
+    "statusSection": "Status",
+    "contributesSection": "Beiträge",
+    "state": "Zustand",
+    "availability": "Verfügbarkeit",
+    "requires": "Benötigt Server-Plug-in",
+    "backendMissing": "Dieser Server hat es nicht.",
+    "script": "Skript",
+    "noScript": "Keines",
+    "loaded": "In diesem Fenster geladen",
+    "loadedYes": "Ja",
+    "loadedNo": "Nein",
+    "loadError": "Ladefehler",
+    "conflict": "Konflikt",
+    "conflictHint": "Ein externes Plug-in im Plug-in-Verzeichnis verwendet diese ID ({{entry}}). Es wird nie geladen: Geben Sie ihm eine eigene ID, in seinem Manifest und in seinem Verzeichnisnamen."
+  },
+  "categories": {
+    "core": "Kern",
+    "workloads": "Arbeitslasten",
+    "gitops": "GitOps",
+    "storage": "Speicher",
+    "security": "Sicherheit",
+    "observability": "Beobachtbarkeit",
+    "tools": "Tools"
+  },
+  "sources": {
+    "builtin": "Integriert",
+    "external": "Extern"
+  },
+  "contributes": {
+    "notLoaded": "Das Skript des Plug-ins ist in diesem Fenster nicht geladen, daher sind seine Beiträge noch nicht bekannt. Aktivieren Sie es, um es zu laden.",
+    "serverOnly": "Dieses Plug-in läuft auf dem Server und hat in dieser Version keine eigenen Ansichten.",
+    "nothing": "Dieses Plug-in fügt der Benutzeroberfläche nichts hinzu.",
+    "activityBar": "Aktivitätsleiste",
+    "sidebar": "Ansicht in der Seitenleiste",
+    "tabs": "Editor-Tabs",
+    "tabKinds_one": "{{count}} Tab-Art",
+    "tabKinds_other": "{{count}} Tab-Arten",
+    "commands": "Befehle",
+    "panels": "Panel-Tabs",
+    "statusBar": "Statusleiste",
+    "statusBarItems_one": "{{count}} Element",
+    "statusBarItems_other": "{{count}} Elemente",
+    "resourceActions": "Ressourcenaktionen",
+    "resourceAction": "{{title}} ({{kinds}})",
+    "settings": "Einstellungsabschnitte"
+  }
+}

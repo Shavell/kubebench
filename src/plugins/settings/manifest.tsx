@@ -2,8 +2,7 @@ import { lazyComponent } from '@/core/plugin/lazyComponent'
 import type { PluginManifest } from '@/core/plugin/types'
 import { useLayoutStore } from '@/core/store/layoutStore'
 import { i18n } from '@/i18n'
-import en from './locales/en.json'
-import tr from './locales/tr.json'
+import { localeBundles } from '@/i18n/bundles'
 import { SETTINGS_NS } from './namespace'
 
 // Tab pages load on first use (separate chunks), keeping the main bundle small.
@@ -31,7 +30,7 @@ export const settingsPlugin: PluginManifest = {
   description: 'manifest.description',
   category: 'core',
   core: true,
-  locales: { en, tr },
+  locales: localeBundles(import.meta.glob('./locales/*.json', { eager: true, import: 'default' })),
   tabRenderers: [{ kind: 'settings', component: SettingsPage }],
   commands: [
     {

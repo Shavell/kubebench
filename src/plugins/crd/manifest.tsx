@@ -1,9 +1,8 @@
 import { lazyComponent } from '@/core/plugin/lazyComponent'
 import type { PluginManifest } from '@/core/plugin/types'
+import { localeBundles } from '@/i18n/bundles'
 import { CrdSidebar } from './CrdSidebar'
 import { NS } from './i18n'
-import en from './locales/en.json'
-import tr from './locales/tr.json'
 import { openDefinitionsTab } from './tabs'
 
 // Tab pages load on first use (separate chunks), keeping the main bundle small.
@@ -16,7 +15,7 @@ export const crdPlugin: PluginManifest = {
   name: 'manifest.name',
   description: 'manifest.description',
   category: 'workloads',
-  locales: { en, tr },
+  locales: localeBundles(import.meta.glob('./locales/*.json', { eager: true, import: 'default' })),
   activityBar: { icon: 'symbol-class', tooltip: 'manifest.tooltip', order: 2 },
   sidebar: { id: 'crd-explorer', title: 'manifest.sidebarTitle', component: CrdSidebar },
   tabRenderers: [

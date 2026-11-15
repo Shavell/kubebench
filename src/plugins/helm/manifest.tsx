@@ -1,9 +1,8 @@
 import { lazyComponent } from '@/core/plugin/lazyComponent'
 import type { PluginManifest } from '@/core/plugin/types'
+import { localeBundles } from '@/i18n/bundles'
 import { HelmSidebar } from './HelmSidebar'
 import { NS } from './i18n'
-import en from './locales/en.json'
-import tr from './locales/tr.json'
 import { openInstallTab, openReleasesTab, openReposTab } from './tabs'
 
 // Tab pages load on first use (separate chunks), keeping the main bundle small.
@@ -21,7 +20,7 @@ export const helmPlugin: PluginManifest = {
   version: '0.5.0',
   category: 'workloads',
   backendPlugin: 'helm',
-  locales: { en, tr },
+  locales: localeBundles(import.meta.glob('./locales/*.json', { eager: true, import: 'default' })),
   activityBar: { icon: 'package', tooltip: 'manifest.tooltip', order: 3 },
   sidebar: { id: 'helm-explorer', title: 'manifest.sidebarTitle', component: HelmSidebar },
   tabRenderers: [

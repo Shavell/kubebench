@@ -1,0 +1,479 @@
+{
+  "ui": {
+    "dialog": {
+      "close": "Schließen"
+    },
+    "confirm": {
+      "confirm": "Bestätigen",
+      "cancel": "Abbrechen",
+      "production": "Dieser Cluster ist als Produktion gekennzeichnet.",
+      "typePrompt": "Geben Sie zur Bestätigung den folgenden Text ein"
+    },
+    "keyValue": {
+      "key": "Schlüssel",
+      "value": "Wert",
+      "add": "Hinzufügen",
+      "keyLabel": "Schlüssel {{row}}",
+      "valueLabel": "Wert {{row}}",
+      "remove": "Zeile {{row}} entfernen",
+      "keyRequired": "Geben Sie für diesen Wert einen Schlüssel ein.",
+      "duplicate": "Dieser Schlüssel wird mehrfach verwendet."
+    },
+    "notify": {
+      "region": "Benachrichtigungen",
+      "close": "Benachrichtigung schließen"
+    },
+    "unavailable": {
+      "retry": "Wiederholen"
+    },
+    "clipboard": {
+      "copied": "In die Zwischenablage kopiert",
+      "failed": "Kopieren in die Zwischenablage fehlgeschlagen"
+    },
+    "errors": {
+      "capabilityUnavailable": {
+        "title": "Auf diesem Cluster nicht verfügbar",
+        "hint": "Der Cluster bietet diese Funktion nicht an, oder die Anmeldeinformationen, die KubeBench dafür verwendet, dürfen sie nicht nutzen."
+      },
+      "pluginUnavailable": {
+        "title": "Plug-in nicht verfügbar",
+        "hint": "Die Voraussetzungen des Plug-ins sind auf dem aktiven Cluster nicht erfüllt."
+      },
+      "pluginDisabled": {
+        "title": "Plug-in deaktiviert",
+        "hint": "Ein Administrator hat dieses Plug-in in der Ansicht „Erweiterungen“ deaktiviert."
+      },
+      "forbiddenRole": {
+        "title": "Ihre Rolle erlaubt dies nicht",
+        "hint": "Betrachter haben nur Lesezugriff. Bitten Sie einen Administrator um Operator-Zugriff auf diesen Cluster."
+      },
+      "clusterReadOnly": {
+        "title": "Der Cluster ist schreibgeschützt",
+        "hint": "Änderungen sind auf diesem Cluster für alle gesperrt. Ein Administrator kann die Einschränkung in der Ansicht „Cluster“ aufheben."
+      },
+      "adminRequired": {
+        "title": "Administratorzugriff erforderlich",
+        "hint": "Nur Administratoren können dies tun."
+      },
+      "forbidden": {
+        "title": "Zugriff verweigert",
+        "hint": "Sie haben keine Berechtigung für diese Anfrage."
+      },
+      "noCluster": {
+        "title": "Kein Cluster ausgewählt",
+        "hint": "Wählen Sie in der Ansicht „Cluster“ einen Cluster aus oder fügen Sie einen hinzu."
+      },
+      "notFound": {
+        "title": "Nicht gefunden",
+        "hint": "Das Objekt wurde möglicherweise gelöscht oder umbenannt."
+      },
+      "sessionExpired": {
+        "title": "Ihre Sitzung ist beendet",
+        "hint": "Melden Sie sich erneut an, um fortzufahren."
+      },
+      "passwordChangeRequired": {
+        "title": "Kennwortänderung erforderlich",
+        "hint": "Ändern Sie Ihr Kennwort, um fortzufahren."
+      },
+      "rateLimited": {
+        "title": "Zu viele Anfragen",
+        "hint": "Warten Sie einen Moment und versuchen Sie es erneut."
+      },
+      "conflict": {
+        "title": "Konflikt",
+        "hint": "Das Objekt wurde inzwischen von jemand anderem geändert. Laden Sie es neu und versuchen Sie es erneut."
+      },
+      "badRequest": {
+        "title": "Ungültige Anfrage",
+        "hint": "Prüfen Sie die eingegebenen Werte und versuchen Sie es erneut."
+      },
+      "redactedSecret": {
+        "title": "Secret-Werte sind ausgeblendet",
+        "hint": "Der Text enthält geschwärzte Secret-Werte. Zeigen Sie das Secret an und bearbeiten Sie seine echten Werte, bevor Sie anwenden."
+      },
+      "kubernetes": {
+        "title": "Fehler der Kubernetes-API",
+        "hint": "Der Cluster hat die Anfrage abgelehnt."
+      },
+      "network": {
+        "title": "Server nicht erreichbar",
+        "hint": "Prüfen Sie, ob der KubeBench-Server läuft und erreichbar ist."
+      },
+      "generic": {
+        "title": "Ein Fehler ist aufgetreten",
+        "hint": "Versuchen Sie es erneut. Wenn das Problem weiterhin besteht, prüfen Sie die Serverprotokolle."
+      }
+    },
+    "copy": {
+      "name": "Namen kopieren",
+      "yaml": "YAML kopieren"
+    }
+  },
+  "editor": {
+    "loading": "Editor wird geladen…",
+    "loadFailed": {
+      "title": "Der Editor konnte nicht geladen werden",
+      "hint": "Prüfen Sie Ihre Verbindung zum KubeBench-Server und versuchen Sie es erneut."
+    },
+    "diff": {
+      "original": "Original",
+      "modified": "Geändert"
+    },
+    "yamlTab": {
+      "ariaLabel": "YAML von {{title}}"
+    },
+    "newResourceTab": "Neue Ressource"
+  },
+  "boot": {
+    "starting": "KubeBench wird gestartet…",
+    "failedTitle": "KubeBench konnte nicht gestartet werden",
+    "unreachableHint": "Der KubeBench-Server hat nicht geantwortet. Prüfen Sie, ob er läuft und von diesem Browser aus erreichbar ist, und versuchen Sie es dann erneut.",
+    "failedHint": "Der KubeBench-Server hat mit einem Fehler geantwortet. Versuchen Sie es erneut; wenn der Fehler bestehen bleibt, prüfen Sie die Serverprotokolle.",
+    "status": "HTTP {{status}}: {{message}}",
+    "notKubeBench": "Der Server hat /api/info nicht mit einer KubeBench-Sitzung beantwortet. Möglicherweise antwortet ein Proxy oder eine andere Anwendung an seiner Stelle.",
+    "retry": "Erneut versuchen"
+  },
+  "password": {
+    "current": "Aktuelles Kennwort",
+    "new": "Neues Kennwort",
+    "newHelp": "Mindestens {{count}} Zeichen, verschieden vom aktuellen Kennwort.",
+    "confirm": "Neues Kennwort bestätigen",
+    "submit": "Kennwort ändern",
+    "cancel": "Abbrechen",
+    "changed": "Ihr Kennwort wurde geändert. Ihre anderen Sitzungen wurden abgemeldet.",
+    "dialogTitle": "Kennwort ändern",
+    "dialogDescription": "Ihre anderen Sitzungen werden abgemeldet; diese bleibt angemeldet.",
+    "forcedTitle": "Neues Kennwort wählen",
+    "forcedDescription": "Ihr Kennwort wurde für Sie festgelegt oder ist noch das Standardkennwort. Wählen Sie ein eigenes Kennwort, um fortzufahren.",
+    "signedInAs": "Angemeldet als {{user}}",
+    "errors": {
+      "currentRequired": "Geben Sie Ihr aktuelles Kennwort ein.",
+      "currentIncorrect": "Das aktuelle Kennwort ist nicht korrekt.",
+      "tooShort": "Verwenden Sie mindestens {{count}} Zeichen.",
+      "unchanged": "Das neue Kennwort muss sich vom aktuellen unterscheiden.",
+      "mismatch": "Die Kennwörter stimmen nicht überein."
+    }
+  },
+  "session": {
+    "signOut": "Abmelden",
+    "lostTitle": "Ihre Sitzung ist beendet",
+    "lostHint": "Der Server akzeptiert diese Sitzung nicht mehr: Sie ist abgelaufen, oder Sie haben sich an anderer Stelle abgemeldet oder Ihr Kennwort geändert. Melden Sie sich erneut an, um fortzufahren.",
+    "passwordChangeTitle": "Kennwortänderung erforderlich",
+    "passwordChangeHint": "Ihr Kennwort wurde zurückgesetzt. Wählen Sie ein neues Kennwort, um weiterzuarbeiten.",
+    "signInAgain": "Erneut anmelden",
+    "continue": "Weiter",
+    "later": "Später"
+  },
+  "about": {
+    "title": "Info zu KubeBench",
+    "version": "Version",
+    "commit": "Commit",
+    "uiVersion": "Version der Web-UI",
+    "notAvailable": "Nicht verfügbar",
+    "dataSource": "Datenquelle",
+    "live": "Live-Cluster",
+    "mock": "Demo (Beispieldaten)",
+    "cluster": "Cluster",
+    "noCluster": "Keiner",
+    "server": "API-Server",
+    "close": "Schließen"
+  },
+  "statusBar": {
+    "label": "Statusleiste",
+    "cluster": {
+      "title": "Cluster: {{name}}",
+      "switchHint": "Klicken, um den Cluster zu wechseln.",
+      "none": "Kein Cluster",
+      "noneHint": "Kein Cluster ist aktiv. Wählen Sie in der Ansicht „Cluster“ einen aus oder fügen Sie einen hinzu.",
+      "menu": "Cluster wechseln",
+      "loading": "Cluster werden geladen…",
+      "bookmark": "Lesezeichen",
+      "broken": "Fehler",
+      "switching": "Wechsel zu {{name}}…",
+      "manage": "Cluster verwalten…",
+      "inventoryTab": "Cluster"
+    },
+    "readOnly": {
+      "label": "Schreibgeschützt",
+      "clusterHint": "Dieser Cluster ist schreibgeschützt: Änderungen und Shell-Zugriff sind für alle gesperrt, auch für Administratoren.",
+      "viewerHint": "Ihre Rolle auf diesem Cluster ist Betrachter: Sie können alles ansehen, aber nichts ändern."
+    },
+    "namespace": {
+      "tooltip": "Namespace-Filter",
+      "all": "Alle Namespaces"
+    },
+    "source": {
+      "liveHint": "Verbunden mit {{server}}",
+      "mock": "Demodaten",
+      "mockHint": "Demomodus: deterministische Beispieldaten, kein Cluster ist verbunden."
+    },
+    "live": {
+      "state": {
+        "connecting": "Verbindung wird hergestellt…",
+        "live": "Live",
+        "polling": "Abfrage",
+        "offline": "Offline",
+        "off": "Live-Updates aus"
+      },
+      "hint": {
+        "live": "Live-Updates: Ansichten werden aktualisiert, sobald sich der Cluster ändert.",
+        "livePartly_one": "Live-Updates: Ansichten werden aktualisiert, sobald sich der Cluster ändert, außer {{count}} Ressourcentyp, der zeitgesteuert aktualisiert wird.",
+        "livePartly_other": "Live-Updates: Ansichten werden aktualisiert, sobald sich der Cluster ändert, außer {{count}} Ressourcentypen, die zeitgesteuert aktualisiert werden.",
+        "polling_one": "Für die geöffneten Ansichten sind keine Live-Updates verfügbar; sie werden jede Sekunde aktualisiert.",
+        "polling_other": "Für die geöffneten Ansichten sind keine Live-Updates verfügbar; sie werden alle {{count}} Sekunden aktualisiert.",
+        "refused": "Live-Updates sind nicht verfügbar: {{reason}}",
+        "disabled_one": "Live-Updates sind aus; Ansichten werden jede Sekunde aktualisiert.",
+        "disabled_other": "Live-Updates sind aus; Ansichten werden alle {{count}} Sekunden aktualisiert.",
+        "offline": "Der KubeBench-Server ist nicht erreichbar. Verbindung wird wiederhergestellt…",
+        "connecting": "Verbindung zu Live-Updates wird hergestellt…",
+        "off": "Live-Updates und automatische Aktualisierung sind aus; aktualisieren Sie Ansichten selbst."
+      },
+      "menu": {
+        "label": "Live-Updates",
+        "watched": "Überwacht: {{topics}}",
+        "overflow": "zu viele Ressourcentypen gleichzeitig geöffnet",
+        "turnOff": "Live-Updates ausschalten",
+        "turnOn": "Live-Updates einschalten"
+      }
+    },
+    "version": {
+      "label": "v{{version}}",
+      "tooltip": "Info zu KubeBench"
+    },
+    "user": {
+      "tooltip": "Angemeldet als {{user}}",
+      "menu": "Konto",
+      "signedInAs": "Angemeldet als {{user}} ({{role}})",
+      "changePassword": "Kennwort ändern…",
+      "demoSignOut": "Im Demomodus nicht möglich"
+    }
+  },
+  "environment": {
+    "development": "Entwicklung",
+    "staging": "Staging",
+    "production": "Produktion"
+  },
+  "roles": {
+    "admin": "Administrator",
+    "user": "Benutzer"
+  },
+  "permissions": {
+    "adminRequired": "Nur Administratoren können dies tun.",
+    "clusterReadOnly": "Der Cluster ist schreibgeschützt: Änderungen sind für alle gesperrt.",
+    "viewerRole": "Ihre Rolle auf diesem Cluster ist Betrachter und kann nichts ändern.",
+    "notAllowed": "Sie dürfen dies auf diesem Cluster nicht tun."
+  },
+  "plugins": {
+    "reasons": {
+      "backendMissing": "Diesem Server fehlt das benötigte Plug-in „{{id}}“.",
+      "backendDisabled": "Das benötigte Server-Plug-in „{{id}}“ ist deaktiviert.",
+      "backendUnavailable": "Das benötigte Server-Plug-in „{{id}}“ ist auf diesem Cluster nicht verfügbar.",
+      "unavailable": "„{{id}}“ ist auf diesem Cluster nicht verfügbar."
+    },
+    "load": {
+      "invalidEntry": "Die Adresse seines Skripts liegt nicht in seinem Plug-in-Verzeichnis: {{detail}}",
+      "network": "Sein Skript konnte nicht heruntergeladen werden: {{detail}}",
+      "timeout": "Sein Skript wurde nicht innerhalb von {{detail}} Sekunden fertig geladen.",
+      "threw": "Sein Skript ist fehlgeschlagen: {{detail}}",
+      "notRegistered": "Sein Skript wurde ausgeführt, hat aber KubeBench.registerPlugin() nicht aufgerufen."
+    }
+  },
+  "errors": {
+    "capability": {
+      "crds": "Die Anmeldeinformationen von KubeBench dürfen auf diesem Cluster keine CustomResourceDefinitions auflisten.",
+      "helm": "Die Anmeldeinformationen von KubeBench dürfen auf diesem Cluster keine Helm-Releases lesen.",
+      "exec": "Die Anmeldeinformationen von KubeBench dürfen auf diesem Cluster keine Befehle in Containern ausführen."
+    }
+  },
+  "workbench": {
+    "manifest": {
+      "name": "Workbench",
+      "description": "Die Workbench selbst: der Dialog „Info“ und Ihr Konto."
+    },
+    "commands": {
+      "about": "Hilfe: Info",
+      "changePassword": "Konto: Kennwort ändern",
+      "signOut": "Konto: Abmelden",
+      "shortcuts": "Hilfe: Tastenkombinationen"
+    },
+    "notices": {
+      "demoSignOut": "Der Demomodus hat keine Anmeldung, daher gibt es nichts abzumelden."
+    }
+  },
+  "namespaces": {
+    "pinnedGroup": "Angeheftet",
+    "othersGroup": "Weitere Namespaces",
+    "search": "Namespaces filtern",
+    "loading": "Namespaces werden geladen…",
+    "noMatch": "Kein passender Namespace",
+    "pin": "Oben anheften",
+    "unpin": "Lösen",
+    "hide": "In der Liste ausblenden",
+    "unhide": "Wieder in der Liste anzeigen",
+    "showHidden_one": "Ausgeblendete anzeigen ({{count}})",
+    "showHidden_other": "Ausgeblendete anzeigen ({{count}})",
+    "keysHint": "Alt+P anheften · Alt+H ausblenden"
+  },
+  "palette": {
+    "kubectl": {
+      "hint": "Befehle im kubectl-Stil: get, describe, logs, exec, ns, ctx · Tab vervollständigt · ? listet alle Tastenkombinationen",
+      "usage": {
+        "get": "get <kind> [name] [-n namespace | -A]",
+        "describe": "describe <kind>/<name> [-n namespace]",
+        "logs": "logs <pod> [-n namespace] [-c container]",
+        "exec": "exec <pod> [-n namespace] [-c container]",
+        "ns": "ns <namespace>",
+        "ctx": "ctx <cluster>"
+      },
+      "help": {
+        "get": "Eine Ressourcenliste oder ein Objekt öffnen",
+        "describe": "Die Details eines Objekts öffnen",
+        "logs": "Die Protokolle eines Containers im Panel anzeigen",
+        "exec": "Eine Shell in einem Container öffnen",
+        "ns": "Den Namespace-Filter festlegen",
+        "ctx": "Zu einem anderen Cluster wechseln"
+      },
+      "alias": "Alias",
+      "loading": "Wird geladen…",
+      "loadFailed": "Die Vorschläge konnten nicht geladen werden: {{error}}",
+      "namespaceDetail": "Namespace",
+      "openList": "Liste „{{kind}}“ öffnen",
+      "openListIn": "Liste „{{kind}}“ in {{namespace}} öffnen",
+      "inNamespace": "in {{namespace}}",
+      "unknownKind": "Unbekannter Ressourcentyp „{{kind}}“",
+      "noObjects": "Keine {{kind}} gefunden",
+      "podFirst": "Geben Sie zuerst den Pod und dann seinen Container an",
+      "containerDetail": "Container {{container}}",
+      "noPods": "Kein passender Pod",
+      "allNamespaces": "Alle Namespaces",
+      "current": "aktuell",
+      "noClusters": "Kein passender Cluster",
+      "noPanel": "Das Terminal-Panel ist nicht verfügbar (das Plug-in „Terminal“ ist deaktiviert)."
+    },
+    "aliases": {
+      "errors": {
+        "nameRequired": "Geben Sie einen Namen für den Alias ein.",
+        "nameSpaces": "Ein Alias ist ein einzelnes Wort ohne Leerzeichen.",
+        "nameReserved": "Dieser Name ist bereits ein Befehl.",
+        "nameTaken": "Ein Alias mit diesem Namen ist bereits vorhanden.",
+        "expansionRequired": "Geben Sie den Befehl ein, für den der Alias steht.",
+        "expansionInvalid": "Der Befehl muss mit get, describe, logs, exec, ns oder ctx beginnen."
+      }
+    }
+  },
+  "shortcuts": {
+    "title": "Tastenkombinationen",
+    "description": "Strg steht unter macOS für Cmd. Tastenkombinationen aus einer einzelnen Taste gelten nicht, während Sie in einem Feld tippen.",
+    "groups": {
+      "commands": "Befehle",
+      "lists": "Tabellen und Listen",
+      "palette": "Befehlspalette",
+      "namespaces": "Namespace-Auswahl"
+    },
+    "entries": {
+      "openPalette": "Befehlspalette anzeigen",
+      "lists": {
+        "moveRow": "Zwischen Zeilen wechseln",
+        "firstLast": "Erste oder letzte Zeile",
+        "page": "Eine Seite nach oben oder unten",
+        "openRow": "Zeile öffnen",
+        "selectRow": "Zeile auswählen (Listen mit Kontrollkästchen)",
+        "rowMenu": "Menü mit Zeilenaktionen"
+      },
+      "palette": {
+        "choose": "Vorschlag auswählen",
+        "complete": "Befehl vervollständigen",
+        "run": "Ausführen",
+        "close": "Schließen"
+      },
+      "namespaces": {
+        "pin": "Namespace anheften oder lösen",
+        "hide": "Namespace ausblenden oder anzeigen"
+      }
+    },
+    "keys": {
+      "ArrowUp": "↑",
+      "ArrowDown": "↓",
+      "Enter": "Eingabe",
+      "Escape": "Esc",
+      "Tab": "Tab",
+      "Space": "Leertaste",
+      "PageUp": "Bild auf",
+      "PageDown": "Bild ab",
+      "Home": "Pos1",
+      "End": "Ende",
+      "ContextMenu": "Menütaste"
+    }
+  },
+  "lazyView": {
+    "loading": "Wird geladen…",
+    "loadFailed": {
+      "title": "Diese Ansicht konnte nicht angezeigt werden",
+      "hint": "Ihr Code konnte nicht geladen werden oder ist mit einem Fehler abgebrochen. Versuchen Sie es erneut; laden Sie nach einem Upgrade die Seite neu."
+    }
+  },
+  "cloud": {
+    "providers": {
+      "eks": "EKS",
+      "aks": "AKS",
+      "gke": "GKE",
+      "doks": "DOKS",
+      "lke": "LKE",
+      "ovh": "OVH",
+      "openshift": "OpenShift",
+      "rke2": "RKE2",
+      "k3s": "k3s",
+      "kubernetes": "Kubernetes"
+    },
+    "names": {
+      "eks": "Amazon EKS",
+      "aks": "Azure Kubernetes Service",
+      "gke": "Google Kubernetes Engine",
+      "doks": "DigitalOcean Kubernetes",
+      "lke": "Linode Kubernetes Engine",
+      "ovh": "OVHcloud Managed Kubernetes",
+      "openshift": "Red Hat OpenShift",
+      "rke2": "RKE2",
+      "k3s": "K3s",
+      "kubernetes": "Kubernetes"
+    },
+    "clouds": {
+      "aws": "AWS",
+      "azure": "Azure",
+      "gcp": "GCP",
+      "digitalocean": "DigitalOcean",
+      "linode": "Linode",
+      "ovh": "OVHcloud"
+    },
+    "onCloud": "Kubernetes auf {{cloud}}",
+    "basis": {
+      "eks": "Amazon EKS Standard Support",
+      "aks": "AKS-Support",
+      "gke": "GKE Standard Support",
+      "kubernetes": "Upstream-Kubernetes-Support"
+    },
+    "version": "Version {{version}}",
+    "notDetected": "Noch nicht verbunden: nur anhand der Adresse des API-Servers erkannt.",
+    "support": {
+      "supported": "Unterstützt bis {{date}} ({{basis}})",
+      "ending-soon": "Support endet am {{date}} ({{basis}})",
+      "end-of-life": "Support endete am {{date}} ({{basis}})",
+      "endedLongAgo": "Support endete vor langer Zeit ({{basis}})",
+      "unknown": "Supportzeitraum unbekannt"
+    },
+    "notice": {
+      "endOfLife": {
+        "title": "Kubernetes {{version}}: {{basis}} ist abgelaufen ({{date}})",
+        "hint": "{{provider}} liefert für diese Version keine Korrekturen mehr. Planen Sie ein Upgrade auf eine unterstützte Minor-Version."
+      },
+      "endOfLifeOld": {
+        "title": "Kubernetes {{version}}: {{basis}} ist seit Langem abgelaufen",
+        "hint": "{{provider}} liefert für diese Version keine Korrekturen mehr. Planen Sie ein Upgrade auf eine unterstützte Minor-Version."
+      },
+      "endingSoon": {
+        "title": "{{basis}} für Kubernetes {{version}} endet am {{date}}",
+        "hint": "Planen Sie vorher ein Upgrade auf eine neuere Minor-Version."
+      }
+    }
+  }
+}

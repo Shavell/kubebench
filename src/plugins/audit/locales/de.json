@@ -1,0 +1,53 @@
+{
+  "manifest": {
+    "name": "Überwachungsprotokoll",
+    "description": "Wer was auf welchem Cluster geändert hat und ob es erlaubt war. Nur für Administratoren.",
+    "tooltip": "Überwachungsprotokoll",
+    "sidebarTitle": "Überwachungsprotokoll"
+  },
+  "commands": {
+    "open": "Überwachung: Überwachungsprotokoll öffnen"
+  },
+  "tab": {
+    "title": "Überwachungsprotokoll"
+  },
+  "page": {
+    "title": "Überwachungsprotokoll"
+  },
+  "sidebar": {
+    "log": "Letzte Aktivität",
+    "entry": "{{user}}: {{action}}"
+  },
+  "columns": {
+    "time": "Zeit",
+    "user": "Benutzer",
+    "cluster": "Cluster",
+    "action": "Aktion",
+    "target": "Ziel",
+    "status": "Status",
+    "detail": "Detail"
+  },
+  "table": {
+    "noCluster": "—",
+    "loading": "Überwachungsprotokoll wird geladen…",
+    "empty": "Noch keine Einträge im Überwachungsprotokoll",
+    "emptyHint": "Änderungen, Shell-Sitzungen und Verwaltungsvorgänge werden hier erfasst.",
+    "noMatches": "Keine Einträge entsprechen den Filtern",
+    "noMatchesHint": "Benutzer und Cluster müssen genau übereinstimmen; die Aktion passt auf jeden Teil.",
+    "shown_one": "{{count}} Eintrag angezeigt",
+    "shown_other": "{{count}} Einträge angezeigt",
+    "loadMore": "Mehr laden"
+  },
+  "filters": {
+    "user": "Benutzer",
+    "allUsers": "Alle Benutzer",
+    "cluster": "Cluster",
+    "allClusters": "Alle Cluster",
+    "action": "Aktion",
+    "actionPlaceholder": "scale, /api/pods, exec…",
+    "clear": "Filter zurücksetzen"
+  },
+  "actions": {
+    "refresh": "Aktualisieren"
+  }
+}
