@@ -3,6 +3,7 @@ package kube
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -83,6 +84,45 @@ func TestResolveRetriesWithFreshDiscovery(t *testing.T) {
 	}
 	if gvr, namespaced, err := rt.ResolveResource("", "namespaces"); err != nil || gvr.Version != "v1" || namespaced {
 		t.Fatalf("ResolveResource(core): %v %v %v", gvr, namespaced, err)
+	}
+}
+
+// Lookups of unknown types refresh discovery at most once per
+// mapperResetInterval, however many there are (e.g. 32 watch topics).
+func TestUnknownLookupsShareOneDiscoveryRefresh(t *testing.T) {
+	rt, _ := testRuntime(t)
+	defer rt.Close()
+	cs := rt.CS.(*fake.Clientset)
+	if _, _, err := rt.ResolveResource("apps", "deployments"); err != nil {
+		t.Fatal(err) // fills the discovery cache
+	}
+	cs.ClearActions()
+	topics := make([]string, 32)
+	for i := range topics {
+		topics[i] = fmt.Sprintf("widgets.g%d.example.com", i)
+	}
+	sub, err := rt.Watch().Subscribe(1, topics)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer sub.Close()
+	refresh := len(cs.Actions())
+	if refresh == 0 {
+		t.Fatal("the first miss did not refresh discovery")
+	}
+	if _, _, err := rt.ResolveResource("example.com", "gadgets"); !meta.IsNoMatchError(err) {
+		t.Fatalf("unknown resource: %v", err)
+	}
+	if n := len(cs.Actions()); n != refresh {
+		t.Fatalf("%d discovery requests for 33 misses, want the %d of one refresh", n, refresh)
+	}
+	// Once the interval passed, a miss refreshes again.
+	rt.resetMu.Lock()
+	rt.lastReset = time.Now().Add(-mapperResetInterval)
+	rt.resetMu.Unlock()
+	_, _, _ = rt.ResolveResource("example.com", "gadgets")
+	if n := len(cs.Actions()); n != 2*refresh {
+		t.Fatalf("%d discovery requests after the interval, want %d", n, 2*refresh)
 	}
 }
 

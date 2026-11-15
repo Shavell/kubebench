@@ -1,6 +1,8 @@
 package kube
 
 import (
+	"time"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -8,7 +10,8 @@ import (
 )
 
 // Discovery returns the cluster's discovery client, cached in memory for
-// the runtime's lifetime (reset by ResolveKind/ResolveResource on a miss).
+// the runtime's lifetime (reset by ResolveKind/ResolveResource on a miss, at most once per
+// mapperResetInterval).
 func (r *Runtime) Discovery() discovery.CachedDiscoveryInterface { return r.discovery }
 
 // Mapper returns the RESTMapper over Discovery(). It discovers lazily on
@@ -61,15 +64,35 @@ func (r *Runtime) ResolveResource(group, resource string) (schema.GroupVersionRe
 	return gvr, isNamespaced(mapping), nil
 }
 
+// mapperResetInterval is the least time between two discovery refreshes
+// of retryOnNoMatch: lookups of unknown types (any reader can ask for
+// them, e.g. through watch topics) cost the API server at most one full
+// discovery per interval.
+const mapperResetInterval = 10 * time.Second
+
 // retryOnNoMatch runs lookup again with fresh discovery when the cached
 // data does not know the type, e.g. a CRD installed after the first lookup.
+// Discovery is refreshed at most once per mapperResetInterval; within it
+// a miss stands (the data is at most that old).
 func (r *Runtime) retryOnNoMatch(lookup func() error) error {
 	err := lookup()
-	if meta.IsNoMatchError(err) {
-		r.mapper.Reset()
+	if meta.IsNoMatchError(err) && r.resetMapper() {
 		err = lookup()
 	}
 	return err
+}
+
+// resetMapper forgets the cached discovery data unless it was refreshed
+// within mapperResetInterval, and reports whether it did.
+func (r *Runtime) resetMapper() bool {
+	r.resetMu.Lock()
+	defer r.resetMu.Unlock()
+	if !r.lastReset.IsZero() && time.Since(r.lastReset) < mapperResetInterval {
+		return false
+	}
+	r.mapper.Reset()
+	r.lastReset = time.Now()
+	return true
 }
 
 func isNamespaced(m *meta.RESTMapping) bool {

@@ -47,6 +47,8 @@ type Runtime struct {
 	watch     *watch.Hub // live updates (§7.10); see Watch
 	discovery discovery.CachedDiscoveryInterface
 	mapper    *restmapper.DeferredDiscoveryRESTMapper
+	resetMu   sync.Mutex    // guards lastReset
+	lastReset time.Time     // when retryOnNoMatch last refreshed discovery
 	probed    chan struct{} // closed once the capability probe finished
 	promDone  chan struct{} // closed once Prometheus discovery finished
 	closeOnce sync.Once
