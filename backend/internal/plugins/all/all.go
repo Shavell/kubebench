@@ -19,4 +19,6 @@ import (
 	_ "kubebench/internal/plugins/argocd"  // Argo CD applications (§7.5)
 	_ "kubebench/internal/plugins/helm"    // Helm releases, repositories and charts (§7.4)
 	_ "kubebench/internal/plugins/storage" // PV, PVC and StorageClass creation (§7.6)
+
+	_ "kubebench/internal/plugins/security" // Security posture checks and accepted risks (§7.7)
 )
