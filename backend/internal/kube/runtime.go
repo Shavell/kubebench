@@ -68,25 +68,38 @@ func newRuntime(cluster store.Cluster) (*Runtime, error) {
 	config.QPS = 50
 	config.Burst = 100
 
-	cs, err := kubernetes.NewForConfig(config)
+	cs, dyn, metrics, err := clientsFor(config)
 	if err != nil {
 		return nil, err
 	}
-	dyn, err := dynamic.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-	metrics, err := metricsv.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-
 	rt := assemble(cluster, config, cs, dyn, metrics)
 	rt.Helm = newHelmService(config)
 	rt.Sampler.start()
 	go rt.discoverProm()
 	go rt.probeCapabilities()
 	return rt, nil
+}
+
+// clientsFor builds the typed, dynamic and metrics clients over one HTTP
+// client that does not follow redirects (see httpClientFor).
+func clientsFor(config *rest.Config) (kubernetes.Interface, dynamic.Interface, metricsv.Interface, error) {
+	httpClient, err := httpClientFor(config)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	cs, err := kubernetes.NewForConfigAndClient(config, httpClient)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	dyn, err := dynamic.NewForConfigAndClient(config, httpClient)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	metrics, err := metricsv.NewForConfigAndClient(config, httpClient)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	return cs, dyn, metrics, nil
 }
 
 // NewRuntimeForTest builds a Runtime around injected (usually fake)

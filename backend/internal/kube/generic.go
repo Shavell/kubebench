@@ -78,8 +78,17 @@ func unknownResource(key string) error {
 	return apierrors.NewBadRequest(fmt.Sprintf("unknown resource %q", key))
 }
 
+// lastAppliedAnnotation is kubectl's client-side apply state: a copy of
+// the manifest last applied, which for a Secret includes its values.
+const lastAppliedAnnotation = "kubectl.kubernetes.io/last-applied-configuration"
+
+// redactedValue replaces a hidden value that has no byte count to show.
+const redactedValue = "<redacted>"
+
 // redactSecret replaces data/stringData values with a byte-count marker
-// so the values never reach the browser, keeping keys visible.
+// so the values never reach the browser, keeping keys visible. kubectl's
+// last-applied-configuration annotation repeats the values and is
+// redacted too.
 func redactSecret(obj map[string]any) {
 	for _, field := range []string{"data", "stringData"} {
 		if data, ok := obj[field].(map[string]any); ok {
@@ -87,8 +96,15 @@ func redactSecret(obj map[string]any) {
 				if s, ok := v.(string); ok {
 					data[k] = fmt.Sprintf("<%d bytes, redacted>", len(s))
 				} else {
-					data[k] = "<redacted>"
+					data[k] = redactedValue
 				}
+			}
+		}
+	}
+	if meta, ok := obj["metadata"].(map[string]any); ok {
+		if annotations, ok := meta["annotations"].(map[string]any); ok {
+			if _, found := annotations[lastAppliedAnnotation]; found {
+				annotations[lastAppliedAnnotation] = redactedValue
 			}
 		}
 	}
