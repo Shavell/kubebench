@@ -10,6 +10,7 @@ import { chartColor } from '@/shared/charts/chartTheme'
 import { MetricChart } from '@/shared/charts/MetricChart'
 import { Toolbar } from '@/shared/Toolbar'
 import { NS } from '../i18n'
+import { RecentWarnings } from './RecentWarnings'
 import '@/shared/tabPage.css'
 import './metrics.css'
 
@@ -82,6 +83,8 @@ export function ClusterOverviewPage() {
             accent={chartColor('yellow')}
           />
         </div>
+
+        <RecentWarnings />
 
         {allocation && (
           <div className="metrics-allocation">

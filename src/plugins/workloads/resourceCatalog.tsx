@@ -308,6 +308,7 @@ export const RESOURCE_CATALOG: ResourceDescriptor[] = [
   },
   // Cluster
   {
+    // The detail page's summary; the Events view (pages/EventsListPage) has its own list columns.
     key: 'events', kind: 'Event', icon: 'bell', group: 'cluster', namespaced: true,
     columns: [
       { key: 'type', render: (o) => <Badge tone={str(o, 'type') === 'Warning' ? 'warning' : 'neutral'}>{str(o, 'type')}</Badge>, sortValue: (o) => str(o, 'type') },

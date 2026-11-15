@@ -43,3 +43,100 @@
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 12px;
 }
+
+/* Recent warnings card (overview). */
+.metrics-warnings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--vscode-editorWidget-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+}
+
+.metrics-warnings__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.metrics-warnings__header h2 {
+  margin: 0;
+}
+.metrics-warnings__header .kb-button {
+  margin-left: auto;
+}
+
+.metrics-warnings__count {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.metrics-warnings__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.metrics-warnings__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 0;
+  border-top: 1px solid color-mix(in srgb, var(--vscode-panel-border) 40%, transparent);
+  font-size: 13px;
+}
+.metrics-warnings__item:first-child {
+  border-top: none;
+}
+
+.metrics-warnings__icon {
+  margin-top: 2px;
+  color: var(--status-pending);
+}
+
+.metrics-warnings__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.metrics-warnings__line {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.metrics-warnings__reason {
+  font-weight: 600;
+}
+
+.metrics-warnings__object,
+.metrics-warnings__message {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.metrics-warnings__object {
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
+}
+.metrics-warnings__message {
+  font-size: 12px;
+}
+
+.metrics-warnings__meta {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.metrics-warnings__empty {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--vscode-descriptionForeground);
+}

@@ -7,6 +7,7 @@ import type { Deployment, K8sNode, Namespace, Pod, Service } from '@/data/types'
 import { formatNumber } from '@/i18n/format'
 import { Badge } from '@/shared/Badge'
 import { ListFilterBar } from '@/shared/ListFilterBar'
+import { NamespaceOptions } from '@/shared/NamespaceOptions'
 import { Table } from '@/shared/Table'
 import { Toolbar } from '@/shared/Toolbar'
 import { EmptyState } from '@/shared/EmptyState'
@@ -123,8 +124,8 @@ export function ResourceListPage({ tab }: { tab: TabDescriptor }) {
   const providers = useProviders()
   const globalNamespace = useContextStore((s) => s.namespace)
   const [search, setSearch] = useState('')
-  /** Page-local namespace filter; empty = follow the global status bar filter. */
-  const [localNs, setLocalNs] = useState('')
+  /** Page-local namespace filter; empty = follow the global status bar filter. Palette `-n` presets it. */
+  const [localNs, setLocalNs] = useState((tab.props?.namespace as string | undefined) ?? '')
   const [statusFilter, setStatusFilter] = useState('')
   const [deleting, setDeleting] = useState<Pod | null>(null)
   const podSelection = usePodSelection()
@@ -187,11 +188,7 @@ export function ResourceListPage({ tab }: { tab: TabDescriptor }) {
               ? t('filters.namespaceAll')
               : t('filters.namespaceGlobal', { namespace: globalNamespace })}
           </option>
-          {(namespaces ?? []).map((ns) => (
-            <option key={ns.name} value={ns.name}>
-              {ns.name}
-            </option>
-          ))}
+          <NamespaceOptions names={(namespaces ?? []).map((ns) => ns.name)} selected={localNs} />
         </select>
       )}
       {resource === 'Pods' && (
@@ -239,7 +236,7 @@ export function ResourceListPage({ tab }: { tab: TabDescriptor }) {
             rows={rows as Pod[]}
             rowKey={(p) => `${p.namespace}/${p.name}`}
             onRowClick={(p) => openDetail('Pod', p.namespace, p.name, 'package')}
-            onRowContextMenu={(p, e) => podMenu(e, p, setDeleting)}
+            onRowContextMenu={(p, e) => podMenu(e, p, providers, setDeleting)}
             selection={podSelection.table}
           />
         )}
