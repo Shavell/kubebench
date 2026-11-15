@@ -1,0 +1,123 @@
+/* Argo CD plugin pages. Colors only through --vscode-* and status tokens. */
+
+.argocd-wide .kb-page__section {
+  max-width: none;
+}
+
+.argocd-mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.argocd-muted {
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
+}
+
+.argocd-error {
+  color: var(--status-failed);
+}
+
+.argocd-message {
+  white-space: pre-wrap;
+  user-select: text;
+}
+
+.argocd-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.argocd-overview {
+  max-width: 980px;
+  margin-bottom: 16px;
+}
+
+.argocd-sections {
+  max-width: 1200px;
+}
+
+.argocd-table {
+  max-width: 1200px;
+}
+
+.argocd-tree {
+  max-width: 900px;
+  padding-top: 4px;
+}
+
+.argocd-tree-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding-right: 6px;
+}
+
+.argocd-tree-badges .argocd-tree-yaml {
+  padding: 0 4px;
+  min-height: 0;
+}
+
+.argocd-dialog-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.argocd-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 6px 12px;
+}
+
+.argocd-resource-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 220px;
+  overflow: auto;
+  margin-top: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+}
+
+.argocd-resource-pick__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.argocd-appset-apps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.argocd-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--vscode-textLink-foreground);
+  font: inherit;
+  cursor: pointer;
+}
+
+.argocd-link:hover {
+  text-decoration: underline;
+}
+
+.argocd-source {
+  display: inline-block;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}

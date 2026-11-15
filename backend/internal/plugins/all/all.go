@@ -1,5 +1,5 @@
 // Package all links the built-in backend plugins into the binary; main.go
-// imports it for its side effects. No plugin ships yet.
+// imports it for its side effects.
 //
 // To add a plugin, create backend/internal/plugins/<id>/ with a type that
 // implements plugin.Plugin (see internal/plugin) and registers itself:
@@ -14,3 +14,5 @@
 //
 // Its routes are served under /api/plugins/<id>/.
 package all
+
+import _ "kubebench/internal/plugins/argocd"

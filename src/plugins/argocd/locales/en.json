@@ -1,0 +1,207 @@
+{
+  "manifest": {
+    "name": "Argo CD",
+    "description": "Argo CD applications, projects and ApplicationSets: sync and health status, sync, rollback, refresh and delete.",
+    "tooltip": "Argo CD",
+    "sidebarTitle": "Argo CD"
+  },
+  "commands": {
+    "openApplications": "Argo CD: Open applications",
+    "openProjects": "Argo CD: Open projects",
+    "openApplicationSets": "Argo CD: Open ApplicationSets"
+  },
+  "sidebar": {
+    "applications": "Applications",
+    "projects": "Projects",
+    "applicationSets": "ApplicationSets"
+  },
+  "columns": {
+    "sync": "Sync",
+    "health": "Health",
+    "operation": "Operation",
+    "source": "Source",
+    "destination": "Destination",
+    "autoSync": "Auto-sync",
+    "lastSynced": "Last synced"
+  },
+  "actions": {
+    "reload": "Reload",
+    "sync": "Sync",
+    "refresh": "Refresh",
+    "hardRefresh": "Hard refresh",
+    "delete": "Delete"
+  },
+  "states": {
+    "Synced": "Synced",
+    "OutOfSync": "Out of sync",
+    "Unknown": "Unknown",
+    "Healthy": "Healthy",
+    "Progressing": "Progressing",
+    "Degraded": "Degraded",
+    "Suspended": "Suspended",
+    "Missing": "Missing",
+    "Running": "Running",
+    "Terminating": "Terminating",
+    "Succeeded": "Succeeded",
+    "Failed": "Failed",
+    "Error": "Error",
+    "SyncFailed": "Sync failed",
+    "Pruned": "Pruned",
+    "PruneSkipped": "Prune skipped",
+    "Deleting": "Deleting"
+  },
+  "applications": {
+    "title": "Argo CD applications",
+    "loading": "Loading applications…",
+    "unavailable": "Argo CD applications are unavailable",
+    "empty": "No Argo CD applications",
+    "emptyHint": "Applications created in Argo CD appear here.",
+    "noMatch": "No application matches the search",
+    "project": "Project {{project}} · {{count}}",
+    "summary": "{{shown}} of {{total}}"
+  },
+  "overview": {
+    "status": "Status",
+    "healthMessage": "Health message",
+    "project": "Project",
+    "source": "Source",
+    "sources": "Sources",
+    "destination": "Destination",
+    "revision": "Compared revision",
+    "autoSync": "Auto-sync",
+    "autoOn": "Automated",
+    "autoPrune": "prune",
+    "selfHeal": "self-heal",
+    "autoOff": "Manual",
+    "syncOptions": "Sync options",
+    "lastSynced": "Last synced",
+    "reconciled": "Last compared",
+    "images": "Images",
+    "urls": "URLs"
+  },
+  "detail": {
+    "loading": "Loading {{name}}…",
+    "unavailable": "Application {{name}} cannot be shown",
+    "operationRunning": "An operation is running on this application; wait for it to finish.",
+    "automated": "Automated sync",
+    "tabs": {
+      "resources": "Resources",
+      "operation": "Operation",
+      "history": "History",
+      "conditions": "Conditions"
+    },
+    "resources": {
+      "empty": "No managed resources",
+      "emptyHint": "Argo CD lists the resources once it has compared the application with its source.",
+      "requiresPruning": "requires pruning",
+      "yaml": "Open YAML",
+      "yamlOf": "Open the YAML of {{name}}",
+      "clusterScoped": "Cluster-scoped"
+    },
+    "history": {
+      "empty": "The application has not been synced yet",
+      "autoSyncBlocks": "Argo CD cannot roll back while automated sync is enabled; disable it first.",
+      "id": "ID",
+      "revision": "Revision",
+      "source": "Source",
+      "deployedAt": "Deployed",
+      "initiatedBy": "Initiated by",
+      "actions": "Actions",
+      "current": "Current",
+      "rollback": "Roll back",
+      "rollbackHint": "Sync back to the revision and source of deployment {{id}}"
+    },
+    "operation": {
+      "none": "No operation has run yet",
+      "dryRun": "dry run",
+      "prune": "prune",
+      "phase": "Phase",
+      "message": "Message",
+      "revision": "Revision",
+      "initiatedBy": "Initiated by",
+      "startedAt": "Started",
+      "finishedAt": "Finished",
+      "options": "Options",
+      "retries": "Retries",
+      "results": "Results",
+      "kind": "Kind",
+      "resource": "Resource",
+      "status": "Status",
+      "phaseColumn": "Sync phase"
+    }
+  },
+  "conditions": {
+    "empty": "No conditions reported",
+    "type": "Type",
+    "message": "Message",
+    "since": "Since"
+  },
+  "sync": {
+    "title": "Sync {{name}}",
+    "description": "Argo CD applies the manifests of the chosen revision to the cluster.",
+    "cancel": "Cancel",
+    "submit": "Sync",
+    "submitDryRun": "Dry run",
+    "revision": "Revision",
+    "revisionHelp": "A branch, tag or commit. Leave it empty to sync the target revision ({{target}}).",
+    "revisionMultiSource": "The application has several sources; each syncs at its own target revision.",
+    "prune": "Prune",
+    "pruneHelp": "Delete resources that are no longer in the source.",
+    "dryRun": "Dry run",
+    "dryRunHelp": "Only check the sync; nothing changes in the cluster.",
+    "options": "Sync options",
+    "resources": "Resources",
+    "selective": "Sync only selected resources",
+    "selectiveHelp": "By default every resource of the application is synced.",
+    "noneSelected": "Select at least one resource.",
+    "started": "Sync of {{name}} started.",
+    "startedDryRun": "Dry-run sync of {{name}} started."
+  },
+  "refresh": {
+    "hint": "Compare the application with its source again",
+    "hardHint": "Regenerate the manifests from the source, bypassing the cache, and compare",
+    "done": "Refresh of {{name}} requested.",
+    "hardDone": "Hard refresh of {{name}} requested."
+  },
+  "rollback": {
+    "title": "Roll {{name}} back to deployment {{id}}?",
+    "message": "Argo CD syncs the application to revision {{revision}} with the source it was deployed from. Sync hooks do not run.",
+    "started": "Rollback of {{name}} to deployment {{id}} started."
+  },
+  "delete": {
+    "title": "Delete application {{name}}?",
+    "message": "The Argo CD application is deleted. This cannot be undone.",
+    "cascade": "Delete the managed resources too (cascade)",
+    "cascadeOn": "Argo CD deletes every resource it deployed (in {{namespace}} and elsewhere) before the application.",
+    "cascadeOff": "The resources in {{namespace}} and elsewhere stay in the cluster, no longer managed by Argo CD.",
+    "done": "Application {{name}} deleted; its resources were kept.",
+    "doneCascade": "Application {{name}} is being deleted with its resources."
+  },
+  "projects": {
+    "title": "Argo CD projects",
+    "loading": "Loading projects…",
+    "unavailable": "Argo CD projects are unavailable",
+    "empty": "No Argo CD projects",
+    "columns": {
+      "applications": "Applications",
+      "sourceRepos": "Source repositories",
+      "destinations": "Destinations",
+      "clusterResources": "Cluster resources",
+      "roles": "Roles",
+      "syncWindows": "Sync windows"
+    }
+  },
+  "applicationSets": {
+    "title": "ApplicationSets",
+    "loading": "Loading ApplicationSets…",
+    "unavailable": "ApplicationSets are unavailable",
+    "empty": "No ApplicationSets",
+    "columns": {
+      "generators": "Generators",
+      "template": "Application name",
+      "project": "Project",
+      "applications": "Applications",
+      "condition": "Condition"
+    }
+  }
+}

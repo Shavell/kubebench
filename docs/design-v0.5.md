@@ -875,6 +875,21 @@ automated sync is on); `DELETE …?cascade=` (adds
 `resources-finalizer.argocd.argoproj.io` when cascading);
 `GET /projects`; `GET /applicationsets`.
 
+- Sync and rollback build `.operation` like the Argo CD API server: the
+  controller does not read `spec.syncPolicy.syncOptions` for a requested
+  operation, so they are copied in unless the request names its own
+  (`syncOptions: []` syncs without any); an empty `revision` syncs the
+  source's `targetRevision` (multi-source apps: each source's, and a
+  `revision` is refused with `400`). Rollback (`{historyId, prune?}`)
+  copies the history entry's revision and source(s) and uses the apply
+  strategy (no hooks). `409 conflict` also while `.operation` is still
+  pending; the patch carries the checked `resourceVersion`.
+- `DELETE …?cascade=` defaults to `true` (as in Argo CD); `false` removes
+  the resources finalizer, so the managed resources stay.
+- Every mutation is `write` (not DryRunnable: an Argo CD dry-run sync
+  still patches the Application). Sync and rollback add an
+  `argocd.sync`/`argocd.rollback` audit row with the requested options.
+
 UI: applications (grouped by project, sync/health badges), detail
 (resource tree → open resources in KubeBench via tab kinds, conditions,
 history + rollback, operation state), sync dialog (prune, dry-run,
