@@ -24,7 +24,6 @@ func TestPermissionMatrix(t *testing.T) {
 		{"bob", http.MethodPost, "/api/deployments/scale?ns=default&name=web&replicas=5", http.StatusForbidden, plugin.CodeForbiddenRole},
 		{"bob", http.MethodPost, "/api/deployments/restart?ns=default&name=web", http.StatusForbidden, plugin.CodeForbiddenRole},
 		{"bob", http.MethodPost, "/api/exec?ns=default&pod=web-1&cmd=id", http.StatusForbidden, plugin.CodeForbiddenRole},
-		{"bob", http.MethodPost, "/api/helm/rollback?ns=default&name=web&revision=1", http.StatusForbidden, plugin.CodeForbiddenRole},
 		// Admin routes: global admins only, whatever the cluster role.
 		{"alice", http.MethodGet, "/api/users", http.StatusForbidden, plugin.CodeAdminRequired},
 		{"bob", http.MethodGet, "/api/audit", http.StatusForbidden, plugin.CodeAdminRequired},

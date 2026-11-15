@@ -67,10 +67,13 @@ plugin.
 `providers.ts` is the single contract between UI and data:
 
 - `ClusterProvider` — lists, YAML, events, logs, mutations (delete/scale/restart)
-- `CrdProvider`, `HelmProvider` (incl. rollback/uninstall)
+- `CrdProvider`
 - `MetricsProvider` — overview, allocation, series (cpu/memory/network/fs),
   source discovery
 - `InventoryProvider` — cluster inventory CRUD + activate
+
+Plugin-owned capabilities (e.g. Helm, `src/plugins/helm/data/`) use
+`definePluginData` from `src/data/pluginData.ts` instead.
 
 Everything is async. Components use `useProviderQuery(fn, deps)`
 (`DataContext.tsx`) which also subscribes to a global invalidation bus:

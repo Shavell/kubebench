@@ -9,7 +9,6 @@ import { genericMock } from './mockGeneric'
 import { podLogs } from './mockLogs'
 import { streamMockLogs } from './mockLogStream'
 import { openMockTerminal } from './mockTerminal'
-import { releases, repositories, valuesYaml } from './mockHelm'
 import { clusterAllocation, clusterStats, generateSeries } from './mockMetrics'
 import { createMockAudit } from './mockAudit'
 import { createMockInventory } from './mockInventory'
@@ -140,35 +139,6 @@ export function createMockProviders(): DataProviders {
       listCrds: () => delay(crds),
       listCustomResources: (crdName) =>
         delay(customResources.filter((cr) => cr.crdName === crdName)),
-    },
-    helm: {
-      listReleases: () => delay(releases),
-      listRepositories: () => delay(repositories),
-      getReleaseValuesYaml: (name, _ns) => delay(valuesYaml[name] ?? `# no values for ${name}`),
-      rollbackRelease: (name, ns, revision) => {
-        const release = releases.find((r) => r.name === name && r.namespace === ns)
-        if (release) {
-          const newRevision = release.revision + 1
-          for (const h of release.history) {
-            if (h.status === 'deployed' || h.status === 'failed') h.status = 'superseded'
-          }
-          release.history.unshift({
-            revision: newRevision,
-            status: 'deployed',
-            updated: '2026-08-11 09:15',
-            description: `Rollback to ${revision}`,
-          })
-          release.revision = newRevision
-          release.status = 'deployed'
-          release.updated = '2026-08-11 09:15'
-        }
-        return delay(undefined)
-      },
-      uninstallRelease: (name, ns) => {
-        const idx = releases.findIndex((r) => r.name === name && r.namespace === ns)
-        if (idx >= 0) releases.splice(idx, 1)
-        return delay(undefined)
-      },
     },
     inventory: createMockInventory(),
     users: createMockUsers(),

@@ -117,8 +117,13 @@ func serve(cfg *config.Config) error {
 		return err
 	}
 
+	plugins := plugin.All()
+	if err := plugin.StartAll(ctx, cfg.DataDir, plugins); err != nil {
+		return err
+	}
+
 	build := api.BuildInfo{Version: version, Commit: commit, Date: date}
-	apiServer := api.New(cfg, st, kube.NewManager(), build, plugin.All())
+	apiServer := api.New(cfg, st, kube.NewManager(), build, plugins)
 	spa, embedded := web.Handler()
 	if embedded {
 		log.Printf("[web] serving the embedded frontend")

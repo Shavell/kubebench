@@ -1,6 +1,6 @@
 // Package kube holds one Runtime per cluster: typed and dynamic clients,
 // cached discovery with a RESTMapper, the metrics sampler, Prometheus
-// access, Helm actions and probed capabilities.
+// access and probed capabilities.
 package kube
 
 import (
@@ -42,7 +42,6 @@ type Runtime struct {
 	Dyn     dynamic.Interface
 	Metrics metricsv.Interface
 	Sampler *Sampler
-	Helm    *HelmService
 
 	discovery discovery.CachedDiscoveryInterface
 	mapper    *restmapper.DeferredDiscoveryRESTMapper
@@ -77,7 +76,6 @@ func newRuntime(cluster store.Cluster) (*Runtime, error) {
 		return nil, err
 	}
 	rt := assemble(cluster, config, cs, dyn, metrics)
-	rt.Helm = newHelmService(config)
 	rt.Sampler.start()
 	go rt.discoverProm()
 	go rt.probeCapabilities()
@@ -109,7 +107,7 @@ func clientsFor(config *rest.Config) (kubernetes.Interface, dynamic.Interface, m
 // NewRuntimeForTest builds a Runtime around injected (usually fake)
 // clients. It starts no background work: the capability probe counts as
 // finished with no capabilities, Prometheus discovery as finished without
-// one, the sampler stays empty, Metrics and Helm are nil, and Config points
+// one, the sampler stays empty, Metrics is nil, and Config points
 // at an unreachable host. Tests that need metrics or RawGet set Metrics or
 // Config before using the runtime.
 func NewRuntimeForTest(cluster store.Cluster, cs kubernetes.Interface, dyn dynamic.Interface) *Runtime {

@@ -1,4 +1,4 @@
-import type { CustomResource, Deployment, HelmRelease, K8sNode, Pod, Service } from '../types'
+import type { CustomResource, Deployment, K8sNode, Pod, Service } from '../types'
 
 /**
  * Hand-rolled Kubernetes-shaped YAML for the read-only editor tabs.
@@ -145,16 +145,6 @@ status:
     - type: Ready
       status: "${cr.status === 'Ready' || cr.status === 'Active' ? 'True' : 'False'}"
       reason: ${cr.status}
-`
-}
-
-export function releaseManifestYaml(r: HelmRelease): string {
-  return `# Release "${r.name}" revision ${r.revision} (${r.status})
-# Chart: ${r.chart}-${r.chartVersion}  App version: ${r.appVersion}
-apiVersion: v2
-name: ${r.chart}
-version: ${r.chartVersion}
-appVersion: "${r.appVersion}"
 `
 }
 

@@ -179,12 +179,14 @@ The frontend `ApiError` exposes `status` and `code`.
 - A Kubernetes `401` (the stored credential was rejected) is reported as
   `502 kubernetes`, so the browser does not mistake it for the end of its
   own KubeBench session.
-- Missing capabilities of the legacy endpoints (Helm, Prometheus-only
-  metrics) answer `503 capability_unavailable`. So does a metric series
+- Missing capabilities of the legacy endpoints (Prometheus-only metrics)
+  answer `503 capability_unavailable`. So does a metric series
   whose Prometheus query fails, with the reason: only `source=auto` falls
   back to metrics-server, and only for CPU and memory, the metrics it has.
-  Helm and the metrics endpoints wait (≤3 s) for a fresh runtime's
-  capability probe and Prometheus discovery, like `/api/info` (§4.1).
+  The metrics endpoints wait (≤3 s) for a fresh runtime's capability probe
+  and Prometheus discovery, like `/api/info` (§4.1). Helm is a plugin
+  (§7.4): without access to the release Secrets it answers
+  `503 plugin_unavailable`, and its Detect runs after the probe too.
 
 ### 3.4 Audit log
 
@@ -409,6 +411,9 @@ type Context struct {
     User    *store.User
     KV      KV              // plugin-scoped persistent key/value (SQLite plugin_kv)
     Audit   func(action, target, detail string) // extra audit rows if needed
+    // SetAudit refines the router's row of this (audited) request once the
+    // handler has read the body, e.g. target "release/web/shop"; never secrets.
+    SetAudit func(target, detail string)
 }
 
 type KV interface {
@@ -435,6 +440,13 @@ type Plugin interface {
 func Register(p Plugin)            // called from init() of each plugin package
 func All() []Plugin
 func Get(id string) (Plugin, bool)
+
+// Optional: plugins that keep files or run background work implement
+// Starter. main.go calls StartAll once before serving; DataDir is
+// $KUBEBENCH_DATA_DIR/<id> (created 0700), ctx ends at shutdown.
+type Host struct{ DataDir string }
+type Starter interface{ Start(ctx context.Context, host Host) error }
+func StartAll(ctx context.Context, dataDir string, plugins []Plugin) error
 
 // Helpers shared with core handlers:
 func WriteJSON(w http.ResponseWriter, v any)
@@ -835,9 +847,13 @@ Details settled by the implementation:
 
 ### 7.4 Helm plugin v2 (backend plugin `helm`)
 
-Backend moves to `internal/plugins/helm`; routes under `/api/plugins/helm`
-(old `/api/helm/*` removed). Repos/caches under `$KUBEBENCH_DATA_DIR/helm/`.
-Detect: can list Secrets labelled `owner=helm`.
+Backend `internal/plugins/helm`; routes under `/api/plugins/helm`
+(old `/api/helm/*` removed). Repos/caches under `$KUBEBENCH_DATA_DIR/helm/`
+(`repositories.yaml` 0600 with any credentials, `cache/`,
+`registry/config.json`, `uploads/<id>.tgz`), shared by every cluster; the
+server account's own Helm configuration and Helm plugins are never used.
+Detect: can list Secrets labelled `owner=helm` (run after the capability
+probe, cached like every Detect).
 
 `GET /releases?ns=`, `GET /releases/{ns}/{name}` (info, chart metadata,
 notes, hooks), `GET /releases/{ns}/{name}/values?all=&revision=`,
@@ -851,11 +867,65 @@ notes, hooks), `GET /releases/{ns}/{name}/values?all=&revision=`,
 `GET /charts/search?q=`, `GET /charts/values?repo=&chart=&version=`,
 `POST /charts/upload` (multipart `.tgz`, write; for offline installs).
 
+Shapes (they match `src/plugins/helm/data/types.ts`):
+
+- A release is `{name,namespace,chart,chartVersion,appVersion,revision,status,updated,description}`
+  (Helm's status verbatim, RFC 3339 times); the detail adds
+  `firstDeployed`, `notes`, `chartInfo` (Chart.yaml), `hooks`
+  (`{name,kind,events,weight,phase,startedAt,completedAt}`) and `history`
+  (newest first). The list includes releases uninstalled with
+  `keepHistory` (status `uninstalled`), which can be rolled back.
+- `values` → `{"values": "<yaml>"}` (`""` when empty; `revision` 0 or
+  absent = latest; `all=true` merges the chart defaults); `manifest` →
+  `{"revision","manifest"}` with hooks appended. Rollback answers
+  `{"release"}` (the new revision; `revision` 0 = the previous one),
+  uninstall `{"ok":true,"release"}`.
+- `values` in install/upgrade bodies is YAML text. An upgrade without
+  `chart` keeps the release's current chart (values-only upgrade); with
+  `reuseValues` the values are merged over the current ones, without they
+  replace them (Helm's `--reset-values`, so an empty text resets to the
+  chart defaults). Upgrades and rollbacks keep 10 revisions; nothing waits
+  for readiness (no `--wait`); hooks and deletions time out after 5 min.
+- Dry runs (`dryRun=true` in the query, which the router relaxes to read
+  access; the body flag alone also dry-runs) use Helm's server-side dry
+  run: rendered with the cluster's API versions and lookups, nothing
+  created, the namespace not created either. Upgrade dry runs return the
+  current revision's manifest as `currentManifest` for the diff.
+- Chart references: `{repo,name}` must name an added repository and a
+  chart in its cached index; `{ref}` must be `oci://` (no digest);
+  `{uploadId}` an unexpired upload. Local paths and plain URLs are never
+  accepted. `GET /charts/values` takes the same three forms as query
+  parameters (`repo`+`chart`, `ref`, `uploadId`, plus `version`) →
+  `{chart,values}` (values.yaml as written).
+- `GET /repos` → `[{name,url,authenticated,chartCount,updated,error?}]`:
+  credentials are never returned and never audited; a URL with userinfo is
+  refused (`400`). Adding downloads the index first (bad URL or
+  credentials → `400`, a duplicate name → `409`). `POST /repos/update` →
+  `{"repos":[{name,ok,error?}]}`.
+- `GET /charts/search` → at most 100 `{repo,name,version,appVersion,description,icon,deprecated,versions:[{version,appVersion,created,deprecated}]}`
+  matching name, description or keywords; exact names first.
+- Upload: multipart field `chart`, ≤ 20 MiB, validated with
+  `loader.LoadArchive` → `{uploadId,chart,expiresAt}`; uploads expire
+  (and are removed) after 24 h.
+- Audit targets: `release/<ns>/<name>` (install refines its row with the
+  body's release and `{"chart","createNamespace"}`), `repo/<name>`,
+  `chart/<name>` for uploads.
+- Helm builds its own Kubernetes clients from the cluster's rest.Config;
+  unlike the runtime's clients (§4.5) they follow redirects. KubeBench
+  pins them to the API server's host, so a redirect elsewhere fails
+  before the stored credential is sent; redirects within the API server
+  are followed. Repository and registry downloads use Helm's getters,
+  which follow redirects as well (Go drops the Authorization header on a
+  redirect to another host).
+
 UI: releases list/detail (overview, values user/all per revision, manifest,
 notes, history with rollback + values diff between two revisions),
 upgrade (values editor, version picker, dry-run manifest diff), install
 wizard (search → version → values → dry-run → install; or upload `.tgz`),
-repositories (add/remove/update), uninstall (keep-history option).
+repositories (add/remove/update), uninstall (keep-history option). Tab
+kinds: `helm-releases`, `helm-release-detail` and `helm-upgrade` (props
+`{namespace,name}`; tab ids `helm-release:<ns>/<name>`,
+`helm-upgrade:<ns>/<name>`), `helm-install`, `helm-repos`.
 
 ### 7.5 Argo CD plugin (backend plugin `argocd`, new)
 

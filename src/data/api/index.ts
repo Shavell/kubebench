@@ -9,7 +9,6 @@ import {
 } from './admin'
 import { createApiCluster } from './cluster'
 import { createApiCrd } from './crd'
-import { createApiHelm } from './helm'
 import { createApiMetrics } from './metrics'
 import { createApiWorkloadOps } from './workloadOps'
 
@@ -22,7 +21,6 @@ export function createApiProviders(capabilities: LiveCapabilities): DataProvider
   return {
     cluster: createApiCluster(capabilities),
     crd: createApiCrd(capabilities.crds),
-    helm: createApiHelm(capabilities.helm),
     metrics: createApiMetrics(),
     inventory: createApiInventory(),
     users: createApiUsers(),

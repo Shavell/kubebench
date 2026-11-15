@@ -51,9 +51,6 @@ func (s *Server) routes() {
 	s.handle("GET /api/metrics/pod", accessRead, s.handlePodSeries)
 	s.handle("GET /api/crds", accessRead, s.handleCrds)
 	s.handle("GET /api/crds/instances", accessRead, s.handleCrdInstances)
-	s.handle("GET /api/helm/releases", accessRead, s.handleHelmReleases)
-	s.handle("GET /api/helm/repos", accessRead, s.handleHelmRepos)
-	s.handle("GET /api/helm/values", accessRead, s.handleHelmValues)
 
 	// The active cluster: changes (audited).
 	s.handle("DELETE /api/pods", accessWrite, s.handleDeletePod)
@@ -61,8 +58,6 @@ func (s *Server) routes() {
 	s.handle("POST /api/deployments/restart", accessWrite, s.handleRestart)
 	s.handle("POST /api/exec", accessExec, s.handleExec)
 	s.handle("GET /api/exec/ws", accessExec, s.handleTerminal)
-	s.handle("POST /api/helm/rollback", accessWrite, s.handleHelmRollback)
-	s.handle("POST /api/helm/uninstall", accessWrite, s.handleHelmUninstall)
 	s.handle("POST /api/resource/apply", accessWrite|allowDryRun, s.handleApply)
 	s.handle("POST /api/resource/edit", accessWrite|allowDryRun, s.handleEdit)
 	s.handle("DELETE /api/resource", accessWrite, s.handleDeleteResource)
@@ -95,10 +90,10 @@ func (s *Server) routes() {
 // (see targetKind). Declared here rather than in the handlers so that
 // denied requests, which never reach a handler, get the same target.
 var auditKinds = map[string]string{
-	"POST /api/exec":           "pod",
-	"POST /api/helm/rollback":  "release",
-	"POST /api/helm/uninstall": "release",
-	"GET /api/exec/ws":         "pod",
+	"POST /api/exec":   "pod",
+	"GET /api/exec/ws": "pod",
+	// Helm plugin (§7.4): the release is named by the body.
+	"POST /api/plugins/helm/install": "release",
 }
 
 // auditActions names the audit action of routes that record a named action

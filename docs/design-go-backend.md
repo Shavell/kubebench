@@ -91,7 +91,7 @@ Per cluster id, built lazily and cached:
 | logs | `Pods.GetLogs` (tail 300, timestamps) |
 | exec | `remotecommand.NewSPDYExecutor`, one-shot `sh -c`, stdout+stderr |
 | metrics | 15s sampler ring buffer (metrics.k8s.io) + Prometheus discovery through `Services.ProxyGet`; same `source=auto|prometheus|metrics-server` semantics |
-| helm | `helm.sh/helm/v3/pkg/action` with a `RESTClientGetter` built from the cluster's rest.Config: List, History, GetValues, Rollback, Uninstall |
+| helm | moved to the backend plugin `internal/plugins/helm` in v0.5 (design-v0.5 §7.4) |
 | CRDs | apiextensions list + dynamic CR listing with `additionalPrinterColumns` |
 | capabilities | probes on first build: crds list, helm secrets list, SSAR `pods/exec` |
 

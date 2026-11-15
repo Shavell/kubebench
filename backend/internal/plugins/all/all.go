@@ -15,4 +15,7 @@
 // Its routes are served under /api/plugins/<id>/.
 package all
 
-import _ "kubebench/internal/plugins/argocd"
+import (
+	_ "kubebench/internal/plugins/argocd" // Argo CD applications (§7.5)
+	_ "kubebench/internal/plugins/helm"   // Helm releases, repositories and charts (§7.4)
+)

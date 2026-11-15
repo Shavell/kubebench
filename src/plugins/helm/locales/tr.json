@@ -1,22 +1,30 @@
 {
   "manifest": {
     "name": "Helm",
-    "description": "Helm release'leri, revizyon geçmişleri ve chart depoları.",
+    "description": "Helm release'leri: kurma, yükseltme, geri alma ve kaldırma; chart depolarıyla birlikte.",
     "tooltip": "Helm",
     "sidebarTitle": "Helm"
   },
   "commands": {
     "openReleases": "Helm: Release'leri aç",
-    "openRepos": "Helm: Depoları aç"
+    "openRepos": "Helm: Depoları aç",
+    "install": "Helm: Chart kur"
   },
   "sidebar": {
     "releases": "Release'ler",
-    "repos": "Depolar"
+    "repos": "Depolar",
+    "install": "Chart kur"
   },
   "releases": {
     "title": "Helm release'leri",
     "loading": "Release'ler yükleniyor…",
     "unavailable": "Helm release'leri kullanılamıyor",
+    "summary": "{{shown}} / {{total}}",
+    "install": "Chart kur",
+    "repositories": "Depolar",
+    "empty": "Helm release'i yok",
+    "emptyIn": "{{namespace}} Namespace'inde Helm release'i yok",
+    "emptyHint": "Bir depodan, OCI registry'sinden veya yüklenmiş bir arşivden chart kurabilirsiniz.",
     "columns": {
       "chart": "Chart",
       "appVersion": "Uygulama sürümü",
@@ -26,42 +34,220 @@
   },
   "release": {
     "loading": "{{name}} yükleniyor…",
+    "unavailable": "Release kullanılamıyor",
     "gone": "{{name}} release'i artık mevcut değil",
     "goneHint": "Kaldırılmış olabilir",
-    "editValues": "Değerleri düzenle",
-    "viewValues": "Değerleri görüntüle",
+    "upgrade": "Yükselt",
+    "upgradeUninstalled": "Kaldırılmış bir release yükseltilemez; önce geri alın",
     "uninstall": "Kaldır",
+    "revisionOption": "Revizyon {{revision}} ({{status}})",
+    "revisionLatest": "Revizyon {{revision}} ({{status}}, en son)",
+    "tabs": {
+      "overview": "Genel bakış",
+      "values": "Değerler",
+      "manifest": "Manifest",
+      "notes": "Notlar",
+      "history": "Geçmiş"
+    },
+    "fields": {
+      "namespace": "Namespace",
+      "chart": "Chart",
+      "appVersion": "Uygulama sürümü",
+      "revision": "Revizyon",
+      "firstDeployed": "İlk dağıtım",
+      "updated": "Son dağıtım",
+      "description": "Açıklama"
+    },
+    "chart": {
+      "title": "Chart",
+      "description": "Açıklama",
+      "home": "Ana sayfa",
+      "sources": "Kaynaklar",
+      "keywords": "Anahtar kelimeler",
+      "kubeVersion": "Kubernetes sürümleri",
+      "deprecated": "Kullanımdan kaldırıldı",
+      "deprecatedHint": "Chart'ın bakımcıları onu kullanımdan kaldırdı"
+    },
+    "hooks": {
+      "title": "Hook'lar",
+      "none": "Chart'ın hook'u yok.",
+      "kind": "Tür",
+      "events": "Olaylar",
+      "lastRun": "Son çalışma",
+      "completed": "Tamamlanma",
+      "neverRun": "Hiç çalışmadı"
+    },
+    "values": {
+      "revision": "Revizyon",
+      "all": "Chart'ın varsayılan değerlerini dahil et",
+      "loading": "Değerler yükleniyor…",
+      "none": "# Kullanıcının verdiği değer yok",
+      "aria": "{{name}} değerleri"
+    },
+    "manifest": {
+      "revision": "Revizyon",
+      "loading": "Manifest yükleniyor…",
+      "aria": "{{name}} manifest'i"
+    },
+    "notes": {
+      "none": "Chart'ın notu yok"
+    },
+    "history": {
+      "revision": "Revizyon",
+      "chart": "Chart",
+      "appVersion": "Uygulama sürümü",
+      "updated": "Güncellenme",
+      "description": "Açıklama",
+      "rollback": "Geri al"
+    },
+    "compare": {
+      "title": "Değerleri karşılaştır",
+      "from": "Önce",
+      "to": "Sonra",
+      "revision": "Revizyon {{revision}}",
+      "same": "{{from}} ve {{to}} numaralı revizyonların kullanıcı değerleri aynı."
+    },
     "uninstallDialog": {
       "title": "{{name}} release'i kaldırılsın mı?",
-      "message": "Helm, release'i ve {{namespace}} Namespace'inde oluşturduğu tüm Kubernetes kaynaklarını siler. Bu işlem geri alınamaz.",
-      "done": "{{name}} release'i kaldırıldı."
+      "message": "Helm, release'i ve {{namespace}} Namespace'inde oluşturduğu tüm Kubernetes kaynaklarını siler.",
+      "keepHistory": "Release geçmişini koru",
+      "keepHistoryHint": "Release kaldırılmış olarak listelenmeye devam eder ve daha sonra geri alınabilir.",
+      "done": "{{name}} release'i kaldırıldı.",
+      "doneKept": "{{name}} release'i kaldırıldı; geçmişi korundu."
     },
     "rollbackDialog": {
       "title": "{{name}}, {{revision}} numaralı revizyona geri alınsın mı?",
       "message": "Helm, {{revision}} numaralı revizyonun chart'ı ve değerleriyle yeni bir revizyon oluşturur.",
-      "done": "{{name}}, {{revision}} numaralı revizyona geri alındı."
-    },
-    "fields": {
-      "chart": "Chart",
-      "appVersion": "Uygulama sürümü",
-      "revision": "Revizyon",
-      "updated": "Son güncelleme"
-    },
-    "history": {
-      "title": "Revizyon geçmişi",
-      "revision": "Revizyon",
-      "updated": "Güncellenme",
-      "description": "Açıklama",
-      "rollback": "Geri al"
+      "done": "{{name}}, {{revision}} numaralı revizyona geri alındı (yeni revizyon {{newRevision}})."
     }
+  },
+  "upgrade": {
+    "tabTitle": "{{name}} yükseltmesi",
+    "title": "{{name}} yükseltmesi",
+    "chart": "Chart",
+    "currentChart": "Mevcut chart ({{chart}})",
+    "version": "Sürüm",
+    "versionOption": "{{version}} (uygulama {{appVersion}})",
+    "versionCurrent": "{{version}} (uygulama {{appVersion}}, kurulu)",
+    "reuseValues": "Mevcut değerleri yeniden kullan",
+    "reuseValuesHint": "Aşağıdaki değerleri release'in mevcut değerlerinin yerine koymak yerine onların üzerine birleştir",
+    "noRepoChart": "Eklenmiş hiçbir depoda {{chart}} chart'ı yok; yükseltme mevcut chart'ı korur.",
+    "valuesReplaceHint": "Bu değerler release'in mevcut kullanıcı değerlerinin yerini alır; boş bir düzenleyici release'i chart'ın varsayılanlarına döndürür.",
+    "valuesMergeHint": "Bu değerler release'in mevcut değerlerinin üzerine birleştirilir.",
+    "valuesAria": "{{name}} yükseltmesinin değerleri",
+    "dryRun": "Deneme çalıştırması",
+    "upgrade": "Yükselt",
+    "tabs": {
+      "values": "Değerler",
+      "diff": "Manifest farkı",
+      "notes": "Notlar"
+    },
+    "diffHint": "Deneme çalıştırmasına göre {{from}} numaralı revizyondan {{to}} numaralı revizyona değişiklikler. Henüz hiçbir şey değiştirilmedi.",
+    "noChanges": "Deneme çalıştırması aynı manifest'i üretiyor: yükseltme hiçbir kaynağı değiştirmez.",
+    "currentManifest": "Revizyon {{revision}} (dağıtılmış)",
+    "newManifest": "Yükseltmeden sonra",
+    "done": "{{name}}, {{revision}} numaralı revizyona yükseltildi."
+  },
+  "install": {
+    "title": "Chart kur",
+    "steps": {
+      "label": "Kurulum adımları",
+      "chart": "Chart",
+      "values": "Değerler",
+      "review": "Deneme çalıştırması"
+    },
+    "source": {
+      "label": "Chart kaynağı",
+      "repo": "Eklenmiş depo",
+      "oci": "OCI registry'si",
+      "upload": "Yüklenmiş arşiv (.tgz)"
+    },
+    "repo": {
+      "search": "Chart ara",
+      "searchPlaceholder": "Ad, açıklama veya anahtar kelime",
+      "results": "Chart'lar",
+      "noResults": "Eklenmiş depolarda eşleşen chart yok.",
+      "noRepos": "Henüz hiçbir chart deposu eklenmedi.",
+      "openRepos": "Depoları aç",
+      "version": "Sürüm",
+      "versionOption": "{{version}} (uygulama {{appVersion}})"
+    },
+    "oci": {
+      "ref": "Chart referansı",
+      "refHelp": "Etiketsiz bir oci:// referansı, örn. oci://ghcr.io/stefanprodan/charts/podinfo",
+      "version": "Sürüm",
+      "versionHelp": "En yeni sürüm için boş bırakın"
+    },
+    "upload": {
+      "pick": "Arşiv seç…",
+      "hint": "Paketlenmiş bir chart (.tgz, en fazla 20 MiB), örn. helm package veya helm pull çıktısı. 24 saat boyunca kurulabilir."
+    },
+    "values": {
+      "appVersion": "uygulama {{version}}",
+      "name": "Release adı",
+      "nameInvalid": "Küçük harf, rakam, '-' ve '.'; en fazla 53 karakter",
+      "namespace": "Namespace",
+      "namespaceInvalid": "Geçerli bir Namespace adı değil",
+      "namespaceNew": "Bu Namespace henüz yok: aşağıdan oluşturun.",
+      "createNamespace": "Namespace oluştur",
+      "createNamespaceHint": "Namespace yoksa oluştur",
+      "values": "Değerler",
+      "valuesHint": "Chart'ın varsayılan değerleri; gerekenleri değiştirin. Bu değerler release ile birlikte saklanır."
+    },
+    "review": {
+      "hint": "{{namespace}} Namespace'indeki {{name}} için deneme çalıştırması aşağıdaki manifest'i üretiyor. Henüz hiçbir şey oluşturulmadı.",
+      "manifest": "Manifest",
+      "notes": "Notlar"
+    },
+    "back": "Geri",
+    "next": "İleri",
+    "dryRun": "Deneme çalıştırması",
+    "install": "Kur",
+    "done": "{{name}} release'i {{namespace}} Namespace'ine kuruldu."
   },
   "repos": {
     "title": "Helm depoları",
     "loading": "Depolar yükleniyor…",
     "unavailable": "Helm depoları kullanılamıyor",
+    "empty": "Chart deposu yok",
+    "emptyHint": "Chart'ların kurulacağı depoları bir yönetici ekler; depolar tüm cluster'larda ortaktır.",
+    "update": "Güncelle",
+    "updateHint": "Tüm depoların index'ini yeniden indir (helm repo update)",
+    "updated_one": "{{count}} depo güncellendi.",
+    "updated_other": "{{count}} depo güncellendi.",
+    "updateFailed": "Güncellenemedi: {{names}}",
+    "noIndex": "İndirilmedi",
+    "authYes": "Kimlik bilgili",
+    "authNo": "Herkese açık",
+    "remove": "{{name}} deposunu kaldır",
     "columns": {
       "url": "URL",
-      "charts": "Chart'lar"
+      "charts": "Chart'lar",
+      "updated": "Index güncellenme",
+      "auth": "Erişim"
+    },
+    "add": {
+      "open": "Depo ekle",
+      "title": "Chart deposu ekle",
+      "description": "KubeBench, depoyu eklemeden önce index'ini indirir. Kimlik bilgileri sunucuda saklanır ve bir daha gösterilmez.",
+      "name": "Ad",
+      "nameInvalid": "Harf, rakam, '.', '_' ve '-'; en fazla 64 karakter",
+      "url": "URL",
+      "urlInvalid": "http:// veya https:// ile başlayan bir URL",
+      "username": "Kullanıcı adı",
+      "password": "Parola",
+      "credentialsHelp": "Yalnızca özel depolar için",
+      "credentialsBoth": "Kullanıcı adı ile parolayı birlikte girin ya da ikisini de boş bırakın",
+      "cancel": "İptal",
+      "submit": "Ekle",
+      "done_one": "{{name}} deposu {{count}} chart ile eklendi.",
+      "done_other": "{{name}} deposu {{count}} chart ile eklendi."
+    },
+    "removeDialog": {
+      "title": "{{name}} deposu kaldırılsın mı?",
+      "message": "Artık bu depodan chart kurulamaz. Kurulu release'ler etkilenmez.",
+      "confirm": "Kaldır",
+      "done": "{{name}} deposu kaldırıldı."
     }
   }
 }
