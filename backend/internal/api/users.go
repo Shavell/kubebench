@@ -258,9 +258,11 @@ func lastAdminConflict(err error, verb string) error {
 
 // auditJSON encodes a short audit detail.
 func auditJSON(v any) string {
-	b, err := json.Marshal(v)
-	if err != nil {
+	var b strings.Builder
+	enc := json.NewEncoder(&b)
+	enc.SetEscapeHTML(false) // keep commands readable: "a > b", not "a \u003e b"
+	if err := enc.Encode(v); err != nil {
 		return ""
 	}
-	return string(b)
+	return strings.TrimSuffix(b.String(), "\n")
 }

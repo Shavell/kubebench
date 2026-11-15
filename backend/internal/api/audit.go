@@ -10,13 +10,18 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"unicode/utf8"
 
 	"kubebench/internal/plugin"
 	"kubebench/internal/store"
 )
 
+// Sizes kept of an audit row's fields, in characters, so that no request
+// can write rows of arbitrary size.
 const (
-	maxAuditDetail  = 500  // characters kept of a detail
+	maxAuditAction  = 200
+	maxAuditTarget  = 512
+	maxAuditDetail  = 1000
 	maxAuditErrBody = 2048 // bytes of an error response read for the detail
 )
 
@@ -24,10 +29,18 @@ const (
 // they appear in an audit target ("<kind>/<ns>/<name>/<container>").
 var targetParams = []string{"ns", "namespace", "name", "pod", "node", "container"}
 
+// kindParamKinds are the path kinds of the core routes that act on the
+// kind their kind query parameter names (/api/resource…, /api/workloads/…;
+// §7.2, §7.3). Every other route acts on the kind its path names; there
+// the parameter is ignored by the handler and must not rewrite the target.
+var kindParamKinds = map[string]bool{"resource": true, "workload": true}
+
 // auditTarget is how a route derives the default target of its rows.
 type auditTarget struct {
 	kind      string   // e.g. "deployment" for /api/deployments/scale
 	wildcards []string // path wildcards, appended in order
+	// kindParam makes the kind query parameter, when given, the kind.
+	kindParam bool
 }
 
 // auditWriter records the outcome of one audited request (§3.4). It wraps
@@ -91,6 +104,23 @@ func (a *auditWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 // Unwrap lets http.ResponseController reach the underlying writer.
 func (a *auditWriter) Unwrap() http.ResponseWriter { return a.ResponseWriter }
 
+// recordable refuses a request whose URL parameters do not fit into its
+// row, before the handler runs: the log must show completely what was
+// done, never a command cut off after its harmless start. Kubernetes names
+// fit easily. a may be nil (a request that is not audited).
+func (a *auditWriter) recordable() error {
+	if a == nil {
+		return nil
+	}
+	if utf8.RuneCountInString(a.target) > maxAuditTarget {
+		return badRequest("the target is too long to be recorded in the audit log (at most %d characters)", maxAuditTarget)
+	}
+	if utf8.RuneCountInString(a.detail) > maxAuditDetail {
+		return badRequest("the request parameters are too long to be recorded in the audit log (at most %d characters)", maxAuditDetail)
+	}
+	return nil
+}
+
 // finish writes the audit row once.
 func (a *auditWriter) finish() {
 	a.once.Do(func() {
@@ -117,6 +147,8 @@ func (a *auditWriter) finish() {
 
 // writeAudit appends a row; a failure is logged but never fails the request.
 func (s *Server) writeAudit(e store.AuditEntry) {
+	e.Action = truncate(e.Action, maxAuditAction)
+	e.Target = truncate(e.Target, maxAuditTarget)
 	e.Detail = truncate(e.Detail, maxAuditDetail)
 	if err := s.store.InsertAudit(e); err != nil {
 		log.Printf("[audit] %s %s by %s: %v", e.Action, e.Target, e.Username, err)
@@ -148,7 +180,7 @@ func errorDetail(body []byte) string {
 func defaultTarget(r *http.Request, t auditTarget) string {
 	q := r.URL.Query()
 	parts := []string{t.kind}
-	if kind := q.Get("kind"); kind != "" {
+	if kind := q.Get("kind"); kind != "" && t.kindParam {
 		parts[0] = strings.ToLower(kind)
 	}
 	for _, key := range targetParams {
@@ -226,7 +258,7 @@ func wildcardNames(path string) []string {
 }
 
 func truncate(s string, n int) string {
-	if len([]rune(s)) <= n {
+	if utf8.RuneCountInString(s) <= n {
 		return s
 	}
 	return string([]rune(s)[:n-1]) + "…"

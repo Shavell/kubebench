@@ -76,6 +76,7 @@ func (s *Server) register(pattern string, a access, p plugin.Plugin, h handlerFu
 		panic("api: only write and exec routes can allow dry runs: " + pattern)
 	}
 	target := auditTarget{kind: targetKind(path, p), wildcards: wildcardNames(path)}
+	target.kindParam = p == nil && kindParamKinds[target.kind]
 	if kind, ok := auditKinds[pattern]; ok {
 		target.kind = kind
 	}
@@ -107,6 +108,10 @@ func (s *Server) register(pattern string, a access, p plugin.Plugin, h handlerFu
 			}()
 		}
 		if err := s.authorize(c, effective, p); err != nil {
+			writeErr(w, err)
+			return
+		}
+		if err := c.audit.recordable(); err != nil {
 			writeErr(w, err)
 			return
 		}
