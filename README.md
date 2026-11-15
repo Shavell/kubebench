@@ -47,10 +47,10 @@ guide: [`docs/deployment.md`](docs/deployment.md).
 
 | Module | What it does |
 |---|---|
-| **Clusters** | Inventory of kubeconfig paths / API addresses; add, remove, activate (switches the proxy and reloads the app) |
+| **Clusters** | Inventory of kubeconfig paths / API addresses; add, remove, activate (switches your active cluster and reloads the app) |
 | **Workloads** | Grouped resource tree — **Cluster** (Nodes, Namespaces, Events), **Workloads** (Pods, Deployments, StatefulSets, DaemonSets, ReplicaSets, ReplicationControllers, Jobs, CronJobs), **Config** (ConfigMaps, Secrets, ResourceQuotas, LimitRanges, HPAs, PodDisruptionBudgets, PriorityClasses, RuntimeClasses, Leases, Mutating/Validating Webhooks), **Network** (Services, Ingresses, IngressClasses, EndpointSlices, Endpoints, NetworkPolicies), **Storage** (PVCs, PVs, StorageClasses), **Access Control** (ServiceAccounts, Roles/Bindings, ClusterRoles/Bindings). Rich detail (utilization charts, env, requests/limits, events, logs, exec, delete/scale/restart) for pods/deployments/nodes; generic list+detail+YAML for the rest. Secret values are redacted. |
-| **CRDs** | CRD discovery grouped by API group, custom resource lists with CRD-specific columns *(mock until RBAC allows)* |
-| **Helm** | Releases with revision history, per-revision rollback, uninstall, editable values, repositories *(mock until RBAC allows)* |
+| **CRDs** | CRD discovery grouped by API group, custom resource lists with CRD-specific columns |
+| **Helm** | Releases with revision history, per-revision rollback, uninstall, editable values, repositories |
 | **Metrics** | Cluster Overview: usage tiles (CPU/Mem/Disk), **allocation panels** (requests/limits/usage vs allocatable, with overcommit marker), utilization charts (CPU, memory, network, filesystem); per-node metric pages; status bar CPU/Mem item |
 | **Settings** | Gear icon (activity bar bottom): theme, **metrics source**, metrics window, auto refresh, terminal font size — persisted in localStorage |
 | **Users** (admin) | Create/delete users, assign clusters per user |
@@ -67,28 +67,26 @@ Utilization series come from one of two backends, selectable in Settings:
   API server's `services/proxy`. Supports full history and network +
   filesystem metrics (node-exporter). Discovery matches common service names
   (`prometheus`, `prometheus-server`, `kube-prometheus-stack-prometheus`, …).
-- **metrics-server**: instant usage only; the proxy samples it every 15s into
-  a ring buffer, so history accumulates while the proxy runs. No network/fs
-  data (those charts fall back to mock series).
+- **metrics-server**: instant usage only; the backend samples it every 15s
+  into a ring buffer, so history accumulates while the backend runs. Network
+  and filesystem charts need Prometheus and say so when it is missing.
 
 ## Live-mode capability matrix
 
-On activation the proxy probes what the cluster + local tooling allow and
-reports capabilities to the UI; each module independently runs live or falls
-back to mock. Auth supports bearer tokens **and** client certificates.
+On activation the backend probes what the cluster credential allows and
+reports capabilities to the UI (`/api/info`). Live mode never shows mock
+data: a module whose capability is missing explains why instead. Auth
+supports bearer tokens **and** client certificates.
 
-| Capability | Needs | Fallback when unavailable |
+| Capability | Needs | When unavailable |
 |---|---|---|
-| Resource lists / detail / YAML / events | `list`, `get` | — (mode is mock entirely) |
+| Resource lists / detail / YAML / events | `list`, `get` | error shown |
 | Pod logs | `pods/log` | error shown |
-| Usage & allocation metrics | metrics-server, or `services/proxy` + Prometheus | mock series |
+| Usage & allocation metrics | metrics-server, or `services/proxy` + Prometheus | unavailable, with the reason |
 | Delete pod, scale/restart deployment | `delete pods`, `patch deployments` | RBAC error banner |
-| Helm (releases, history, values, rollback, uninstall) | local `helm` binary + `secrets` access | mock module |
-| CRD browsing (defs + instances + YAML) | `customresourcedefinitions` + CR groups | mock module |
-| Exec (one-shot commands) | local `kubectl` + `pods/exec` | mock shell |
-
-With admin credentials (e.g. the homelab k3s cluster) everything above runs
-live; with the read-mostly EKS demo credentials, Helm/CRDs/exec fall back.
+| Helm (releases, history, values, install, upgrade, rollback, uninstall) | `secrets` access (Helm SDK in the backend) | unavailable, with the reason |
+| CRD browsing (defs + instances + YAML) | `customresourcedefinitions` + CR groups | unavailable, with the reason |
+| Exec (terminal, one-shot commands) | `pods/exec` | unavailable, with the reason |
 
 ## Documentation
 
@@ -98,10 +96,8 @@ live; with the read-mostly EKS demo credentials, Helm/CRDs/exec fall back.
   configuration
 - [`docs/architecture.md`](docs/architecture.md) — frontend layers, plugin
   API, data providers, how to add a module
-- [`docs/backend.md`](docs/backend.md) — HTTP endpoint reference
-
-The original Node proxy under `server/` predates the Go backend and is kept
-for reference; `npm run server:go` is the supported backend.
+- [`docs/backend.md`](docs/backend.md) — where the HTTP API is specified
+  ([`docs/design-v0.5.md`](docs/design-v0.5.md) §3–§7)
 
 ## Scripts
 

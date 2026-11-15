@@ -8,7 +8,6 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "server": "node server/index.mjs",
     "server:go": "cd backend && go run .",
     "i18n:check": "node scripts/check-i18n.mjs"
   },
@@ -35,7 +34,6 @@
     "@vitejs/plugin-react": "^6.0.4",
     "oxlint": "^1.75.0",
     "typescript": "~6.0.2",
-    "undici": "^8.10.0",
     "vite": "^8.2.0"
   }
 }

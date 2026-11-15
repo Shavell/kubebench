@@ -16,9 +16,9 @@ KubeBench is three layers with strict boundaries:
 ├────────────────────────────────────────────────────────────┤
 │ data/             typed domain types + provider interfaces │
 │   mock/  – deterministic fake cluster (seeded RNG)         │
-│   api/   – fetch client for the local proxy (server/)      │
+│   api/   – fetch client for the Go backend (backend/)      │
 └────────────────────────────────────────────────────────────┘
-                server/  – Node proxy → Kubernetes API
+                backend/ – Go server → Kubernetes API
 ```
 
 ## Core shell (`src/core`)
@@ -103,13 +103,15 @@ CVD-safety against the dark surface.
 1. `src/plugins/<name>/manifest.tsx` exporting a `PluginManifest`.
 2. Sidebar/page components that read data only via `useProviderQuery`.
 3. Need new data? Extend the interfaces in `data/providers.ts`, implement in
-   `data/mock` **and** `data/api` (+ a proxy endpoint in `server/`).
+   `data/mock` **and** `data/api` (+ its route in the Go backend,
+   `backend/internal/api/routes.go`).
 4. Register the manifest in `src/plugins/index.ts`. Done — icon, sidebar,
    tabs, commands all appear.
 
-## Backend proxy (`server/`)
+## Backend (`backend/`)
 
-See [`backend.md`](backend.md). In short: a dependency-light Node HTTP server
-that reads a token-based kubeconfig, translates the provider API to the
-Kubernetes API, samples metrics-server into a ring buffer, discovers
-Prometheus through `services/proxy`, and persists the cluster inventory.
+See [`backend.md`](backend.md). In short: a single Go binary that embeds the
+built frontend, authenticates users, keeps the cluster inventory in SQLite,
+translates the provider API to the Kubernetes API, samples metrics-server
+into a ring buffer, discovers Prometheus through `services/proxy` and
+serves the backend plugins.

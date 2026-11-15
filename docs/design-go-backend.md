@@ -129,8 +129,8 @@ exec, clusters. Changed/new:
   cluster-admin-ish rule set, overridable via `rbac.rules`), PVC with
   `persistence.storageClass` (default **`local-path`** for k3s), Service,
   optional Ingress, Secret for the bootstrap admin password.
-- The Node proxy (`server/`) remains temporarily for reference and is
-  superseded by the Go backend; `npm run server:go` runs the Go binary in dev.
+- The Go backend replaced the original Node proxy, which has been removed;
+  `npm run server:go` runs the Go binary in dev.
 
 ## Trade-offs / later
 

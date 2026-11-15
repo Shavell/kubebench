@@ -6,7 +6,7 @@ binary in `backend/` (client-go, Helm v3 SDK, modernc SQLite) that embeds the
 built frontend and deploys into the cluster via `charts/kubebench`. The v0.5
 implementation contract is `docs/design-v0.5.md`; other docs:
 `docs/design-go-backend.md`, `docs/deployment.md`, `docs/architecture.md`,
-`docs/backend.md`.
+`docs/backend.md` (a pointer to the API sections of the contract).
 
 Rules that matter here:
 

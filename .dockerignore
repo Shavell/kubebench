@@ -32,7 +32,6 @@ deploy
 packaging
 docs
 examples
-server
 *.md
 *.tgz
 *.tar.gz
