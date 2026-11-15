@@ -15,6 +15,7 @@ import (
 	"kubebench/internal/kube"
 	"kubebench/internal/plugin"
 	"kubebench/internal/store"
+	"kubebench/internal/updates"
 )
 
 // BuildInfo identifies the running binary (§1).
@@ -38,6 +39,8 @@ type Server struct {
 	streams streamSettings // log streams and terminals
 	// streamLimits counts each user's open log streams and terminals.
 	streamLimits *streamLimiter
+	// updates checks for new releases (§7.11).
+	updates *updates.Checker
 }
 
 // New wires every route. plugins are the built-in backend plugins to mount
@@ -55,6 +58,7 @@ func New(cfg *config.Config, st *store.Store, manager *kube.Manager, build Build
 		streams: defaultStreamSettings(),
 
 		streamLimits: newStreamLimiter(),
+		updates:      updates.New(updates.Options{URL: cfg.UpdateURL, Version: build.Version}),
 	}
 	slices.SortFunc(s.plugins, func(a, b plugin.Plugin) int {
 		return strings.Compare(a.Manifest().ID, b.Manifest().ID)
