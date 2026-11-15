@@ -9,7 +9,7 @@ import (
 	"kubebench/internal/store"
 )
 
-// Long-lived requests (terminals, log streams) are authorized by the
+// Long-lived requests (terminals, log and watch streams) are authorized by the
 // router when they start, like every request, but may run for hours. They
 // check again while they run (stillAllowed) and are counted per user
 // (streamLimiter), so that neither a revoked user nor a single client can
@@ -19,6 +19,9 @@ import (
 const (
 	maxLogStreamsPerUser = 20
 	maxTerminalsPerUser  = 10
+	// Each browser tab holds one watch stream, and briefly two while it
+	// changes its topics.
+	maxWatchStreamsPerUser = 16
 )
 
 // stillAllowed repeats the checks authorize made for c at level (read or
@@ -65,11 +68,15 @@ type streamKind string
 const (
 	kindLogStream streamKind = "log stream"
 	kindTerminal  streamKind = "terminal"
+	kindWatch     streamKind = "live-update stream"
 )
 
 func (k streamKind) limit() int {
-	if k == kindTerminal {
+	switch k {
+	case kindTerminal:
 		return maxTerminalsPerUser
+	case kindWatch:
+		return maxWatchStreamsPerUser
 	}
 	return maxLogStreamsPerUser
 }

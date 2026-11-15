@@ -23,6 +23,7 @@ import (
 	metricsv "k8s.io/metrics/pkg/client/clientset/versioned"
 
 	"kubebench/internal/store"
+	"kubebench/internal/watch"
 )
 
 type Capabilities struct {
@@ -43,6 +44,7 @@ type Runtime struct {
 	Metrics metricsv.Interface
 	Sampler *Sampler
 
+	watch     *watch.Hub // live updates (§7.10); see Watch
 	discovery discovery.CachedDiscoveryInterface
 	mapper    *restmapper.DeferredDiscoveryRESTMapper
 	probed    chan struct{} // closed once the capability probe finished
@@ -157,12 +159,19 @@ func assemble(cluster store.Cluster, config *rest.Config, cs kubernetes.Interfac
 		promDone:  make(chan struct{}),
 	}
 	rt.Sampler = newSampler(rt)
+	rt.watch = watch.NewHub(dyn, rt.resolveTopic, watch.Options{Cluster: cluster.Name})
 	return rt
 }
 
-// Close stops the runtime's background work. It is safe to call more than
-// once; the clients keep working for requests still holding the runtime.
-func (r *Runtime) Close() { r.closeOnce.Do(r.Sampler.Stop) }
+// Close stops the runtime's background work and ends its live-update
+// subscriptions. It is safe to call more than once; the clients keep
+// working for requests still holding the runtime.
+func (r *Runtime) Close() {
+	r.closeOnce.Do(func() {
+		r.Sampler.Stop()
+		r.watch.Close()
+	})
+}
 
 // Prom returns the Prometheus discovery found, or nil; see
 // WaitPromDiscovered.

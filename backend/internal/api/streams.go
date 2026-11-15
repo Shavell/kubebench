@@ -9,7 +9,8 @@ import (
 )
 
 // streamSettings holds the timings and the exec plumbing of the
-// long-lived endpoints: log streams (SSE) and terminals (WebSocket).
+// long-lived endpoints: log and watch streams (SSE) and terminals
+// (WebSocket).
 // Tests shorten the timings and replace the executor with a fake.
 type streamSettings struct {
 	// logHeartbeat is the interval of the comment lines that keep idle
@@ -33,6 +34,10 @@ type streamSettings struct {
 	// debugStart is how long POST /api/pods/debug waits for the debug
 	// container to run, so that the terminal opened next can attach.
 	debugStart time.Duration
+	// watchTimings are the heartbeat and debounce of watch streams (§7.10).
+	watchTimings watchTimings
+	// watchWriteWait bounds one write to a watch stream.
+	watchWriteWait time.Duration
 	// newExecutor connects a terminal to its container on the caller's cluster.
 	newExecutor func(rt *kube.Runtime, t kube.ExecTarget) (remotecommand.Executor, error)
 }
@@ -46,6 +51,8 @@ func defaultStreamSettings() streamSettings {
 		terminalWriteWait:   10 * time.Second,
 		terminalHangupGrace: 5 * time.Second,
 		debugStart:          time.Minute,
+		watchTimings:        watchTimings{heartbeat: 25 * time.Second, debounce: 500 * time.Millisecond},
+		watchWriteWait:      10 * time.Second,
 		newExecutor:         (*kube.Runtime).TerminalExecutor,
 	}
 }
