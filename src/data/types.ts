@@ -14,6 +14,10 @@ export interface K8sNode {
   internalIP: string
   labels: Record<string, string>
   annotations: Record<string, string>
+  /** The node is cordoned (spec.unschedulable); absent = schedulable. */
+  unschedulable?: boolean
+  /** spec.taints; absent = none. */
+  taints?: NodeTaint[]
 }
 
 export type MetricKind = 'cpu' | 'memory' | 'network' | 'fs'
@@ -269,6 +273,8 @@ export interface Deployment {
   available: number
   age: string
   labels: Record<string, string>
+  /** Rollouts are paused (kubectl rollout pause); absent = not paused. */
+  paused?: boolean
 }
 
 export interface Service {
@@ -350,4 +356,94 @@ export interface ClusterStats {
   memoryUsagePercent: number
   cpuCapacityCores: number
   memoryCapacityGi: number
+}
+
+// ---- Workload and node operations (design §7.3) ---------------------------
+
+export type TaintEffect = 'NoSchedule' | 'PreferNoSchedule' | 'NoExecute'
+
+/** A node taint (spec.taints). */
+export interface NodeTaint {
+  key: string
+  value: string
+  effect: TaintEffect
+}
+
+/** Options of a node drain, after the kubectl drain flags. */
+export interface DrainOptions {
+  /** Leave DaemonSet Pods on the node; without it their presence stops the drain. */
+  ignoreDaemonSets: boolean
+  /** Also evict Pods with emptyDir volumes, whose data is lost. */
+  deleteEmptyDirData: boolean
+  /** Also evict Pods no controller manages; nothing recreates them. */
+  force: boolean
+  /** Seconds each Pod gets to stop; -1 = the Pod's own terminationGracePeriodSeconds. */
+  gracePeriod: number
+  /** Upper bound for the evictions, 1 to 600 seconds. */
+  timeoutSeconds: number
+}
+
+/** What a drain did (POST /api/nodes/drain). Pods are "namespace/name". */
+export interface DrainResult {
+  node: string
+  /** The node is unschedulable: every drain cordons it first. */
+  cordoned: boolean
+  /** Every Pod that had to leave the node is gone. */
+  completed: boolean
+  evicted: string[]
+  /** Pods that should have left but are still there. */
+  failed: { pod: string; error: string }[]
+  /** The failed Pods a PodDisruptionBudget kept on the node. */
+  blockedByPDB: string[]
+  /** Pods a drain leaves alone. */
+  skipped: { pod: string; reason: 'daemonSet' | 'mirror' }[]
+  /** Problems that stopped the drain before any eviction. */
+  errors: string[]
+}
+
+/** One revision of a Deployment: one of its ReplicaSets. */
+export interface RolloutRevision {
+  revision: number
+  replicaSet: string
+  images: string[]
+  changeCause: string
+  /** RFC 3339 creation time of the ReplicaSet. */
+  created: string
+  replicas: number
+  readyReplicas: number
+  current: boolean
+}
+
+/** GET /api/deployments/history. */
+export interface RolloutHistory {
+  currentRevision: number
+  paused: boolean
+  /** Newest first. */
+  revisions: RolloutRevision[]
+}
+
+export type RestartableKind = 'Deployment' | 'StatefulSet' | 'DaemonSet'
+export type ScalableKind = 'Deployment' | 'StatefulSet' | 'ReplicaSet'
+
+export interface PodKey {
+  namespace: string
+  name: string
+}
+
+/** The outcome for one Pod of a bulk delete; `error` is absent on success. */
+export interface PodDeleteResult extends PodKey {
+  error?: string
+}
+
+/** The ephemeral container a debug request added. */
+export interface DebugContainer {
+  namespace: string
+  pod: string
+  container: string
+}
+
+/** The Job a CronJob trigger created. */
+export interface CronJobRun {
+  namespace: string
+  job: string
 }

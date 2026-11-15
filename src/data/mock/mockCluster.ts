@@ -1,7 +1,12 @@
 import type { ContainerSpec, Deployment, K8sNode, Namespace, Pod, Service } from '../types'
 
-function nodeMeta(name: string, role: string): Pick<K8sNode, 'labels' | 'annotations'> {
+function nodeMeta(name: string, role: string): Pick<K8sNode, 'labels' | 'annotations' | 'taints'> {
   return {
+    // Like kubeadm: workloads stay off the control plane unless they tolerate it.
+    taints:
+      role === 'control-plane'
+        ? [{ key: 'node-role.kubernetes.io/control-plane', value: '', effect: 'NoSchedule' }]
+        : [],
     labels: {
       'kubernetes.io/hostname': name,
       'kubernetes.io/os': 'linux',
@@ -69,6 +74,8 @@ export const namespaces: Namespace[] = [
   { name: 'cert-manager', status: 'Active', age: '77d' },
   { name: 'monitoring', status: 'Active', age: '61d' },
   { name: 'shop', status: 'Active', age: '45d' },
+  // Where the demo's KubeBench runs (MOCK_OWN_NAMESPACE): deleting it is refused unless forced.
+  { name: 'kubebench', status: 'Active', age: '30d' },
 ]
 
 interface PodSeed {
