@@ -49,6 +49,9 @@ type terminalError struct {
 type terminalSession struct {
 	conn     *websocket.Conn
 	settings streamSettings
+	// check, when set, runs at every ping: an error ends the session
+	// (the caller lost access since it started).
+	check func() error
 
 	writeMu sync.Mutex // one writer at a time (gorilla/websocket rule)
 	stdinR  *io.PipeReader
@@ -59,8 +62,9 @@ type terminalSession struct {
 	cancel     context.CancelFunc
 	done       chan struct{} // closed when the remote stream has ended
 	hangupOnce sync.Once
-	clientGone atomic.Bool // the client left or stopped answering pings
-	idle       atomic.Bool // the idle timeout ended the session
+	clientGone atomic.Bool            // the client left or stopped answering pings
+	idle       atomic.Bool            // the idle timeout ended the session
+	revoked    atomic.Pointer[string] // why check ended the session
 }
 
 func newTerminalSession(conn *websocket.Conn, settings streamSettings) *terminalSession {
@@ -140,6 +144,8 @@ func (t *terminalSession) hangup() {
 func (t *terminalSession) finish(err error) {
 	var exitErr utilexec.ExitError
 	switch {
+	case t.revoked.Load() != nil:
+		t.sendJSON(terminalError{Type: "error", Message: *t.revoked.Load()})
 	case t.idle.Load():
 		t.sendJSON(terminalError{Type: "error", Message: fmt.Sprintf(
 			"the session was closed after %s without input", t.settings.terminalIdle)})
@@ -209,9 +215,10 @@ func (t *terminalSession) touch() {
 	}
 }
 
-// keepAlive pings the client and ends the session once the idle timeout
-// passes without input. Output alone does not count as activity: a
-// forgotten session that keeps printing is still forgotten.
+// keepAlive pings the client, checks the caller's access at every ping
+// and ends the session once the idle timeout passes without input. Output
+// alone does not count as activity: a forgotten session that keeps
+// printing is still forgotten.
 func (t *terminalSession) keepAlive(ctx context.Context) {
 	ping := time.NewTicker(t.settings.terminalPing)
 	defer ping.Stop()
@@ -225,6 +232,15 @@ func (t *terminalSession) keepAlive(ctx context.Context) {
 			if err := t.conn.WriteControl(websocket.PingMessage, nil,
 				time.Now().Add(t.settings.terminalWriteWait)); err != nil {
 				t.clientGone.Store(true)
+				t.hangup()
+				return
+			}
+			if t.check == nil {
+				continue
+			}
+			if err := t.check(); err != nil {
+				msg := endedMessage(err)
+				t.revoked.Store(&msg)
 				t.hangup()
 				return
 			}

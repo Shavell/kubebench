@@ -65,6 +65,12 @@ func (s *Server) handleTerminal(w http.ResponseWriter, r *http.Request, c *call)
 	}
 	c.setAudit(joinTarget("pod", target.Namespace, target.Pod, target.Container), "")
 
+	release, err := s.streamLimits.acquire(c.user.ID, kindTerminal)
+	if err != nil {
+		writeErr(w, err)
+		return
+	}
+	defer release()
 	executor, err := s.streams.newExecutor(c.rt, target)
 	if err != nil {
 		writeErr(w, err)
@@ -93,5 +99,8 @@ func (s *Server) handleTerminal(w http.ResponseWriter, r *http.Request, c *call)
 	// The session ends itself (see terminalSession.hangup). It must not end
 	// with the request's context: net/http cancels that as soon as a read
 	// of the hijacked connection fails, before the shell could be hung up.
-	newTerminalSession(conn, s.streams).run(context.WithoutCancel(r.Context()), executor)
+	session := newTerminalSession(conn, s.streams)
+	// A logout, a revoked assignment or a read-only cluster ends it too.
+	session.check = func() error { return s.stillAllowed(c, accessExec) }
+	session.run(context.WithoutCancel(r.Context()), executor)
 }

@@ -1,9 +1,11 @@
 package api
 
 import (
+	"errors"
 	"io"
 	"net/http"
 	"strings"
+	"time"
 )
 
 // sseWriter writes a Server-Sent Events response. It is not safe for
@@ -11,19 +13,32 @@ import (
 type sseWriter struct {
 	w  io.Writer
 	rc *http.ResponseController
+	// writeWait bounds every write and flush: a client that stops reading
+	// fails the stream rather than blocking it forever (the server has no
+	// WriteTimeout, which would end every stream).
+	writeWait time.Duration
 }
 
 // startSSE sends the headers of an event stream and flushes them, so the
 // client sees the stream open before the first event.
-func startSSE(w http.ResponseWriter) (*sseWriter, error) {
+func startSSE(w http.ResponseWriter, writeWait time.Duration) (*sseWriter, error) {
 	h := w.Header()
 	h.Set("Content-Type", "text/event-stream")
 	h.Set("Cache-Control", "no-cache")
 	// Reverse proxies (nginx, ingress-nginx) must not buffer the stream.
 	h.Set("X-Accel-Buffering", "no")
 	w.WriteHeader(http.StatusOK)
-	s := &sseWriter{w: w, rc: http.NewResponseController(w)}
+	s := &sseWriter{w: w, rc: http.NewResponseController(w), writeWait: writeWait}
 	return s, s.flush()
+}
+
+// deadline gives the next write writeWait to complete. Writers without
+// deadlines (test recorders) are written to without one.
+func (s *sseWriter) deadline() error {
+	if err := s.rc.SetWriteDeadline(time.Now().Add(s.writeWait)); err != nil && !errors.Is(err, http.ErrNotSupported) {
+		return err
+	}
+	return nil
 }
 
 // event writes one event of type name ("" for the default "message"
@@ -42,14 +57,29 @@ func (s *sseWriter) event(name, data string) error {
 		b.WriteByte('\n')
 	}
 	b.WriteByte('\n')
+	if err := s.deadline(); err != nil {
+		return err
+	}
 	_, err := io.WriteString(s.w, b.String())
 	return err
 }
 
 // comment writes a comment line, which clients ignore; used as heartbeat.
 func (s *sseWriter) comment(text string) error {
+	if err := s.deadline(); err != nil {
+		return err
+	}
 	_, err := io.WriteString(s.w, ": "+text+"\n\n")
 	return err
 }
 
-func (s *sseWriter) flush() error { return s.rc.Flush() }
+// end clears the write deadline once the stream is over: net/http keeps
+// the connection for further requests and does not reset it.
+func (s *sseWriter) end() { _ = s.rc.SetWriteDeadline(time.Time{}) }
+
+func (s *sseWriter) flush() error {
+	if err := s.deadline(); err != nil {
+		return err
+	}
+	return s.rc.Flush()
+}

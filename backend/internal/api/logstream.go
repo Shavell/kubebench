@@ -108,6 +108,12 @@ func (s *Server) handleLogStream(w http.ResponseWriter, r *http.Request, c *call
 		writeErr(w, err)
 		return
 	}
+	release, err := s.streamLimits.acquire(c.user.ID, kindLogStream)
+	if err != nil {
+		writeErr(w, err)
+		return
+	}
+	defer release()
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
 
@@ -146,11 +152,13 @@ func (s *Server) handleLogStream(w http.ResponseWriter, r *http.Request, c *call
 		}
 	}
 
-	sse, err := startSSE(w)
+	sse, err := startSSE(w, s.streams.logWriteWait)
+	defer sse.end()
 	if err != nil {
 		return // the client is gone
 	}
-	streamLogs(ctx, sse, feeds, matched, s.streams.logHeartbeat)
+	// A logout or a revoked assignment ends the stream too.
+	streamLogs(ctx, sse, feeds, matched, s.streams.logHeartbeat, func() error { return s.stillAllowed(c, accessRead) })
 }
 
 // logFeed is one container log of a stream.
@@ -183,10 +191,12 @@ type podsEvent struct {
 }
 
 // streamLogs runs feeds concurrently and writes their lines to sse until
-// all of them ended (then "event: end"), the client went away, or ctx
-// ended. Idle streams get a heartbeat comment every heartbeat. It returns
-// once every feed has stopped and closed its log.
-func streamLogs(ctx context.Context, sse *sseWriter, feeds []logFeed, matched int, heartbeat time.Duration) {
+// all of them ended (then "event: end"), the client went away or stopped
+// reading, ctx ended, or check (run every heartbeat, when set) failed
+// (then "event: error" with the reason). Idle streams get a heartbeat
+// comment every heartbeat. It returns once every feed has stopped and
+// closed its log.
+func streamLogs(ctx context.Context, sse *sseWriter, feeds []logFeed, matched int, heartbeat time.Duration, check func() error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -221,6 +231,13 @@ func streamLogs(ctx context.Context, sse *sseWriter, feeds []logFeed, matched in
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
+			if check != nil {
+				if err := check(); err != nil {
+					_ = sse.event("error", endedMessage(err))
+					_ = sse.flush()
+					return
+				}
+			}
 			if sse.comment("ping") != nil || sse.flush() != nil {
 				return
 			}

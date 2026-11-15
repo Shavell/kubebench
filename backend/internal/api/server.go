@@ -36,6 +36,8 @@ type Server struct {
 	limiter *loginLimiter
 	detect  *detectCache
 	streams streamSettings // log streams and terminals
+	// streamLimits counts each user's open log streams and terminals.
+	streamLimits *streamLimiter
 }
 
 // New wires every route. plugins are the built-in backend plugins to mount
@@ -51,6 +53,8 @@ func New(cfg *config.Config, st *store.Store, manager *kube.Manager, build Build
 		limiter: newLoginLimiter(time.Now),
 		detect:  newDetectCache(time.Now),
 		streams: defaultStreamSettings(),
+
+		streamLimits: newStreamLimiter(),
 	}
 	slices.SortFunc(s.plugins, func(a, b plugin.Plugin) int {
 		return strings.Compare(a.Manifest().ID, b.Manifest().ID)

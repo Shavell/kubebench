@@ -639,6 +639,17 @@ and `new-resource` with `{namespace?, kind?}` (see 7.2);
   `: ping` every 15 s. Also `?selector=<labelSelector>` (≤10 pods, lines
   prefixed `[pod/container]`). Failures before the stream starts are JSON
   errors (§3.3).
+- Both are authorized when they start and checked again at every ping
+  (terminal) or heartbeat (logs): once the session ends (logout, password
+  change, user deleted), a password change is due, the cluster is removed,
+  the caller's assignment is gone or, for a terminal, the role or the
+  cluster's read-only flag no longer allows exec, the terminal ends with
+  `{"type":"error","message":"the session was closed: …"}` and the log
+  stream with `event: error` carrying the same text. Switching the active
+  cluster does not end them. A user may have at most 10 terminals and 20
+  log streams open; more are refused with `429 rate_limited` before the
+  upgrade or stream starts. A log stream whose client stops reading ends
+  once a write has waited 10 s.
 - UI: xterm.js terminal (`@xterm/xterm` + fit addon), multiple sessions as
   sub-tabs in the bottom Terminal panel, container picker, reconnect;
   logs viewer with follow/pause, tail size, previous container, timestamps,

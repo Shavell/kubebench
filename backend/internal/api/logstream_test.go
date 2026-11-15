@@ -274,7 +274,7 @@ func feed(pod string, open func(context.Context) (io.ReadCloser, error)) logFeed
 
 func TestStreamLogsReportsFailingLogs(t *testing.T) {
 	w := &syncRecorder{header: http.Header{}}
-	sse, err := startSSE(w)
+	sse, err := startSSE(w, time.Second)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -282,12 +282,12 @@ func TestStreamLogsReportsFailingLogs(t *testing.T) {
 		feed("a", func(context.Context) (io.ReadCloser, error) {
 			return nil, errors.New(`container "app" in pod "a" is waiting to start: ContainerCreating`)
 		}),
-	}, 1, time.Hour)
+	}, 1, time.Hour, nil)
 	streamLogs(context.Background(), sse, []logFeed{
 		feed("b", func(context.Context) (io.ReadCloser, error) {
 			return io.NopCloser(&failingReader{text: "one\ntwo\n", err: io.ErrUnexpectedEOF}), nil
 		}),
-	}, 1, time.Hour)
+	}, 1, time.Hour, nil)
 
 	want := []string{
 		"event: pods\ndata: {\"pods\":[\"a/app\"],\"total\":1}",
@@ -306,7 +306,7 @@ func TestStreamLogsReportsFailingLogs(t *testing.T) {
 
 func TestStreamLogsHeartbeatUntilCancelled(t *testing.T) {
 	w := &syncRecorder{header: http.Header{}}
-	sse, err := startSSE(w)
+	sse, err := startSSE(w, time.Second)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -317,7 +317,7 @@ func TestStreamLogsHeartbeatUntilCancelled(t *testing.T) {
 		defer close(done)
 		streamLogs(ctx, sse, []logFeed{feed("a", func(context.Context) (io.ReadCloser, error) {
 			return logR, nil
-		})}, 1, 10*time.Millisecond)
+		})}, 1, 10*time.Millisecond, nil)
 	}()
 	if _, err := io.WriteString(logW, "hello\n"); err != nil {
 		t.Fatal(err)
@@ -385,7 +385,7 @@ func TestReadLines(t *testing.T) {
 
 func TestSSEEventFraming(t *testing.T) {
 	rec := httptest.NewRecorder()
-	sse, err := startSSE(rec)
+	sse, err := startSSE(rec, time.Second)
 	if err != nil || !rec.Flushed {
 		t.Fatalf("startSSE: %v, flushed %v", err, rec.Flushed)
 	}
