@@ -3,6 +3,7 @@
 #   - package.json "version", Chart.yaml version and appVersion equal it
 #   - CHANGELOG.md has a dated "## [<version>] - YYYY-MM-DD" section with entries
 #   - deploy/kubernetes/kubebench.yaml matches a fresh render of the chart
+#   - the chart's LICENSE is the repository's
 # Every problem is reported before exiting 1.
 #
 # Usage: scripts/check-release.sh <version>   (with or without "v")
@@ -35,6 +36,7 @@ if ! grep -Eq "^## \[${version//./\\.}\] - [0-9]{4}-[0-9]{2}-[0-9]{2}\$" "$root/
 fi
 "$root/scripts/extract-changelog.sh" "$version" >/dev/null || problems=$((problems + 1))
 "$root/scripts/render-manifests.sh" --check || problems=$((problems + 1))
+cmp -s "$root/LICENSE" "$root/charts/kubebench/LICENSE" || fail "charts/kubebench/LICENSE differs from LICENSE"
 
 if ((problems)); then
   printf 'check-release: %d problem(s); not ready to release %s\n' "$problems" "$version" >&2

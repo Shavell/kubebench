@@ -60,6 +60,8 @@ LABEL org.opencontainers.image.title="KubeBench" \
       org.opencontainers.image.revision="${COMMIT}" \
       org.opencontainers.image.created="${DATE}"
 COPY --from=backend /out/kubebench /kubebench
+# GPL-3.0 §4: the image carries the license text.
+COPY LICENSE /LICENSE
 # An image-owned /data lets Docker seed named volumes with nonroot ownership.
 COPY --from=backend --chown=65532:65532 /out/data /data
 ENV PORT=9876 \

@@ -116,13 +116,18 @@ packages, and `make offline-bundle` assembles a bundle from that output.
 
 | Artifact | Built by |
 |---|---|
-| `kubebench_<v>_{linux,darwin}_{amd64,arm64}.tar.gz`, `kubebench_<v>_windows_amd64.zip` (binary, README, CHANGELOG, `install.sh`, systemd unit, env file) | GoReleaser |
-| `kubebench_<v>_{amd64,arm64}.deb`, `kubebench-<v>-1.{x86_64,aarch64}.rpm` | GoReleaser (nfpm) |
+| `kubebench_<v>_{linux,darwin}_{amd64,arm64}.tar.gz`, `kubebench_<v>_windows_amd64.zip` (binary, LICENSE, README, CHANGELOG, `install.sh`, systemd unit, env file) | GoReleaser |
+| `kubebench_<v>_{amd64,arm64}.deb`, `kubebench-<v>-1.{x86_64,aarch64}.rpm` (license in `/usr/share/doc/kubebench/copyright` or `/usr/share/licenses/kubebench/LICENSE`) | GoReleaser (nfpm) |
 | `checksums.txt` (SHA-256 of the archives and packages) | GoReleaser |
 | `kubebench-<v>.tgz` (Helm chart), `kubebench.yaml` (manifests), `install.sh` | release workflow, via `build/extra/` |
 | `kubebench-offline-<v>.tar.gz` + `.sha256` | `scripts/offline-bundle.sh` |
 | `ghcr.io/shavell/kube-bench:<v>` (linux/amd64, linux/arm64, SBOM and provenance) | release workflow (`push_image`) |
 | `oci://ghcr.io/shavell/charts/kubebench:<v>` | release workflow (`push_chart`) |
+
+Every artifact carries the GPL-3.0 text: the archives and the offline
+bundle as `LICENSE`, the packages as noted above, the image as `/LICENSE`
+and the chart as `charts/kubebench/LICENSE` (a copy that
+`scripts/check-release.sh` compares with the repository's).
 
 ## Turning CI on
 

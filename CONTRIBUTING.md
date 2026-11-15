@@ -141,7 +141,8 @@ npx tsc -b && npm run build && npm run lint && npm run i18n:check && npm test
 cd backend && test -z "$(gofmt -l .)" && go vet ./... && go test ./... && go build ./...
 ```
 
-Or `make test lint`. Chart, manifest, packaging and workflow changes also
+Or `make test lint build` (`make build` builds the frontend and the
+binary). Chart, manifest, packaging and workflow changes also
 need `make chart-lint`, `make manifests` (commit its output) and `make lint`
 (shellcheck, actionlint). UI changes should be tried in the browser, in
 demo mode and against a cluster.

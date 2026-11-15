@@ -28,7 +28,8 @@ BIN       := bin/kubebench
 EMBED_DIR := backend/internal/web/dist
 LDFLAGS   := -s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE)
 
-FRONTEND_SRC  := index.html vite.config.ts package.json $(wildcard tsconfig*.json) \
+# CHANGELOG.md is bundled for What's new (src/core/updates/changelog.ts).
+FRONTEND_SRC  := index.html vite.config.ts package.json CHANGELOG.md $(wildcard tsconfig*.json) \
                  $(shell find src public -type f 2>/dev/null)
 SHELL_SCRIPTS := install.sh $(wildcard scripts/*.sh packaging/scripts/*.sh)
 
@@ -76,10 +77,11 @@ run: build ## Build and run the server on :9876 (state in build/run/; honours KU
 
 ##@ Quality
 
-test: node_modules/.package-lock.json ## Run Go tests and the frontend checks (tsc, oxlint, i18n)
+test: node_modules/.package-lock.json ## Run Go tests and the frontend checks (tsc, oxlint, i18n, unit tests)
 	npx tsc -b
 	npm run lint
 	npm run i18n:check
+	npm test
 	go -C backend test ./...
 
 lint: node_modules/.package-lock.json ## Static analysis: gofmt, go vet, oxlint, shellcheck, actionlint

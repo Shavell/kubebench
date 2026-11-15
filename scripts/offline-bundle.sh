@@ -4,6 +4,7 @@
 #
 #   kubebench-offline-<version>/
 #     OFFLINE-README.md   air-gapped steps for Kubernetes and VMs
+#     LICENSE             the GPL-3.0 license text
 #     install.sh          VM installer (install.sh --offline <this bundle>)
 #     SHA256SUMS          checksums of every file in the bundle
 #     packages/           Linux archives, .deb/.rpm and their checksums.txt
@@ -104,6 +105,7 @@ fi
 
 cp "$root/install.sh" "$stage/install.sh"
 chmod 0755 "$stage/install.sh"
+cp "$root/LICENSE" "$stage/LICENSE"
 
 # OFFLINE-README.md: the image section lists what this bundle really holds.
 if ((${#image_files[@]})); then
