@@ -46,3 +46,25 @@
 .kb-table__row--clickable:hover {
   background: var(--vscode-list-hoverBackground);
 }
+
+/* Row selection (TableSelection). */
+.kb-table th.kb-table__select,
+.kb-table td.kb-table__select {
+  width: 1px;
+  padding-right: 0;
+  vertical-align: middle;
+}
+.kb-table__select .kb-checkbox__box {
+  vertical-align: middle;
+}
+.kb-table__select .kb-checkbox__box:indeterminate::after {
+  width: 8px;
+  height: 0;
+  border-left: none;
+  transform: none;
+  opacity: 1;
+}
+.kb-table__row--selected,
+.kb-table__row--selected.kb-table__row--clickable:hover {
+  background: var(--vscode-list-inactiveSelectionBackground);
+}
