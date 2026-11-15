@@ -36,7 +36,7 @@ export function ApplicationsPage() {
         render: (a) => <StateBadge value={a.operationPhase} />,
         sortValue: (a) => a.operationPhase,
       },
-      { key: 'source', header: t('columns.source'), render: (a) => <span className="argocd-mono" title={sourceText(a)}>{sourceText(a)}</span> },
+      { key: 'source', header: t('columns.source'), render: (a) => <span className="argocd-mono argocd-source" title={sourceText(a)}>{sourceText(a)}</span> },
       { key: 'destination', header: t('columns.destination'), render: (a) => destinationText(a.destination) },
       {
         key: 'auto',

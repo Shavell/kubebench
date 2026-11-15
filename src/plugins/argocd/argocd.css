@@ -112,3 +112,12 @@
 .argocd-link:hover {
   text-decoration: underline;
 }
+
+.argocd-source {
+  display: inline-block;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}

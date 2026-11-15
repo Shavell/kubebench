@@ -67,7 +67,7 @@
     "source": "Source",
     "sources": "Sources",
     "destination": "Destination",
-    "revision": "Synced revision",
+    "revision": "Compared revision",
     "autoSync": "Auto-sync",
     "autoOn": "Automated",
     "autoPrune": "prune",

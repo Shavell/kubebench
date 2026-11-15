@@ -67,7 +67,7 @@
     "source": "Kaynak",
     "sources": "Kaynaklar",
     "destination": "Hedef",
-    "revision": "Senkronize revizyon",
+    "revision": "Karşılaştırılan revizyon",
     "autoSync": "Otomatik senkronizasyon",
     "autoOn": "Otomatik",
     "autoPrune": "temizleme",
