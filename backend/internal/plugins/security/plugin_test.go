@@ -308,6 +308,8 @@ func TestExport(t *testing.T) {
 	e.scan(false)
 	key := "secret-env:Deployment:shop:insecure"
 	expect(t, e.do(http.MethodPost, "/accept", map[string]any{"key": key, "reason": "=HYPERLINK(\"x\") | piped"}), http.StatusOK, "")
+	html := "privileged:Deployment:shop:insecure"
+	expect(t, e.do(http.MethodPost, "/accept", map[string]any{"key": html, "reason": "<img src=x onerror=alert(1)> [fix](https://evil.example) `x` **y**"}), http.StatusOK, "")
 
 	rec := e.do(http.MethodGet, "/export?format=md", nil)
 	md := string(expect(t, rec, http.StatusOK, ""))
@@ -318,10 +320,16 @@ func TestExport(t *testing.T) {
 	for _, want := range []string{
 		"# Security posture: lab", "system namespaces excluded (kube-system, kube-public, kube-node-lease)",
 		"| critical | Privileged containers | Deployment shop/insecure |",
-		`accepted by alice: =HYPERLINK("x") \| piped`, "## Remediation", "- **Privileged containers** (privileged): ",
+		`accepted by alice: =HYPERLINK\("x"\) \| piped`, "## Remediation", "- **Privileged containers** (privileged): ",
+		`accepted by alice: &lt;img src=x onerror=alert\(1\)&gt; \[fix\]\(https://evil.example\) \` + "`x\\`" + ` \*\*y\*\*`,
 	} {
 		if !strings.Contains(md, want) {
 			t.Errorf("markdown lacks %q:\n%s", want, md)
+		}
+	}
+	for _, raw := range []string{"<img", "[fix]", "](https"} {
+		if strings.Contains(md, raw) {
+			t.Errorf("markdown passes %q through unescaped", raw)
 		}
 	}
 

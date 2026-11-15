@@ -1105,7 +1105,10 @@ Details settled by the implementation (shapes match
   accept adds `{"checkId","expiresAt"}`.
 - Export: `Content-Disposition: attachment;
   filename="security-<cluster>-<yyyymmdd-hhmmss>.md|csv"`; CSV cells a
-  spreadsheet would run as formulas are prefixed with `'`.
+  spreadsheet would run as formulas are prefixed with `'`; Markdown
+  escapes HTML (`& < >` as entities) and Markdown punctuation in every
+  value taken from the cluster or a user, so a reason cannot add markup,
+  links or images.
 
 ### 7.8 Access plugin (backend plugin `access`, new) — RBAC
 

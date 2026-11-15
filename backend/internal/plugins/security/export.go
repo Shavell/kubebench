@@ -23,13 +23,18 @@ func scoreText(s *int) string {
 	return fmt.Sprintf("%d/100", *s)
 }
 
-// mdCell escapes text for a Markdown table cell.
-func mdCell(s string) string {
-	s = strings.ReplaceAll(s, "\\", "\\\\")
-	s = strings.ReplaceAll(s, "|", "\\|")
-	s = strings.ReplaceAll(s, "\r", " ")
-	return strings.ReplaceAll(s, "\n", " ")
-}
+// mdEscaper makes text inert inside a Markdown line or table cell: the
+// cluster name, object names, an accepted risk's reason and Kubernetes
+// errors are not the report's own, so they must not render as HTML,
+// links, images, code or emphasis, nor break out of their cell or line.
+var mdEscaper = strings.NewReplacer(
+	"&", "&amp;", "<", "&lt;", ">", "&gt;",
+	"\\", "\\\\", "`", "\\`", "*", "\\*", "_", "\\_", "~", "\\~",
+	"[", "\\[", "]", "\\]", "(", "\\(", ")", "\\)", "!", "\\!", "|", "\\|",
+	"\r", " ", "\n", " ",
+)
+
+func mdText(s string) string { return mdEscaper.Replace(s) }
 
 func acceptedText(a *Acceptance) string {
 	if a == nil {
@@ -44,12 +49,12 @@ func acceptedText(a *Acceptance) string {
 
 func exportMarkdown(rep *Report) []byte {
 	var b bytes.Buffer
-	fmt.Fprintf(&b, "# Security posture: %s\n\n", rep.Cluster)
+	fmt.Fprintf(&b, "# Security posture: %s\n\n", mdText(rep.Cluster))
 	fmt.Fprintf(&b, "Generated %s", rep.GeneratedAt.UTC().Format(time.RFC3339))
 	if rep.Options.IncludeSystem {
 		b.WriteString(", system namespaces included")
 	} else {
-		fmt.Fprintf(&b, ", system namespaces excluded (%s)", strings.Join(rep.SystemNamespaces, ", "))
+		fmt.Fprintf(&b, ", system namespaces excluded (%s)", mdText(strings.Join(rep.SystemNamespaces, ", ")))
 	}
 	b.WriteString(".\n\n")
 
@@ -67,15 +72,15 @@ func exportMarkdown(rep *Report) []byte {
 	} else {
 		b.WriteString("| Severity | Check | Resource | Message | Frameworks | Status |\n|---|---|---|---|---|---|\n")
 		for _, f := range rep.Findings {
-			fmt.Fprintf(&b, "| %s | %s | %s | %s | %s | %s |\n", f.Severity, mdCell(f.Title), mdCell(resourceText(f.Resource)),
-				mdCell(f.Message), mdCell(strings.Join(f.Frameworks, ", ")), mdCell(acceptedText(f.Accepted)))
+			fmt.Fprintf(&b, "| %s | %s | %s | %s | %s | %s |\n", f.Severity, mdText(f.Title), mdText(resourceText(f.Resource)),
+				mdText(f.Message), mdText(strings.Join(f.Frameworks, ", ")), mdText(acceptedText(f.Accepted)))
 		}
 		b.WriteString("\n## Remediation\n\n")
 		seen := map[string]bool{}
 		for _, f := range rep.Findings {
 			if !seen[f.CheckID] {
 				seen[f.CheckID] = true
-				fmt.Fprintf(&b, "- **%s** (%s): %s\n", f.Title, f.CheckID, f.Remediation)
+				fmt.Fprintf(&b, "- **%s** (%s): %s\n", mdText(f.Title), f.CheckID, mdText(f.Remediation))
 			}
 		}
 		b.WriteString("\n")
@@ -83,14 +88,14 @@ func exportMarkdown(rep *Report) []byte {
 	if len(rep.Skipped) > 0 {
 		b.WriteString("## Skipped checks\n\n")
 		for _, s := range rep.Skipped {
-			fmt.Fprintf(&b, "- %s: %s\n", s.CheckID, s.Reason)
+			fmt.Fprintf(&b, "- %s: %s\n", s.CheckID, mdText(s.Reason))
 		}
 		b.WriteString("\n")
 	}
 	if len(rep.Warnings) > 0 {
 		b.WriteString("## Warnings\n\n")
 		for _, w := range rep.Warnings {
-			fmt.Fprintf(&b, "- %s\n", w)
+			fmt.Fprintf(&b, "- %s\n", mdText(w))
 		}
 		b.WriteString("\n")
 	}
