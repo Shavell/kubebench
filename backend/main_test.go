@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -100,6 +101,32 @@ users:
 	}
 	if _, err := st.ClusterByName("lab"); err == nil {
 		t.Fatal("the seed cluster came back on a later start")
+	}
+}
+
+// KUBEBENCH_ADMIN_PASSWORD is used, and so checked, for a new database
+// only: a value that breaks the policy stops the first start as a
+// configuration error and creates no admin.
+func TestBootstrapChecksTheAdminPassword(t *testing.T) {
+	for _, bad := range []string{"short", strings.Repeat("x", 73)} {
+		cfg := testConfig(t, map[string]string{"KUBEBENCH_ADMIN_PASSWORD": bad})
+		st := openStore(t, cfg)
+		var cerr *configError
+		if err := bootstrap(cfg, st); !errors.As(err, &cerr) || cerr.key != "KUBEBENCH_ADMIN_PASSWORD" {
+			t.Fatalf("bootstrap with a %d-byte password = %v", len(bad), err)
+		}
+		if n, err := st.CountUsers(); err != nil || n != 0 {
+			t.Fatalf("users = %d (err %v), want none", n, err)
+		}
+	}
+	// An existing database ignores the variable, so an old value cannot stop it.
+	cfg := testConfig(t, map[string]string{"KUBEBENCH_ADMIN_PASSWORD": "short"})
+	st := openStore(t, cfg)
+	if _, err := st.CreateUser("admin", "an-existing-password", store.RoleAdmin, false); err != nil {
+		t.Fatal(err)
+	}
+	if err := bootstrap(cfg, st); err != nil {
+		t.Fatalf("a database with users must start: %v", err)
 	}
 }
 

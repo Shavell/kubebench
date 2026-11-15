@@ -74,6 +74,11 @@ func main() {
 		os.Exit(healthcheck(cfg))
 	}
 	if err := serve(cfg); err != nil {
+		var cerr *configError
+		if errors.As(err, &cerr) {
+			fmt.Fprintf(os.Stderr, "kubebench: invalid configuration:\n%v\n", cerr)
+			os.Exit(2)
+		}
 		log.Fatalf("kubebench: %v", err)
 	}
 }

@@ -91,6 +91,23 @@ func TestPortDerivesListenAddr(t *testing.T) {
 	}
 }
 
+// The listen address must carry a numeric port: a service name would only
+// fail at Listen, after the database and the admin were created, and the
+// health check could not build a URL from it.
+func TestListenAddrNeedsAPortNumber(t *testing.T) {
+	for _, addr := range []string{":abc", "127.0.0.1:http", ":0", ":65536", ":+80", "localhost"} {
+		_, err := FromEnv(env(map[string]string{"KUBEBENCH_LISTEN_ADDR": addr}), false)
+		if err == nil || !strings.Contains(err.Error(), "KUBEBENCH_LISTEN_ADDR:") {
+			t.Errorf("KUBEBENCH_LISTEN_ADDR=%q: err = %v", addr, err)
+		}
+	}
+	// A bad PORT is reported once, not again through the address derived from it.
+	_, err := FromEnv(env(map[string]string{"PORT": "abc"}), false)
+	if err == nil || strings.Contains(err.Error(), "KUBEBENCH_LISTEN_ADDR") {
+		t.Fatalf("PORT=abc: %v", err)
+	}
+}
+
 // Pasted kubeconfigs may not run commands or read server files unless the
 // operator opts in, inside and outside a cluster.
 func TestKubeconfigExecIsOptIn(t *testing.T) {

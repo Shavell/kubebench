@@ -6,26 +6,19 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"unicode/utf8"
 
 	"kubebench/internal/config"
+	"kubebench/internal/password"
 	"kubebench/internal/plugin"
 	"kubebench/internal/store"
 )
 
-const (
-	sessionCookie     = "kubebench_session"
-	minPasswordLength = 8
-	maxPasswordBytes  = 72 // bcrypt ignores anything longer
-)
+const sessionCookie = "kubebench_session"
 
 // validatePassword enforces the password policy for new passwords.
-func validatePassword(password string) error {
-	if utf8.RuneCountInString(password) < minPasswordLength {
-		return badRequest("the password must be at least %d characters", minPasswordLength)
-	}
-	if len(password) > maxPasswordBytes {
-		return badRequest("the password must be at most %d bytes", maxPasswordBytes)
+func validatePassword(pw string) error {
+	if err := password.Check(pw); err != nil {
+		return badRequest("the password %v", err)
 	}
 	return nil
 }

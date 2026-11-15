@@ -157,6 +157,11 @@ parse_args() {
     die "--listen must be host:port, e.g. 127.0.0.1:9876"
   fi
   [[ "$opt_password" != *$'\n'* ]] || die "--admin-password must be a single line"
+  # The server's password policy; it refuses to start with anything else.
+  if [[ -n "$opt_password" ]]; then
+    ((${#opt_password} >= 8)) || die "--admin-password must be at least 8 characters"
+    (($(printf '%s' "$opt_password" | wc -c) <= 72)) || die "--admin-password must be at most 72 bytes"
+  fi
   if [[ -n "$opt_data_dir" ]]; then
     [[ "$opt_data_dir" =~ ^/[A-Za-z0-9._/-]+$ ]] || die "--data-dir must be an absolute path without spaces or quotes"
     opt_data_dir="${opt_data_dir%/}"

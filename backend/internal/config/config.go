@@ -77,12 +77,15 @@ func FromEnv(lookup func(string) (string, bool), inCluster bool) (*Config, error
 	c := &Config{InCluster: inCluster}
 
 	port := p.str("PORT", "9876")
-	if n, err := strconv.Atoi(port); err != nil || n < 1 || n > 65535 {
+	if !validPort(port) {
 		p.fail("PORT", "must be a TCP port (1-65535)")
 	}
-	c.ListenAddr = p.str("KUBEBENCH_LISTEN_ADDR", ":"+port)
-	if _, _, err := net.SplitHostPort(c.ListenAddr); err != nil {
-		p.fail("KUBEBENCH_LISTEN_ADDR", "must be host:port, e.g. 127.0.0.1:9876")
+	c.ListenAddr = ":" + port
+	if addr := p.str("KUBEBENCH_LISTEN_ADDR", ""); addr != "" {
+		c.ListenAddr = addr
+		if _, addrPort, err := net.SplitHostPort(addr); err != nil || !validPort(addrPort) {
+			p.fail("KUBEBENCH_LISTEN_ADDR", "must be host:port with a TCP port (1-65535), e.g. 127.0.0.1:9876")
+		}
 	}
 
 	c.DBPath = p.str("KUBEBENCH_DB", "kubebench.db")
@@ -128,6 +131,13 @@ func FromEnv(lookup func(string) (string, bool), inCluster bool) (*Config, error
 		return nil, errors.Join(p.errs...)
 	}
 	return c, nil
+}
+
+// validPort reports whether s is a TCP port number (1-65535). Service
+// names such as "http" are refused: the health check builds a URL from it.
+func validPort(s string) bool {
+	n, err := strconv.ParseUint(s, 10, 16)
+	return err == nil && n >= 1
 }
 
 // parser collects validation errors so a misconfigured deployment sees
