@@ -798,7 +798,11 @@ Details settled by the implementation:
   request, each with `"part":"<i>/<n>"`, so no pod is left out.
 - Debug: `image` defaults to `busybox:1.37`, `target` must name a container
   of the pod; answers `{"namespace","pod","container"}`, the container being
-  `debugger-xxxxx` with stdin and TTY.
+  `debugger-xxxxx` with stdin and TTY, once that container runs, so the
+  terminal opened next can attach. It waits up to 60 s and answers
+  `409 conflict` with the kubelet's reason when the container cannot start
+  (`ImagePullBackOff`, `InvalidImageName`, …), ended already, or still
+  waits; the audit row then records that refusal.
 - Trigger answers `{"namespace","job"}`; the Job is the CronJob's controller-
   owned child, like `kubectl create job --from=cronjob/<name>`.
 - Namespaces: the name must be a DNS-1123 label and labels valid. Deleting a

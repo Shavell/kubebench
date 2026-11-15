@@ -7,10 +7,12 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 	"unicode/utf8"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	k8stesting "k8s.io/client-go/testing"
 
 	"kubebench/internal/kube"
@@ -109,12 +111,32 @@ func TestAuditParts(t *testing.T) {
 	}
 }
 
+// runEphemeralContainers makes the fake kubelet report every ephemeral
+// container of a pod read as running.
+func runEphemeralContainers(e *testEnv) {
+	e.cs.PrependReactor("get", "pods", func(a k8stesting.Action) (bool, runtime.Object, error) {
+		obj, err := e.cs.Tracker().Get(corev1.SchemeGroupVersion.WithResource("pods"), a.GetNamespace(), a.(k8stesting.GetAction).GetName())
+		if err != nil {
+			return true, nil, err
+		}
+		pod := obj.(*corev1.Pod).DeepCopy()
+		pod.Status.EphemeralContainerStatuses = nil
+		for _, c := range pod.Spec.EphemeralContainers {
+			pod.Status.EphemeralContainerStatuses = append(pod.Status.EphemeralContainerStatuses, corev1.ContainerStatus{
+				Name: c.Name, State: corev1.ContainerState{Running: &corev1.ContainerStateRunning{}},
+			})
+		}
+		return true, pod, nil
+	})
+}
+
 func TestDebugContainerThroughTheAPI(t *testing.T) {
 	e := newTestEnv(t, nil)
 	e.add(&corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{Name: "api-1", Namespace: "default"},
 		Spec:       corev1.PodSpec{Containers: []corev1.Container{{Name: "api", Image: "api:1"}}},
 	})
+	runEphemeralContainers(e)
 
 	debug := decode[kube.DebugContainer](t, e.do(http.MethodPost, "/api/pods/debug?ns=default&pod=api-1&target=api", "alice", nil))
 	if !strings.HasPrefix(debug.Container, "debugger-") || debug.Pod != "api-1" {
@@ -130,4 +152,21 @@ func TestDebugContainerThroughTheAPI(t *testing.T) {
 	expect(t, e.do(http.MethodPost, "/api/pods/debug?ns=default&pod=api-1&target=nope", "alice", nil), http.StatusBadRequest, plugin.CodeBadRequest)
 	expect(t, e.do(http.MethodPost, "/api/pods/debug?ns=default", "alice", nil), http.StatusBadRequest, plugin.CodeBadRequest)
 	expect(t, e.do(http.MethodPost, "/api/pods/debug?ns=default&pod=ghost", "alice", nil), http.StatusNotFound, plugin.CodeKubernetes)
+}
+
+// The answer waits for the container to run; one that does not start is
+// a conflict naming the kubelet's reason, and the audit row records it.
+func TestDebugContainerThatDoesNotStart(t *testing.T) {
+	e := newTestEnv(t, nil)
+	e.srv.streams.debugStart = 700 * time.Millisecond
+	e.add(&corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{Name: "api-1", Namespace: "default"},
+		Spec:       corev1.PodSpec{Containers: []corev1.Container{{Name: "api", Image: "api:1"}}},
+	})
+	rec := e.do(http.MethodPost, "/api/pods/debug?ns=default&pod=api-1", "alice", nil)
+	expect(t, rec, http.StatusConflict, plugin.CodeConflict)
+	if !strings.Contains(rec.Body.String(), "is not running after 700ms") {
+		t.Fatalf("body = %s", rec.Body.String())
+	}
+	expectAudit(t, e, "POST /api/pods/debug", "pod/default/api-1", http.StatusConflict, "")
 }

@@ -38,8 +38,9 @@ func (s *Server) handleBulkDeletePods(w http.ResponseWriter, r *http.Request, c 
 }
 
 // handleDebugPod: POST /api/pods/debug?ns=&pod=&image=&target= adds an
-// ephemeral debug container and answers {"namespace","pod","container"};
-// the terminal attaches to it with container=<name> (§7.1).
+// ephemeral debug container, waits until it runs and answers
+// {"namespace","pod","container"}; the terminal attaches to it with
+// container=<name> (§7.1).
 func (s *Server) handleDebugPod(w http.ResponseWriter, r *http.Request, c *call) {
 	q := r.URL.Query()
 	ns, pod := q.Get("ns"), q.Get("pod")
@@ -57,5 +58,9 @@ func (s *Server) handleDebugPod(w http.ResponseWriter, r *http.Request, c *call)
 		image = kube.DefaultDebugImage
 	}
 	c.setAudit("", auditJSON(map[string]string{"container": debug.Container, "image": image, "target": q.Get("target")}))
+	if err := c.rt.WaitForDebugContainer(r.Context(), ns, pod, debug.Container, s.streams.debugStart); err != nil {
+		writeOpError(w, err)
+		return
+	}
 	plugin.WriteJSON(w, debug)
 }

@@ -30,6 +30,9 @@ type streamSettings struct {
 	// terminalHangupGrace is how long a process may take to exit after
 	// KubeBench hung up its terminal, before the stream is cut.
 	terminalHangupGrace time.Duration
+	// debugStart is how long POST /api/pods/debug waits for the debug
+	// container to run, so that the terminal opened next can attach.
+	debugStart time.Duration
 	// newExecutor connects a terminal to its container on the caller's cluster.
 	newExecutor func(rt *kube.Runtime, t kube.ExecTarget) (remotecommand.Executor, error)
 }
@@ -42,6 +45,7 @@ func defaultStreamSettings() streamSettings {
 		terminalIdle:        30 * time.Minute,
 		terminalWriteWait:   10 * time.Second,
 		terminalHangupGrace: 5 * time.Second,
+		debugStart:          time.Minute,
 		newExecutor:         (*kube.Runtime).TerminalExecutor,
 	}
 }

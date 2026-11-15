@@ -370,6 +370,7 @@
       "targetHelp": "Hata ayıklama container'ı bu container'ın süreçlerini görür.",
       "noTarget": "Container yok",
       "submit": "Ekle ve shell aç",
+      "starting": "Hata ayıklama container'ı başlatılıyor. Shell, container çalışmaya başlayınca açılır; imajın çekilmesi bir dakika kadar sürebilir.",
       "added": "{{container}} hata ayıklama container'ı {{pod}} Pod'una eklendi."
     },
     "cronjob": {

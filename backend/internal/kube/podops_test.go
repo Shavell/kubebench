@@ -5,8 +5,10 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8stesting "k8s.io/client-go/testing"
 )
@@ -133,5 +135,64 @@ func TestAddDebugContainer(t *testing.T) {
 	}
 	if _, err := rt.AddDebugContainer(ctx, "shop", "ghost", "", ""); err == nil {
 		t.Fatal("an unknown pod must fail")
+	}
+}
+
+// debugPod is pod web-1 whose ephemeral container debugger-abcde reports state.
+func debugPod(state corev1.ContainerState) *corev1.Pod {
+	pod := shopPod("web-1", "app")
+	pod.Status.EphemeralContainerStatuses = []corev1.ContainerStatus{{Name: "debugger-abcde", State: state}}
+	return pod
+}
+
+func TestWaitForDebugContainer(t *testing.T) {
+	ctx := context.Background()
+	cases := map[string]struct {
+		pod  *corev1.Pod
+		want string // "" waits successfully, else part of the error
+	}{
+		"running": {pod: debugPod(corev1.ContainerState{Running: &corev1.ContainerStateRunning{}})},
+		"image pull back-off": {
+			pod:  debugPod(corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{Reason: "ImagePullBackOff", Message: `Back-off pulling image "nope:1"`}}),
+			want: `cannot start: ImagePullBackOff: Back-off pulling image "nope:1"`,
+		},
+		"ended": {
+			pod:  debugPod(corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{ExitCode: 127, Reason: "Error"}}),
+			want: "ended (exit code 127, Error)",
+		},
+		"still creating": {
+			pod:  debugPod(corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{Reason: "ContainerCreating"}}),
+			want: "not running after 1.2s: ContainerCreating",
+		},
+		"no status yet": {pod: shopPod("web-1", "app"), want: "it has no status yet"},
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			rt, _ := opsRuntime(t, tc.pod)
+			err := rt.WaitForDebugContainer(ctx, "shop", "web-1", "debugger-abcde", 1200*time.Millisecond)
+			if tc.want == "" {
+				if err != nil {
+					t.Fatal(err)
+				}
+				return
+			}
+			expectOpError(t, err, OpConflict)
+			if !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("error = %q, want %q", err, tc.want)
+			}
+		})
+	}
+
+	// The container starts while it is waited for.
+	rt, cs := opsRuntime(t, debugPod(corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{Reason: "ContainerCreating"}}))
+	go func() {
+		time.Sleep(600 * time.Millisecond)
+		_, _ = cs.CoreV1().Pods("shop").UpdateStatus(ctx, debugPod(corev1.ContainerState{Running: &corev1.ContainerStateRunning{}}), metav1.UpdateOptions{})
+	}()
+	if err := rt.WaitForDebugContainer(ctx, "shop", "web-1", "debugger-abcde", 5*time.Second); err != nil {
+		t.Fatalf("a container that starts: %v", err)
+	}
+	if err := rt.WaitForDebugContainer(ctx, "shop", "ghost", "debugger-abcde", time.Second); !apierrors.IsNotFound(err) {
+		t.Fatalf("an unknown pod: %v, want the cluster's not found", err)
 	}
 }

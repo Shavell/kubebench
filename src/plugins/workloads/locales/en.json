@@ -370,6 +370,7 @@
       "targetHelp": "The debug container sees the processes of this container.",
       "noTarget": "No container",
       "submit": "Add and open shell",
+      "starting": "Starting the debug container. The shell opens once it runs; pulling its image can take up to a minute.",
       "added": "Debug container {{container}} added to {{pod}}."
     },
     "cronjob": {

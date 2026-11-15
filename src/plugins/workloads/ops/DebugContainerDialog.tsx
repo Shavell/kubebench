@@ -15,7 +15,8 @@ const DEFAULT_IMAGE = 'busybox:1.37'
 /**
  * Adds an ephemeral debug container to a running Pod and opens a shell in
  * it: a `pod-exec` tab for the new container (the terminal plugin renders
- * it). Needs exec permission, which the callers check.
+ * it). The request answers once the container runs, so the terminal can
+ * attach right away. Needs exec permission, which the callers check.
  */
 export function DebugContainerDialog({ pod, onClose }: { pod: Pod; onClose: () => void }) {
   const { t } = useWorkloadsTranslation()
@@ -37,6 +38,7 @@ export function DebugContainerDialog({ pod, onClose }: { pod: Pod; onClose: () =
     } catch (err) {
       setFailure(err)
       setBusy(false)
+      refreshData() // a container that did not start was added all the same
       return
     }
     notify.success(t('workloadOps.debug.added', { container, pod: pod.name }))
@@ -90,6 +92,7 @@ export function DebugContainerDialog({ pod, onClose }: { pod: Pod; onClose: () =
           ]}
         />
       </Field>
+      {busy && <p className="ops-muted">{t('workloadOps.debug.starting')}</p>}
       <ErrorNotice error={failure} />
     </Dialog>
   )

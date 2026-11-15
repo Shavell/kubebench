@@ -207,7 +207,11 @@ export interface WorkloadOpsProvider {
   forceDeletePod(namespace: string, name: string): Promise<void>
   /** Deletes up to 200 Pods; one result per Pod, in order. */
   deletePods(pods: PodKey[], force: boolean): Promise<PodDeleteResult[]>
-  /** Adds an interactive ephemeral container; attach to it with the pod-exec tab kind. */
+  /**
+   * Adds an interactive ephemeral container and resolves once it runs (live:
+   * up to a minute, rejected with `conflict` when it cannot start); attach to
+   * it with the pod-exec tab kind.
+   */
   addDebugContainer(namespace: string, pod: string, options: { image?: string; target?: string }): Promise<DebugContainer>
   /** Creates a Job from the CronJob now. */
   triggerCronJob(namespace: string, name: string): Promise<CronJobRun>
