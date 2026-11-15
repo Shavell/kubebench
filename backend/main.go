@@ -37,6 +37,15 @@ var (
 // streams still open afterwards are cut.
 const shutdownGrace = 10 * time.Second
 
+// readTimeout bounds reading a whole request, body included, so a client
+// that announces a body and never sends it cannot hold a connection and a
+// goroutine (slowloris). It does not limit handlers: net/http lifts the
+// read deadline once the body has been read to its end (at once for a
+// request without one), so log streams, terminals and long operations run
+// on. A handler that leaves its body unread keeps the deadline, which then
+// bounds the server's read of the rest.
+const readTimeout = time.Minute
+
 func main() {
 	showVersion := flag.Bool("version", false, "print the version and exit")
 	flag.Usage = func() {
@@ -69,6 +78,20 @@ func main() {
 	}
 }
 
+// newHTTPServer is the HTTP server for handler on addr.
+func newHTTPServer(addr string, handler http.Handler) *http.Server {
+	return &http.Server{
+		Addr:              addr,
+		Handler:           handler,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       readTimeout,
+		IdleTimeout:       2 * time.Minute,
+		// No WriteTimeout: log streams (SSE) and terminals (WebSocket) stay
+		// open far longer than any sane timeout.
+		TLSConfig: &tls.Config{MinVersion: tls.VersionTLS12},
+	}
+}
+
 // serve runs the server until SIGINT or SIGTERM, then shuts down
 // gracefully.
 func serve(cfg *config.Config) error {
@@ -95,15 +118,7 @@ func serve(cfg *config.Config) error {
 	if embedded {
 		log.Printf("[web] serving the embedded frontend")
 	}
-	srv := &http.Server{
-		Addr:              cfg.ListenAddr,
-		Handler:           apiServer.Handler(spa),
-		ReadHeaderTimeout: 10 * time.Second,
-		IdleTimeout:       2 * time.Minute,
-		// No ReadTimeout/WriteTimeout: log streams (SSE) and terminals
-		// (WebSocket) stay open far longer than any sane timeout.
-		TLSConfig: &tls.Config{MinVersion: tls.VersionTLS12},
-	}
+	srv := newHTTPServer(cfg.ListenAddr, apiServer.Handler(spa))
 
 	go runJobs(ctx, cfg, st)
 
