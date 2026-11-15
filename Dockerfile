@@ -25,7 +25,7 @@ RUN npm run build
 
 # 2. Go server with the frontend embedded (go:embed of internal/web/dist).
 # CGO stays off: SQLite is the pure-Go modernc driver.
-FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS backend
+FROM --platform=$BUILDPLATFORM golang:1.27-alpine AS backend
 WORKDIR /src
 COPY backend/go.mod backend/go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod \
