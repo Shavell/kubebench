@@ -3,17 +3,17 @@ import { usePermission } from '@/core/permissions'
 import { ResourceActionButtons } from '@/core/plugin/ResourceActionButtons'
 import { useLayoutStore } from '@/core/store/layoutStore'
 import { useSettingsStore } from '@/core/store/settingsStore'
-import { useProviderQuery, useProviders } from '@/data/DataContext'
+import { useProviderQuery } from '@/data/DataContext'
 import type { Pod } from '@/data/types'
 import { Badge } from '@/shared/Badge'
 import { Button } from '@/shared/Button'
 import { EventsTable } from '@/shared/EventsTable'
-import { notify } from '@/shared/notify'
 import { Icon } from '@/shared/Icon'
 import { Toolbar } from '@/shared/Toolbar'
 import { MetricChart } from '@/shared/charts/MetricChart'
 import { chartColor } from '@/shared/charts/chartTheme'
 import { DeletePodDialog } from '../../DeletePodDialog'
+import { ResourceEditButtons } from '../../editing/ResourceEditButtons'
 import { useWorkloadsTranslation, WORKLOADS_NS } from '../../i18n'
 import { DetailRow, DetailSection } from './DetailBits'
 import '@/shared/tabPage.css'
@@ -22,7 +22,6 @@ export function PodDetail({ pod, tabId }: { pod: Pod; tabId: string }) {
   const { t } = useWorkloadsTranslation()
   const exec = usePermission('exec')
   const write = usePermission('write')
-  const providers = useProviders()
   const openTab = useLayoutStore((s) => s.openTab)
   const closeTab = useLayoutStore((s) => s.closeTab)
   const [deleting, setDeleting] = useState(false)
@@ -64,22 +63,7 @@ export function PodDetail({ pod, tabId }: { pod: Pod; tabId: string }) {
       },
     })
 
-  const viewYaml = async () => {
-    let text: string
-    try {
-      text = await providers.cluster.getResourceYaml('Pod', pod.namespace, pod.name)
-    } catch (err) {
-      notify.error(err)
-      return
-    }
-    openTab({
-      id: `yaml:pod:${pod.namespace}/${pod.name}`,
-      title: `${pod.name}.yaml`,
-      icon: 'file-code',
-      kind: 'yaml',
-      props: { text, readOnly: true },
-    })
-  }
+  const resource = { kind: 'Pod', apiVersion: 'v1', namespace: pod.namespace, name: pod.name }
 
   return (
     <div className="page">
@@ -95,9 +79,7 @@ export function PodDetail({ pod, tabId }: { pod: Pod; tabId: string }) {
         >
           <Icon name="terminal" size={14} /> {t('actions.shell')}
         </button>
-        <button className="kb-button kb-button--secondary" onClick={viewYaml}>
-          <Icon name="file-code" size={14} /> {t('actions.yaml')}
-        </button>
+        <ResourceEditButtons resource={resource} withDelete={false} />
         <Button
           variant="danger"
           icon="trash"
@@ -107,7 +89,7 @@ export function PodDetail({ pod, tabId }: { pod: Pod; tabId: string }) {
         >
           {t('common.delete')}
         </Button>
-        <ResourceActionButtons resource={{ kind: 'Pod', apiVersion: 'v1', namespace: pod.namespace, name: pod.name }} />
+        <ResourceActionButtons resource={resource} />
       </Toolbar>
       <DeletePodDialog
         pod={deleting ? pod : null}

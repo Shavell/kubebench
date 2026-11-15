@@ -26,6 +26,11 @@ import type {
   PodLogOptions,
   ServerInfo,
   Service,
+  ApplyOptions,
+  ApplyResult,
+  DeleteOptions,
+  MetadataPatch,
+  ObjectRef,
 } from './types'
 
 /**
@@ -58,6 +63,18 @@ export interface ClusterProvider {
   deletePod(namespace: string, name: string): Promise<void>
   scaleDeployment(namespace: string, name: string, replicas: number): Promise<void>
   restartDeployment(namespace: string, name: string): Promise<void>
+  // Resource editing (design §7.2):
+  /** YAML of any object; `neat` drops what the API server maintains. Secret values come redacted. */
+  getYaml(ref: ObjectRef, options?: { neat?: boolean }): Promise<string>
+  /** Server-side apply of YAML/JSON manifests (any number of documents): one result per object. */
+  applyYaml(manifests: string, options?: ApplyOptions): Promise<ApplyResult[]>
+  deleteResource(ref: ObjectRef, options?: DeleteOptions): Promise<void>
+  patchMetadata(ref: ObjectRef, patch: MetadataPatch): Promise<void>
+  /**
+   * A Secret with its values (`data`, base64). Needs the exec permission and
+   * is audited; callers show the values once and never keep them.
+   */
+  revealSecret(namespace: string, name: string): Promise<KubeObject>
 }
 
 export interface CrdProvider {

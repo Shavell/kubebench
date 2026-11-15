@@ -15,7 +15,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/remotecommand"
 	"k8s.io/kubectl/pkg/scheme"
-	"sigs.k8s.io/yaml"
 )
 
 func (r *Runtime) ListNodes(ctx context.Context) ([]NodeInfo, error) {
@@ -101,9 +100,10 @@ func (r *Runtime) ListEvents(ctx context.Context, namespace, kind, name string) 
 	return out, nil
 }
 
-// ObjectYAML fetches a typed object (or a custom resource by kind) and
-// renders it as YAML with managedFields stripped.
-func (r *Runtime) ObjectYAML(ctx context.Context, kind, namespace, name string) (string, error) {
+// objectByKind fetches an object by kind alone, as the YAML views of
+// v0.4 asked for it: a typed object, a generic catalog kind (Secrets
+// redacted) or a custom resource whose CRD has that kind.
+func (r *Runtime) objectByKind(ctx context.Context, kind, namespace, name string) (map[string]any, error) {
 	var obj runtime.Object
 	var err error
 	switch kind {
@@ -120,37 +120,23 @@ func (r *Runtime) ObjectYAML(ctx context.Context, kind, namespace, name string) 
 	default:
 		// Catalog kinds (configmaps, secrets, ingresses, …) via dynamic get.
 		if rt, ok := catalogByKind[kind]; ok {
-			object, gerr := r.GetGeneric(ctx, rt.Key, namespace, name) // redacts secrets
-			if gerr != nil {
-				return "", gerr
-			}
-			if meta, ok := object["metadata"].(map[string]any); ok {
-				delete(meta, "managedFields")
-			}
-			out, merr := yaml.Marshal(object)
-			return string(out), merr
+			return r.GetGeneric(ctx, rt.Key, namespace, name) // redacts secrets
 		}
-		unstr, cerr := r.GetCustomResourceByKind(ctx, kind, namespace, name)
-		if cerr != nil {
-			return "", cerr
+		unstr, err := r.GetCustomResourceByKind(ctx, kind, namespace, name)
+		if err != nil {
+			return nil, err
 		}
-		unstr.SetManagedFields(nil)
-		out, merr := yaml.Marshal(unstr.Object)
-		return string(out), merr
+		return unstr.Object, nil
 	}
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	// Typed clients decode objects without apiVersion and kind; restore them
 	// so the YAML is a complete manifest.
 	if gvks, _, err := scheme.Scheme.ObjectKinds(obj); err == nil && len(gvks) > 0 {
 		obj.GetObjectKind().SetGroupVersionKind(gvks[0])
 	}
-	if meta, ok := obj.(metav1.Object); ok {
-		meta.SetManagedFields(nil)
-	}
-	out, err := yaml.Marshal(obj)
-	return string(out), err
+	return runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
 }
 
 // LogOptions selects the lines PodLogs returns.

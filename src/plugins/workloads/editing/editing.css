@@ -1,0 +1,55 @@
+/* Resource editing dialogs: delete, labels and annotations, Secret reveal. */
+
+.kb-editing__cascade {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--vscode-descriptionForeground);
+}
+
+.kb-editing__loading {
+  padding: 8px 0;
+  font-size: 13px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.kb-editing__metadata {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.kb-editing__secret {
+  width: 100%;
+  table-layout: fixed;
+}
+.kb-editing__secret th:first-child {
+  width: 30%;
+}
+.kb-editing__secret th:last-child {
+  width: 44px;
+}
+.kb-editing__secret td {
+  vertical-align: top;
+}
+
+.kb-editing__value {
+  margin: 0;
+  max-height: 160px;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.kb-editing__binary {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.kb-editing__copy {
+  text-align: right;
+}

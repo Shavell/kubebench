@@ -1,12 +1,11 @@
 import { useTranslation } from 'react-i18next'
+import { openYamlTab } from '@/core/plugin/editorTabs'
 import { resourceActionItems } from '@/core/plugin/resourceActions'
-import { useLayoutStore } from '@/core/store/layoutStore'
-import { useProviderQuery, useProviders } from '@/data/DataContext'
+import { useProviderQuery } from '@/data/DataContext'
 import type { TabDescriptor } from '@/core/plugin/types'
 import { CORE_NS } from '@/i18n'
 import { Badge } from '@/shared/Badge'
 import { showContextMenu } from '@/shared/contextMenu'
-import { notify } from '@/shared/notify'
 import { Table, type Column } from '@/shared/Table'
 import { Toolbar } from '@/shared/Toolbar'
 import { EmptyState } from '@/shared/EmptyState'
@@ -18,8 +17,6 @@ import '@/shared/tabPage.css'
 export function CustomResourceListPage({ tab }: { tab: TabDescriptor }) {
   const { t } = useTranslation(NS)
   const crdName = tab.props?.crdName as string
-  const providers = useProviders()
-  const openTab = useLayoutStore((s) => s.openTab)
 
   const { data: crds } = useProviderQuery((p) => p.crd.listCrds(), [])
   const { data, loading, error, errorCode } = useProviderQuery(
@@ -53,21 +50,10 @@ export function CustomResourceListPage({ tab }: { tab: TabDescriptor }) {
     { key: 'age', header: t('common.age', { ns: CORE_NS }), render: (r) => r.age },
   ]
 
-  const viewYaml = async (r: CustomResource) => {
-    let text: string
-    try {
-      text = await providers.cluster.getResourceYaml(crd?.kind ?? 'CustomResource', r.namespace ?? null, r.name)
-    } catch (err) {
-      notify.error(err)
-      return
-    }
-    openTab({
-      id: `yaml:cr:${crdName}:${r.namespace ?? '-'}/${r.name}`,
-      title: `${r.name}.yaml`,
-      icon: 'file-code',
-      kind: 'yaml',
-      props: { text, readOnly: true },
-    })
+  // The editor's YAML tab (view, edit, apply), once the CRD's group and version are known.
+  const viewYaml = (r: CustomResource) => {
+    if (!crd) return
+    openYamlTab({ apiVersion: `${crd.group}/${crd.versions[0]}`, kind: crd.kind, namespace: r.namespace, name: r.name })
   }
 
   // YAML plus the actions other plugins contribute for this kind (design §6.4).

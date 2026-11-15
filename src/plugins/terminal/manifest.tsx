@@ -5,15 +5,14 @@ import tr from './locales/tr.json'
 import { TerminalPanel } from './panels/TerminalPanel'
 import { LogsPanel } from './panels/LogsPanel'
 import { ProblemsPanel } from './panels/ProblemsPanel'
-import { YamlEditorTab } from './YamlEditorTab'
 import { PodLogsTab } from './PodLogsTab'
 import { PodExecTab } from './PodExecTab'
 
 /**
- * Contributes the bottom panel tabs and the shared "yaml" editor tab
- * renderer. Has no activity bar entry of its own. Part of the workbench
- * itself, so it cannot be disabled. Display strings are i18n keys in the
- * plugin's namespace (locales/*.json).
+ * Contributes the bottom panel tabs and the pod logs and shell tabs (the
+ * "yaml" tab is the editor plugin's). Has no activity bar entry of its own.
+ * Part of the workbench itself, so it cannot be disabled. Display strings
+ * are i18n keys in the plugin's namespace (locales/*.json).
  */
 export const terminalPlugin: PluginManifest = {
   id: NS,
@@ -29,7 +28,6 @@ export const terminalPlugin: PluginManifest = {
     { id: 'terminal', title: 'panels.terminal', component: TerminalPanel, order: 3, kinds: ['pod-exec'] },
   ],
   tabRenderers: [
-    { kind: 'yaml', component: YamlEditorTab },
     { kind: 'pod-logs', component: PodLogsTab },
     { kind: 'pod-exec', component: PodExecTab },
   ],

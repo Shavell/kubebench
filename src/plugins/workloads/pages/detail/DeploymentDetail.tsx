@@ -1,26 +1,24 @@
 import { useState } from 'react'
 import { usePermission } from '@/core/permissions'
 import { ResourceActionButtons } from '@/core/plugin/ResourceActionButtons'
-import { useLayoutStore } from '@/core/store/layoutStore'
 import { refreshData, useProviderQuery, useProviders } from '@/data/DataContext'
 import type { Deployment } from '@/data/types'
 import { Badge } from '@/shared/Badge'
 import { EventsTable } from '@/shared/EventsTable'
 import { Icon } from '@/shared/Icon'
-import { notify } from '@/shared/notify'
 import { Toolbar } from '@/shared/Toolbar'
+import { ResourceEditButtons } from '../../editing/ResourceEditButtons'
 import { useWorkloadsTranslation } from '../../i18n'
 import { DetailRow, DetailSection } from './DetailBits'
 import '@/shared/tabPage.css'
 import './DeploymentDetail.css'
 
-export function DeploymentDetail({ deployment: d }: { deployment: Deployment }) {
+export function DeploymentDetail({ deployment: d, onDeleted }: { deployment: Deployment; onDeleted: () => void }) {
   const { t } = useWorkloadsTranslation()
   // Scale and restart are mutations; without the permission the controls stay visible but disabled.
   const write = usePermission('write')
   const denied = write.reason ?? undefined
   const providers = useProviders()
-  const openTab = useLayoutStore((s) => s.openTab)
   const [busy, setBusy] = useState(false)
   const [opError, setOpError] = useState<string | null>(null)
 
@@ -49,22 +47,7 @@ export function DeploymentDetail({ deployment: d }: { deployment: Deployment }) 
 
   const restart = () => runOp(() => providers.cluster.restartDeployment(d.namespace, d.name))
 
-  const viewYaml = async () => {
-    let text: string
-    try {
-      text = await providers.cluster.getResourceYaml('Deployment', d.namespace, d.name)
-    } catch (err) {
-      notify.error(err)
-      return
-    }
-    openTab({
-      id: `yaml:deployment:${d.namespace}/${d.name}`,
-      title: `${d.name}.yaml`,
-      icon: 'file-code',
-      kind: 'yaml',
-      props: { text, readOnly: true },
-    })
-  }
+  const resource = { kind: 'Deployment', apiVersion: 'apps/v1', namespace: d.namespace, name: d.name }
 
   return (
     <div className="page">
@@ -98,10 +81,8 @@ export function DeploymentDetail({ deployment: d }: { deployment: Deployment }) 
         >
           <Icon name="sync" size={14} /> {t('common.restart')}
         </button>
-        <button className="kb-button kb-button--secondary" onClick={viewYaml}>
-          <Icon name="file-code" size={14} /> {t('actions.yaml')}
-        </button>
-        <ResourceActionButtons resource={{ kind: 'Deployment', apiVersion: 'apps/v1', namespace: d.namespace, name: d.name }} />
+        <ResourceEditButtons resource={resource} onDeleted={onDeleted} />
+        <ResourceActionButtons resource={resource} />
       </Toolbar>
       <div className="detail">
         {opError && (

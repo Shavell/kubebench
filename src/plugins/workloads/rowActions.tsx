@@ -8,6 +8,7 @@ import type { DataProviders } from '@/data/providers'
 import type { Deployment, Pod } from '@/data/types'
 import { showContextMenu, type ContextMenuItem } from '@/shared/contextMenu'
 import { notify } from '@/shared/notify'
+import { editingMenuItems, yamlMenuItem } from './editing/menuItems'
 import { tw } from './i18n'
 
 const ICONS: Record<string, string> = {
@@ -60,35 +61,14 @@ function openDetail(kind: string, namespace: string | null, name: string) {
   })
 }
 
-async function openYaml(providers: DataProviders, kind: string, namespace: string | null, name: string) {
-  let text: string
-  try {
-    text = await providers.cluster.getResourceYaml(kind, namespace, name)
-  } catch (err) {
-    notify.error(err)
-    return
-  }
-  useLayoutStore.getState().openTab({
-    id: `yaml:${kind}:${namespace ?? '-'}/${name}`,
-    title: `${name}.yaml`,
-    icon: 'file-code',
-    kind: 'yaml',
-    props: { text, readOnly: true },
-  })
-}
-
 /**
  * Context menu for a pod row: details, logs & shell (bottom panel), YAML,
- * delete (asks first, through `onDelete`) and contributed actions.
+ * labels, delete (asks first, through `onDelete`) and contributed actions.
  */
-export function podMenu(
-  e: React.MouseEvent,
-  pod: Pod,
-  providers: DataProviders,
-  onDelete: (pod: Pod) => void,
-) {
+export function podMenu(e: React.MouseEvent, pod: Pod, onDelete: (pod: Pod) => void) {
   const container = pod.containers[0]?.name ?? pod.name
   const target = { namespace: pod.namespace, pod: pod.name, container }
+  const ref = { kind: 'Pod', apiVersion: 'v1', namespace: pod.namespace, name: pod.name }
   showContextMenu(
     e,
     menu([
@@ -98,16 +78,18 @@ export function podMenu(
       { label: tw('common.logs'), icon: 'output', onClick: () => showInPanel('pod-logs', target) },
       can('exec') && { label: tw('actions.shell'), icon: 'terminal', onClick: () => showInPanel('pod-exec', target) },
       SEPARATOR,
-      { label: tw('actions.viewYaml'), icon: 'file-code', onClick: () => openYaml(providers, 'Pod', pod.namespace, pod.name) },
+      ...yamlMenuItem(ref),
+      ...editingMenuItems(ref, { withDelete: false }),
       can('write') && { label: tw('common.delete'), icon: 'trash', danger: true, onClick: () => onDelete(pod) },
-      ...contributed({ kind: 'Pod', apiVersion: 'v1', namespace: pod.namespace, name: pod.name }),
+      ...contributed(ref),
     ]),
   )
 }
 
-/** Context menu for a deployment row: details, scale/restart, YAML, contributed actions. */
+/** Context menu for a deployment row: details, scale/restart, YAML, labels, delete, contributed actions. */
 export function deploymentMenu(e: React.MouseEvent, d: Deployment, providers: DataProviders) {
   const canWrite = can('write')
+  const ref = { kind: 'Deployment', apiVersion: 'apps/v1', namespace: d.namespace, name: d.name }
   showContextMenu(
     e,
     menu([
@@ -124,23 +106,14 @@ export function deploymentMenu(e: React.MouseEvent, d: Deployment, providers: Da
         onClick: () => mutate(() => providers.cluster.scaleDeployment(d.namespace, d.name, d.replicas + 1)),
       },
       SEPARATOR,
-      { label: tw('actions.viewYaml'), icon: 'file-code', onClick: () => openYaml(providers, 'Deployment', d.namespace, d.name) },
-      ...contributed({ kind: 'Deployment', apiVersion: 'apps/v1', namespace: d.namespace, name: d.name }),
+      ...yamlMenuItem(ref),
+      ...editingMenuItems(ref),
+      ...contributed(ref),
     ]),
   )
 }
 
-/** Menu for a row of any other kind: YAML plus contributed actions. */
-export function genericMenu(e: React.MouseEvent, ref: ResourceRef, providers: DataProviders) {
-  showContextMenu(
-    e,
-    menu([
-      {
-        label: tw('actions.viewYaml'),
-        icon: 'file-code',
-        onClick: () => openYaml(providers, ref.kind, ref.namespace ?? null, ref.name),
-      },
-      ...contributed(ref),
-    ]),
-  )
+/** Menu for a row of any other kind: YAML, labels, delete (Secrets: reveal) plus contributed actions. */
+export function genericMenu(e: React.MouseEvent, ref: ResourceRef) {
+  showContextMenu(e, menu([...yamlMenuItem(ref), ...editingMenuItems(ref), ...contributed(ref)]))
 }

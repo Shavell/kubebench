@@ -72,3 +72,19 @@
 .tab__close:hover {
   background: var(--vscode-toolbar-hoverBackground);
 }
+
+/*
+ * Unsaved changes: a dot instead of the close icon, the icon on hover (like
+ * VS Code). Specific enough to beat the codicon base rule, which Monaco's
+ * lazily loaded stylesheet declares again later in the cascade.
+ */
+.tab--dirty .tab__close {
+  opacity: 1;
+}
+.tab.tab--dirty .tab__close .tab__close-icon,
+.tab.tab--dirty .tab__close:hover .tab__dirty {
+  display: none;
+}
+.tab.tab--dirty .tab__close:hover .tab__close-icon {
+  display: inline-block;
+}

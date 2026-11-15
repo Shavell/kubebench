@@ -9,6 +9,7 @@ import { settingsPlugin } from './settings/manifest'
 import { terminalPlugin } from './terminal/manifest'
 import { usersPlugin } from './users/manifest'
 import { workloadsPlugin } from './workloads/manifest'
+import { editorPlugin } from './editor/manifest'
 
 /**
  * The single place built-in modules are wired in. Comment one out and its
@@ -24,6 +25,7 @@ export const allPlugins: PluginManifest[] = [
   terminalPlugin,
   settingsPlugin,
   extensionsPlugin,
+  editorPlugin,
 ]
 
 /** Registered at boot only when the signed-in user is a global admin. */

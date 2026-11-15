@@ -3,6 +3,7 @@ package kube
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -108,4 +109,11 @@ func redactSecret(obj map[string]any) {
 			}
 		}
 	}
+}
+
+// IsRedacted reports whether s is one of redactSecret's markers ("<12
+// bytes, redacted>", "<redacted>") rather than a real value. A base64
+// data value cannot look like one.
+func IsRedacted(s string) bool {
+	return strings.HasPrefix(s, "<") && strings.HasSuffix(s, "redacted>")
 }

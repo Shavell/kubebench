@@ -61,6 +61,12 @@ func (s *Server) routes() {
 	s.handle("POST /api/exec", accessExec, s.handleExec)
 	s.handle("POST /api/helm/rollback", accessWrite, s.handleHelmRollback)
 	s.handle("POST /api/helm/uninstall", accessWrite, s.handleHelmUninstall)
+	s.handle("POST /api/resource/apply", accessWrite|allowDryRun, s.handleApply)
+	s.handle("DELETE /api/resource", accessWrite, s.handleDeleteResource)
+	s.handle("PATCH /api/resource/metadata", accessWrite, s.handlePatchMetadata)
+	// Changes nothing but shows the values every other route redacts:
+	// exec access, audited like every exec request.
+	s.handle("POST /api/secrets/reveal", accessExec, s.handleRevealSecret)
 
 	s.mountPlugins()
 	s.mux.HandleFunc("/api/", s.handleUnknownAPI)

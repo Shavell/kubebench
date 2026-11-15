@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useLayoutStore } from '@/core/store/layoutStore'
 import { ALL_NAMESPACES, useContextStore } from '@/core/store/contextStore'
-import { useProviderQuery, useProviders } from '@/data/DataContext'
+import { useProviderQuery } from '@/data/DataContext'
 import type { TabDescriptor } from '@/core/plugin/types'
 import type { KubeObject } from '@/data/types'
 import { formatNumber } from '@/i18n/format'
@@ -12,6 +12,8 @@ import { EmptyState } from '@/shared/EmptyState'
 import { Unavailable } from '@/shared/Unavailable'
 import { useWorkloadsTranslation } from '../i18n'
 import { catalogByKey, objName, objNamespace, resourceLabel, withHeaders } from '../resourceCatalog'
+import { ResourceDialogs } from '../editing/ResourceDialogs'
+import { NewResourceButton } from '../editing/ResourceEditButtons'
 import { genericMenu } from '../rowActions'
 import '@/shared/tabPage.css'
 
@@ -19,7 +21,6 @@ export function GenericListPage({ tab }: { tab: TabDescriptor }) {
   const { t } = useWorkloadsTranslation()
   const key = tab.props?.resourceKey as string
   const descriptor = catalogByKey.get(key)
-  const providers = useProviders()
   const globalNamespace = useContextStore((s) => s.namespace)
   const [search, setSearch] = useState('')
   const [localNs, setLocalNs] = useState('')
@@ -84,11 +85,7 @@ export function GenericListPage({ tab }: { tab: TabDescriptor }) {
           rowKey={(o) => `${objNamespace(o)}/${objName(o)}`}
           onRowClick={openDetail}
           onRowContextMenu={(o, e) =>
-            genericMenu(
-              e,
-              { kind: descriptor.kind, apiVersion: o.apiVersion, namespace: objNamespace(o) || undefined, name: objName(o) },
-              providers,
-            )
+            genericMenu(e, { kind: descriptor.kind, apiVersion: o.apiVersion, namespace: objNamespace(o) || undefined, name: objName(o) })
           }
         />
       </div>
@@ -119,8 +116,10 @@ export function GenericListPage({ tab }: { tab: TabDescriptor }) {
             </select>
           )}
         </ListFilterBar>
+        <NewResourceButton kind={descriptor.kind} namespace={nsFilter} />
       </Toolbar>
       {body()}
+      <ResourceDialogs />
     </div>
   )
 }

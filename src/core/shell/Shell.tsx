@@ -11,6 +11,7 @@ import { EditorArea } from './EditorArea'
 import { SessionGuard } from './SessionGuard'
 import { SideBar } from './SideBar'
 import { StatusBar } from './StatusBar'
+import { TabCloseGuard } from './TabCloseGuard'
 import { WorkbenchDialogs } from './WorkbenchDialogs'
 import './Shell.css'
 
@@ -71,6 +72,7 @@ export function Shell() {
       <CommandPalette />
       <ContextMenuHost />
       <WorkbenchDialogs />
+      <TabCloseGuard />
       <SessionGuard />
       <Toaster />
     </div>

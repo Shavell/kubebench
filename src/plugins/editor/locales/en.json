@@ -1,0 +1,99 @@
+{
+  "manifest": {
+    "name": "Resource Editor",
+    "description": "YAML view and editor with diff review, dry run and server-side apply, and new resources from templates or files."
+  },
+  "commands": {
+    "newResource": "Resources: New Resource…"
+  },
+  "yaml": {
+    "ariaLabel": "YAML of {{name}}",
+    "loading": "Loading {{name}}…",
+    "loadFailed": "Could not load {{name}}",
+    "neat": "Neat",
+    "neatHint": "Hide what the cluster maintains: status, managedFields, uid, resourceVersion, generation, timestamps and tool annotations",
+    "reload": "Reload",
+    "reloadHint": "Read the object from the cluster again",
+    "edit": "Edit",
+    "editHint": "Edit the YAML, review the changes, dry run and apply them",
+    "cancel": "Cancel",
+    "review": "Review changes",
+    "backToEdit": "Back to editing",
+    "noChanges": "No changes yet",
+    "dryRun": "Dry run",
+    "apply": "Apply",
+    "live": "Live (neat)",
+    "edited": "Your changes",
+    "editHintBanner": "Editing the neat YAML. Nothing reaches the cluster before you apply; a dry run validates the changes on the server without saving them.",
+    "reviewHint": "Review the changes against the live object. You can still edit on the right; Apply sends them with server-side apply.",
+    "secretHint": "The Secret's values are shown as placeholders. Applying fails while one remains: replace each with the real value (base64 in data, plain text in stringData) or remove its key.",
+    "discardTitle": "Discard your changes?",
+    "discardMessage": "Your edits of {{name}} were not applied and will be lost.",
+    "discard": "Discard",
+    "applied": "{{name}} applied"
+  },
+  "apply": {
+    "dryRunTitle": "Dry run",
+    "appliedTitle": "Applied",
+    "dismiss": "Hide the results",
+    "state": {
+      "created": "created",
+      "configured": "configured",
+      "unchanged": "unchanged",
+      "failed": "failed"
+    },
+    "dryState": {
+      "created": "would be created",
+      "configured": "would be configured",
+      "unchanged": "unchanged",
+      "failed": "would fail"
+    },
+    "count": {
+      "created": "{{count}} created",
+      "configured": "{{count}} configured",
+      "unchanged": "{{count}} unchanged",
+      "failed": "{{count}} failed"
+    },
+    "dryCount": {
+      "created": "{{count}} would be created",
+      "configured": "{{count}} would be configured",
+      "unchanged": "{{count}} unchanged",
+      "failed": "{{count}} would fail"
+    },
+    "conflictTitle": "Fields owned by another field manager",
+    "conflictHint": "The manifest changes fields another field manager (a controller, kubectl, a GitOps tool) set; see the error above. Force apply overwrites them and makes KubeBench their owner, but their manager may set them back.",
+    "force": "Force apply",
+    "forceTitle": "Force apply {{name}}?",
+    "forceMessage": "The fields other field managers own are overwritten with the values of your manifest, and KubeBench becomes their owner."
+  },
+  "newResource": {
+    "title": "New resource",
+    "template": "Template",
+    "namespace": "Namespace",
+    "namespaceHint": "Namespace of the template, and of objects that name none",
+    "import": "Import files…",
+    "importedOption": "Imported files",
+    "importedFrom": "Imported from {{files}}. Objects without a namespace go to the namespace selected above.",
+    "hint": "Start from a template or import YAML or JSON files (or drop them here); any number of documents. Objects without a namespace go to the namespace selected above.",
+    "drop": "Drop YAML or JSON files to import them",
+    "tooLarge": "The files are larger than {{size}} MiB, more than one apply can take.",
+    "replaceTitle": "Replace your text?",
+    "replaceMessage": "The editor holds changes that were not applied. Replacing the text discards them.",
+    "replace": "Replace",
+    "applied": "Resources applied",
+    "open": "Open",
+    "templates": {
+      "deployment": "Deployment",
+      "service": "Service",
+      "configMap": "ConfigMap",
+      "secret": "Secret",
+      "ingress": "Ingress",
+      "job": "Job",
+      "cronJob": "CronJob",
+      "namespace": "Namespace",
+      "persistentVolumeClaim": "PersistentVolumeClaim",
+      "serviceAccount": "ServiceAccount",
+      "roleBinding": "Role + RoleBinding"
+    }
+  }
+}

@@ -32,7 +32,7 @@ func TestObjectYAMLIsACompleteManifest(t *testing.T) {
 		{"Node", "", "node-1", "apiVersion: v1\nkind: Node\n"},
 	}
 	for _, c := range cases {
-		out, err := rt.ObjectYAML(context.Background(), c.kind, c.namespace, c.name)
+		out, err := rt.ObjectYAML(context.Background(), ObjectRef{Kind: c.kind, Namespace: c.namespace, Name: c.name}, false)
 		if err != nil {
 			t.Fatalf("%s: %v", c.kind, err)
 		}

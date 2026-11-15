@@ -1,4 +1,5 @@
 import type { KubeObject } from '../types'
+import { apiVersionOf } from './mockKinds'
 
 /**
  * Mock objects for the generic resource browser, keyed by catalog key.
@@ -14,6 +15,7 @@ function obj(
   rest: Record<string, unknown> = {},
 ): KubeObject {
   return {
+    apiVersion: apiVersionOf(kind),
     kind,
     metadata: { name, ...(namespace ? { namespace } : {}), labels: {} },
     age,
