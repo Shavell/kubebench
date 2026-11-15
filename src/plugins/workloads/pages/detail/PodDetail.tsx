@@ -11,7 +11,7 @@ import { EventsTable } from '@/shared/EventsTable'
 import { notify } from '@/shared/notify'
 import { Icon } from '@/shared/Icon'
 import { Toolbar } from '@/shared/Toolbar'
-import { TimeSeriesChart } from '@/shared/charts/TimeSeriesChart'
+import { MetricChart } from '@/shared/charts/MetricChart'
 import { chartColor } from '@/shared/charts/chartTheme'
 import { DeletePodDialog } from '../../DeletePodDialog'
 import { useWorkloadsTranslation, WORKLOADS_NS } from '../../i18n'
@@ -29,11 +29,11 @@ export function PodDetail({ pod, tabId }: { pod: Pod; tabId: string }) {
   const windowMinutes = useSettingsStore((s) => s.metricsWindow)
   const container = pod.containers[0]
 
-  const { data: cpu } = useProviderQuery(
+  const cpu = useProviderQuery(
     (p) => p.metrics.podSeries(pod.namespace, pod.name, 'cpu', windowMinutes),
     [pod.namespace, pod.name, windowMinutes],
   )
-  const { data: memory } = useProviderQuery(
+  const memory = useProviderQuery(
     (p) => p.metrics.podSeries(pod.namespace, pod.name, 'memory', windowMinutes),
     [pod.namespace, pod.name, windowMinutes],
   )
@@ -127,8 +127,8 @@ export function PodDetail({ pod, tabId }: { pod: Pod; tabId: string }) {
 
         <DetailSection title={t('detail.utilization', { minutes: windowMinutes })} />
         <div className="detail__charts">
-          <TimeSeriesChart title={t('columns.cpu')} data={cpu ?? []} color={chartColor('blue')} height={150} />
-          <TimeSeriesChart title={t('columns.memory')} data={memory ?? []} color={chartColor('purple')} height={150} />
+          <MetricChart title={t('columns.cpu')} series={cpu} color={chartColor('blue')} height={150} />
+          <MetricChart title={t('columns.memory')} series={memory} color={chartColor('purple')} height={150} />
         </div>
 
         <DetailSection title={t('common.labels')} />

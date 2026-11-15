@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { useLayoutStore } from '@/core/store/layoutStore'
 import { useProviderQuery } from '@/data/DataContext'
 import { Icon } from '@/shared/Icon'
+import { SidebarErrors } from '@/shared/SidebarErrors'
 import { Tree, type TreeNode } from '@/shared/Tree'
 import { EnvironmentDot } from './ClusterBadges'
 import { CLUSTERS_NS } from './namespace'
@@ -11,7 +12,7 @@ import { INVENTORY_TAB_KIND, openInventoryTab } from './tabs'
 export function ClustersSidebar() {
   const { t } = useTranslation(CLUSTERS_NS)
   const activeTabId = useLayoutStore((s) => s.activeTabId)
-  const { data: clusters } = useProviderQuery((p) => p.inventory.listClusters(), [])
+  const { data: clusters, error } = useProviderQuery((p) => p.inventory.listClusters(), [])
 
   const nodes: TreeNode[] = [
     {
@@ -33,5 +34,10 @@ export function ClustersSidebar() {
     },
   ]
 
-  return <Tree nodes={nodes} selectedId={activeTabId} onSelect={openInventoryTab} />
+  return (
+    <>
+      <Tree nodes={nodes} selectedId={activeTabId} onSelect={openInventoryTab} />
+      <SidebarErrors errors={[error]} />
+    </>
+  )
 }

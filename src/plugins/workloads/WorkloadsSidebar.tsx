@@ -1,5 +1,6 @@
 import { useLayoutStore } from '@/core/store/layoutStore'
 import { useProviderQuery } from '@/data/DataContext'
+import { SidebarErrors } from '@/shared/SidebarErrors'
 import { Tree, type TreeNode } from '@/shared/Tree'
 import { useWorkloadsTranslation, WORKLOADS_NS } from './i18n'
 import { RESOURCE_CATALOG, resourceLabel, richLabel, type ResourceGroup } from './resourceCatalog'
@@ -53,11 +54,12 @@ export function WorkloadsSidebar() {
   const activeTabId = useLayoutStore((s) => s.activeTabId)
 
   // Counts for the rich types (nice to keep the familiar badges).
-  const { data: pods } = useProviderQuery((p) => p.cluster.listPods(), [])
-  const { data: nodes } = useProviderQuery((p) => p.cluster.listNodes(), [])
-  const { data: deployments } = useProviderQuery((p) => p.cluster.listDeployments(), [])
-  const { data: services } = useProviderQuery((p) => p.cluster.listServices(), [])
-  const { data: namespaces } = useProviderQuery((p) => p.cluster.listNamespaces(), [])
+  const podsQuery = useProviderQuery((p) => p.cluster.listPods(), [])
+  const nodesQuery = useProviderQuery((p) => p.cluster.listNodes(), [])
+  const deploymentsQuery = useProviderQuery((p) => p.cluster.listDeployments(), [])
+  const servicesQuery = useProviderQuery((p) => p.cluster.listServices(), [])
+  const namespacesQuery = useProviderQuery((p) => p.cluster.listNamespaces(), [])
+  const queries = [podsQuery, nodesQuery, deploymentsQuery, servicesQuery, namespacesQuery]
 
   const rich = (resource: string, count: number | undefined): TreeNode => ({
     id: `list:${resource}`,
@@ -68,9 +70,9 @@ export function WorkloadsSidebar() {
 
   // Build each group's children: rich entries first, then catalog entries.
   const richByGroup: Partial<Record<ResourceGroup, TreeNode[]>> = {
-    cluster: [rich('Nodes', nodes?.length), rich('Namespaces', namespaces?.length)],
-    workloads: [rich('Pods', pods?.length), rich('Deployments', deployments?.length)],
-    network: [rich('Services', services?.length)],
+    cluster: [rich('Nodes', nodesQuery.data?.length), rich('Namespaces', namespacesQuery.data?.length)],
+    workloads: [rich('Pods', podsQuery.data?.length), rich('Deployments', deploymentsQuery.data?.length)],
+    network: [rich('Services', servicesQuery.data?.length)],
   }
 
   const tree: TreeNode[] = GROUP_ORDER.map((group) => {
@@ -88,20 +90,24 @@ export function WorkloadsSidebar() {
   })
 
   return (
-    <Tree
-      nodes={tree}
-      selectedId={activeTabId}
-      defaultExpanded={['group:cluster', 'group:workloads', 'group:network']}
-      onSelect={(node) => {
-        if (node.id.startsWith('list:')) {
-          const resource = node.id.slice('list:'.length)
-          openRichList(resource, RICH_ICONS[resource] ?? 'symbol-field')
-        } else if (node.id.startsWith('reslist:')) {
-          const key = node.id.slice('reslist:'.length)
-          const d = RESOURCE_CATALOG.find((x) => x.key === key)!
-          openGenericList(key, d.icon)
-        }
-      }}
-    />
+    <>
+      {/* Above the long tree, where a failed count query stays visible. */}
+      <SidebarErrors errors={queries.map((q) => q.error)} />
+      <Tree
+        nodes={tree}
+        selectedId={activeTabId}
+        defaultExpanded={['group:cluster', 'group:workloads', 'group:network']}
+        onSelect={(node) => {
+          if (node.id.startsWith('list:')) {
+            const resource = node.id.slice('list:'.length)
+            openRichList(resource, RICH_ICONS[resource] ?? 'symbol-field')
+          } else if (node.id.startsWith('reslist:')) {
+            const key = node.id.slice('reslist:'.length)
+            const d = RESOURCE_CATALOG.find((x) => x.key === key)!
+            openGenericList(key, d.icon)
+          }
+        }}
+      />
+    </>
   )
 }

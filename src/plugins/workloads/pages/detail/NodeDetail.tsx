@@ -9,7 +9,7 @@ import { EventsTable } from '@/shared/EventsTable'
 import { Icon } from '@/shared/Icon'
 import { notify } from '@/shared/notify'
 import { Toolbar } from '@/shared/Toolbar'
-import { TimeSeriesChart } from '@/shared/charts/TimeSeriesChart'
+import { MetricChart } from '@/shared/charts/MetricChart'
 import { chartColor } from '@/shared/charts/chartTheme'
 import { useWorkloadsTranslation } from '../../i18n'
 import { DetailRow, DetailSection } from './DetailBits'
@@ -21,11 +21,11 @@ export function NodeDetail({ node }: { node: K8sNode }) {
   const openTab = useLayoutStore((s) => s.openTab)
   const windowMinutes = useSettingsStore((s) => s.metricsWindow)
 
-  const { data: cpu } = useProviderQuery(
+  const cpu = useProviderQuery(
     (p) => p.metrics.nodeSeries(node.name, 'cpu', windowMinutes),
     [node.name, windowMinutes],
   )
-  const { data: memory } = useProviderQuery(
+  const memory = useProviderQuery(
     (p) => p.metrics.nodeSeries(node.name, 'memory', windowMinutes),
     [node.name, windowMinutes],
   )
@@ -90,8 +90,8 @@ export function NodeDetail({ node }: { node: K8sNode }) {
 
         <DetailSection title={t('detail.utilization', { minutes: windowMinutes })} />
         <div className="detail__charts">
-          <TimeSeriesChart title={t('columns.cpu')} data={cpu ?? []} color={chartColor('blue')} height={150} />
-          <TimeSeriesChart title={t('columns.memory')} data={memory ?? []} color={chartColor('purple')} height={150} />
+          <MetricChart title={t('columns.cpu')} series={cpu} color={chartColor('blue')} height={150} />
+          <MetricChart title={t('columns.memory')} series={memory} color={chartColor('purple')} height={150} />
         </div>
 
         <DetailSection title={t('detail.podsOnNode', { total: nodePods.length })} />

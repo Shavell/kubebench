@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useLayoutStore } from '@/core/store/layoutStore'
 import { useProviderQuery } from '@/data/DataContext'
+import { SidebarErrors } from '@/shared/SidebarErrors'
 import { Tree, type TreeNode } from '@/shared/Tree'
 import { NS } from './i18n'
 import {
@@ -13,7 +14,7 @@ import {
 export function CrdSidebar() {
   const { t } = useTranslation(NS)
   const activeTabId = useLayoutStore((s) => s.activeTabId)
-  const { data: crds } = useProviderQuery((p) => p.crd.listCrds(), [])
+  const { data: crds, error } = useProviderQuery((p) => p.crd.listCrds(), [])
 
   // Tree node ids equal the ids of the tabs they open, so the open tab is highlighted.
   const groups = new Map<string, TreeNode[]>()
@@ -43,16 +44,19 @@ export function CrdSidebar() {
   ]
 
   return (
-    <Tree
-      nodes={nodes}
-      selectedId={activeTabId}
-      onSelect={(node) => {
-        if (node.id === DEFINITIONS_TAB_ID) {
-          openDefinitionsTab()
-        } else if (node.id.startsWith(INSTANCES_TAB_PREFIX)) {
-          openInstancesTab(node.id.slice(INSTANCES_TAB_PREFIX.length), node.label)
-        }
-      }}
-    />
+    <>
+      <Tree
+        nodes={nodes}
+        selectedId={activeTabId}
+        onSelect={(node) => {
+          if (node.id === DEFINITIONS_TAB_ID) {
+            openDefinitionsTab()
+          } else if (node.id.startsWith(INSTANCES_TAB_PREFIX)) {
+            openInstancesTab(node.id.slice(INSTANCES_TAB_PREFIX.length), node.label)
+          }
+        }}
+      />
+      <SidebarErrors errors={[error]} />
+    </>
   )
 }

@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useLayoutStore } from '@/core/store/layoutStore'
 import { useProviderQuery } from '@/data/DataContext'
+import { SidebarErrors } from '@/shared/SidebarErrors'
 import { Tree, type TreeNode } from '@/shared/Tree'
 import { USERS_NS } from './namespace'
 import { openUsersTab } from './tabs'
@@ -9,7 +10,7 @@ import { openUsersTab } from './tabs'
 export function UsersSidebar() {
   const { t } = useTranslation(USERS_NS)
   const activeTabId = useLayoutStore((s) => s.activeTabId)
-  const { data: users } = useProviderQuery((p) => p.users.listUsers(), [])
+  const { data: users, error } = useProviderQuery((p) => p.users.listUsers(), [])
 
   const nodes: TreeNode[] = [
     {
@@ -24,5 +25,10 @@ export function UsersSidebar() {
       })),
     },
   ]
-  return <Tree nodes={nodes} selectedId={activeTabId} onSelect={openUsersTab} />
+  return (
+    <>
+      <Tree nodes={nodes} selectedId={activeTabId} onSelect={openUsersTab} />
+      <SidebarErrors errors={[error]} />
+    </>
+  )
 }

@@ -1,0 +1,25 @@
+.kb-sidebar-errors {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 6px 8px;
+}
+
+.kb-sidebar-errors__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  padding: 6px 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--vscode-inputValidation-errorBorder);
+  border-radius: 3px;
+  background: var(--vscode-inputValidation-errorBackground);
+}
+
+.kb-sidebar-errors__icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}

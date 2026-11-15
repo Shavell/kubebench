@@ -1,7 +1,8 @@
 import type { QueryState } from '@/data/DataContext'
 import type { MetricPoint } from '@/data/types'
-import { Icon } from '@/shared/Icon'
-import { TimeSeriesChart } from '@/shared/charts/TimeSeriesChart'
+import { Icon } from '../Icon'
+import { TimeSeriesChart } from './TimeSeriesChart'
+import './charts.css'
 
 interface MetricChartProps {
   title: string
@@ -20,9 +21,9 @@ interface MetricChartProps {
 export function MetricChart({ title, series, ...chart }: MetricChartProps) {
   if (series.error) {
     return (
-      <div className="kb-chart metrics-chart--unavailable">
+      <div className="kb-chart kb-chart--unavailable">
         <div className="kb-chart__title">{title}</div>
-        <div className="metrics-chart__reason">
+        <div className="kb-chart__reason">
           <Icon name="warning" size={14} />
           <span>{series.error}</span>
         </div>
