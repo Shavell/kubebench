@@ -7,6 +7,8 @@ import { useProviders } from '@/data/DataContext'
 import { useDataMode } from '@/data/mode'
 import type { ClusterEntry, ClusterEnvironment } from '@/data/types'
 import { i18n } from '@/i18n'
+import { ProviderBadge } from '@/shared/cloud/ProviderBadge'
+import { platformLabel, platformTooltip } from '@/shared/cloud/platformText'
 import { Icon } from '@/shared/Icon'
 import { notify } from '@/shared/notify'
 import { StatusMenu, type StatusMenuEntry } from './StatusMenu'
@@ -77,7 +79,7 @@ export function ClusterItem() {
           ? t('statusBar.cluster.broken')
           : c.source === 'address'
             ? t('statusBar.cluster.bookmark')
-            : envLabel(c.environment),
+            : [c.platform && platformLabel(t, c.platform), envLabel(c.environment)].filter(Boolean).join(' · '),
         onSelect: () => !c.active && activate(c.name),
       }))
     : [{ id: 'loading', label: t('statusBar.cluster.loading'), disabled: true, onSelect: () => {} }]
@@ -86,6 +88,7 @@ export function ClusterItem() {
     ? [
         t('statusBar.cluster.title', { name: cluster.name }),
         envLabel(cluster.environment),
+        cluster.platform ? platformTooltip(t, cluster.platform) : '',
         server,
         t('statusBar.cluster.switchHint'),
       ]
@@ -108,6 +111,7 @@ export function ClusterItem() {
       >
         <Icon name={cluster ? 'server-environment' : 'warning'} size={13} />
         <span>{cluster ? cluster.name : t('statusBar.cluster.none')}</span>
+        <ProviderBadge platform={cluster?.platform} compact />
         {cluster?.environment && <span className="status-bar__env">{envLabel(cluster.environment)}</span>}
       </button>
       {anchor && (

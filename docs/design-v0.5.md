@@ -1512,7 +1512,7 @@ are resolved on the first request, never while the runtime is built.
   key (paste or load a file) / Azure service principal; Edit dialog: the
   sign-in in use (`cloudAuth`), the stored kind, replace or remove (secret
   fields are never pre-filled).
-- Mock: deterministic platforms per mock cluster (k3s supported, GKE
+- Mock: deterministic platforms per mock cluster (k3s supported, AKS
   ending soon, EKS end of life), no clock in the data.
 
 ## 8. Distribution

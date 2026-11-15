@@ -411,5 +411,69 @@
       "title": "Bu görünüm gösterilemedi",
       "hint": "Kodu yüklenemedi ya da bir hatayla durdu. Yeniden deneyin; bir yükseltmeden sonra sayfayı yeniden yükleyin."
     }
+  },
+  "cloud": {
+    "providers": {
+      "eks": "EKS",
+      "aks": "AKS",
+      "gke": "GKE",
+      "doks": "DOKS",
+      "lke": "LKE",
+      "ovh": "OVH",
+      "openshift": "OpenShift",
+      "rke2": "RKE2",
+      "k3s": "k3s",
+      "kubernetes": "Kubernetes"
+    },
+    "names": {
+      "eks": "Amazon EKS",
+      "aks": "Azure Kubernetes Service",
+      "gke": "Google Kubernetes Engine",
+      "doks": "DigitalOcean Kubernetes",
+      "lke": "Linode Kubernetes Engine",
+      "ovh": "OVHcloud Managed Kubernetes",
+      "openshift": "Red Hat OpenShift",
+      "rke2": "RKE2",
+      "k3s": "K3s",
+      "kubernetes": "Kubernetes"
+    },
+    "clouds": {
+      "aws": "AWS",
+      "azure": "Azure",
+      "gcp": "GCP",
+      "digitalocean": "DigitalOcean",
+      "linode": "Linode",
+      "ovh": "OVHcloud"
+    },
+    "onCloud": "{{cloud}} üzerinde Kubernetes",
+    "basis": {
+      "eks": "Amazon EKS standart desteği",
+      "aks": "AKS desteği",
+      "gke": "GKE standart desteği",
+      "kubernetes": "upstream Kubernetes desteği"
+    },
+    "version": "Sürüm {{version}}",
+    "notDetected": "Henüz bağlanılmadı: yalnızca API sunucusu adresinden tanındı.",
+    "support": {
+      "supported": "{{date}} tarihine kadar destekleniyor ({{basis}})",
+      "ending-soon": "Destek {{date}} tarihinde bitiyor ({{basis}})",
+      "end-of-life": "Destek {{date}} tarihinde bitti ({{basis}})",
+      "endedLongAgo": "Destek çoktan bitti ({{basis}})",
+      "unknown": "Destek süresi bilinmiyor"
+    },
+    "notice": {
+      "endOfLife": {
+        "title": "Kubernetes {{version}} için {{basis}} sona erdi ({{date}})",
+        "hint": "{{provider}} bu sürüm için artık düzeltme yayımlamıyor. Desteklenen bir alt sürüme yükseltmeyi planlayın."
+      },
+      "endOfLifeOld": {
+        "title": "Kubernetes {{version}} için {{basis}} çoktan sona erdi",
+        "hint": "{{provider}} bu sürüm için artık düzeltme yayımlamıyor. Desteklenen bir alt sürüme yükseltmeyi planlayın."
+      },
+      "endingSoon": {
+        "title": "Kubernetes {{version}} için {{basis}} {{date}} tarihinde bitiyor",
+        "hint": "Bu tarihten önce daha yeni bir alt sürüme yükseltmeyi planlayın."
+      }
+    }
   }
 }

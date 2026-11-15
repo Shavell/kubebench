@@ -79,6 +79,8 @@ export interface ActiveCluster {
   name: string
   environment: ClusterEnvironment
   readOnly: boolean
+  /** Provider, version and support window (design §7.12); null until the runtime is built. */
+  platform?: ClusterPlatform | null
 }
 
 /** What the backend can do on the active cluster (RBAC + capability probes). */
@@ -201,6 +203,12 @@ export interface ClusterEntry {
   environment?: ClusterEnvironment
   /** The caller's effective role on this cluster. */
   role?: ClusterRole
+  /** Provider, version and support window (design §7.12). */
+  platform?: ClusterPlatform | null
+  /** Admins only: the cloud whose identity signs in to it in process. */
+  cloudAuth?: CloudCredentialProvider
+  /** Admins only: the provider of stored per-cluster credentials (absent = the server's identity). */
+  cloudCredentials?: CloudCredentialProvider
 }
 
 /** Fields an admin can change on a cluster (PATCH /api/clusters/{id}). */
@@ -208,6 +216,8 @@ export interface ClusterUpdate {
   name?: string
   readOnly?: boolean
   environment?: ClusterEnvironment
+  /** Replaces the per-cluster cloud credentials; null removes them (design §7.12). */
+  credentials?: CloudCredentials | null
 }
 
 export interface Namespace {
@@ -542,3 +552,49 @@ export interface WatchChange {
   topic: string
   namespace: string
 }
+
+/** Where a cluster runs (design §7.12): a managed service, a distribution, or plain Kubernetes. */
+export type CloudProvider =
+  | 'eks'
+  | 'aks'
+  | 'gke'
+  | 'doks'
+  | 'lke'
+  | 'ovh'
+  | 'openshift'
+  | 'rke2'
+  | 'k3s'
+  | 'kubernetes'
+
+/** The infrastructure under the nodes; empty when unknown. */
+export type InfraCloud = '' | 'aws' | 'azure' | 'gcp' | 'digitalocean' | 'linode' | 'ovh'
+
+export type VersionSupportStatus = 'supported' | 'ending-soon' | 'end-of-life' | 'unknown'
+
+/** Whether the cluster's minor version is still supported by its provider. */
+export interface VersionSupport {
+  status: VersionSupportStatus
+  /** End of standard support (YYYY-MM-DD), empty when the table has none. */
+  endDate: string
+  /** The lifecycle table used: eks, aks, gke or kubernetes (upstream); empty for none. */
+  basis: string
+}
+
+export interface ClusterPlatform {
+  provider: CloudProvider
+  cloud: InfraCloud
+  /** The API server's gitVersion; empty until detected. */
+  version: string
+  support: VersionSupport
+  /** False when only the API server URL was looked at (the cluster is not connected yet). */
+  detected: boolean
+}
+
+export type CloudCredentialProvider = 'aws' | 'gcp' | 'azure'
+
+/** Per-cluster cloud credentials an admin supplies; write-only (never returned). */
+export type CloudCredentials =
+  | { provider: 'aws'; accessKeyId: string; secretAccessKey: string; sessionToken?: string }
+  | { provider: 'aws'; profile: string }
+  | { provider: 'gcp'; serviceAccountJson: string }
+  | { provider: 'azure'; tenantId: string; clientId: string; clientSecret: string }

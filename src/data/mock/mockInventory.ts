@@ -1,7 +1,8 @@
 import { ApiError } from '../apiClient'
 import type { InventoryProvider } from '../providers'
-import type { ClusterEnvironment, ClusterEntry } from '../types'
+import type { CloudCredentialProvider, ClusterEnvironment, ClusterEntry } from '../types'
 import { delay, delayReject } from './delay'
+import { mockPlatform } from './mockPlatforms'
 
 /**
  * Mock cluster inventory, persisted to localStorage so add/remove/activate
@@ -19,6 +20,9 @@ interface StoredCluster {
   active: boolean
   environment: ClusterEnvironment
   readOnly: boolean
+  /** The cloud whose identity signs in (design §7.12) and the stored per-cluster credentials. */
+  cloudAuth?: CloudCredentialProvider
+  cloudCredentials?: CloudCredentialProvider
 }
 
 const DEFAULT_CLUSTERS: StoredCluster[] = [
@@ -37,6 +41,7 @@ const DEFAULT_CLUSTERS: StoredCluster[] = [
     active: false,
     environment: 'staging',
     readOnly: false,
+    cloudAuth: 'azure',
   },
   {
     id: 3,
@@ -45,6 +50,8 @@ const DEFAULT_CLUSTERS: StoredCluster[] = [
     active: false,
     environment: 'production',
     readOnly: true,
+    cloudAuth: 'aws',
+    cloudCredentials: 'aws',
   },
 ]
 
@@ -85,6 +92,9 @@ function toEntry(c: StoredCluster): ClusterEntry {
     environment: c.environment,
     readOnly: c.readOnly,
     role: 'admin',
+    platform: mockPlatform(c.id),
+    cloudAuth: c.cloudAuth,
+    cloudCredentials: c.cloudCredentials,
   }
 }
 
@@ -115,6 +125,9 @@ export function createMockInventory(): InventoryProvider {
         active: false,
         environment: '',
         readOnly: false,
+        // The mock reads no kubeconfig: credentials imply a matching stanza.
+        cloudAuth: entry.credentials?.provider,
+        cloudCredentials: entry.credentials?.provider,
       })
       save(clusters)
       return delay(undefined)
@@ -134,11 +147,17 @@ export function createMockInventory(): InventoryProvider {
       if (update.name && clusters.some((c) => c.id !== id && c.name === update.name)) {
         return delayReject(new ApiError(409, 'conflict', `cluster "${update.name}" already exists`))
       }
+      if (update.credentials && target.cloudAuth !== update.credentials.provider) {
+        return delayReject(
+          new ApiError(400, 'bad_request', `the kubeconfig does not sign in to ${update.credentials.provider}`),
+        )
+      }
       Object.assign(target, {
         name: update.name ?? target.name,
         environment: update.environment ?? target.environment,
         readOnly: update.readOnly ?? target.readOnly,
       })
+      if (update.credentials !== undefined) target.cloudCredentials = update.credentials?.provider
       save(clusters)
       return delay(undefined)
     },

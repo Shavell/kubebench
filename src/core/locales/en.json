@@ -411,5 +411,69 @@
       "title": "This view could not be shown",
       "hint": "Its code could not be loaded or it stopped with an error. Retry; after an upgrade, reload the page."
     }
+  },
+  "cloud": {
+    "providers": {
+      "eks": "EKS",
+      "aks": "AKS",
+      "gke": "GKE",
+      "doks": "DOKS",
+      "lke": "LKE",
+      "ovh": "OVH",
+      "openshift": "OpenShift",
+      "rke2": "RKE2",
+      "k3s": "k3s",
+      "kubernetes": "Kubernetes"
+    },
+    "names": {
+      "eks": "Amazon EKS",
+      "aks": "Azure Kubernetes Service",
+      "gke": "Google Kubernetes Engine",
+      "doks": "DigitalOcean Kubernetes",
+      "lke": "Linode Kubernetes Engine",
+      "ovh": "OVHcloud Managed Kubernetes",
+      "openshift": "Red Hat OpenShift",
+      "rke2": "RKE2",
+      "k3s": "K3s",
+      "kubernetes": "Kubernetes"
+    },
+    "clouds": {
+      "aws": "AWS",
+      "azure": "Azure",
+      "gcp": "GCP",
+      "digitalocean": "DigitalOcean",
+      "linode": "Linode",
+      "ovh": "OVHcloud"
+    },
+    "onCloud": "Kubernetes on {{cloud}}",
+    "basis": {
+      "eks": "Amazon EKS standard support",
+      "aks": "AKS support",
+      "gke": "GKE standard support",
+      "kubernetes": "upstream Kubernetes support"
+    },
+    "version": "Version {{version}}",
+    "notDetected": "Not connected yet: recognised from the API server address only.",
+    "support": {
+      "supported": "Supported until {{date}} ({{basis}})",
+      "ending-soon": "Support ends on {{date}} ({{basis}})",
+      "end-of-life": "Support ended on {{date}} ({{basis}})",
+      "endedLongAgo": "Support ended long ago ({{basis}})",
+      "unknown": "Support window unknown"
+    },
+    "notice": {
+      "endOfLife": {
+        "title": "Kubernetes {{version}} is past the end of {{basis}} ({{date}})",
+        "hint": "{{provider}} no longer ships fixes for this version. Plan an upgrade to a supported minor version."
+      },
+      "endOfLifeOld": {
+        "title": "Kubernetes {{version}} is long past the end of {{basis}}",
+        "hint": "{{provider}} no longer ships fixes for this version. Plan an upgrade to a supported minor version."
+      },
+      "endingSoon": {
+        "title": "{{basis}} for Kubernetes {{version}} ends on {{date}}",
+        "hint": "Plan an upgrade to a newer minor version before then."
+      }
+    }
   }
 }

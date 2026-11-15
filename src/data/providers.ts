@@ -18,6 +18,7 @@ import type {
   ClusterEntry,
   ClusterStats,
   ClusterUpdate,
+  CloudCredentials,
   GlobalRole,
   K8sEvent,
   CrdDefinition,
@@ -134,6 +135,8 @@ export interface InventoryProvider {
     content?: string
     address?: string
     context?: string
+    /** Per-cluster cloud credentials (design §7.12); omitted = the server's own identity. */
+    credentials?: CloudCredentials
   }): Promise<void>
   removeCluster(name: string): Promise<void>
   /** Switches the backend to another cluster; the app reloads afterwards. */

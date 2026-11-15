@@ -28,6 +28,7 @@ export function mockServerInfo(): ServerInfo {
       name: cluster.name,
       environment: cluster.environment ?? '',
       readOnly,
+      platform: cluster.platform,
     },
     permissions: {
       role: 'admin',
