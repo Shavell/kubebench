@@ -25,6 +25,7 @@ See [`../v0.5-handoff.md`](../v0.5-handoff.md) §6.
 | W3 | `live-updates` | Shared informers + SSE invalidation | 19890 |
 | W3 | `ux-polish` | Namespace pins, kubectl-like palette, shortcuts, table virtualization | 19891 |
 | W3 | `updates` | GitHub release check, update mode, What's new | 19899 |
+| W3 | `cloud` | EKS, AKS, GKE: detection, version support, in-process credentials | 19900 |
 
 ---
 
@@ -331,3 +332,59 @@ Tests:
 - Live: the real GitHub API ("no releases published" stays calm); a local
   fake via `KUBEBENCH_UPDATE_URL` showing an available update in the UI;
   What's new appearing once after the build version changes.
+
+## F13 `cloud` — Cloud providers (§7.12)
+
+Requested by the product owner: "EKS, AKS and GKE support; take tricks from
+KubelizeMe". KubelizeMe detects the provider from the API server URL, shows
+a provider badge and checks the version against the provider's support
+window; KubeBench adapts that and adds in-process cloud sign-in.
+
+Backend:
+- `internal/cloud`: provider detection from the server URL, refined by node
+  `spec.providerID`, well-known node labels and `gitVersion` suffixes
+  (EKS, AKS, GKE, DOKS, LKE, OVH, OpenShift, RKE2, k3s; a bare cloud
+  providerID names the cloud, not the managed service), cached per runtime
+  (background, refreshed after 1 h and on rebuild). A bundled, dated
+  support table (upstream, EKS, AKS, GKE; sources and "as of" date in a
+  comment) → `supported | ending-soon (≤90 days) | end-of-life | unknown`
+  with the end date.
+- `GET /api/clusters` entries and `/api/info` `cluster` gain `platform`;
+  listing never connects to a cluster (URL only until its runtime exists).
+- `internal/cloudauth`: recognise `aws eks get-token`,
+  `aws-iam-authenticator token`, `gke-gcloud-auth-plugin` and
+  `kubelogin get-token` stanzas (anything else stays an exec plugin under
+  `KUBEBENCH_ALLOW_KUBECONFIG_EXEC`) and replace them with token providers:
+  EKS (AWS SDK v2 default chain or per-cluster keys/profile, optional role
+  assumption, presigned STS `GetCallerIdentity` → `k8s-aws-v1.` token),
+  GKE (`golang.org/x/oauth2/google` ADC or a per-cluster service-account
+  key, scope `cloud-platform`), AKS (`azidentity`: service principal,
+  managed identity, workload identity, environment — never the Azure CLI —
+  for `<server-id>/.default`). Tokens cached until 1 min before expiry.
+- Per-cluster credentials (`credentials` on `POST /api/clusters` and
+  `PATCH /api/clusters/{id}`, store migration v4): write-only; GET returns
+  only their provider to admins; audit rows carry the provider only.
+- Docs: the design (§7.12, §4.3) and `docs/deployment.md` state that an
+  admin can make the server use its ambient cloud identity for any cluster
+  they add, and show the chart's `serviceAccount.annotations` for IRSA,
+  GKE Workload Identity and Azure Workload Identity.
+
+Frontend:
+- Text provider badge (no logos) in the Clusters view, the cluster
+  switcher and the status bar; an end-of-life / ending-soon notice on the
+  cluster overview.
+- Add/Edit cluster dialogs: cloud credential fields (AWS key or profile,
+  GCP service-account key, Azure service principal), never pre-filled.
+- Mock: deterministic platforms for the mock clusters.
+
+Tests:
+- Go: detection (URLs, providerIDs, labels, versions), the version table
+  (boundaries, table sanity), exec-stanza recognition (aws,
+  aws-iam-authenticator, gke-gcloud-auth-plugin, kubelogin variants;
+  unknown commands still refused without the flag), the EKS token against a
+  fixed signer and clock (decoded URL, independently recomputed SigV4
+  signature), fake GKE/AKS token sources through the transport (caching,
+  401 reset), API: platform fields, write-only credentials, clean audit.
+- No real cloud account is available: live checks on `kubebench-e2e` only
+  cover k3s detection, version status, the UI badges and the credential
+  fields of the Add/Edit dialogs (stored, never returned, audit clean).
