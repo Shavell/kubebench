@@ -1,7 +1,7 @@
 {
   "manifest": {
     "name": "Terminal & Editors",
-    "description": "Problems, logs and terminal panels, plus the YAML, pod logs and shell tabs."
+    "description": "Problems, logs and terminal panels, plus the pod logs and shell tabs."
   },
   "panels": {
     "problems": "Problems",

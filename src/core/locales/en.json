@@ -26,6 +26,10 @@
     "unavailable": {
       "retry": "Retry"
     },
+    "clipboard": {
+      "copied": "Copied to the clipboard",
+      "failed": "Could not copy to the clipboard"
+    },
     "errors": {
       "capabilityUnavailable": {
         "title": "Not available on this cluster",
@@ -113,7 +117,8 @@
     },
     "yamlTab": {
       "ariaLabel": "YAML of {{title}}"
-    }
+    },
+    "newResourceTab": "New resource"
   },
   "boot": {
     "starting": "Starting KubeBench…",

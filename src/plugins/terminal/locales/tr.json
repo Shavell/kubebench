@@ -1,7 +1,7 @@
 {
   "manifest": {
     "name": "Terminal ve düzenleyiciler",
-    "description": "Sorunlar, loglar ve terminal panelleri ile YAML, Pod logları ve shell sekmeleri."
+    "description": "Sorunlar, loglar ve terminal panelleri ile Pod logları ve shell sekmeleri."
   },
   "panels": {
     "problems": "Sorunlar",

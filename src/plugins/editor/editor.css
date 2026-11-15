@@ -1,0 +1,193 @@
+/* Resource editor tabs: YAML (view / edit / review) and New resource. */
+
+.kb-yaml {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.kb-yaml__toolbar-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.kb-yaml__mode {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--vscode-descriptionForeground);
+}
+
+.kb-yaml__options {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-right: 4px;
+}
+
+.kb-yaml__banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  flex-shrink: 0;
+  font-size: 12px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  color: var(--vscode-descriptionForeground);
+}
+.kb-yaml__banner--warning {
+  color: var(--vscode-editorWarning-foreground);
+}
+
+.kb-yaml__editor {
+  flex: 1;
+  min-height: 120px;
+  position: relative;
+}
+
+.kb-yaml__drop {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  pointer-events: none;
+  font-size: 13px;
+  border: 2px dashed var(--vscode-focusBorder);
+  background: color-mix(in srgb, var(--vscode-editor-background) 85%, transparent);
+  color: var(--vscode-foreground);
+}
+
+.kb-yaml__select {
+  width: auto;
+  min-width: 150px;
+}
+
+/* --- apply results --------------------------------------------------------- */
+
+.kb-apply {
+  flex-shrink: 0;
+  max-height: 40%;
+  overflow: auto;
+  border-top: 1px solid var(--vscode-panel-border);
+  background: var(--vscode-panel-background);
+  font-size: 12px;
+}
+
+.kb-apply__header {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--vscode-panel-background);
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.kb-apply__title {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 11px;
+}
+
+.kb-apply__summary {
+  color: var(--vscode-descriptionForeground);
+}
+
+.kb-apply__dismiss {
+  margin-left: auto;
+  display: inline-flex;
+  padding: 2px;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.kb-apply__dismiss:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+}
+
+.kb-apply__rows {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+}
+
+.kb-apply__row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: baseline;
+  column-gap: 10px;
+  row-gap: 2px;
+  padding: 4px 12px;
+}
+
+.kb-apply__object {
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.kb-apply__kind {
+  color: var(--vscode-descriptionForeground);
+}
+
+.kb-apply__message,
+.kb-apply__warning {
+  grid-column: 2;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+.kb-apply__message {
+  color: var(--vscode-errorForeground);
+}
+.kb-apply__warning {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--vscode-editorWarning-foreground);
+}
+
+.kb-apply__refusal,
+.kb-apply__conflict {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 8px 12px;
+  padding: 8px 10px;
+  border-radius: 3px;
+}
+.kb-apply__refusal {
+  border: 1px solid var(--vscode-inputValidation-errorBorder);
+  background: var(--vscode-inputValidation-errorBackground);
+  color: var(--vscode-errorForeground);
+  user-select: text;
+}
+.kb-apply__detail {
+  margin-top: 2px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.kb-apply__conflict {
+  align-items: center;
+  border: 1px solid var(--vscode-editorWarning-foreground);
+  color: var(--vscode-foreground);
+}
+.kb-apply__conflict > .codicon {
+  color: var(--vscode-editorWarning-foreground);
+}
+.kb-apply__conflict-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}

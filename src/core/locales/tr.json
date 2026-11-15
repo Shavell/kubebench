@@ -26,6 +26,10 @@
     "unavailable": {
       "retry": "Tekrar dene"
     },
+    "clipboard": {
+      "copied": "Panoya kopyalandı",
+      "failed": "Panoya kopyalanamadı"
+    },
     "errors": {
       "capabilityUnavailable": {
         "title": "Bu cluster'da kullanılamıyor",
@@ -113,7 +117,8 @@
     },
     "yamlTab": {
       "ariaLabel": "{{title}} için YAML"
-    }
+    },
+    "newResourceTab": "Yeni kaynak"
   },
   "boot": {
     "starting": "KubeBench başlatılıyor…",

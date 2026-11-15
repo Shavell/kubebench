@@ -1,0 +1,99 @@
+{
+  "manifest": {
+    "name": "Kaynak düzenleyici",
+    "description": "Fark incelemesi, deneme çalıştırması ve sunucu tarafı uygulamayla YAML görüntüleyici ve düzenleyici; şablonlardan veya dosyalardan yeni kaynaklar."
+  },
+  "commands": {
+    "newResource": "Kaynaklar: Yeni kaynak…"
+  },
+  "yaml": {
+    "ariaLabel": "{{name}} için YAML",
+    "loading": "{{name}} yükleniyor…",
+    "loadFailed": "{{name}} yüklenemedi",
+    "neat": "Sade",
+    "neatHint": "Cluster'ın yönettiği alanları gizler: status, managedFields, uid, resourceVersion, generation, zaman damgaları ve araçların ek açıklamaları",
+    "reload": "Yeniden yükle",
+    "reloadHint": "Nesneyi cluster'dan yeniden okur",
+    "edit": "Düzenle",
+    "editHint": "YAML'ı düzenleyin, değişiklikleri inceleyin, deneme çalıştırması yapıp uygulayın",
+    "cancel": "İptal",
+    "review": "Değişiklikleri incele",
+    "backToEdit": "Düzenlemeye dön",
+    "noChanges": "Henüz değişiklik yok",
+    "dryRun": "Deneme çalıştırması",
+    "apply": "Uygula",
+    "live": "Canlı (sade)",
+    "edited": "Değişiklikleriniz",
+    "editHintBanner": "Sade YAML düzenleniyor. Siz uygulayana kadar cluster'a hiçbir şey gönderilmez; deneme çalıştırması değişiklikleri kaydetmeden sunucuda doğrular.",
+    "reviewHint": "Değişiklikleri canlı nesneyle karşılaştırın. Sağ tarafta düzenlemeye devam edebilirsiniz; Uygula, değişiklikleri sunucu tarafı uygulamayla gönderir.",
+    "secretHint": "Secret'ın değerleri yer tutucu olarak gösteriliyor. Bir yer tutucu kaldığı sürece uygulama başarısız olur: her birini gerçek değeriyle değiştirin (data'da base64, stringData'da düz metin) ya da anahtarını kaldırın.",
+    "discardTitle": "Değişiklikleriniz atılsın mı?",
+    "discardMessage": "{{name}} üzerindeki düzenlemeleriniz uygulanmadı ve kaybolacak.",
+    "discard": "At",
+    "applied": "{{name}} uygulandı"
+  },
+  "apply": {
+    "dryRunTitle": "Deneme çalıştırması",
+    "appliedTitle": "Uygulandı",
+    "dismiss": "Sonuçları gizle",
+    "state": {
+      "created": "oluşturuldu",
+      "configured": "yapılandırıldı",
+      "unchanged": "değişmedi",
+      "failed": "başarısız"
+    },
+    "dryState": {
+      "created": "oluşturulacak",
+      "configured": "yapılandırılacak",
+      "unchanged": "değişmeyecek",
+      "failed": "başarısız olacak"
+    },
+    "count": {
+      "created": "{{count}} oluşturuldu",
+      "configured": "{{count}} yapılandırıldı",
+      "unchanged": "{{count}} değişmedi",
+      "failed": "{{count}} başarısız"
+    },
+    "dryCount": {
+      "created": "{{count}} oluşturulacak",
+      "configured": "{{count}} yapılandırılacak",
+      "unchanged": "{{count}} değişmeyecek",
+      "failed": "{{count}} başarısız olacak"
+    },
+    "conflictTitle": "Başka bir alan yöneticisinin sahip olduğu alanlar",
+    "conflictHint": "Manifest, başka bir alan yöneticisinin (bir controller, kubectl, bir GitOps aracı) ayarladığı alanları değiştiriyor; yukarıdaki hataya bakın. Zorla uygula bu alanların üzerine yazar ve sahipliklerini KubeBench'e geçirir, ancak asıl yöneticileri onları geri değiştirebilir.",
+    "force": "Zorla uygula",
+    "forceTitle": "{{name}} zorla uygulansın mı?",
+    "forceMessage": "Başka alan yöneticilerinin sahip olduğu alanların üzerine manifestinizdeki değerler yazılır ve bu alanların sahibi KubeBench olur."
+  },
+  "newResource": {
+    "title": "Yeni kaynak",
+    "template": "Şablon",
+    "namespace": "Namespace",
+    "namespaceHint": "Şablonun ve namespace belirtmeyen nesnelerin namespace'i",
+    "import": "Dosya içe aktar…",
+    "importedOption": "İçe aktarılan dosyalar",
+    "importedFrom": "{{files}} dosyalarından içe aktarıldı. Namespace belirtmeyen nesneler yukarıda seçilen namespace'e gider.",
+    "hint": "Bir şablonla başlayın ya da YAML veya JSON dosyalarını içe aktarın (veya buraya bırakın); belge sayısı sınırsızdır. Namespace belirtmeyen nesneler yukarıda seçilen namespace'e gider.",
+    "drop": "İçe aktarmak için YAML veya JSON dosyalarını bırakın",
+    "tooLarge": "Dosyalar {{size}} MiB'tan büyük; bu, tek bir uygulamanın alabileceğinden fazla.",
+    "replaceTitle": "Metniniz değiştirilsin mi?",
+    "replaceMessage": "Düzenleyicide uygulanmamış değişiklikler var. Metni değiştirirseniz bu değişiklikler kaybolur.",
+    "replace": "Değiştir",
+    "applied": "Kaynaklar uygulandı",
+    "open": "Aç",
+    "templates": {
+      "deployment": "Deployment",
+      "service": "Service",
+      "configMap": "ConfigMap",
+      "secret": "Secret",
+      "ingress": "Ingress",
+      "job": "Job",
+      "cronJob": "CronJob",
+      "namespace": "Namespace",
+      "persistentVolumeClaim": "PersistentVolumeClaim",
+      "serviceAccount": "ServiceAccount",
+      "roleBinding": "Role + RoleBinding"
+    }
+  }
+}
