@@ -9,10 +9,12 @@ import (
 
 // RBAC checks (CIS 5.1.x) on Roles, ClusterRoles and their bindings.
 
-// grants reports whether rule allows one of verbs on resource in group,
-// counting "*" in each list.
+// grants reports whether rule allows one of verbs on resource in group for
+// any object, counting "*" in each list. A rule limited to resourceNames
+// does not count: it is the narrow grant the remediations recommend (and
+// the access plugin's risks ignore it too).
 func grants(rule rbacv1.PolicyRule, group, resource string, verbs ...string) bool {
-	return matches(rule.APIGroups, group) && matches(rule.Resources, resource) &&
+	return len(rule.ResourceNames) == 0 && matches(rule.APIGroups, group) && matches(rule.Resources, resource) &&
 		slices.ContainsFunc(verbs, func(v string) bool { return matches(rule.Verbs, v) })
 }
 
