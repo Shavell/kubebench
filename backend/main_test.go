@@ -224,3 +224,22 @@ func TestHealthURL(t *testing.T) {
 		t.Errorf("TLS healthURL = %q", got)
 	}
 }
+
+// A certificate that cannot be loaded is reported as a configuration
+// error (exit status 2) before the database or any directory is created.
+func TestServeChecksTheTLSFilesFirst(t *testing.T) {
+	dir := t.TempDir()
+	cfg := testConfig(t, map[string]string{
+		"KUBEBENCH_DB":       filepath.Join(dir, "data", "kubebench.db"),
+		"KUBEBENCH_TLS_CERT": filepath.Join(dir, "missing.crt"),
+		"KUBEBENCH_TLS_KEY":  filepath.Join(dir, "missing.key"),
+	})
+	err := serve(cfg)
+	var cerr *configError
+	if !errors.As(err, &cerr) || cerr.key != "KUBEBENCH_TLS_CERT/KUBEBENCH_TLS_KEY" {
+		t.Fatalf("serve = %v, want a configuration error", err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "data")); !os.IsNotExist(err) {
+		t.Fatalf("serve created the data directory before checking the certificate: %v", err)
+	}
+}

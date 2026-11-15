@@ -114,7 +114,8 @@ func (s *Server) handleLogStream(w http.ResponseWriter, r *http.Request, c *call
 		return
 	}
 	defer release()
-	ctx, cancel := context.WithCancel(r.Context())
+	// The server's shutdown ends the stream too (see streamLogs).
+	ctx, cancel := s.streamContext(r.Context())
 	defer cancel()
 
 	var feeds []logFeed
@@ -192,10 +193,10 @@ type podsEvent struct {
 
 // streamLogs runs feeds concurrently and writes their lines to sse until
 // all of them ended (then "event: end"), the client went away or stopped
-// reading, ctx ended, or check (run every heartbeat, when set) failed
-// (then "event: error" with the reason). Idle streams get a heartbeat
-// comment every heartbeat. It returns once every feed has stopped and
-// closed its log.
+// reading, ctx ended, or check (run every heartbeat, when set) failed or
+// the server stopped (ctx from streamContext; both end with "event:
+// error" and the reason). Idle streams get a heartbeat comment every
+// heartbeat. It returns once every feed has stopped and closed its log.
 func streamLogs(ctx context.Context, sse *sseWriter, feeds []logFeed, matched int, heartbeat time.Duration, check func() error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -224,11 +225,22 @@ func streamLogs(ctx context.Context, sse *sseWriter, feeds []logFeed, matched in
 		}
 	}()
 
+	// The feeds stop as well when the server stops, so its end is
+	// reported whichever comes first.
+	stopped := func() bool {
+		if !shuttingDown(ctx) {
+			return false
+		}
+		_ = sse.event("error", errShuttingDown.Error())
+		_ = sse.flush()
+		return true
+	}
 	ticker := time.NewTicker(heartbeat)
 	defer ticker.Stop()
 	for {
 		select {
 		case <-ctx.Done():
+			stopped()
 			return
 		case <-ticker.C:
 			if check != nil {
@@ -243,6 +255,9 @@ func streamLogs(ctx context.Context, sse *sseWriter, feeds []logFeed, matched in
 			}
 		case ev, ok := <-events:
 			if !ok {
+				if stopped() {
+					return
+				}
 				_ = sse.event("end", "")
 				_ = sse.flush()
 				return

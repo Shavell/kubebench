@@ -104,6 +104,16 @@ func serve(cfg *config.Config) error {
 	defer stop()
 	log.Printf("[kubebench] %s (%s, %s)", version, commit, date)
 
+	// A certificate that cannot be loaded is a configuration error, found
+	// before anything is created or started.
+	var certificate *tls.Certificate
+	if cfg.TLS() {
+		cert, err := tls.LoadX509KeyPair(cfg.TLSCert, cfg.TLSKey)
+		if err != nil {
+			return &configError{key: "KUBEBENCH_TLS_CERT/KUBEBENCH_TLS_KEY", msg: err.Error()}
+		}
+		certificate = &cert
+	}
 	if err := prepareDirs(cfg); err != nil {
 		return err
 	}
@@ -129,6 +139,9 @@ func serve(cfg *config.Config) error {
 		log.Printf("[web] serving the embedded frontend")
 	}
 	srv := newHTTPServer(cfg.ListenAddr, apiServer.Handler(spa))
+	if certificate != nil {
+		srv.TLSConfig.Certificates = []tls.Certificate{*certificate}
+	}
 
 	go runJobs(ctx, cfg, st)
 
@@ -136,7 +149,7 @@ func serve(cfg *config.Config) error {
 	go func() {
 		if cfg.TLS() {
 			log.Printf("[api] listening on %s (https)", cfg.ListenAddr)
-			served <- srv.ListenAndServeTLS(cfg.TLSCert, cfg.TLSKey)
+			served <- srv.ListenAndServeTLS("", "")
 			return
 		}
 		log.Printf("[api] listening on %s", cfg.ListenAddr)
@@ -151,6 +164,11 @@ func serve(cfg *config.Config) error {
 	log.Printf("[api] shutting down")
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownGrace)
 	defer cancel()
+	// Streams and terminals first: http.Server.Shutdown would wait for the
+	// streams until the deadline and leave the terminals' shells running.
+	if err := apiServer.Shutdown(shutdownCtx); err != nil {
+		log.Printf("[api] terminals still open at the deadline: %v", err)
+	}
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			return srv.Close()

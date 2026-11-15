@@ -52,6 +52,9 @@ type terminalSession struct {
 	// check, when set, runs at every ping: an error ends the session
 	// (the caller lost access since it started).
 	check func() error
+	// stopping, when set, is closed when the server stops: the session
+	// is then hung up like an idle one.
+	stopping <-chan struct{}
 
 	writeMu sync.Mutex // one writer at a time (gorilla/websocket rule)
 	stdinR  *io.PipeReader
@@ -64,7 +67,7 @@ type terminalSession struct {
 	hangupOnce sync.Once
 	clientGone atomic.Bool            // the client left or stopped answering pings
 	idle       atomic.Bool            // the idle timeout ended the session
-	revoked    atomic.Pointer[string] // why check ended the session
+	ended      atomic.Pointer[string] // why check or the shutdown ended the session
 }
 
 func newTerminalSession(conn *websocket.Conn, settings streamSettings) *terminalSession {
@@ -144,8 +147,8 @@ func (t *terminalSession) hangup() {
 func (t *terminalSession) finish(err error) {
 	var exitErr utilexec.ExitError
 	switch {
-	case t.revoked.Load() != nil:
-		t.sendJSON(terminalError{Type: "error", Message: *t.revoked.Load()})
+	case t.ended.Load() != nil:
+		t.sendJSON(terminalError{Type: "error", Message: *t.ended.Load()})
 	case t.idle.Load():
 		t.sendJSON(terminalError{Type: "error", Message: fmt.Sprintf(
 			"the session was closed after %s without input", t.settings.terminalIdle)})
@@ -216,7 +219,8 @@ func (t *terminalSession) touch() {
 }
 
 // keepAlive pings the client, checks the caller's access at every ping
-// and ends the session once the idle timeout passes without input. Output
+// and ends the session once the idle timeout passes without input or the
+// server stops. Output
 // alone does not count as activity: a forgotten session that keeps
 // printing is still forgotten.
 func (t *terminalSession) keepAlive(ctx context.Context) {
@@ -240,10 +244,15 @@ func (t *terminalSession) keepAlive(ctx context.Context) {
 			}
 			if err := t.check(); err != nil {
 				msg := endedMessage(err)
-				t.revoked.Store(&msg)
+				t.ended.Store(&msg)
 				t.hangup()
 				return
 			}
+		case <-t.stopping:
+			msg := errShuttingDown.Error()
+			t.ended.Store(&msg)
+			t.hangup()
+			return
 		case <-t.input:
 			idle.Reset(t.settings.terminalIdle)
 		case <-idle.C:

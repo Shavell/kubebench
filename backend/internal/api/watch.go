@@ -79,8 +79,11 @@ func (s *Server) handleWatch(w http.ResponseWriter, r *http.Request, c *call) {
 	if err != nil {
 		return // the client is gone
 	}
-	// A logout or a revoked assignment ends the stream too.
-	streamChanges(r.Context(), sse, sub, s.streams.watchTimings, func() error { return s.stillAllowed(c, accessRead) })
+	// A logout, a revoked assignment or the server's shutdown ends the
+	// stream too.
+	ctx, cancel := s.streamContext(r.Context())
+	defer cancel()
+	streamChanges(ctx, sse, sub, s.streams.watchTimings, func() error { return s.stillAllowed(c, accessRead) })
 }
 
 // watchTimings are the intervals of a watch stream.
@@ -96,8 +99,9 @@ type watchTimings struct {
 }
 
 // streamChanges writes sub's statuses and changes to sse until ctx ends,
-// the client stops reading, the hub closes or check fails (then
-// "event: end" with the reason).
+// the client stops reading, the hub closes, check fails or the server
+// stops (ctx from streamContext; these three end with "event: end" and
+// the reason).
 func streamChanges(ctx context.Context, sse *sseWriter, sub *watch.Subscription, timings watchTimings, check func() error) {
 	heartbeat := time.NewTicker(timings.heartbeat)
 	defer heartbeat.Stop()
@@ -111,6 +115,9 @@ func streamChanges(ctx context.Context, sse *sseWriter, sub *watch.Subscription,
 	for {
 		select {
 		case <-ctx.Done():
+			if shuttingDown(ctx) {
+				end(errShuttingDown.Error())
+			}
 			return
 		case <-sub.Done():
 			end("the cluster connection was rebuilt")

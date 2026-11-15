@@ -41,6 +41,8 @@ type Server struct {
 	streamLimits *streamLimiter
 	// updates checks for new releases (§7.11).
 	updates *updates.Checker
+	// life ends the streams and terminals when the server stops.
+	life *lifecycle
 }
 
 // New wires every route. plugins are the built-in backend plugins to mount
@@ -59,6 +61,7 @@ func New(cfg *config.Config, st *store.Store, manager *kube.Manager, build Build
 
 		streamLimits: newStreamLimiter(),
 		updates:      updates.New(updates.Options{URL: cfg.UpdateURL, Version: build.Version}),
+		life:         newLifecycle(),
 	}
 	slices.SortFunc(s.plugins, func(a, b plugin.Plugin) int {
 		return strings.Compare(a.Manifest().ID, b.Manifest().ID)

@@ -71,6 +71,13 @@ func (s *Server) handleTerminal(w http.ResponseWriter, r *http.Request, c *call)
 		return
 	}
 	defer release()
+	// Shutdown hangs the session up and waits for it.
+	finished, err := s.startTerminal()
+	if err != nil {
+		writeErr(w, err)
+		return
+	}
+	defer finished()
 	executor, err := s.streams.newExecutor(c.rt, target)
 	if err != nil {
 		writeErr(w, err)
@@ -100,7 +107,9 @@ func (s *Server) handleTerminal(w http.ResponseWriter, r *http.Request, c *call)
 	// with the request's context: net/http cancels that as soon as a read
 	// of the hijacked connection fails, before the shell could be hung up.
 	session := newTerminalSession(conn, s.streams)
-	// A logout, a revoked assignment or a read-only cluster ends it too.
+	// A logout, a revoked assignment or a read-only cluster ends it too,
+	// and so does the server's shutdown.
 	session.check = func() error { return s.stillAllowed(c, accessExec) }
+	session.stopping = s.life.stopping.Done()
 	session.run(context.WithoutCancel(r.Context()), executor)
 }
