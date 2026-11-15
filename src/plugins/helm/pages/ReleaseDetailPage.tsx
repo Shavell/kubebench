@@ -20,7 +20,11 @@ type Confirmation = { action: 'uninstall' } | { action: 'rollback'; revision: nu
 
 export function ReleaseDetailPage({ tab }: { tab: TabDescriptor }) {
   const { t } = useTranslation(NS)
+  const namespace = tab.props?.namespace as string
   const name = tab.props?.name as string
+  // Release names are unique per namespace only: the confirmation phrase
+  // names both, so it tells same-named releases apart.
+  const qualifiedName = `${namespace}/${name}`
   const providers = useProviders()
   const openTab = useLayoutStore((s) => s.openTab)
   const closeTab = useLayoutStore((s) => s.closeTab)
@@ -30,11 +34,13 @@ export function ReleaseDetailPage({ tab }: { tab: TabDescriptor }) {
   const [confirming, setConfirming] = useState<Confirmation | null>(null)
   const { data: releases, loading, error } = useProviderQuery((p) => p.helm.listReleases(), [])
 
-  const release = releases?.find((r) => r.name === name)
+  const release = releases?.find((r) => r.namespace === namespace && r.name === name)
   if (!release) {
     if (error) return <EmptyState icon="warning" title={t('releases.unavailable')} hint={error} />
-    if (loading || !releases) return <div className="page-loading">{t('release.loading', { name })}</div>
-    return <EmptyState icon="trash" title={t('release.gone', { name })} hint={t('release.goneHint')} />
+    if (loading || !releases) {
+      return <div className="page-loading">{t('release.loading', { name: qualifiedName })}</div>
+    }
+    return <EmptyState icon="trash" title={t('release.gone', { name: qualifiedName })} hint={t('release.goneHint')} />
   }
 
   const deniedReason = write.reason ?? undefined
@@ -48,7 +54,7 @@ export function ReleaseDetailPage({ tab }: { tab: TabDescriptor }) {
       return
     }
     openTab({
-      id: `helm-values:${name}`,
+      id: `helm-values:${namespace}/${name}`,
       title: `${name} · values.yaml`,
       icon: 'settings',
       kind: 'yaml',
@@ -94,7 +100,7 @@ export function ReleaseDetailPage({ tab }: { tab: TabDescriptor }) {
           title={t('release.uninstallDialog.title', { name })}
           message={t('release.uninstallDialog.message', { namespace: release.namespace })}
           confirmLabel={t('release.uninstall')}
-          confirmPhrase={name}
+          confirmPhrase={qualifiedName}
           onConfirm={uninstall}
           onClose={() => setConfirming(null)}
         />
@@ -105,7 +111,7 @@ export function ReleaseDetailPage({ tab }: { tab: TabDescriptor }) {
           title={t('release.rollbackDialog.title', { name, revision: confirming.revision })}
           message={t('release.rollbackDialog.message', { revision: confirming.revision })}
           confirmLabel={t('release.history.rollback')}
-          confirmPhrase={name}
+          confirmPhrase={qualifiedName}
           onConfirm={() => rollback(confirming.revision)}
           onClose={() => setConfirming(null)}
         />
@@ -151,7 +157,7 @@ export function ReleaseDetailPage({ tab }: { tab: TabDescriptor }) {
                       className="kb-button kb-button--secondary"
                       disabled={!write.allowed}
                       onClick={() => setConfirming({ action: 'rollback', revision: h.revision })}
-                      title={write.allowed ? `helm rollback ${name} ${h.revision}` : deniedReason}
+                      title={write.allowed ? `helm rollback ${name} ${h.revision} -n ${namespace}` : deniedReason}
                     >
                       <Icon name="history" size={13} /> {t('release.history.rollback')}
                     </button>

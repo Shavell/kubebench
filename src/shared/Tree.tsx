@@ -6,6 +6,8 @@ import './Tree.css'
 export interface TreeNode {
   id: string
   label: string
+  /** Muted text after the label, like VSCode's tree item descriptions (e.g. a namespace). */
+  description?: string
   icon?: string
   /** Small count bubble on the right, like VSCode badge counts. */
   count?: number
@@ -52,7 +54,10 @@ export function Tree({ nodes, selectedId, onSelect, defaultExpanded }: TreeProps
             {hasChildren && <Icon name={isExpanded ? 'chevron-down' : 'chevron-right'} size={14} />}
           </span>
           {node.icon && <Icon name={node.icon} size={14} className="kb-tree__icon" />}
-          <span className="kb-tree__label">{node.label}</span>
+          <span className="kb-tree__label">
+            {node.label}
+            {node.description && <span className="kb-tree__description">{node.description}</span>}
+          </span>
           {node.suffix}
           {node.count !== undefined && <span className="kb-tree__count">{node.count}</span>}
         </div>

@@ -33,13 +33,21 @@ export function openReposTab(): void {
   })
 }
 
-/** Detail tab of one release (`helm-release-detail`, props `{name}`), titled by its name. */
-export function openReleaseTab(name: string): void {
+/**
+ * Id of a release's detail tab. Release names are unique per namespace
+ * only, so the namespace is part of every release's identity.
+ */
+export function releaseTabId(namespace: string, name: string): string {
+  return `${RELEASE_TAB_PREFIX}${namespace}/${name}`
+}
+
+/** Detail tab of one release (`helm-release-detail`, props `{namespace, name}`). */
+export function openReleaseTab(namespace: string, name: string): void {
   useLayoutStore.getState().openTab({
-    id: `${RELEASE_TAB_PREFIX}${name}`,
-    title: name,
+    id: releaseTabId(namespace, name),
+    title: `${namespace}/${name}`,
     icon: 'package',
     kind: 'helm-release-detail',
-    props: { name },
+    props: { namespace, name },
   })
 }

@@ -170,8 +170,8 @@ export function createMockProviders(): DataProviders {
       listReleases: () => delay(releases),
       listRepositories: () => delay(repositories),
       getReleaseValuesYaml: (name, _ns) => delay(valuesYaml[name] ?? `# no values for ${name}`),
-      rollbackRelease: (name, _ns, revision) => {
-        const release = releases.find((r) => r.name === name)
+      rollbackRelease: (name, ns, revision) => {
+        const release = releases.find((r) => r.name === name && r.namespace === ns)
         if (release) {
           const newRevision = release.revision + 1
           for (const h of release.history) {
@@ -189,8 +189,8 @@ export function createMockProviders(): DataProviders {
         }
         return delay(undefined)
       },
-      uninstallRelease: (name, _ns) => {
-        const idx = releases.findIndex((r) => r.name === name)
+      uninstallRelease: (name, ns) => {
+        const idx = releases.findIndex((r) => r.name === name && r.namespace === ns)
         if (idx >= 0) releases.splice(idx, 1)
         return delay(undefined)
       },

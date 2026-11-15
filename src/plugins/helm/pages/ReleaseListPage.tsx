@@ -56,7 +56,7 @@ export function ReleaseListPage() {
             columns={columns}
             rows={data ?? []}
             rowKey={(r) => `${r.namespace}/${r.name}`}
-            onRowClick={(r) => openReleaseTab(r.name)}
+            onRowClick={(r) => openReleaseTab(r.namespace, r.name)}
           />
         </div>
       )}
