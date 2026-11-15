@@ -1,0 +1,337 @@
+{
+  "manifest": {
+    "name": "Depolama",
+    "description": "PersistentVolume'ler, claim'ler ve StorageClass'lar: genel bakış, oluşturma sihirbazları, snapshot'lar ve volume genişletme.",
+    "tooltip": "Depolama",
+    "sidebarTitle": "Depolama"
+  },
+  "commands": {
+    "openOverview": "Depolama: Genel bakışı aç",
+    "openPvcs": "Depolama: PersistentVolumeClaim'leri aç",
+    "newPvc": "Depolama: Yeni PersistentVolumeClaim…",
+    "newPv": "Depolama: Yeni PersistentVolume…",
+    "newClass": "Depolama: Yeni StorageClass…"
+  },
+  "resourceActions": {
+    "clonePvc": "Yeni bir PVC'ye klonla…",
+    "claimPv": "Bu volume'u claim et…"
+  },
+  "sidebar": {
+    "overview": "Genel bakış",
+    "pvcs": "PersistentVolumeClaim'ler",
+    "pvs": "PersistentVolume'ler",
+    "classes": "StorageClass'lar",
+    "snapshots": "VolumeSnapshot'lar",
+    "create": "Oluştur"
+  },
+  "common": {
+    "yes": "Evet",
+    "no": "Hayır",
+    "cancel": "İptal"
+  },
+  "actions": {
+    "newPvc": "Yeni PVC",
+    "newPv": "Yeni PV",
+    "newClass": "Yeni StorageClass",
+    "expand": "Genişlet",
+    "clone": "Klonla",
+    "claim": "Claim et",
+    "restore": "Geri yükle"
+  },
+  "columns": {
+    "name": "Ad",
+    "namespace": "Namespace",
+    "status": "Durum",
+    "age": "Yaş",
+    "storageClass": "StorageClass",
+    "requested": "İstenen",
+    "capacity": "Kapasite",
+    "accessModes": "Erişim modları",
+    "volume": "Volume",
+    "reclaimPolicy": "Geri kazanım politikası",
+    "bindingMode": "Bağlama modu",
+    "expansion": "Genişletme",
+    "provisioner": "Sağlayıcı",
+    "pvcs": "PVC'ler",
+    "pvs": "PV'ler",
+    "source": "Kaynak",
+    "claim": "Claim",
+    "nodes": "Node'lar",
+    "sourcePvc": "Kaynak PVC",
+    "snapshotClass": "Snapshot sınıfı",
+    "restoreSize": "Geri yükleme boyutu"
+  },
+  "accessModes": {
+    "ReadWriteOnce": "ReadWriteOnce (RWO)",
+    "ReadOnlyMany": "ReadOnlyMany (ROX)",
+    "ReadWriteMany": "ReadWriteMany (RWX)",
+    "ReadWriteOncePod": "ReadWriteOncePod (RWOP)"
+  },
+  "sources": {
+    "hostPath": "hostPath",
+    "nfs": "NFS",
+    "local": "Yerel disk",
+    "csi": "CSI",
+    "other": "Diğer"
+  },
+  "overview": {
+    "title": "Depolamaya genel bakış",
+    "loading": "Depolama yükleniyor…",
+    "unavailable": "Depolama genel bakışı kullanılamıyor",
+    "tiles": {
+      "pvcs": "PVC'ler",
+      "pvcsDetail": "{{bound}} bağlı · {{pending}} beklemede · {{lost}} kayıp",
+      "pvs": "PV'ler",
+      "pvsDetail": "{{available}} kullanılabilir · {{bound}} bağlı · {{released}} serbest",
+      "classes": "StorageClass'lar",
+      "defaultClass": "Varsayılan: {{name}}",
+      "noDefault": "Varsayılan sınıf yok",
+      "csiDrivers": "CSI sürücüleri",
+      "snapshotsOn": "VolumeSnapshot'lar kullanılabilir",
+      "snapshotsOff": "VolumeSnapshot'lar kurulu değil"
+    },
+    "capacity": "Kapasite",
+    "bars": {
+      "requested": "Claim'lerin istediği / sağlanan",
+      "available": "Claim edilmemiş volume'ler / sağlanan"
+    },
+    "capacityDetail": "Claim'ler {{requested}} istiyor; PersistentVolume'ler {{provisioned}} tutuyor."
+  },
+  "classes": {
+    "title": "StorageClass'lar",
+    "loading": "StorageClass'lar yükleniyor…",
+    "unavailable": "StorageClass'lar kullanılamıyor",
+    "empty": "StorageClass yok",
+    "emptyHint": "Bir sınıf volume sağlayana kadar claim'ler yalnızca mevcut PersistentVolume'lere bağlanabilir.",
+    "default": "varsayılan",
+    "defaultHint": "Sınıf belirtmeyen claim'ler bu sınıfı alır",
+    "extraDefaultHint": "Bu da varsayılan olarak işaretli, ancak daha yeni bir varsayılan sınıf geçerli"
+  },
+  "csi": {
+    "title": "CSI sürücüleri",
+    "unavailable": "CSI sürücüleri kullanılamıyor",
+    "empty": "Kayıtlı CSI sürücüsü yok",
+    "attachRequired": "Attach",
+    "podInfoOnMount": "Pod bilgisi",
+    "storageCapacity": "Kapasite takibi",
+    "fsGroupPolicy": "fsGroup politikası",
+    "lifecycleModes": "Modlar",
+    "loading": "CSI sürücüleri yükleniyor…"
+  },
+  "pvcs": {
+    "title": "PersistentVolumeClaim'ler",
+    "titleIn": "PersistentVolumeClaim'ler · {{namespace}}",
+    "loading": "PersistentVolumeClaim'ler yükleniyor…",
+    "unavailable": "PersistentVolumeClaim'ler kullanılamıyor",
+    "empty": "PersistentVolumeClaim yok",
+    "emptyNamespaceHint": "{{namespace}} içinde hiçbir şey yok; başka bir Namespace seçin ya da bir claim oluşturun.",
+    "resizing": "boyutlandırılıyor…"
+  },
+  "pvs": {
+    "title": "PersistentVolume'ler",
+    "loading": "PersistentVolume'ler yükleniyor…",
+    "unavailable": "PersistentVolume'ler kullanılamıyor",
+    "empty": "PersistentVolume yok"
+  },
+  "snapshots": {
+    "title": "VolumeSnapshot'lar",
+    "titleIn": "VolumeSnapshot'lar · {{namespace}}",
+    "loading": "VolumeSnapshot'lar yükleniyor…",
+    "unavailable": "VolumeSnapshot'lar kullanılamıyor",
+    "empty": "VolumeSnapshot yok",
+    "ready": "Hazır",
+    "notReady": "Hazır değil",
+    "failed": "Başarısız"
+  },
+  "expand": {
+    "title": "{{name}} genişletilsin",
+    "description": "Şu an {{current}} ({{storageClass}} sınıfı). Volume'ler yalnızca büyüyebilir; sürücü volume'u genişletir ve dosya sistemlerini bir Pod bağladığında yeniden boyutlandırır.",
+    "newSize": "Yeni boyut",
+    "submit": "Genişlet",
+    "mustGrow": "{{current}} değerinden büyük olmalı",
+    "done": "{{name}}, {{size}} boyutuna genişletiliyor.",
+    "blocked": {
+      "not_bound": "Yalnızca Bound durumundaki bir claim genişletilebilir",
+      "no_class": "Claim'in StorageClass'ı yok, bu yüzden genişletilemez",
+      "class_missing": "Claim'in StorageClass'ı mevcut değil",
+      "not_allowed": "StorageClass, allowVolumeExpansion ayarlamıyor"
+    }
+  },
+  "fields": {
+    "namespace": "Namespace",
+    "name": "Ad",
+    "nameHelp": "Küçük harfler, rakamlar, '-' ve '.'",
+    "source": "Volume",
+    "storageClass": "StorageClass",
+    "size": "Boyut",
+    "unit": "Birim",
+    "capacity": "Kapasite",
+    "accessModes": "Erişim modları",
+    "accessModesHelp": "RWO: tek Node okuma-yazma; ROX: çok Node salt okunur; RWX: çok Node okuma-yazma; RWOP: tek bir Pod.",
+    "volumeMode": "Volume modu",
+    "volumeModeHelp": "Filesystem bir dosya sistemi bağlar; Block ham aygıtı Pod'a verir.",
+    "volume": "PersistentVolume",
+    "sourcePvc": "Kaynak PVC",
+    "snapshot": "VolumeSnapshot",
+    "labels": "Etiketler",
+    "addLabel": "Etiket ekle",
+    "reclaimPolicy": "Geri kazanım politikası",
+    "reclaimPolicyHelp": "Retain, claim silindikten sonra verileri korur; Delete volume'u kaldırır.",
+    "sourceType": "Kaynak",
+    "nfsServer": "NFS sunucusu",
+    "driver": "CSI sürücüsü",
+    "volumeHandle": "Volume handle",
+    "fsType": "Dosya sistemi tipi",
+    "hostPathType": "hostPath tipi",
+    "readOnly": "Salt okunur",
+    "volumeAttributes": "Volume öznitelikleri",
+    "addAttribute": "Öznitelik ekle",
+    "nodes": "Node'lar",
+    "mountOptions": "Bağlama seçenekleri",
+    "mountOptionsHelp": "Virgülle ayrılmış, ör. nfsvers=4.1, hard",
+    "provisioner": "Sağlayıcı",
+    "parameters": "Parametreler",
+    "addParameter": "Parametre ekle",
+    "bindingMode": "Volume bağlama modu",
+    "allowExpansion": "Volume genişletmeye izin ver",
+    "isDefault": "Varsayılan StorageClass"
+  },
+  "wizard": {
+    "preview": "YAML önizlemesi",
+    "validate": "Doğrula",
+    "create": "Oluştur",
+    "valid": "Geçerli: cluster nesneyi dry run'da kabul etti.",
+    "created": "{{kind}} {{name}} oluşturuldu.",
+    "open": "Aç",
+    "pvc": {
+      "title": "Yeni PersistentVolumeClaim",
+      "sources": {
+        "new": "Yeni bir volume sağla",
+        "bind": "Available durumundaki bir PersistentVolume'e bağla",
+        "clone": "Mevcut bir PVC'yi klonla",
+        "restore": "Bir VolumeSnapshot'ı geri yükle"
+      },
+      "defaultClassNamed": "Cluster varsayılanı ({{name}})",
+      "defaultClassNone": "Cluster varsayılanı (ayarlı değil)",
+      "classDefaultMarker": "{{name}} (varsayılan)",
+      "noClass": "Yok (yalnızca statik bağlama)",
+      "noClassShort": "sınıf yok",
+      "classHelp": "Sınıf belirtmezseniz cluster'ın varsayılanı geçerli olur; \"Yok\" yalnızca sınıfı olmayan volume'lere bağlanır.",
+      "bindHelp": "Sınıf, boyut ve erişim modları volume'a uymalıdır; bunlar volume'dan doldurulur.",
+      "pickVolume": "Bir volume seçin…",
+      "noAvailableVolumes": "Available durumunda volume yok",
+      "cloneHelp": "CSI sürücüsü claim'in verilerini kopyalar; klon en az kaynak kadar büyük olmalıdır.",
+      "pickPvc": "Bir claim seçin…",
+      "restoreHelp": "Snapshot'ın verilerinden yeni bir volume oluşturulur.",
+      "pickSnapshot": "Bir snapshot seçin…"
+    },
+    "pv": {
+      "title": "Yeni PersistentVolume",
+      "classHelp": "Claim'ler volume'a yalnızca bu sınıfı istediklerinde bağlanır; sınıfsız için boş bırakın.",
+      "driverHelp": "Kurulu bir CSIDriver ya da bilinen bir sürücü.",
+      "volumeHandleHelp": "Depolama sistemindeki mevcut volume'un kimliği.",
+      "fsTypeHelp": "Sürücünün varsayılanı için boş bırakın.",
+      "path": {
+        "hostPath": "Node üzerindeki yol",
+        "nfs": "Export edilen yol",
+        "local": "Disk ya da dizin yolu"
+      },
+      "hostPathTypeHelp": "Volume bağlanmadan önce yolda ne bulunması gerektiği.",
+      "hostPathTypeAny": "Denetim yok",
+      "nodesRequired": "Yerel bir volume bir Node üzerinde yaşar: onu kullanan Pod'lar oraya yerleştirilir.",
+      "nodesOptional": "İsteğe bağlı: volume'u kullanan Pod'ları bu Node'lara sabitler."
+    },
+    "class": {
+      "title": "Yeni StorageClass",
+      "provisionerHelp": "Bu sınıf için volume oluşturan CSI sürücüsü ya da sağlayıcı.",
+      "parametersHelp": "Sağlayıcıya iletilir; anlamları sağlayıcıya bağlıdır.",
+      "useParameter": "Bu örnek değerle ekle",
+      "reclaimHelp": "Claim'i silindiğinde sağlanan volume'a ne olacağı.",
+      "bindingHelp": "WaitForFirstConsumer, volume'u ilk Pod'un yerleştirildiği yerde sağlar (bölge farkında); Immediate hemen sağlar.",
+      "expansionHelp": "Bu sınıfın claim'lerinin sonradan büyümesine izin verir.",
+      "noExpansionHint": "{{name}} volume'leri genişletemez.",
+      "defaultHelp": "Sınıf belirtmeyen claim'ler bu sınıfı alır.",
+      "replacesDefault": "Şu an varsayılan {{name}}. Sınıf belirtmeyen claim'ler en yeni varsayılanı alır; bu sınıf onun yerine geçecekse {{name}} üzerindeki işareti kaldırın."
+    }
+  },
+  "validation": {
+    "required": "zorunludur",
+    "dnsSubdomain": "küçük harf, rakam, '-' ve '.' içermeli, harf ya da rakamla başlayıp bitmelidir (en fazla 253)",
+    "dnsLabel": "küçük harf, rakam ve '-' içermeli, harf ya da rakamla başlayıp bitmelidir (en fazla 63)",
+    "quantity": "10Gi ya da 500Mi gibi bir miktar olmalıdır",
+    "positive": "sıfırdan büyük olmalıdır",
+    "accessModesRequired": "en az bir erişim modu seçin",
+    "accessModeUnknown": "bilinmeyen erişim modu",
+    "accessModeTwice": "bir erişim modu iki kez listelenmiş",
+    "rwopAlone": "ReadWriteOncePod başka erişim modlarıyla birleştirilemez",
+    "labelKey": "\"{{key}}\" geçerli bir anahtar değil",
+    "labelValue": "\"{{key}}\" değeri geçerli bir etiket değeri değil",
+    "driver": "ebs.csi.aws.com ya da example.com/driver gibi nitelikli bir ad olmalıdır",
+    "absolutePath": "/mnt/data gibi düzgün bir mutlak yol olmalıdır",
+    "nfsServer": "bir host adı ya da IP adresi olmalıdır",
+    "fsType": "ext4 ya da xfs gibi bir dosya sistemi tipi olmalıdır",
+    "mountOption": "seçenekler boş olamaz ve boşluk içeremez",
+    "bindAndClone": "mevcut bir volume'a bağlanan claim ayrıca klonlanamaz",
+    "oneSource": "hostPath, nfs, local ya da csi kaynaklarından tam olarak birini ayarlayın",
+    "noBlock": "hostPath ve NFS volume'leri ham blok aygıtı olamaz",
+    "localNodes": "yerel bir volume tek bir Node üzerinde yaşar: bulunduğu Node'u (ya da Node'ları) seçin",
+    "nfsNodes": "NFS volume'üne her Node'dan erişilebilir; Node affinity almaz",
+    "parameterKey": "anahtarlar boş olamaz"
+  },
+  "hints": {
+    "awsEbs": {
+      "note": "EBS volume'leri tek bir erişilebilirlik bölgesinde yaşar; WaitForFirstConsumer onları Pod'un bölgesinde oluşturur.",
+      "params": {
+        "type": "Volume tipi: gp3 (varsayılan), gp2, io1, io2, st1 ya da sc1",
+        "iops": "Sağlanan IOPS (gp3, io1, io2)",
+        "throughput": "MiB/s cinsinden aktarım hızı (gp3)",
+        "encrypted": "Volume'u şifrele (\"true\")",
+        "fstype": "Volume üzerinde oluşturulan dosya sistemi"
+      }
+    },
+    "gcePd": {
+      "note": "replication-type regional-pd olmadıkça Persistent Disk'ler bölgeseldir (zonal).",
+      "params": {
+        "type": "Disk tipi: pd-balanced, pd-ssd, pd-standard ya da hyperdisk-balanced",
+        "replication": "none ya da iki bölgeye çoğaltılan disk için regional-pd",
+        "fstype": "Disk üzerinde oluşturulan dosya sistemi"
+      }
+    },
+    "azureDisk": {
+      "note": "Yönetilen diskler aynı anda tek bir Node'a bağlanır (ReadWriteOnce).",
+      "params": {
+        "skuName": "Disk SKU'su: Premium_LRS, StandardSSD_LRS, Standard_LRS, PremiumV2_LRS, …",
+        "cachingMode": "Host önbelleği: None, ReadOnly ya da ReadWrite",
+        "fstype": "Disk üzerinde oluşturulan dosya sistemi"
+      }
+    },
+    "longhorn": {
+      "note": "Longhorn her volume'u Node'lar arasında çoğaltır; ReadWriteMany NFS üzerinden sunulur.",
+      "params": {
+        "replicas": "Her volume'un replika sayısı",
+        "staleTimeout": "Başarısız bir replikanın temizlenmesinden önceki dakika",
+        "dataLocality": "disabled, best-effort ya da strict-local"
+      }
+    },
+    "localPath": {
+      "note": "Pod'un yerleştiği Node üzerinde bir dizin oluşturur; volume'ler genişletilemez ya da taşınamaz.",
+      "params": {
+        "nodePath": "Node üzerindeki temel dizin (sağlayıcının yapılandırması izin veriyorsa)"
+      }
+    },
+    "noProvisioner": {
+      "note": "Hiçbir şey sağlamaz: claim'ler elle oluşturulan PersistentVolume'lere (ör. yerel diskler) bağlanır."
+    },
+    "csiHostpath": {
+      "note": "Kubernetes CSI test sürücüsü: volume'ler tek bir Node üzerindeki dizinlerdir; snapshot, klon ve genişletmeyi destekler."
+    },
+    "csiNfs": {
+      "note": "Mevcut bir NFS export'u üzerinde her volume için bir alt dizin oluşturur.",
+      "params": {
+        "server": "NFS sunucusunun host adı ya da IP'si",
+        "share": "Export edilen yol",
+        "subDir": "Volume başına alt dizin (şablonlara izin verilir)"
+      }
+    }
+  }
+}

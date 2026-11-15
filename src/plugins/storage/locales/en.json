@@ -1,0 +1,337 @@
+{
+  "manifest": {
+    "name": "Storage",
+    "description": "PersistentVolumes, claims and StorageClasses: overview, creation wizards, snapshots and volume expansion.",
+    "tooltip": "Storage",
+    "sidebarTitle": "Storage"
+  },
+  "commands": {
+    "openOverview": "Storage: Open overview",
+    "openPvcs": "Storage: Open PersistentVolumeClaims",
+    "newPvc": "Storage: New PersistentVolumeClaim…",
+    "newPv": "Storage: New PersistentVolume…",
+    "newClass": "Storage: New StorageClass…"
+  },
+  "resourceActions": {
+    "clonePvc": "Clone to a new PVC…",
+    "claimPv": "Claim this volume…"
+  },
+  "sidebar": {
+    "overview": "Overview",
+    "pvcs": "PersistentVolumeClaims",
+    "pvs": "PersistentVolumes",
+    "classes": "StorageClasses",
+    "snapshots": "VolumeSnapshots",
+    "create": "Create"
+  },
+  "common": {
+    "yes": "Yes",
+    "no": "No",
+    "cancel": "Cancel"
+  },
+  "actions": {
+    "newPvc": "New PVC",
+    "newPv": "New PV",
+    "newClass": "New StorageClass",
+    "expand": "Expand",
+    "clone": "Clone",
+    "claim": "Claim",
+    "restore": "Restore"
+  },
+  "columns": {
+    "name": "Name",
+    "namespace": "Namespace",
+    "status": "Status",
+    "age": "Age",
+    "storageClass": "StorageClass",
+    "requested": "Requested",
+    "capacity": "Capacity",
+    "accessModes": "Access modes",
+    "volume": "Volume",
+    "reclaimPolicy": "Reclaim policy",
+    "bindingMode": "Binding mode",
+    "expansion": "Expansion",
+    "provisioner": "Provisioner",
+    "pvcs": "PVCs",
+    "pvs": "PVs",
+    "source": "Source",
+    "claim": "Claim",
+    "nodes": "Nodes",
+    "sourcePvc": "Source PVC",
+    "snapshotClass": "Snapshot class",
+    "restoreSize": "Restore size"
+  },
+  "accessModes": {
+    "ReadWriteOnce": "ReadWriteOnce (RWO)",
+    "ReadOnlyMany": "ReadOnlyMany (ROX)",
+    "ReadWriteMany": "ReadWriteMany (RWX)",
+    "ReadWriteOncePod": "ReadWriteOncePod (RWOP)"
+  },
+  "sources": {
+    "hostPath": "hostPath",
+    "nfs": "NFS",
+    "local": "Local disk",
+    "csi": "CSI",
+    "other": "Other"
+  },
+  "overview": {
+    "title": "Storage overview",
+    "loading": "Loading storage…",
+    "unavailable": "Storage overview unavailable",
+    "tiles": {
+      "pvcs": "PVCs",
+      "pvcsDetail": "{{bound}} bound · {{pending}} pending · {{lost}} lost",
+      "pvs": "PVs",
+      "pvsDetail": "{{available}} available · {{bound}} bound · {{released}} released",
+      "classes": "StorageClasses",
+      "defaultClass": "Default: {{name}}",
+      "noDefault": "No default class",
+      "csiDrivers": "CSI drivers",
+      "snapshotsOn": "VolumeSnapshots available",
+      "snapshotsOff": "VolumeSnapshots not installed"
+    },
+    "capacity": "Capacity",
+    "bars": {
+      "requested": "Requested by claims / provisioned",
+      "available": "Unclaimed volumes / provisioned"
+    },
+    "capacityDetail": "Claims request {{requested}}; PersistentVolumes hold {{provisioned}}."
+  },
+  "classes": {
+    "title": "StorageClasses",
+    "loading": "Loading StorageClasses…",
+    "unavailable": "StorageClasses unavailable",
+    "empty": "No StorageClasses",
+    "emptyHint": "Claims can only bind to existing PersistentVolumes until a class provisions them.",
+    "default": "default",
+    "defaultHint": "Claims without a class get this one",
+    "extraDefaultHint": "Also marked default, but a newer default class applies"
+  },
+  "csi": {
+    "title": "CSI drivers",
+    "unavailable": "CSI drivers unavailable",
+    "empty": "No CSI drivers registered",
+    "attachRequired": "Attach",
+    "podInfoOnMount": "Pod info",
+    "storageCapacity": "Capacity tracking",
+    "fsGroupPolicy": "fsGroup policy",
+    "lifecycleModes": "Modes",
+    "loading": "Loading CSI drivers…"
+  },
+  "pvcs": {
+    "title": "PersistentVolumeClaims",
+    "titleIn": "PersistentVolumeClaims · {{namespace}}",
+    "loading": "Loading PersistentVolumeClaims…",
+    "unavailable": "PersistentVolumeClaims unavailable",
+    "empty": "No PersistentVolumeClaims",
+    "emptyNamespaceHint": "Nothing in {{namespace}}; pick another namespace or create a claim.",
+    "resizing": "resizing…"
+  },
+  "pvs": {
+    "title": "PersistentVolumes",
+    "loading": "Loading PersistentVolumes…",
+    "unavailable": "PersistentVolumes unavailable",
+    "empty": "No PersistentVolumes"
+  },
+  "snapshots": {
+    "title": "VolumeSnapshots",
+    "titleIn": "VolumeSnapshots · {{namespace}}",
+    "loading": "Loading VolumeSnapshots…",
+    "unavailable": "VolumeSnapshots unavailable",
+    "empty": "No VolumeSnapshots",
+    "ready": "Ready",
+    "notReady": "Not ready",
+    "failed": "Failed"
+  },
+  "expand": {
+    "title": "Expand {{name}}",
+    "description": "Now {{current}} (class {{storageClass}}). Volumes can only grow; the driver expands the volume and, for file systems, resizes it when a Pod mounts it.",
+    "newSize": "New size",
+    "submit": "Expand",
+    "mustGrow": "Must be larger than {{current}}",
+    "done": "{{name}} is being expanded to {{size}}.",
+    "blocked": {
+      "not_bound": "Only a Bound claim can be expanded",
+      "no_class": "The claim has no StorageClass, so it cannot be expanded",
+      "class_missing": "The claim's StorageClass does not exist",
+      "not_allowed": "The StorageClass does not set allowVolumeExpansion"
+    }
+  },
+  "fields": {
+    "namespace": "Namespace",
+    "name": "Name",
+    "nameHelp": "Lower-case letters, digits, '-' and '.'",
+    "source": "Volume",
+    "storageClass": "StorageClass",
+    "size": "Size",
+    "unit": "Unit",
+    "capacity": "Capacity",
+    "accessModes": "Access modes",
+    "accessModesHelp": "RWO: one node read-write; ROX: many nodes read-only; RWX: many nodes read-write; RWOP: a single Pod.",
+    "volumeMode": "Volume mode",
+    "volumeModeHelp": "Filesystem mounts a file system; Block hands the raw device to the Pod.",
+    "volume": "PersistentVolume",
+    "sourcePvc": "Source PVC",
+    "snapshot": "VolumeSnapshot",
+    "labels": "Labels",
+    "addLabel": "Add label",
+    "reclaimPolicy": "Reclaim policy",
+    "reclaimPolicyHelp": "Retain keeps the data after the claim is deleted; Delete removes the volume.",
+    "sourceType": "Source",
+    "nfsServer": "NFS server",
+    "driver": "CSI driver",
+    "volumeHandle": "Volume handle",
+    "fsType": "File system type",
+    "hostPathType": "hostPath type",
+    "readOnly": "Read-only",
+    "volumeAttributes": "Volume attributes",
+    "addAttribute": "Add attribute",
+    "nodes": "Nodes",
+    "mountOptions": "Mount options",
+    "mountOptionsHelp": "Comma-separated, e.g. nfsvers=4.1, hard",
+    "provisioner": "Provisioner",
+    "parameters": "Parameters",
+    "addParameter": "Add parameter",
+    "bindingMode": "Volume binding mode",
+    "allowExpansion": "Allow volume expansion",
+    "isDefault": "Default StorageClass"
+  },
+  "wizard": {
+    "preview": "YAML preview",
+    "validate": "Validate",
+    "create": "Create",
+    "valid": "Valid: the cluster accepted the object in a dry run.",
+    "created": "{{kind}} {{name}} created.",
+    "open": "Open",
+    "pvc": {
+      "title": "New PersistentVolumeClaim",
+      "sources": {
+        "new": "Provision a new volume",
+        "bind": "Bind to an Available PersistentVolume",
+        "clone": "Clone an existing PVC",
+        "restore": "Restore a VolumeSnapshot"
+      },
+      "defaultClassNamed": "Cluster default ({{name}})",
+      "defaultClassNone": "Cluster default (none set)",
+      "classDefaultMarker": "{{name}} (default)",
+      "noClass": "None (static binding only)",
+      "noClassShort": "no class",
+      "classHelp": "Omitting the class lets the cluster's default apply; \"None\" binds only to volumes without a class.",
+      "bindHelp": "Class, size and access modes must fit the volume; they are filled in from it.",
+      "pickVolume": "Pick a volume…",
+      "noAvailableVolumes": "No Available volumes",
+      "cloneHelp": "The CSI driver copies the claim's data; the clone must be at least as large.",
+      "pickPvc": "Pick a claim…",
+      "restoreHelp": "A new volume is created from the snapshot's data.",
+      "pickSnapshot": "Pick a snapshot…"
+    },
+    "pv": {
+      "title": "New PersistentVolume",
+      "classHelp": "Claims bind to the volume only when they request this class; leave empty for none.",
+      "driverHelp": "An installed CSIDriver or a known one.",
+      "volumeHandleHelp": "The ID of the existing volume in the storage system.",
+      "fsTypeHelp": "Leave empty for the driver's default.",
+      "path": {
+        "hostPath": "Path on the node",
+        "nfs": "Exported path",
+        "local": "Disk or directory path"
+      },
+      "hostPathTypeHelp": "What must exist at the path before the volume is mounted.",
+      "hostPathTypeAny": "No check",
+      "nodesRequired": "A local volume lives on a node: Pods using it are scheduled there.",
+      "nodesOptional": "Optional: pins Pods using the volume to these nodes."
+    },
+    "class": {
+      "title": "New StorageClass",
+      "provisionerHelp": "The CSI driver or provisioner that creates volumes for this class.",
+      "parametersHelp": "Passed to the provisioner; their meaning depends on it.",
+      "useParameter": "Add with this example value",
+      "reclaimHelp": "What happens to a provisioned volume when its claim is deleted.",
+      "bindingHelp": "WaitForFirstConsumer provisions where the first Pod is scheduled (zone-aware); Immediate provisions at once.",
+      "expansionHelp": "Lets claims of this class grow later.",
+      "noExpansionHint": "{{name}} cannot expand volumes.",
+      "defaultHelp": "Claims without a class get this one.",
+      "replacesDefault": "{{name}} is the default now. Claims without a class get the newest default, so remove the mark from {{name}} if this class replaces it."
+    }
+  },
+  "validation": {
+    "required": "is required",
+    "dnsSubdomain": "must be lower-case letters, digits, '-' and '.', starting and ending with a letter or digit (at most 253)",
+    "dnsLabel": "must be lower-case letters, digits and '-', starting and ending with a letter or digit (at most 63)",
+    "quantity": "must be a quantity such as 10Gi or 500Mi",
+    "positive": "must be greater than zero",
+    "accessModesRequired": "name at least one access mode",
+    "accessModeUnknown": "unknown access mode",
+    "accessModeTwice": "an access mode is listed twice",
+    "rwopAlone": "ReadWriteOncePod cannot be combined with other access modes",
+    "labelKey": "\"{{key}}\" is not a valid key",
+    "labelValue": "the value of \"{{key}}\" is not a valid label value",
+    "driver": "must be a qualified name such as ebs.csi.aws.com or example.com/driver",
+    "absolutePath": "must be a clean absolute path such as /mnt/data",
+    "nfsServer": "must be a host name or IP address",
+    "fsType": "must be a file system type such as ext4 or xfs",
+    "mountOption": "options cannot be empty or contain spaces",
+    "bindAndClone": "a claim bound to an existing volume cannot be cloned as well",
+    "oneSource": "set exactly one of hostPath, nfs, local or csi",
+    "noBlock": "hostPath and NFS volumes cannot be raw block devices",
+    "localNodes": "a local volume lives on one node: pick the node(s) it is on",
+    "nfsNodes": "an NFS volume is reachable from every node and takes no node affinity",
+    "parameterKey": "keys cannot be empty"
+  },
+  "hints": {
+    "awsEbs": {
+      "note": "EBS volumes live in one availability zone; WaitForFirstConsumer creates them in the Pod's zone.",
+      "params": {
+        "type": "Volume type: gp3 (default), gp2, io1, io2, st1 or sc1",
+        "iops": "Provisioned IOPS (gp3, io1, io2)",
+        "throughput": "Throughput in MiB/s (gp3)",
+        "encrypted": "Encrypt the volume (\"true\")",
+        "fstype": "File system created on the volume"
+      }
+    },
+    "gcePd": {
+      "note": "Persistent Disks are zonal unless replication-type is regional-pd.",
+      "params": {
+        "type": "Disk type: pd-balanced, pd-ssd, pd-standard or hyperdisk-balanced",
+        "replication": "none, or regional-pd for a disk replicated across two zones",
+        "fstype": "File system created on the disk"
+      }
+    },
+    "azureDisk": {
+      "note": "Managed disks attach to one node at a time (ReadWriteOnce).",
+      "params": {
+        "skuName": "Disk SKU: Premium_LRS, StandardSSD_LRS, Standard_LRS, PremiumV2_LRS, …",
+        "cachingMode": "Host caching: None, ReadOnly or ReadWrite",
+        "fstype": "File system created on the disk"
+      }
+    },
+    "longhorn": {
+      "note": "Longhorn replicates every volume across nodes; ReadWriteMany is served over NFS.",
+      "params": {
+        "replicas": "Number of replicas of each volume",
+        "staleTimeout": "Minutes before a failed replica is cleaned up",
+        "dataLocality": "disabled, best-effort or strict-local"
+      }
+    },
+    "localPath": {
+      "note": "Creates a directory on the node the Pod lands on; volumes cannot be expanded or moved.",
+      "params": {
+        "nodePath": "Base directory on the node (when the provisioner's config allows it)"
+      }
+    },
+    "noProvisioner": {
+      "note": "Provisions nothing: claims bind to PersistentVolumes created by hand, e.g. local disks."
+    },
+    "csiHostpath": {
+      "note": "The Kubernetes CSI test driver: volumes are directories on one node; supports snapshots, clones and expansion."
+    },
+    "csiNfs": {
+      "note": "Creates a sub-directory per volume on an existing NFS export.",
+      "params": {
+        "server": "NFS server host name or IP",
+        "share": "Exported path",
+        "subDir": "Sub-directory per volume (templates allowed)"
+      }
+    }
+  }
+}

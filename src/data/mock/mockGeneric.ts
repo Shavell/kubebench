@@ -79,15 +79,48 @@ export const genericMock: Record<string, KubeObject[]> = {
       status: { phase: 'Bound', capacity: { storage: '20Gi' } },
       spec: { storageClassName: 'standard', accessModes: ['ReadWriteOnce'], volumeName: 'pvc-2b1e99' },
     }),
+    obj('PersistentVolumeClaim', 'shop-uploads', 'shop', '30d', {
+      status: { phase: 'Bound', capacity: { storage: '5Gi' } },
+      spec: { storageClassName: 'fast', accessModes: ['ReadWriteOnce'], volumeName: 'pvc-5d71e0', resources: { requests: { storage: '5Gi' } } },
+    }),
+    obj('PersistentVolumeClaim', 'grafana-storage', 'monitoring', '2d', {
+      status: { phase: 'Pending' },
+      spec: { storageClassName: 'standard', accessModes: ['ReadWriteOnce'], resources: { requests: { storage: '2Gi' } } },
+    }),
   ],
   persistentvolumes: [
     obj('PersistentVolume', 'pvc-8f3a2c', undefined, '45d', {
       status: { phase: 'Bound' },
       spec: { capacity: { storage: '10Gi' }, storageClassName: 'standard', accessModes: ['ReadWriteOnce'], claimRef: { namespace: 'shop', name: 'shop-postgres-data' } },
     }),
+    obj('PersistentVolume', 'pvc-2b1e99', undefined, '61d', {
+      status: { phase: 'Bound' },
+      spec: { capacity: { storage: '20Gi' }, storageClassName: 'standard', accessModes: ['ReadWriteOnce'], persistentVolumeReclaimPolicy: 'Delete', hostPath: { path: '/var/lib/rancher/k3s/storage/pvc-2b1e99' }, claimRef: { namespace: 'monitoring', name: 'prometheus-data' } },
+    }),
+    obj('PersistentVolume', 'pvc-5d71e0', undefined, '30d', {
+      status: { phase: 'Bound' },
+      spec: { capacity: { storage: '5Gi' }, storageClassName: 'fast', accessModes: ['ReadWriteOnce'], persistentVolumeReclaimPolicy: 'Delete', csi: { driver: 'hostpath.csi.k8s.io', volumeHandle: '5d71e0a4-0c1f' }, claimRef: { namespace: 'shop', name: 'shop-uploads' } },
+    }),
+    obj('PersistentVolume', 'nfs-archive', undefined, '20d', {
+      status: { phase: 'Available' },
+      spec: { capacity: { storage: '100Gi' }, storageClassName: 'manual', accessModes: ['ReadWriteMany'], persistentVolumeReclaimPolicy: 'Retain', nfs: { server: '10.0.0.5', path: '/exports/archive' } },
+    }),
+    obj('PersistentVolume', 'local-ssd-worker-1', undefined, '20d', {
+      status: { phase: 'Available' },
+      spec: {
+        capacity: { storage: '50Gi' }, storageClassName: 'local-storage', accessModes: ['ReadWriteOnce'], persistentVolumeReclaimPolicy: 'Retain', local: { path: '/mnt/disks/ssd1' },
+        nodeAffinity: { required: { nodeSelectorTerms: [{ matchExpressions: [{ key: 'kubernetes.io/hostname', operator: 'In', values: ['kb-worker-1'] }] }] } },
+      },
+    }),
   ],
   storageclasses: [
-    obj('StorageClass', 'standard', undefined, '92d', { provisioner: 'rancher.io/local-path', reclaimPolicy: 'Delete', volumeBindingMode: 'WaitForFirstConsumer' }),
+    obj('StorageClass', 'standard', undefined, '92d', {
+      metadata: { name: 'standard', labels: {}, annotations: { 'storageclass.kubernetes.io/is-default-class': 'true' } },
+      provisioner: 'rancher.io/local-path', reclaimPolicy: 'Delete', volumeBindingMode: 'WaitForFirstConsumer',
+    }),
+    obj('StorageClass', 'fast', undefined, '30d', { provisioner: 'hostpath.csi.k8s.io', reclaimPolicy: 'Delete', volumeBindingMode: 'WaitForFirstConsumer', allowVolumeExpansion: true }),
+    obj('StorageClass', 'manual', undefined, '20d', { provisioner: 'kubernetes.io/no-provisioner', reclaimPolicy: 'Retain', volumeBindingMode: 'WaitForFirstConsumer' }),
+    obj('StorageClass', 'local-storage', undefined, '20d', { provisioner: 'kubernetes.io/no-provisioner', reclaimPolicy: 'Retain', volumeBindingMode: 'WaitForFirstConsumer' }),
   ],
   serviceaccounts: [
     obj('ServiceAccount', 'default', 'default', '92d'),
