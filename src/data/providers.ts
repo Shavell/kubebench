@@ -90,6 +90,12 @@ export interface ClusterProvider {
   getYaml(ref: ObjectRef, options?: { neat?: boolean }): Promise<string>
   /** Server-side apply of YAML/JSON manifests (any number of documents): one result per object. */
   applyYaml(manifests: string, options?: ApplyOptions): Promise<ApplyResult[]>
+  /**
+   * Edits one existing object: sends the changes from `original` (the YAML
+   * editing started from) to `edited` as a merge patch, so removed fields are
+   * removed and placeholders left unchanged keep the Secret's values. One result.
+   */
+  editYaml(ref: ObjectRef, original: string, edited: string, options?: { dryRun?: boolean }): Promise<ApplyResult[]>
   deleteResource(ref: ObjectRef, options?: DeleteOptions): Promise<void>
   patchMetadata(ref: ObjectRef, patch: MetadataPatch): Promise<void>
   /**

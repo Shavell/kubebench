@@ -13,7 +13,7 @@ const flag = (on: boolean | undefined) => (on ? 'true' : undefined)
 /** The resource editing endpoints of design §7.2. */
 export const apiEditing: Pick<
   ClusterProvider,
-  'getYaml' | 'applyYaml' | 'deleteResource' | 'patchMetadata' | 'revealSecret'
+  'getYaml' | 'applyYaml' | 'editYaml' | 'deleteResource' | 'patchMetadata' | 'revealSecret'
 > = {
   getYaml: async (ref, options = {}) =>
     (await apiGet<{ yaml: string }>('/yaml', { ...objectParams(ref), neat: flag(options.neat) })).yaml,
@@ -26,6 +26,14 @@ export const apiEditing: Pick<
     })
     return body.results
   },
+  editYaml: async (ref, original, edited, options = {}) =>
+    (
+      await apiPost<{ results: ApplyResult[] }>(
+        '/resource/edit',
+        { original, edited },
+        { ...objectParams(ref), dryRun: flag(options.dryRun) },
+      )
+    ).results,
   deleteResource: async (ref, options = {}) => {
     await apiDelete('/resource', {
       ...objectParams(ref),

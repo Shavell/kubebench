@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { refreshData, useProviders } from '@/data/DataContext'
-import type { ApplyAction, ApplyOptions, ApplyResult } from '@/data/types'
+import type { ApplyAction, ApplyOptions, ApplyResult, ObjectRef } from '@/data/types'
 import { describeError, errorCodeOf } from '@/shared/apiErrorText'
 import { te } from './i18n'
 
@@ -39,20 +39,18 @@ export function summarize(results: ApplyResult[], dryRun: boolean): string {
 }
 
 /**
- * Runs dry runs and applies of manifests. An apply that changed anything
- * refreshes every view; a refused request becomes the outcome's refusal
- * rather than an exception.
+ * Runs dry runs and applies of manifests (`run`) and of edits of one
+ * object (`runEdit`). One that changed anything refreshes every view; a
+ * refused request becomes the outcome's refusal rather than an exception.
  */
 export function useApplyRunner() {
   const { cluster } = useProviders()
   const [busy, setBusy] = useState<'dryRun' | 'apply' | null>(null)
 
-  const run = async (manifests: string, options: ApplyOptions): Promise<ApplyOutcome> => {
-    const dryRun = Boolean(options.dryRun)
-    const force = Boolean(options.force)
+  const execute = async (dryRun: boolean, force: boolean, send: () => Promise<ApplyResult[]>): Promise<ApplyOutcome> => {
     setBusy(dryRun ? 'dryRun' : 'apply')
     try {
-      const results = await cluster.applyYaml(manifests, options)
+      const results = await send()
       if (!dryRun && results.some((r) => r.action && r.action !== 'unchanged')) refreshData()
       return { dryRun, force, results }
     } catch (err) {
@@ -62,5 +60,11 @@ export function useApplyRunner() {
     }
   }
 
-  return { busy, run }
+  const run = (manifests: string, options: ApplyOptions) =>
+    execute(Boolean(options.dryRun), Boolean(options.force), () => cluster.applyYaml(manifests, options))
+
+  const runEdit = (ref: ObjectRef, original: string, edited: string, dryRun: boolean) =>
+    execute(dryRun, false, () => cluster.editYaml(ref, original, edited, { dryRun }))
+
+  return { busy, run, runEdit }
 }

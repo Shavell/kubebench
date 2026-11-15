@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -100,6 +101,64 @@ func (s *Server) handleApply(w http.ResponseWriter, r *http.Request, c *call) {
 		out[i] = toApplyResult(res)
 	}
 	plugin.WriteJSON(w, map[string][]applyResult{"results": out})
+}
+
+// editRequest is the body of POST /api/resource/edit: the object's YAML
+// (or JSON) as editing started from, and as edited.
+type editRequest struct {
+	Original string `json:"original"`
+	Edited   string `json:"edited"`
+}
+
+// handleEdit applies an edit of one existing object as the merge patch
+// from original to edited (kube.EditObject), so that removed fields are
+// removed. The answer has the shape of an apply's, with one result.
+func (s *Server) handleEdit(w http.ResponseWriter, r *http.Request, c *call) {
+	if _, err := flagParam(r.URL.Query(), "dryRun"); err != nil {
+		writeErr(w, err)
+		return
+	}
+	obj, err := objectParam(c.rt, r.URL.Query())
+	if err != nil {
+		writeClusterErr(w, err)
+		return
+	}
+	var body editRequest
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 2*maxManifestBytes)).Decode(&body); err != nil {
+		var tooLarge *http.MaxBytesError
+		if errors.As(err, &tooLarge) {
+			writeErr(w, errorf(http.StatusRequestEntityTooLarge, plugin.CodeBadRequest,
+				"the manifests exceed %d MiB", 2*maxManifestBytes>>20))
+			return
+		}
+		writeErr(w, badRequest("invalid JSON body: %v", err))
+		return
+	}
+	dryRun := plugin.IsDryRun(r)
+	if dryRun && obj.Resource.GroupResource() == secretsResource {
+		var done func()
+		w, done, err = s.secretDryRun(w, r, c, "POST /api/resource/edit")
+		defer done()
+		if err != nil {
+			writeErr(w, err)
+			return
+		}
+	}
+	res, err := c.rt.EditObject(r.Context(), obj, []byte(body.Original), []byte(body.Edited), dryRun)
+	var refused *kube.EditError
+	switch {
+	case errors.As(err, &refused) && refused.Redacted:
+		writeErr(w, errorf(http.StatusBadRequest, plugin.CodeRedactedSecret, "%s", refused.Problem))
+		return
+	case errors.As(err, &refused):
+		writeErr(w, badRequest("%s", refused.Problem))
+		return
+	case err != nil:
+		writeErr(w, err)
+		return
+	}
+	c.setAudit("", applyAuditDetail([]kube.ApplyResult{res}, false, dryRun))
+	plugin.WriteJSON(w, map[string][]applyResult{"results": {toApplyResult(res)}})
 }
 
 func writeManifestErr(w http.ResponseWriter, err error) {

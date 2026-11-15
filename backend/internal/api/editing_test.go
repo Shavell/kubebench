@@ -158,6 +158,65 @@ func TestSecretDryRunNeedsWriteAccess(t *testing.T) {
 	}
 }
 
+func TestEditEndpoint(t *testing.T) {
+	cm := kubetest.Object("v1", "ConfigMap", "shop", "cm1", map[string]any{"data": map[string]any{"a": "1", "b": "2"}})
+	db := kubetest.Object("v1", "Secret", "shop", "db", map[string]any{"type": "Opaque", "data": map[string]any{"pin": "NDgyMQ=="}})
+	e, dyn := editingEnv(t, cm, db)
+	const target = "/api/resource/edit?apiVersion=v1&kind=ConfigMap&ns=shop&name=cm1"
+	original := "apiVersion: v1\nkind: ConfigMap\nmetadata: {name: cm1, namespace: shop}\ndata: {a: \"1\", b: \"2\"}\n"
+	edited := strings.Replace(original, `, b: "2"`, "", 1)
+	body := editRequest{Original: original, Edited: edited}
+
+	// A viewer may dry run an edit (read, not audited), not apply it.
+	retuned := editRequest{Original: original, Edited: strings.Replace(original, `a: "1"`, `a: "9"`, 1)}
+	rec := e.do(http.MethodPost, target+"&dryRun=true", "bob", retuned)
+	expect(t, rec, http.StatusOK, "")
+	if res := decode[applyResponse](t, rec).Results; len(res) != 1 || res[0].Action != "configured" || res[0].Name != "cm1" {
+		t.Fatalf("dry run = %+v", res)
+	}
+	expect(t, e.do(http.MethodPost, target, "bob", body), http.StatusForbidden, plugin.CodeForbiddenRole)
+
+	rec = e.do(http.MethodPost, target, "alice", body)
+	expect(t, rec, http.StatusOK, "")
+	if res := decode[applyResponse](t, rec).Results; len(res) != 1 || res[0].Action != "configured" {
+		t.Fatalf("edit = %+v", res)
+	}
+	live, err := dyn.Resource(configMaps).Namespace("shop").Get(context.Background(), "cm1", metav1.GetOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if data := live.Object["data"].(map[string]any); len(data) != 1 {
+		t.Fatalf("data = %v, want b removed", data)
+	}
+	rows := e.audit()
+	if len(rows) != 2 {
+		t.Fatalf("audit rows = %+v", rows)
+	}
+	if r := rows[0]; r.Username != "alice" || r.Action != "POST /api/resource/edit" || r.Target != "configmap/shop/cm1" ||
+		r.Status != 200 || r.Detail != `{"configured":1}` {
+		t.Fatalf("edit row = %+v", r)
+	}
+
+	// Refusals before anything is sent.
+	before := len(dynamicMutations(dyn))
+	renamed := editRequest{Original: original, Edited: strings.Replace(edited, "name: cm1", "name: cm2", 1)}
+	expect(t, e.do(http.MethodPost, target, "alice", renamed), http.StatusBadRequest, plugin.CodeBadRequest)
+	expect(t, e.do(http.MethodPost, target+"&dryRun=1", "alice", body), http.StatusBadRequest, plugin.CodeBadRequest)
+	secretTarget := "/api/resource/edit?apiVersion=v1&kind=Secret&ns=shop&name=db"
+	secretOriginal := "apiVersion: v1\nkind: Secret\nmetadata: {name: db, namespace: shop}\ndata: {pin: '<8 bytes, redacted>'}\n"
+	placeholder := editRequest{Original: secretOriginal, Edited: strings.Replace(secretOriginal, "\ndata: {", "\ndata: {other: '<4 bytes, redacted>', ", 1)}
+	expect(t, e.do(http.MethodPost, secretTarget, "alice", placeholder), http.StatusBadRequest, plugin.CodeRedactedSecret)
+	// A Secret dry run is the edit itself (§3.2).
+	guess := editRequest{Original: secretOriginal, Edited: strings.Replace(secretOriginal, "'<8 bytes, redacted>'", "NDgyMQ==", 1)}
+	expect(t, e.do(http.MethodPost, secretTarget+"&dryRun=true", "bob", guess), http.StatusForbidden, plugin.CodeForbiddenRole)
+	if n := len(dynamicMutations(dyn)); n != before {
+		t.Fatalf("%d refused edits reached the cluster", n-before)
+	}
+	if r := e.lastAudit(); r.Username != "bob" || r.Target != "secret/shop/db" || r.Status != http.StatusForbidden {
+		t.Fatalf("refused Secret dry run row = %+v", r)
+	}
+}
+
 func TestApplyOnReadOnlyCluster(t *testing.T) {
 	e, _ := editingEnv(t)
 	expect(t, e.do(http.MethodPatch, "/api/clusters/1", "admin", map[string]any{"readOnly": true}), http.StatusOK, "")

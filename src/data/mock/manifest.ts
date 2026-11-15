@@ -81,6 +81,32 @@ export function mergeManifest(base: Manifest, manifest: Manifest): Manifest {
   return out
 }
 
+/**
+ * The JSON merge patch (RFC 7386) from `from` to `to`, like the backend's
+ * kube.mergePatch: changed and added fields, removed ones as null; maps on
+ * both sides patched key by key, other values replaced whole.
+ */
+export function mergePatch(from: Manifest, to: Manifest): Manifest {
+  const patch: Manifest = {}
+  for (const key of Object.keys(from)) if (!(key in to)) patch[key] = null
+  for (const [key, value] of Object.entries(to)) {
+    const old = from[key]
+    if (key in from && deepEqual(old, value)) continue
+    patch[key] = key in from && isObject(old) && isObject(value) ? mergePatch(old, value) : structuredClone(value)
+  }
+  return patch
+}
+
+/** `target` with a JSON merge patch applied (null removes a field). */
+export function applyMergePatch(target: Manifest, patch: Manifest): Manifest {
+  const out = structuredClone(target)
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === null) delete out[key]
+    else out[key] = isObject(value) ? applyMergePatch(isObject(out[key]) ? out[key] : {}, value) : structuredClone(value)
+  }
+  return out
+}
+
 /** The value at a dotted path ("spec.replicas"), or undefined. */
 export function valueAt(manifest: Manifest, path: string): unknown {
   let current: unknown = manifest

@@ -4,7 +4,6 @@ import { useLayoutStore } from '@/core/store/layoutStore'
 import { refreshData, useProviderQuery, useProviders } from '@/data/DataContext'
 import type { ObjectRef } from '@/data/types'
 import { Button } from '@/shared/Button'
-import { ConfirmDialog } from '@/shared/ConfirmDialog'
 import { CodeEditor } from '@/shared/editor/CodeEditor'
 import { DiffEditor } from '@/shared/editor/DiffEditor'
 import { copyText, downloadText } from '@/shared/fileActions'
@@ -37,9 +36,11 @@ const newSession = (): YamlSession => ({ mode: 'view', neat: false, base: '', dr
 /**
  * The YAML of a cluster object (design §7.2): view it in full or neat,
  * copy or download it; edit it, review the diff against the live object,
- * dry run and apply it with server-side apply, forcing past conflicts with
- * other field managers. Unapplied edits survive tab switches and mark the
- * tab dirty, so closing it asks first.
+ * dry run and apply it. The edit is sent as the changes from the YAML
+ * editing started from (a merge patch, like kubectl edit), so a removed
+ * field is removed and fields left alone keep their live values.
+ * Unapplied edits survive tab switches and mark the tab dirty, so closing
+ * it asks first.
  */
 export function ResourceYamlEditor({ tabId, target }: { tabId: string; target: ObjectRef }) {
   const { t } = useEditorTranslation()
@@ -48,10 +49,9 @@ export function ResourceYamlEditor({ tabId, target }: { tabId: string; target: O
   const setTabDirty = useLayoutStore((s) => s.setTabDirty)
   const [session, update] = useTabSession(tabId, newSession)
   const { mode, neat, base, draft, outcome } = session
-  const { busy, run } = useApplyRunner()
+  const { busy, runEdit } = useApplyRunner()
   const [starting, setStarting] = useState(false)
   const [discarding, setDiscarding] = useState(false)
-  const [forcing, setForcing] = useState(false)
 
   const editing = mode !== 'view'
   const dirty = editing && draft !== base
@@ -61,7 +61,6 @@ export function ResourceYamlEditor({ tabId, target }: { tabId: string; target: O
   const wantNeat = editing || neat
   const live = useProviderQuery((p) => p.cluster.getYaml(target, { neat: wantNeat }), [targetKey, wantNeat])
   const isSecret = target.apiVersion === 'v1' && target.kind === 'Secret'
-  const applyOptions = { namespace: target.namespace ?? undefined }
 
   const startEditing = async () => {
     setStarting(true)
@@ -77,10 +76,10 @@ export function ResourceYamlEditor({ tabId, target }: { tabId: string; target: O
 
   const stopEditing = () => update({ mode: 'view', base: '', draft: '', outcome: null })
 
-  const dryRun = async () => update({ outcome: await run(draft, { ...applyOptions, dryRun: true }) })
+  const dryRun = async () => update({ outcome: await runEdit(target, base, draft, true) })
 
-  const apply = async (force: boolean) => {
-    const result = await run(draft, { ...applyOptions, force })
+  const apply = async () => {
+    const result = await runEdit(target, base, draft, false)
     if (outcomeFailed(result)) {
       update({ outcome: result })
       return
@@ -91,7 +90,6 @@ export function ResourceYamlEditor({ tabId, target }: { tabId: string; target: O
 
   const shownText = editing ? draft : (live.data ?? '')
   const title = target.namespace ? `${target.kind} · ${target.namespace} / ${target.name}` : `${target.kind} · ${target.name}`
-  const busyApply = busy === 'apply'
 
   const toolbar = (
     <Toolbar title={title}>
@@ -146,10 +144,10 @@ export function ResourceYamlEditor({ tabId, target }: { tabId: string; target: O
           ) : (
             <Button
               icon="cloud-upload"
-              busy={busyApply && !forcing}
+              busy={busy === 'apply'}
               disabled={!write.allowed || busy !== null}
               title={write.reason ?? undefined}
-              onClick={() => void apply(false)}
+              onClick={() => void apply()}
             >
               {t('yaml.apply')}
             </Button>
@@ -197,14 +195,7 @@ export function ResourceYamlEditor({ tabId, target }: { tabId: string; target: O
         </div>
       )}
       <div className="kb-yaml__editor">{body()}</div>
-      {outcome && (
-        <ApplyResults
-          outcome={outcome}
-          onForce={editing ? () => setForcing(true) : undefined}
-          forcing={busyApply && forcing}
-          onDismiss={() => update({ outcome: null })}
-        />
-      )}
+      {outcome && <ApplyResults outcome={outcome} onDismiss={() => update({ outcome: null })} />}
       <DiscardDialog
         open={discarding}
         title={t('yaml.discardTitle')}
@@ -212,16 +203,6 @@ export function ResourceYamlEditor({ tabId, target }: { tabId: string; target: O
         confirmLabel={t('yaml.discard')}
         onConfirm={stopEditing}
         onClose={() => setDiscarding(false)}
-      />
-      <ConfirmDialog
-        open={forcing}
-        danger
-        title={t('apply.forceTitle', { name: target.name })}
-        message={t('apply.forceMessage')}
-        confirmLabel={t('apply.force')}
-        confirmPhrase={target.name}
-        onConfirm={() => apply(true)}
-        onClose={() => setForcing(false)}
       />
     </div>
   )

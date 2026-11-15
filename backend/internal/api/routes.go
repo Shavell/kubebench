@@ -64,6 +64,7 @@ func (s *Server) routes() {
 	s.handle("POST /api/helm/rollback", accessWrite, s.handleHelmRollback)
 	s.handle("POST /api/helm/uninstall", accessWrite, s.handleHelmUninstall)
 	s.handle("POST /api/resource/apply", accessWrite|allowDryRun, s.handleApply)
+	s.handle("POST /api/resource/edit", accessWrite|allowDryRun, s.handleEdit)
 	s.handle("DELETE /api/resource", accessWrite, s.handleDeleteResource)
 	s.handle("PATCH /api/resource/metadata", accessWrite, s.handlePatchMetadata)
 	// Changes nothing but shows the values every other route redacts:

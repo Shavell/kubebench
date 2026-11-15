@@ -690,6 +690,22 @@ and `new-resource` with `{namespace?, kind?}` (see 7.2);
   - Audit target: the first object, `<kind>/<ns>/<name>` with
     ` (+N more)`; detail: the outcome counts, e.g.
     `{"configured":1,"failed":1}`, and `"force":true`.
+- `POST /api/resource/edit?apiVersion=&kind=` or `?key=` `&ns=&name=&dryRun=`
+  (write; exactly `dryRun=true` → read and not audited, a real dry run,
+  except for Secrets, §3.2). Body `{"original","edited"}`: the object's YAML
+  or JSON as editing started from and as edited (one document each, at most
+  8 MiB together). The YAML editor's Apply: unlike server-side apply, which
+  keeps fields other managers own when a manifest leaves them out, the edit
+  is sent like `kubectl edit` as the JSON merge patch from original to
+  edited (`fieldManager=kubebench`), so a removed field is removed and
+  fields the edit leaves alone keep their live values. Both documents must
+  be the named object (apiVersion, kind, name; the namespace may be
+  omitted), else `400 bad_request`. Redaction placeholders left unchanged
+  are not part of the patch, so a Secret's labels can be edited without
+  revealing it; a value changed to a placeholder is `400 redacted_secret`.
+  Answers like apply with one result (`configured` or `unchanged`; nothing
+  is sent without changes); audit target `<kind>/<ns>/<name>`, detail the
+  outcome count.
 - `GET /api/yaml?apiVersion=&kind=&ns=&name=&neat=true` (read). With
   `apiVersion`, any kind the cluster serves (RESTMapper; a namespaced kind
   needs `ns`); without it, the kinds v0.4 knew by name (`kind`, `name`
@@ -721,8 +737,9 @@ and `new-resource` with `{namespace?, kind?}` (see 7.2);
 - UI, editor plugin (core): the `yaml` tab kind with `{ref: {apiVersion,
   kind, namespace, name}}` shows the object full or neat, copies and
   downloads it, and edits it: Edit → Review changes (DiffEditor, live neat
-  ↔ edited) → Dry run → Apply, with per-object results; a conflict offers
-  "Force apply" (ConfirmDialog). Without `ref` it keeps the v0.4
+  ↔ edited) → Dry run → Apply through `POST /api/resource/edit`, with the
+  result. The `new-resource` tab applies with server-side apply, where a
+  conflict offers "Force apply" (ConfirmDialog). Without `ref` it keeps the v0.4
   `{text, readOnly}` behaviour. The `new-resource` tab kind
   (`{namespace?, kind?}`): templates for the namespace, import of files
   (picker or drag & drop, any number of documents), dry run, apply.

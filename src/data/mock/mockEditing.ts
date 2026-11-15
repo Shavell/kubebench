@@ -1,4 +1,4 @@
-import { dump, load } from 'js-yaml'
+import { dump, load, loadAll } from 'js-yaml'
 import { ApiError } from '../apiClient'
 import type { ClusterProvider } from '../providers'
 import type { ApplyOptions, ApplyResult, KubeObject, MetadataPatch, ObjectRef } from '../types'
@@ -7,11 +7,13 @@ import { namespaces } from './mockCluster'
 import { findKind, type MockKind } from './mockKinds'
 import { objectKey, readObject, removeObject, revealedValue, writeObject } from './mockObjects'
 import {
+  applyMergePatch,
   deepEqual,
   isObject,
   isRedacted,
   LAST_APPLIED,
   mergeManifest,
+  mergePatch,
   metadataOf,
   neat,
   stringMap,
@@ -187,6 +189,72 @@ function applyObject(manifest: Manifest, options: ApplyOptions): ApplyResult {
   return { ...result, action }
 }
 
+// --- edit -----------------------------------------------------------------------
+
+/** One edited object (YAML or JSON), checked to be ref; refusals as the API's 400s. */
+function parseEdited(text: string, what: string, ref: ObjectRef, namespace: string): Manifest {
+  let documents: unknown[]
+  try {
+    documents = loadAll(text).filter((doc) => doc !== null && doc !== undefined)
+  } catch (err) {
+    throw badRequest(`${what} is not valid YAML or JSON: ${(err instanceof Error ? err.message : String(err)).split('\n')[0]}`)
+  }
+  if (documents.length === 0) throw badRequest(`${what} is empty`)
+  if (documents.length > 1) throw badRequest(`${what} holds more than one document; edit one object at a time`)
+  const obj = documents[0]
+  if (!isObject(obj)) throw badRequest(`${what} is not an object`)
+  const meta = metadataOf(obj)
+  const ns = typeof meta.namespace === 'string' ? meta.namespace : ''
+  if (obj.apiVersion !== ref.apiVersion || obj.kind !== ref.kind || meta.name !== ref.name || (namespace && ns && ns !== namespace)) {
+    const name = (n: string, value: unknown) => (n ? `${n}/${String(value)}` : String(value))
+    throw badRequest(
+      `${what} describes ${String(obj.kind)} ${name(ns, meta.name)}, not the edited ${name(namespace, ref.name)}; create other objects with New resource`,
+    )
+  }
+  return obj
+}
+
+/** Like the backend's checkPatchValues: no placeholder may become a Secret value. */
+function checkPatchValues(ref: ObjectRef, patch: Manifest): void {
+  if (ref.apiVersion !== 'v1' || ref.kind !== 'Secret') return
+  for (const field of ['data', 'stringData']) {
+    const values = stringMap(patch[field])
+    const key = Object.keys(values)
+      .sort()
+      .find((k) => isRedacted(values[k]))
+    if (key) {
+      throw new ApiError(
+        400,
+        'redacted_secret',
+        `Secret ${ref.name}: ${field}.${key} is set to a redaction placeholder; leave the placeholder unchanged to keep the value, or enter the real value`,
+      )
+    }
+  }
+  if (isRedacted(stringMap(metadataOf(patch).annotations)[LAST_APPLIED] ?? '')) {
+    throw new ApiError(400, 'redacted_secret', `Secret ${ref.name}: the ${LAST_APPLIED} annotation holds a redaction placeholder; remove the annotation`)
+  }
+}
+
+function editObject(ref: ObjectRef, original: string, edited: string, dryRun: boolean): ApplyResult {
+  const { kind, namespace } = resolve(ref)
+  const from = parseEdited(original, 'the original manifest', ref, namespace)
+  const to = parseEdited(edited, 'the edited manifest', ref, namespace)
+  const patch = mergePatch(from, to)
+  if (isObject(patch.metadata)) {
+    delete patch.metadata.namespace
+    if (Object.keys(patch.metadata).length === 0) delete patch.metadata
+  }
+  checkPatchValues(ref, patch)
+  const result: ApplyResult = { apiVersion: ref.apiVersion, kind: ref.kind, namespace: namespace || undefined, name: ref.name }
+  const existing = readObject(kind, namespace, ref.name)
+  if (!existing) return { ...result, error: notFound(kind, ref.name).message, code: 'kubernetes' }
+  if (Object.keys(patch).length === 0) return { ...result, action: 'unchanged' }
+  const next = applyMergePatch(existing, patch)
+  const action = deepEqual(neat(existing), neat(next)) ? 'unchanged' : 'configured'
+  if (!dryRun) writeObject(kind, namespace, ref.name, next)
+  return { ...result, action }
+}
+
 // --- metadata -------------------------------------------------------------------
 
 function patched(current: unknown, changes: Record<string, string | null> | undefined): Record<string, string> {
@@ -238,7 +306,7 @@ function revealObject(namespace: string, name: string): KubeObject {
 
 export const mockEditing: Pick<
   ClusterProvider,
-  'getYaml' | 'applyYaml' | 'deleteResource' | 'patchMetadata' | 'revealSecret'
+  'getYaml' | 'applyYaml' | 'editYaml' | 'deleteResource' | 'patchMetadata' | 'revealSecret'
 > = {
   getYaml: (ref, options = {}) =>
     respond(() => {
@@ -253,6 +321,8 @@ export const mockEditing: Pick<
       if (objects.length === 0) throw badRequest('the request contains no objects')
       return objects.map((obj) => applyObject(obj, options))
     }),
+  editYaml: (ref, original, edited, options = {}) =>
+    respond(() => [editObject(ref, original, edited, Boolean(options.dryRun))]),
   deleteResource: (ref, options = {}) =>
     respond(() => {
       const { kind, namespace } = resolve(ref)
