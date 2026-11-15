@@ -21,7 +21,8 @@ export function EditorArea() {
       {tabs.length > 0 && <TabStrip />}
       <div className="editor-area__body">
         {activeTab && Renderer ? (
-          <Renderer tab={activeTab} />
+          // Keyed by tab: two tabs of one kind (Pods, Pods · shop) keep no state of each other.
+          <Renderer key={activeTab.id} tab={activeTab} />
         ) : (
           <div className="editor-area__watermark">
             <Icon name="dashboard" size={72} />
