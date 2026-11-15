@@ -125,9 +125,17 @@ networkPolicy:
 
 Most CNIs apply egress rules after Service translation, so the policy
 must allow the API server *endpoints* (often `:6443`), not only the
-`kubernetes` Service on `:443`. The chart looks both up at install time;
-set `networkPolicy.apiServer.cidrs` when rendering offline (`helm template`,
-GitOps), otherwise any address is allowed on `networkPolicy.apiServer.ports`.
+`kubernetes` Service on `:443`. The chart looks both up at install time.
+When it renders offline (`helm template`, GitOps tools such as Argo CD or
+Flux, a client-side `--dry-run`) nothing can be looked up, and the render
+fails unless `networkPolicy.apiServer.cidrs` is set, rather than allow
+every destination on `networkPolicy.apiServer.ports`:
+
+```sh
+kubectl get service kubernetes -n default -o jsonpath='{.spec.clusterIPs}'
+kubectl get endpointslices -n default -l kubernetes.io/service-name=kubernetes \
+  -o jsonpath='{.items[*].endpoints[*].addresses}'
+```
 Remote clusters, Helm repositories and other destinations go into
 `networkPolicy.extraEgressCIDRs` or `networkPolicy.extraEgress`; so does
 `api.github.com:443` for the update check, unless `config.updateMode` is
@@ -197,12 +205,13 @@ kubectl -n kubebench delete pvc/kubebench-data secret/kubebench-auth
 | `config.sessionTTL` | `168h` | `KUBEBENCH_SESSION_TTL` (Go duration, at least `1m`). |
 | `config.auditRetentionDays` | `90` | `KUBEBENCH_AUDIT_RETENTION_DAYS` (`0` = keep forever). |
 | `config.allowPathKubeconfig` | `false` | `KUBEBENCH_ALLOW_PATH_KUBECONFIG`: add clusters by a path inside the pod. |
+| `config.allowAmbientCloudIdentity` | `false` | `KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY`: pasted EKS, GKE and AKS kubeconfigs may sign in with the pod's own cloud identity (workload identity). Every admin can then obtain its token ([security](../../docs/security.md#cloud-identities-eks-aks-gke)). |
 | `config.updateMode` | `stable` | `KUBEBENCH_UPDATE_MODE`: check GitHub for new releases (`stable`, `prerelease`) or never (`off`, for air-gapped clusters). Admins can change it in Settings. |
 | `extraEnv` | `[]` | Extra container env entries; they override the chart's variables. |
 | `extraEnvFrom` | `[]` | Extra `envFrom` sources. |
 | `serviceAccount.create` | `true` | Create the ServiceAccount. |
 | `serviceAccount.name` | `""` | Name; defaults to the fullname (or `default` when not created). |
-| `serviceAccount.annotations` | `{}` | Annotations, e.g. for workload identity: the cloud identity KubeBench signs in to EKS, GKE and AKS clusters with ([Cloud clusters](../../docs/deployment.md#cloud-clusters-eks-aks-gke)). |
+| `serviceAccount.annotations` | `{}` | Annotations, e.g. for workload identity: the cloud identity KubeBench signs in to EKS, GKE and AKS clusters with when `config.allowAmbientCloudIdentity` is on ([Cloud clusters](../../docs/deployment.md#cloud-clusters-eks-aks-gke)). |
 | `serviceAccount.automount` | `true` | Mount the token; KubeBench needs it to manage this cluster. |
 | `rbac.create` | `true` | Create the ClusterRoleBinding (and ClusterRole for `read-only`/`custom`). |
 | `rbac.preset` | `cluster-admin` | `cluster-admin`, `read-only` or `custom` (see [RBAC presets](#rbac-presets)). |
@@ -226,7 +235,7 @@ kubectl -n kubebench delete pvc/kubebench-data secret/kubebench-auth
 | `ingress.tls` | `[]` | TLS entries (`secretName`, `hosts`). |
 | `networkPolicy.enabled` | `false` | Create a NetworkPolicy (see [NetworkPolicy](#networkpolicy)). |
 | `networkPolicy.ingressFrom` | `[]` | NetworkPolicyPeers allowed to reach the HTTP port; empty = anyone. |
-| `networkPolicy.apiServer.cidrs` | `[]` | API server CIDRs; empty = looked up at install time. |
+| `networkPolicy.apiServer.cidrs` | `[]` | API server CIDRs; empty = looked up at install time (an offline render then fails). |
 | `networkPolicy.apiServer.ports` | `[443, 6443]` | API server ports (looked-up endpoint ports are added). |
 | `networkPolicy.dns.namespaceSelector` | `kube-system` | Namespace of the cluster DNS. |
 | `networkPolicy.dns.podSelector` | `k8s-app: kube-dns` | Pods of the cluster DNS. |

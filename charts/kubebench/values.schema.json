@@ -67,6 +67,7 @@
         },
         "auditRetentionDays": { "type": "integer", "minimum": 0 },
         "allowPathKubeconfig": { "type": "boolean" },
+        "allowAmbientCloudIdentity": { "type": "boolean" },
         "updateMode": { "enum": ["off", "stable", "prerelease"] }
       }
     },

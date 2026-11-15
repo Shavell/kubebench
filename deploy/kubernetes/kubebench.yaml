@@ -181,6 +181,8 @@ spec:
               value: "90"
             - name: KUBEBENCH_ALLOW_PATH_KUBECONFIG
               value: "false"
+            - name: KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY
+              value: "false"
             - name: KUBEBENCH_UPDATE_MODE
               value: "stable"
           startupProbe:

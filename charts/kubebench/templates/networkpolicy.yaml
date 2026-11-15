@@ -4,7 +4,9 @@
 API server destinations. Explicit CIDRs win; otherwise the `kubernetes`
 Service address and its endpoints are looked up (empty under `helm template`).
 Most CNIs evaluate egress after Service DNAT, so the endpoint address and
-port (often 6443) matter as much as the Service VIP on 443.
+port (often 6443) matter as much as the Service VIP on 443. When neither
+gives an address the render fails: an egress rule without `to` would allow
+every destination on those ports.
 */}}
 {{- $ports := list }}
 {{- range $np.apiServer.ports }}
@@ -31,6 +33,10 @@ port (often 6443) matter as much as the Service VIP on 443.
 {{- end }}
 {{- end }}
 {{- end }}
+{{- end }}
+{{- $cidrs = uniq $cidrs }}
+{{- if not $cidrs }}
+{{- fail "networkPolicy.enabled: the Kubernetes API server's addresses could not be looked up (helm template, GitOps or a client-side dry run). Set networkPolicy.apiServer.cidrs to the kubernetes Service and endpoint addresses: kubectl get service kubernetes -n default; kubectl get endpointslices -n default -l kubernetes.io/service-name=kubernetes" }}
 {{- end }}
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -59,13 +65,11 @@ spec:
         - port: {{ . }}
           protocol: TCP
         {{- end }}
-      {{- with uniq $cidrs }}
       to:
-        {{- range . }}
+        {{- range $cidrs }}
         - ipBlock:
             cidr: {{ . }}
         {{- end }}
-      {{- end }}
     # DNS
     - ports:
         - port: 53

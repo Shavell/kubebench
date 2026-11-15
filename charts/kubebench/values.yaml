@@ -39,6 +39,10 @@ config:
   auditRetentionDays: 90
   # KUBEBENCH_ALLOW_PATH_KUBECONFIG: allow adding clusters by a path on the server's filesystem.
   allowPathKubeconfig: false
+  # KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY: let pasted EKS/GKE/AKS kubeconfigs
+  # sign in with the pod's own cloud identity (serviceAccount.annotations).
+  # Every admin can then obtain that identity's token; see docs/security.md.
+  allowAmbientCloudIdentity: false
   # KUBEBENCH_UPDATE_MODE: default update check against GitHub releases:
   # off (no requests; air-gapped clusters), stable or prerelease. Admins can
   # change it in Settings. With networkPolicy.enabled the check needs egress
@@ -139,8 +143,8 @@ networkPolicy:
     # API server addresses as CIDRs. Empty: looked up at install time from the
     # default/kubernetes Service and its EndpointSlices. Policies see the
     # endpoint address and port after Service translation, so both are
-    # allowed. If nothing is found (helm template), any address is allowed on
-    # the ports below.
+    # allowed. If nothing is found (helm template, GitOps, a client-side dry
+    # run), the render fails: set the CIDRs then.
     cidrs: []
     ports: [443, 6443]
   dns:

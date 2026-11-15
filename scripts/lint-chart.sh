@@ -4,7 +4,8 @@
 # Every scenario (the defaults, each charts/kubebench/ci/*-values.yaml and
 # deploy/kubernetes/values.yaml) goes through `helm lint --strict` and
 # `helm template`; the renders plus deploy/kubernetes/kubebench.yaml are then
-# checked with `kubeconform -strict` for each Kubernetes version.
+# checked with `kubeconform -strict` for each Kubernetes version. A
+# NetworkPolicy without API server CIDRs must fail to render offline.
 #
 # Usage: scripts/lint-chart.sh
 #   KUBE_VERSIONS="1.30.0 1.35.0"  Kubernetes schema versions to validate against
@@ -37,6 +38,13 @@ for scenario in "${scenarios[@]}"; do
   helm lint --strict --quiet "$chart" "${args[@]}"
   helm template kubebench "$chart" --namespace kubebench "${args[@]}" >"$work/$name.yaml"
 done
+
+# Offline, a NetworkPolicy without API server CIDRs cannot be confined and
+# must not render (it would allow every destination on the API ports).
+printf '==> helm template: networkPolicy without apiServer.cidrs fails\n'
+if helm template kubebench "$chart" --set networkPolicy.enabled=true >/dev/null 2>&1; then
+  die "networkPolicy.enabled without apiServer.cidrs rendered offline; it must fail"
+fi
 
 kubeconform_args=(-strict -summary)
 if [[ -n "${KUBECONFORM_CACHE:-}" ]]; then
