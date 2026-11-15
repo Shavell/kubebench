@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -21,6 +22,7 @@ import (
 	"k8s.io/client-go/rest"
 
 	"kubebench/internal/store"
+	"kubebench/internal/watch"
 )
 
 func testRuntime(t *testing.T) (*Runtime, *fakediscovery.FakeDiscovery) {
@@ -216,5 +218,87 @@ func TestManagerRebuildsOnChangedRecord(t *testing.T) {
 	m.Drop(cluster.ID)
 	if _, _ = m.Runtime(&cluster); builds != 3 {
 		t.Fatalf("a dropped runtime must be rebuilt (builds=%d)", builds)
+	}
+}
+
+// A request that read a cluster's record before the cluster was deleted
+// must not cache a new runtime for it: nothing would ever close it, and
+// its sampler would keep using the removed cluster's credentials.
+func TestManagerRefusesRemovedClusters(t *testing.T) {
+	builds := 0
+	m := NewManagerWith(func(c store.Cluster) (*Runtime, error) {
+		builds++
+		rt, _ := testRuntime(t)
+		rt.Cluster = c
+		return rt, nil
+	})
+	cluster := store.Cluster{ID: 7, Name: "prod", Source: store.SourceKubeconfig}
+	if _, err := m.Runtime(&cluster); err != nil {
+		t.Fatal(err)
+	}
+	stale := cluster
+	m.Remove(cluster.ID)
+	if rt, err := m.Runtime(&stale); !errors.Is(err, ErrClusterRemoved) || rt != nil {
+		t.Fatalf("Runtime of a removed cluster = %v, %v", rt, err)
+	}
+	if m.Peek(&cluster) != nil || builds != 1 {
+		t.Fatalf("a runtime was built again for the removed cluster (builds=%d)", builds)
+	}
+}
+
+// Closing a runtime may take long (its watch hub waits for goroutines that
+// may sit in a call to an unreachable cluster); other clusters' requests
+// must not wait for it.
+func TestManagerClosesRuntimesOutsideTheLock(t *testing.T) {
+	m := NewManagerWith(func(c store.Cluster) (*Runtime, error) {
+		rt, _ := testRuntime(t)
+		rt.Cluster = c
+		return rt, nil
+	})
+	slow := store.Cluster{ID: 1, Name: "unreachable", Source: store.SourceKubeconfig}
+	rt, err := m.Runtime(&slow)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The first resolution fails; the retry hangs like discovery against
+	// a black-holed API server, so Close waits for it.
+	hanging, release := make(chan struct{}), make(chan struct{})
+	var calls atomic.Int32
+	rt.watch.Close()
+	rt.watch = watch.NewHub(rt.Dyn, func(string) (schema.GroupVersionResource, error) {
+		if calls.Add(1) == 2 { // the retry
+			close(hanging)
+			<-release
+		}
+		return schema.GroupVersionResource{}, errors.New("connection timed out")
+	}, watch.Options{Cluster: "unreachable", Retry: time.Millisecond, Logf: func(string, ...any) {}})
+	defer close(release)
+	if _, err := rt.watch.Subscribe(1, []string{"widgets.example.com"}); err != nil {
+		t.Fatal(err)
+	}
+	<-hanging
+	go m.Remove(slow.ID)
+	// Wait until Close has begun (the hub refuses subscriptions), so that
+	// Remove is past taking the manager's lock.
+	for {
+		if _, err := rt.watch.Subscribe(2, []string{"pods"}); errors.Is(err, watch.ErrClosed) {
+			break
+		}
+		time.Sleep(time.Millisecond)
+	}
+
+	other := store.Cluster{ID: 2, Name: "fine", Source: store.SourceKubeconfig}
+	got := make(chan error, 1)
+	go func() {
+		_, err := m.Runtime(&other)
+		got <- err
+	}()
+	select {
+	case err := <-got:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("Runtime of another cluster waited for a runtime being closed")
 	}
 }

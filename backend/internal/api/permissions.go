@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"kubebench/internal/kube"
 	"kubebench/internal/plugin"
 	"kubebench/internal/store"
 )
@@ -86,6 +87,9 @@ func (s *Server) resolveCluster(c *call) error {
 		return err
 	}
 	rt, err := s.manager.Runtime(cluster)
+	if errors.Is(err, kube.ErrClusterRemoved) {
+		return errorf(http.StatusConflict, plugin.CodeNoCluster, "the active cluster was removed; choose another one")
+	}
 	if err != nil {
 		return errorf(http.StatusServiceUnavailable, plugin.CodeNoCluster, "cluster %q is unavailable: %v", cluster.Name, err)
 	}
