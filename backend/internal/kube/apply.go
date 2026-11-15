@@ -112,24 +112,27 @@ func (r *Runtime) applyObject(ctx context.Context, obj *unstructured.Unstructure
 }
 
 // applyAction compares the object before (nil: it did not exist) and
-// after the apply. Bookkeeping that changes without the content changing,
-// managedFields and resourceVersion, is ignored, so applying a manifest
-// that is already in effect counts as unchanged even when KubeBench
-// becomes a co-owner of its fields.
+// after the apply. What changes without the manifest changing anything is
+// ignored: managedFields and resourceVersion (so applying a manifest that
+// is already in effect counts as unchanged even when KubeBench becomes a
+// co-owner of its fields) and status, which controllers may update
+// between the read and the apply, and which an apply of a resource with a
+// status subresource (every built-in one) cannot change anyway.
 func applyAction(before, after *unstructured.Unstructured) ApplyAction {
 	if before == nil {
 		return ActionCreated
 	}
-	if equality.Semantic.DeepEqual(withoutBookkeeping(before), withoutBookkeeping(after)) {
+	if equality.Semantic.DeepEqual(appliedContent(before), appliedContent(after)) {
 		return ActionUnchanged
 	}
 	return ActionConfigured
 }
 
-func withoutBookkeeping(obj *unstructured.Unstructured) map[string]any {
+func appliedContent(obj *unstructured.Unstructured) map[string]any {
 	c := obj.DeepCopy()
 	c.SetManagedFields(nil)
 	c.SetResourceVersion("")
+	delete(c.Object, "status")
 	return c.Object
 }
 

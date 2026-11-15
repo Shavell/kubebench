@@ -82,6 +82,28 @@ func TestApplyUnchangedForAnotherManagersObject(t *testing.T) {
 	}
 }
 
+func TestApplyActionIgnoresWhatApplyDoesNotChange(t *testing.T) {
+	before := kubetest.Object("apps/v1", "Deployment", "shop", "web", map[string]any{
+		"spec":   map[string]any{"replicas": int64(2)},
+		"status": map[string]any{"readyReplicas": int64(1)},
+	})
+	before.SetResourceVersion("1")
+	after := before.DeepCopy()
+	after.SetResourceVersion("2")
+	after.SetManagedFields([]metav1.ManagedFieldsEntry{{Manager: FieldManager, Operation: metav1.ManagedFieldsOperationApply}})
+	after.Object["status"] = map[string]any{"readyReplicas": int64(2)} // a controller was faster
+	if got := applyAction(before, after); got != ActionUnchanged {
+		t.Fatalf("bookkeeping and status only: %s", got)
+	}
+	after.Object["spec"] = map[string]any{"replicas": int64(3)}
+	if got := applyAction(before, after); got != ActionConfigured {
+		t.Fatalf("a changed spec: %s", got)
+	}
+	if got := applyAction(nil, after); got != ActionCreated {
+		t.Fatalf("no object before: %s", got)
+	}
+}
+
 func TestApplyDryRunAndForceReachTheAPI(t *testing.T) {
 	rt, dyn := editingRuntime(t)
 	rt.Apply(context.Background(), mustParseManifests(t, twoConfigMaps), ApplyOptions{DryRun: true, Force: true})
