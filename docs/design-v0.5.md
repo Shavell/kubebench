@@ -975,6 +975,29 @@ snapshot CRDs exist), `POST /pvcs?dryRun=`, `POST /pvs?dryRun=`,
 `POST /storageclasses?dryRun=`, `PATCH /pvcs/{ns}/{name}/resize {size}`.
 Bodies are validated server-side (DNS-1123 names, quantities, access modes).
 
+- Also `GET /pvcs?ns=` and `GET /pvs` (read): claim and volume summaries
+  for the plugin's lists and wizards (a claim's `expandBlocker`:
+  `not_bound` | `no_class` | `class_missing` | `not_allowed` | `""`).
+- Create bodies are form-shaped (the server builds the object; unknown
+  fields are refused): PVC `{namespace, name, storageClassName?, accessModes,
+  size, volumeMode?, volumeName?, dataSource?: {kind, name}, labels?}`
+  (omitted class = cluster default, `""` = none); PV `{name, capacity,
+  accessModes, reclaimPolicy?, storageClassName?, volumeMode?, mountOptions?,
+  labels?, nodes?, hostPath|nfs|local|csi}`; StorageClass `{name,
+  provisioner, parameters?, reclaimPolicy?, volumeBindingMode?,
+  allowVolumeExpansion?, isDefault?, mountOptions?, labels?}`. They answer
+  `{apiVersion, kind, namespace?, name, dryRun, warnings?}`; each create
+  route is `write` + DryRunnable. References are checked before the create
+  (`400`): the PV to bind must be Available and fit (class, size, modes,
+  volume mode); a clone or restore must be at least as large as its source.
+- Resize (write) answers the updated claim summary; a size that does not
+  grow is `400`, a claim that is not Bound or whose class does not allow
+  expansion `409 conflict`. `GET /snapshots` without the CRDs is
+  `503 capability_unavailable`.
+- Audit: the router's row plus a `storage.<pvc|pv|storageclass>.create` /
+  `storage.pvc.resize` row naming the object (`pvc/<ns>/<name>`), since the
+  body names it.
+
 UI: overview, PVC/PV/StorageClass lists, wizards — PVC (storage class,
 access modes, size+unit, volume mode, bind to an Available PV, clone from
 PVC/snapshot, labels), PV (capacity, access modes, reclaim policy, storage

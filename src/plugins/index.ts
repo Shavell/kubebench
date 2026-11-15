@@ -11,6 +11,7 @@ import { usersPlugin } from './users/manifest'
 import { workloadsPlugin } from './workloads/manifest'
 import { editorPlugin } from './editor/manifest'
 import { argocdPlugin } from './argocd/manifest'
+import { storagePlugin } from './storage/manifest'
 
 /**
  * The single place built-in modules are wired in. Comment one out and its
@@ -28,6 +29,7 @@ export const allPlugins: PluginManifest[] = [
   extensionsPlugin,
   editorPlugin,
   argocdPlugin,
+  storagePlugin,
 ]
 
 /** Registered at boot only when the signed-in user is a global admin. */

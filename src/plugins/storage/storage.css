@@ -1,0 +1,199 @@
+/* Storage plugin pages and wizards. Colors only through --vscode-* tokens. */
+
+.storage-overview {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.storage-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.storage-capacity {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px 24px;
+  max-width: 900px;
+}
+
+.storage-section-title {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--vscode-descriptionForeground);
+}
+
+.storage-mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.storage-muted {
+  color: var(--vscode-descriptionForeground);
+}
+
+.storage-default-marker {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  color: var(--vscode-charts-yellow);
+  font-size: 11px;
+}
+
+.storage-row-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.storage-row-actions .kb-button {
+  padding: 1px 8px;
+}
+
+/* --- wizards ---------------------------------------------------------------- */
+
+.storage-wizard {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) minmax(320px, 1fr);
+}
+
+.storage-wizard__form {
+  overflow: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border-right: 1px solid var(--vscode-panel-border);
+}
+
+.storage-wizard__preview {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.storage-wizard__preview-title {
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--vscode-descriptionForeground);
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.storage-wizard__editor {
+  flex: 1;
+  min-height: 0;
+}
+
+.storage-wizard__footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-top: 1px solid var(--vscode-panel-border);
+}
+
+.storage-wizard__status {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+}
+
+.storage-wizard__status--ok {
+  color: var(--vscode-charts-green);
+}
+
+.storage-wizard__group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 3px;
+}
+
+.storage-wizard__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.storage-size {
+  display: flex;
+  gap: 6px;
+}
+
+.storage-size > .kb-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.storage-size > .kb-select {
+  flex: none;
+  width: 72px;
+}
+
+.storage-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+
+.storage-hint {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  padding: 8px 10px;
+  border-left: 2px solid var(--vscode-focusBorder);
+  background: var(--vscode-textCodeBlock-background);
+}
+
+.storage-hint__params {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.storage-hint__params button {
+  font: inherit;
+  color: var(--vscode-textLink-foreground);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.storage-hint__params button:hover {
+  text-decoration: underline;
+}
+
+.storage-warnings {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+  color: var(--vscode-charts-yellow);
+}
+
+@media (max-width: 760px) {
+  .storage-wizard {
+    grid-template-columns: 1fr;
+  }
+
+  .storage-wizard__form {
+    border-right: none;
+    border-bottom: 1px solid var(--vscode-panel-border);
+  }
+}
