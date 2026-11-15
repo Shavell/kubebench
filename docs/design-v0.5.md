@@ -792,7 +792,8 @@ Details settled by the implementation:
 - Restart and scale check `kind` (`400` otherwise); scale goes through the
   `scale` subresource. `/api/deployments/scale|restart` keep working.
 - `DELETE /api/pods?force=true` deletes with grace period 0. Bulk delete
-  takes 1–200 items and answers `{"results":[{"namespace","name","error"?}]}`
+  takes 1–200 items (mock mode too; the list's Delete button is disabled
+  beyond 200 selected Pods, with the reason as tooltip) and answers `{"results":[{"namespace","name","error"?}]}`
   in order; its audit detail lists the pods (`{"failed","force","pods"}`).
   A list too long for one row is recorded across several rows of the same
   request, each with `"part":"<i>/<n>"`, so no pod is left out.

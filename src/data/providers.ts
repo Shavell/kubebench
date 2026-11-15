@@ -205,7 +205,7 @@ export interface WorkloadOpsProvider {
   scaleWorkload(kind: ScalableKind, namespace: string, name: string, replicas: number): Promise<void>
   /** Deletes at once (grace period 0), without waiting for the containers to stop. */
   forceDeletePod(namespace: string, name: string): Promise<void>
-  /** Deletes up to 200 Pods; one result per Pod, in order. */
+  /** Deletes 1 to MAX_BULK_DELETE Pods (else `bad_request`); one result per Pod, in order. */
   deletePods(pods: PodKey[], force: boolean): Promise<PodDeleteResult[]>
   /**
    * Adds an interactive ephemeral container and resolves once it runs (live:

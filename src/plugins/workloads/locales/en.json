@@ -346,6 +346,7 @@
       "selectPod": "Select Pod {{name}}",
       "deleteSelected": "Delete ({{count}})",
       "deleteSelectedTitle": "Delete the selected Pods",
+      "deleteTooMany": "{{count}} Pods are selected; one delete takes at most {{max}}. Narrow the selection, e.g. with the filter.",
       "bulkTitle_one": "Delete {{count}} Pod?",
       "bulkTitle_other": "Delete {{count}} Pods?",
       "bulkMessage": "Pods a controller owns are replaced by new ones.",

@@ -346,6 +346,7 @@
       "selectPod": "{{name}} Pod'unu seç",
       "deleteSelected": "Sil ({{count}})",
       "deleteSelectedTitle": "Seçili Pod'ları sil",
+      "deleteTooMany": "{{count}} Pod seçili; tek seferde en fazla {{max}} Pod silinebilir. Seçimi daraltın, örneğin filtreyle.",
       "bulkTitle_one": "{{count}} Pod silinsin mi?",
       "bulkTitle_other": "{{count}} Pod silinsin mi?",
       "bulkMessage": "Bir controller'a ait Pod'ların yerine yenileri oluşturulur.",

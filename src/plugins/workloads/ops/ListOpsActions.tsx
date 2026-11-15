@@ -1,21 +1,30 @@
 import { usePermission } from '@/core/permissions'
-import type { Pod } from '@/data/types'
+import { MAX_BULK_DELETE, type Pod } from '@/data/types'
 import { Button } from '@/shared/Button'
 import { useWorkloadsTranslation } from '../i18n'
 import * as act from './actions'
 import { openOpsDialog } from './opsDialogs'
 import { podKey, type PodSelection } from './usePodSelection'
 
-/** Deletes the selected Pods that the list shows (filtered-out ones are never touched). */
+/**
+ * Deletes the selected Pods that the list shows (filtered-out ones are never
+ * touched), at most MAX_BULK_DELETE at once, as the API takes them.
+ */
 function DeleteSelectedPods({ pods, selection }: { pods: Pod[]; selection: PodSelection }) {
   const { t } = useWorkloadsTranslation()
   const chosen = pods.filter((p) => selection.selected.has(podKey(p)))
   if (chosen.length === 0) return null
+  const tooMany = chosen.length > MAX_BULK_DELETE
   return (
     <Button
       variant="danger"
       icon="trash"
-      title={t('workloadOps.pods.deleteSelectedTitle')}
+      disabled={tooMany}
+      title={
+        tooMany
+          ? t('workloadOps.pods.deleteTooMany', { count: chosen.length, max: MAX_BULK_DELETE })
+          : t('workloadOps.pods.deleteSelectedTitle')
+      }
       onClick={() =>
         openOpsDialog({
           type: 'deletePods',

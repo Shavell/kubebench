@@ -490,6 +490,9 @@ export interface PodKey {
   name: string
 }
 
+/** The most Pods one bulk delete takes (the backend's kube.MaxBulkDelete). */
+export const MAX_BULK_DELETE = 200
+
 /** The outcome for one Pod of a bulk delete; `error` is absent on success. */
 export interface PodDeleteResult extends PodKey {
   error?: string

@@ -1,6 +1,6 @@
 import { ApiError } from '../apiClient'
 import type { WorkloadOpsProvider } from '../providers'
-import type { KubeObject, Pod, PodDeleteResult } from '../types'
+import { MAX_BULK_DELETE, type KubeObject, type Pod, type PodDeleteResult } from '../types'
 import { delay, delayReject } from './delay'
 import { deployments, namespaces, nodes, pods, services, syncDeploymentPods } from './mockCluster'
 import { drainMockNode } from './mockDrain'
@@ -155,14 +155,18 @@ export function createMockWorkloadOps(): WorkloadOpsProvider {
         pods.splice(pods.indexOf(findPod(ns, name)), 1)
       }),
     deletePods: (items) =>
-      run(() =>
-        items.map((item): PodDeleteResult => {
+      run(() => {
+        if (items.length === 0 || items.length > MAX_BULK_DELETE) {
+          throw badRequest(`a bulk delete takes 1 to ${MAX_BULK_DELETE} pods, not ${items.length}`)
+        }
+        if (items.some((item) => !item.namespace || !item.name)) throw badRequest('every pod needs a namespace and a name')
+        return items.map((item): PodDeleteResult => {
           const index = pods.findIndex((p) => p.namespace === item.namespace && p.name === item.name)
           if (index < 0) return { ...item, error: `pods "${item.name}" not found` }
           pods.splice(index, 1)
           return { ...item }
-        }),
-      ),
+        })
+      }),
     addDebugContainer: (ns, podName, { image, target }) =>
       run(() => {
         const pod = findPod(ns, podName)
