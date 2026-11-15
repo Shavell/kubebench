@@ -4,6 +4,7 @@ import { PLATFORM_NS } from '@/core/locales'
 import { dataMode, useDataMode } from '@/data/mode'
 import type { SessionPermissions } from '@/data/types'
 import { i18n } from '@/i18n'
+import { can as canWith, deniedCode, deniedReasonKey, type DeniedCode, type Permission } from './permissionRules'
 
 /**
  * Effective permissions of the signed-in user on the active cluster
@@ -14,7 +15,7 @@ import { i18n } from '@/i18n'
  * The hooks re-render when the session facts are re-read; the plain
  * functions read the current facts.
  */
-export type Permission = 'read' | 'write' | 'exec' | 'admin'
+export type { Permission }
 
 /** Before boot has stored a session nothing restricts the UI (the server still decides). */
 const ALL_ALLOWED: SessionPermissions = {
@@ -36,25 +37,7 @@ export function usePermissions(): SessionPermissions {
 }
 
 export function can(permission: Permission, perms: SessionPermissions = currentPermissions()): boolean {
-  switch (permission) {
-    case 'read':
-      return perms.canRead
-    case 'write':
-      return perms.canWrite
-    case 'exec':
-      return perms.canExec
-    case 'admin':
-      return perms.isAdmin
-  }
-}
-
-/** i18n key (platform namespace) explaining why `permission` is not held. */
-function deniedReasonKey(permission: Permission, perms: SessionPermissions): string | null {
-  if (can(permission, perms)) return null
-  if (permission === 'admin') return 'permissions.adminRequired'
-  if (permission !== 'read' && perms.readOnly) return 'permissions.clusterReadOnly'
-  if (perms.role === 'viewer') return 'permissions.viewerRole'
-  return 'permissions.notAllowed'
+  return canWith(permission, perms)
 }
 
 /** Why `permission` is not held (translated, for tooltips), or null when it is. */
@@ -66,15 +49,22 @@ export function deniedReason(
   return key ? i18n.t(key, { ns: PLATFORM_NS }) : null
 }
 
+/** A permission held, or denied with the reason and the matching error code. */
+export type PermissionState =
+  | { allowed: true; reason: null; code: null }
+  | { allowed: false; reason: string; code: DeniedCode }
+
 /**
  * Whether a permission is held and, if not, the reason to show on the
- * disabled control. Re-renders on language and session changes.
+ * disabled control and the error code that selects the explanation of
+ * `<Unavailable>`. Re-renders on language and session changes.
  */
-export function usePermission(permission: Permission): { allowed: boolean; reason: string | null } {
+export function usePermission(permission: Permission): PermissionState {
   const { t } = useTranslation(PLATFORM_NS)
   const perms = usePermissions()
   const key = deniedReasonKey(permission, perms)
-  return { allowed: key === null, reason: key ? t(key) : null }
+  const code = deniedCode(permission, perms)
+  return key === null || code === null ? { allowed: true, reason: null, code: null } : { allowed: false, reason: t(key), code }
 }
 
 /** Renders children only when the permission is held. */

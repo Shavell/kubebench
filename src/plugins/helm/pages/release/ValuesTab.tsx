@@ -17,7 +17,7 @@ export function ValuesTab({ release }: { release: HelmReleaseDetail }) {
   const { t } = useTranslation(NS)
   const exec = usePermission('exec')
   if (!exec.allowed) {
-    return <Unavailable compact code="forbidden_role" reason={exec.reason} hint={t('release.values.execRequired')} />
+    return <Unavailable compact code={exec.code} reason={exec.reason} hint={t('release.values.execRequired')} />
   }
   return <ReleaseValues release={release} />
 }

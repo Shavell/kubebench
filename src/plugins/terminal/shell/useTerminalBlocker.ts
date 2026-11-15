@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { PLATFORM_NS } from '@/core/locales'
-import { usePermission, usePermissions } from '@/core/permissions'
+import { usePermission } from '@/core/permissions'
 import type { ApiErrorCode } from '@/data/apiClient'
 import { useDataMode } from '@/data/mode'
 
@@ -18,10 +18,9 @@ export interface TerminalBlocker {
 export function useTerminalBlocker(): TerminalBlocker | null {
   const { t } = useTranslation(PLATFORM_NS)
   const exec = usePermission('exec')
-  const permissions = usePermissions()
   const mode = useDataMode()
   if (!exec.allowed) {
-    return { code: permissions.readOnly ? 'cluster_read_only' : 'forbidden_role', reason: exec.reason ?? '' }
+    return { code: exec.code, reason: exec.reason }
   }
   if (mode.mode === 'live' && mode.capabilities && !mode.capabilities.exec) {
     return { code: 'capability_unavailable', reason: t('errors.capability.exec') }
