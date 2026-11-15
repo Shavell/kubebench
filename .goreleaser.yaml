@@ -44,13 +44,27 @@ archives:
     format_overrides:
       - goos: windows
         formats: [zip]
+    # Reproducible archives: owner, mode and timestamps are fixed here instead
+    # of being taken from the checkout (its user, umask and checkout time).
+    builds_info: &file_info
+      owner: root
+      group: root
+      mode: 0755
+      mtime: "{{ .CommitDate }}"
     files:
-      - README.md
-      - CHANGELOG.md
-      - install.sh
+      - src: README.md
+        info: &doc_info
+          <<: *file_info
+          mode: 0644
+      - src: CHANGELOG.md
+        info: *doc_info
+      - src: install.sh
+        info: *file_info
       # install.sh --method tarball installs these exactly like the packages.
-      - packaging/systemd/kubebench.service
-      - packaging/kubebench.env
+      - src: packaging/systemd/kubebench.service
+        info: *doc_info
+      - src: packaging/kubebench.env
+        info: *doc_info
 
 nfpms:
   - id: packages
