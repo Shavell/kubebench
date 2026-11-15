@@ -1,0 +1,362 @@
+{
+  "manifest": {
+    "name": "Security",
+    "description": "Security posture of the cluster: Pod Security Standards, RBAC, network and secrets checks with a score, accepted risks and Markdown/CSV export.",
+    "tooltip": "Security",
+    "sidebarTitle": "Security"
+  },
+  "commands": {
+    "openOverview": "Security: Open posture overview",
+    "openFindings": "Security: Open findings",
+    "scan": "Security: Scan the cluster"
+  },
+  "resourceActions": {
+    "findings": "Security findings"
+  },
+  "sidebar": {
+    "overview": "Overview",
+    "findings": "Findings",
+    "checks": "Checks",
+    "accepted": "Accepted risks",
+    "score": "{{score}}/100"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "close": "Close"
+  },
+  "actions": {
+    "openResource": "Open resource",
+    "sameCheck": "All findings of this check",
+    "accept": "Accept risk",
+    "unaccept": "Un-accept"
+  },
+  "scan": {
+    "includeSystem": "Include system namespaces",
+    "includeSystemHint": "Also scan kube-system, kube-public, kube-node-lease and the cluster's own RBAC objects",
+    "run": "Scan",
+    "running": "Scanning…",
+    "done_one": "Scan complete: score {{score}}/100, {{count}} open finding",
+    "done_other": "Scan complete: score {{score}}/100, {{count}} open findings",
+    "doneNoScore_one": "Scan complete: {{count}} open finding",
+    "doneNoScore_other": "Scan complete: {{count}} open findings"
+  },
+  "export": {
+    "markdown": "Markdown",
+    "markdownHint": "Download the report as Markdown",
+    "csv": "CSV",
+    "csvHint": "Download the findings as CSV"
+  },
+  "severity": {
+    "critical": "Critical",
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low"
+  },
+  "severityShort": {
+    "critical": "C",
+    "high": "H",
+    "medium": "M",
+    "low": "L"
+  },
+  "category": {
+    "pss-baseline": "PSS baseline",
+    "pss-restricted": "PSS restricted",
+    "hygiene": "Workload hygiene",
+    "rbac": "RBAC",
+    "network": "Network",
+    "secrets": "Secrets",
+    "namespaces": "Namespaces"
+  },
+  "columns": {
+    "severity": "Severity",
+    "check": "Check",
+    "open": "Open",
+    "resource": "Resource",
+    "message": "Finding",
+    "status": "Status",
+    "category": "Category",
+    "frameworks": "Frameworks",
+    "target": "Applies to",
+    "reason": "Reason",
+    "acceptedBy": "Accepted by",
+    "acceptedAt": "Accepted",
+    "expires": "Expires"
+  },
+  "status": {
+    "open": "Open",
+    "accepted": "Accepted"
+  },
+  "overview": {
+    "title": "Security posture",
+    "loading": "Loading the security report…",
+    "unavailable": "The security report is unavailable",
+    "noReport": "No scan yet",
+    "noReportHint": "Scan the cluster to see its security posture. A scan only reads the cluster.",
+    "noScore": "n/a",
+    "score": "Posture score",
+    "generated": "{{cluster}} · scanned {{time}}",
+    "systemIncluded": "System namespaces included",
+    "systemExcluded": "System namespaces excluded ({{namespaces}})",
+    "openFindings_one": "{{count}} open finding",
+    "openFindings_other": "{{count}} open findings",
+    "accepted": "Accepted",
+    "acceptedDetail": "of {{total}} findings",
+    "byCategory": "By category",
+    "topChecks": "Top failing checks",
+    "allPassing": "No open findings",
+    "openCategory": "Show the findings of {{category}}",
+    "columnsLabel": "{{category}}: {{critical}} critical, {{high}} high, {{medium}} medium, {{low}} low open findings",
+    "categorySkipped": "Not checked",
+    "categoryDetail": "{{failed}} open · {{accepted}} accepted · {{evaluated}} evaluated"
+  },
+  "notices": {
+    "skipped_one": "{{count}} check skipped",
+    "skipped_other": "{{count}} checks skipped",
+    "warnings": "Warnings"
+  },
+  "findings": {
+    "title": "Security findings",
+    "loading": "Loading findings…",
+    "unavailable": "Findings are unavailable",
+    "summary": "{{shown}} of {{total}}",
+    "none": "No findings",
+    "noMatch": "No findings match the filters",
+    "noMatchHint": "Change or reset the filters; accepted findings show with the status Accepted or All."
+  },
+  "filters": {
+    "severity": "Severity",
+    "category": "Category",
+    "framework": "Framework",
+    "namespace": "Namespace",
+    "allSeverities": "All severities",
+    "allCategories": "All categories",
+    "allFrameworks": "All frameworks",
+    "allNamespaces": "All namespaces",
+    "status": "Status",
+    "statuses": {
+      "open": "Open",
+      "accepted": "Accepted",
+      "all": "All"
+    },
+    "groupBy": "Group by",
+    "check": "Check: {{title}}",
+    "resource": "Resource: {{resource}}",
+    "clear": "Remove this filter",
+    "reset": "Reset filters"
+  },
+  "groupings": {
+    "none": "None",
+    "check": "Check",
+    "severity": "Severity",
+    "category": "Category",
+    "namespace": "Namespace",
+    "resource": "Resource",
+    "clusterScoped": "Cluster-scoped"
+  },
+  "detail": {
+    "label": "Finding details",
+    "resource": "Resource",
+    "evidence": "Evidence",
+    "remediation": "Remediation",
+    "frameworks": "Frameworks",
+    "accepted": "Accepted risk",
+    "acceptedBy": "Accepted by {{by}} on {{at}}, without expiry.",
+    "acceptedUntil": "Accepted by {{by}} on {{at}}, until {{until}}."
+  },
+  "catalog": {
+    "title": "Security checks",
+    "loading": "Loading checks…",
+    "unavailable": "The check catalog is unavailable",
+    "empty": "No checks in this category",
+    "skipped": "Skipped",
+    "passing": "Passing"
+  },
+  "targets": {
+    "workload": "Workloads",
+    "namespace": "Namespaces",
+    "serviceaccount": "Default ServiceAccounts",
+    "role": "Roles",
+    "binding": "Bindings"
+  },
+  "accepted": {
+    "title": "Accepted risks",
+    "loading": "Loading accepted risks…",
+    "unavailable": "Accepted risks are unavailable",
+    "empty": "No accepted risks",
+    "emptyHint": "Accept a finding from the findings list to record a known, acceptable risk for everyone on this cluster.",
+    "expired": "Expired",
+    "never": "Never"
+  },
+  "accept": {
+    "title": "Accept risk",
+    "description": "{{title}} on {{resource}} will count as accepted for every user of this cluster, and no longer lowers the score.",
+    "submit": "Accept risk",
+    "reason": "Reason",
+    "reasonHelp": "Why the risk is acceptable; shown to everyone and in exports.",
+    "reasonTooLong": "At most {{max}} characters",
+    "expiry": "Expires",
+    "expiryHelp": "After this the finding counts again.",
+    "expiryDays_one": "In {{count}} day",
+    "expiryDays_other": "In {{count}} days",
+    "expiryNever": "Never",
+    "done": "Risk accepted: {{title}}"
+  },
+  "unaccept": {
+    "title": "Un-accept risk",
+    "message": "{{title}} on {{resource}} will count as an open finding again, for every user of this cluster.",
+    "confirm": "Un-accept",
+    "done": "Risk no longer accepted: {{title}}"
+  },
+  "checks": {
+    "privileged": {
+      "title": "Privileged containers",
+      "message": "Containers run privileged, with full access to the node: {{evidence}}",
+      "remediation": "Remove securityContext.privileged (and Windows hostProcess) from the containers. Grant the specific capabilities the workload needs instead."
+    },
+    "host-namespaces": {
+      "title": "Host namespaces shared",
+      "message": "The pod shares the node's namespaces: {{evidence}}",
+      "remediation": "Set hostNetwork, hostPID and hostIPC to false (or leave them out). Expose network services through a Service instead of the host network."
+    },
+    "host-path": {
+      "title": "hostPath volumes",
+      "message": "The pod mounts directories of the node: {{evidence}}",
+      "remediation": "Replace hostPath volumes with PersistentVolumeClaims, emptyDir, ConfigMaps or Secrets. If node access is unavoidable, mount the narrowest path read-only."
+    },
+    "host-ports": {
+      "title": "Host ports",
+      "message": "Containers bind ports of the node: {{evidence}}",
+      "remediation": "Remove hostPort from the container ports and publish them through a Service (NodePort or LoadBalancer) or an Ingress."
+    },
+    "capabilities": {
+      "title": "Capabilities beyond the baseline",
+      "message": "Containers add Linux capabilities outside the baseline allowlist: {{evidence}}",
+      "remediation": "Remove the capabilities from securityContext.capabilities.add; the baseline allows only AUDIT_WRITE, CHOWN, DAC_OVERRIDE, FOWNER, FSETID, KILL, MKNOD, NET_BIND_SERVICE, SETFCAP, SETGID, SETPCAP, SETUID and SYS_CHROOT."
+    },
+    "proc-mount": {
+      "title": "Unmasked /proc",
+      "message": "Containers use a procMount other than Default: {{evidence}}",
+      "remediation": "Remove securityContext.procMount or set it to Default."
+    },
+    "unsafe-sysctls": {
+      "title": "Unsafe sysctls",
+      "message": "The pod sets sysctls outside the safe set: {{evidence}}",
+      "remediation": "Remove the sysctls from securityContext.sysctls, or configure them on dedicated, tainted nodes instead."
+    },
+    "selinux-apparmor": {
+      "title": "SELinux or AppArmor overrides",
+      "message": "The pod weakens its SELinux or AppArmor confinement: {{evidence}}",
+      "remediation": "Leave seLinuxOptions.user and role unset, use a container_t-family type, and do not set an Unconfined AppArmor profile."
+    },
+    "privilege-escalation": {
+      "title": "Privilege escalation allowed",
+      "message": "Containers do not set allowPrivilegeEscalation: false: {{evidence}}",
+      "remediation": "Set securityContext.allowPrivilegeEscalation: false on every container."
+    },
+    "run-as-non-root": {
+      "title": "Containers may run as root",
+      "message": "Containers are not required to run as a non-root user: {{evidence}}",
+      "remediation": "Set securityContext.runAsNonRoot: true (on the pod or every container) and a non-zero runAsUser; build the image with a non-root USER."
+    },
+    "seccomp": {
+      "title": "No seccomp profile",
+      "message": "Containers run without a RuntimeDefault or Localhost seccomp profile: {{evidence}}",
+      "remediation": "Set securityContext.seccompProfile.type: RuntimeDefault on the pod (or Localhost with a reviewed profile)."
+    },
+    "drop-capabilities": {
+      "title": "Capabilities not dropped",
+      "message": "Containers do not drop ALL capabilities: {{evidence}}",
+      "remediation": "Set securityContext.capabilities.drop: [\"ALL\"] and add back only NET_BIND_SERVICE if the container binds a low port."
+    },
+    "volume-types": {
+      "title": "Restricted volume types",
+      "message": "The pod uses volume types the restricted level does not allow: {{evidence}}",
+      "remediation": "Use only configMap, csi, downwardAPI, emptyDir, ephemeral, persistentVolumeClaim, projected and secret volumes; reach other storage through a PersistentVolumeClaim."
+    },
+    "resource-requests": {
+      "title": "Missing resource requests",
+      "message": "Containers do not request CPU or memory: {{evidence}}",
+      "remediation": "Set resources.requests.cpu and resources.requests.memory so the scheduler can place the pod and evictions treat it fairly."
+    },
+    "resource-limits": {
+      "title": "Missing resource limits",
+      "message": "Containers have no CPU or memory limit: {{evidence}}",
+      "remediation": "Set resources.limits.memory (and cpu where appropriate), or give the namespace a LimitRange with defaults, so one workload cannot exhaust the node."
+    },
+    "probes": {
+      "title": "Missing health probes",
+      "message": "Containers have no liveness or readiness probe: {{evidence}}",
+      "remediation": "Add a readinessProbe so traffic only reaches ready pods, and a livenessProbe so a hung container is restarted."
+    },
+    "image-tag": {
+      "title": "Mutable image tags",
+      "message": "Containers use the latest tag or no tag: {{evidence}}",
+      "remediation": "Pin images to an immutable version tag, or better to a digest (image@sha256:…), so every pod runs the image that was reviewed."
+    },
+    "read-only-root": {
+      "title": "Writable root filesystem",
+      "message": "Containers can write to their root filesystem: {{evidence}}",
+      "remediation": "Set securityContext.readOnlyRootFilesystem: true and mount an emptyDir where the application must write."
+    },
+    "cluster-admin-binding": {
+      "title": "cluster-admin bindings",
+      "message": "The binding grants cluster-admin to: {{evidence}}",
+      "remediation": "Bind a role with only the permissions the subjects need; keep cluster-admin for break-glass accounts."
+    },
+    "rbac-wildcards": {
+      "title": "Wildcards in roles",
+      "message": "The role grants rules with wildcards: {{evidence}}",
+      "remediation": "Replace * in apiGroups, resources and verbs with the explicit groups, resources and verbs the subjects use."
+    },
+    "secrets-access": {
+      "title": "Read access to Secrets",
+      "message": "The role may read Secrets: {{evidence}}",
+      "remediation": "Remove get, list and watch on secrets, or limit the rule to the resourceNames the subjects need; list and watch reveal every Secret's values."
+    },
+    "pod-create": {
+      "title": "Pod creation and exec",
+      "message": "The role may create pods or exec into them: {{evidence}}",
+      "remediation": "Grant create on pods (and pods/exec, pods/attach) only to the controllers and people who need it: a new pod can mount any Secret and ServiceAccount of its namespace."
+    },
+    "rbac-escalation": {
+      "title": "bind, escalate or impersonate",
+      "message": "The role may escalate its privileges: {{evidence}}",
+      "remediation": "Remove the bind, escalate and impersonate verbs; they let the subjects grant themselves, or act with, permissions they do not hold."
+    },
+    "default-service-account": {
+      "title": "Default ServiceAccount in use",
+      "message": "The namespace's default ServiceAccount should be inert: {{evidence}}",
+      "remediation": "Set automountServiceAccountToken: false on the default ServiceAccount, do not bind roles to it, and give each workload its own ServiceAccount."
+    },
+    "service-account-token": {
+      "title": "Default ServiceAccount token mounted",
+      "message": "The pod runs as the default ServiceAccount with its API token mounted",
+      "remediation": "Give the workload its own ServiceAccount, or set automountServiceAccountToken: false on the pod when it does not call the Kubernetes API."
+    },
+    "network-policy": {
+      "title": "Namespaces without NetworkPolicy",
+      "message": "The namespace has no NetworkPolicy, so every pod accepts traffic from anywhere",
+      "remediation": "Add a default-deny NetworkPolicy for ingress (and egress) and policies that allow the traffic the workloads need."
+    },
+    "secret-env": {
+      "title": "Secrets in environment variables",
+      "message": "Containers read Secrets into environment variables: {{evidence}}",
+      "remediation": "Mount the Secret as a volume and read the files instead: environment variables leak into logs, crash dumps and child processes."
+    },
+    "hardcoded-secret": {
+      "title": "Credentials in plain environment values",
+      "message": "Environment variables that look like credentials have literal values in the manifest: {{evidence}}",
+      "remediation": "Move the values into a Secret (mounted as a file) or an external secret store; anyone who can read the workload can read them now."
+    },
+    "psa-labels": {
+      "title": "No Pod Security admission level",
+      "message": "Pod Security admission does not enforce a baseline or restricted level: {{evidence}}",
+      "remediation": "Label the namespace pod-security.kubernetes.io/enforce=baseline (or restricted); try it first with the warn and audit labels."
+    },
+    "default-namespace": {
+      "title": "Workloads in the default namespace",
+      "message": "The workload runs in the default namespace",
+      "remediation": "Move the workload to a namespace of its own, where quotas, policies and RBAC can be scoped to it."
+    }
+  }
+}

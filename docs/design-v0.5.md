@@ -1056,6 +1056,52 @@ UI: overview (score, per-category small multiples, severity tiles),
 findings table (filters, grouping, accept/un-accept, open resource),
 checks catalog, export.
 
+Details settled by the implementation (shapes match
+`src/plugins/security/data/types.ts`):
+
+- `POST /scan` takes an optional body `{"includeSystem": bool}` (unknown
+  fields `400`). System objects are the namespaces `kube-system`,
+  `kube-public`, `kube-node-lease` and the cluster's own RBAC: `system:*`
+  names, the `kubernetes.io/bootstrapping=rbac-defaults` label, bindings
+  whose subjects are all `system:` users/groups or ServiceAccounts of a
+  system namespace, and ClusterRoles only such bindings use.
+- Cost: every kind is listed once, cluster-wide, in pages of 500 and at
+  most 5 000 objects per kind; a report holds at most 20 000 findings.
+  Cut lists and kinds that cannot be listed become `warnings`; checks
+  whose objects could not be listed at all are `skipped` with the reason.
+  Nothing listable at all answers the Kubernetes error. One scan runs per
+  cluster at a time (≤ 2 min): a request with the same options waits for
+  it and gets its result, other options answer `409 conflict`. Scans are
+  read and not audited.
+- Workload checks read pod templates: Deployments, StatefulSets,
+  DaemonSets, CronJobs, and ReplicaSets, Jobs and Pods not controlled by
+  one of those, so a problem is reported once, on the object to fix.
+- The report adds `cluster`, `options`, `warnings`, `inventory` (objects
+  listed per kind) and `systemNamespaces`; `resource` carries
+  `apiVersion`; a finding has `evidence` (container names, fields, rules;
+  never values) and `message` is the English text with the evidence.
+  `byCategory` is a list `[{category, score, checks, evaluated, failed,
+  accepted, bySeverity}]` in the order `pss-baseline`, `pss-restricted`,
+  `hygiene`, `rbac`, `network`, `secrets`, `namespaces`.
+- Score: the severity-weighted share (critical 10, high 6, medium 3,
+  low 1) of (check, object) pairs that pass, where accepted findings
+  pass; rounded down; `null` when nothing was evaluated. `counts` has the
+  open findings per severity plus `accepted` and `total`. Reports are
+  computed from the cached scan on every read, so accepting a risk
+  changes them without a new scan. Before the cluster's first scan (the
+  cache is in memory) `GET /report` answers `null` and `GET /export`
+  `404 not_found`.
+- Finding key `<checkId>:<Kind>:<namespace>:<name>`. `POST /accept`
+  checks the key (known check and kind), a reason of 1–500 characters and
+  an `expiresAt` in the future, and answers the acceptance; an expired
+  acceptance no longer applies. `GET /accepted` (read) lists every stored
+  acceptance with `{key, checkId, resource, by, reason, at, expiresAt?,
+  expired}`, so stale ones can be removed. Audit target `finding/<key>`;
+  accept adds `{"checkId","expiresAt"}`.
+- Export: `Content-Disposition: attachment;
+  filename="security-<cluster>-<yyyymmdd-hhmmss>.md|csv"`; CSV cells a
+  spreadsheet would run as formulas are prefixed with `'`.
+
 ### 7.8 Access plugin (backend plugin `access`, new) — RBAC
 
 `GET /subjects`, `GET /subjects/{kind}/{name}?namespace=` (effective

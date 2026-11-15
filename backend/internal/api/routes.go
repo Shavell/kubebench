@@ -94,6 +94,9 @@ var auditKinds = map[string]string{
 	"GET /api/exec/ws": "pod",
 	// Helm plugin (§7.4): the release is named by the body.
 	"POST /api/plugins/helm/install": "release",
+	// Security plugin (§7.7): accepted risks are named by their finding key.
+	"POST /api/plugins/security/accept":         "finding",
+	"DELETE /api/plugins/security/accept/{key}": "finding",
 }
 
 // auditActions names the audit action of routes that record a named action
