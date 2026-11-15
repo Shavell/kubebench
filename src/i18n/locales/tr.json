@@ -131,7 +131,15 @@
     "tabs": {
       "closeOthers": "Diğerlerini kapat",
       "closeToRight": "Sağdakileri kapat",
-      "closeAll": "Tümünü kapat"
+      "closeAll": "Tümünü kapat",
+      "unsaved": {
+        "closeDirty": "Kapat (kaydedilmemiş değişiklikler)",
+        "title_one": "Kaydedilmemiş değişiklikler atılsın mı?",
+        "title_other": "{{count}} sekmedeki kaydedilmemiş değişiklikler atılsın mı?",
+        "message_one": "{{titles}} sekmesinde uygulanmamış değişiklikler var. Sekmeyi kapatırsanız bu değişiklikler kaybolur.",
+        "message_other": "Şu sekmelerde uygulanmamış değişiklikler var: {{titles}}. Sekmeleri kapatırsanız bu değişiklikler kaybolur.",
+        "discard": "Değişiklikleri at ve kapat"
+      }
     },
     "editor": {
       "openHint": "Açmak için kenar çubuğundan bir kaynak seçin",

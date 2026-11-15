@@ -131,7 +131,15 @@
     "tabs": {
       "closeOthers": "Close Others",
       "closeToRight": "Close to the Right",
-      "closeAll": "Close All"
+      "closeAll": "Close All",
+      "unsaved": {
+        "closeDirty": "Close (unsaved changes)",
+        "title_one": "Discard unsaved changes?",
+        "title_other": "Discard unsaved changes in {{count}} tabs?",
+        "message_one": "{{titles}} has changes that were not applied. Closing it discards them.",
+        "message_other": "These tabs have changes that were not applied: {{titles}}. Closing them discards the changes.",
+        "discard": "Discard and close"
+      }
     },
     "editor": {
       "openHint": "Select a resource from the sidebar to open it",

@@ -5,6 +5,7 @@ import { useLayoutStore } from '@/core/store/layoutStore'
 import type { TabDescriptor } from '@/core/plugin/types'
 import { Icon } from '@/shared/Icon'
 import { showContextMenu } from '@/shared/contextMenu'
+import { tabTitle } from './tabTitle'
 import './TabStrip.css'
 
 function openTabMenu(e: React.MouseEvent, tab: TabDescriptor, t: TFunction) {
@@ -27,15 +28,6 @@ function openTabMenu(e: React.MouseEvent, tab: TabDescriptor, t: TFunction) {
   ])
 }
 
-/**
- * The tab's title in the current language: tabs opened with a `titleKey`
- * are translated on every render; others keep the title they were opened with.
- */
-function tabTitle(tab: TabDescriptor, t: TFunction): string {
-  if (!tab.titleKey) return tab.title
-  return t(tab.titleKey, { ...tab.titleValues, ns: tab.titleNs, defaultValue: tab.title })
-}
-
 export function TabStrip() {
   const { t } = useTranslation()
   const tabs = useLayoutStore((s) => s.tabs)
@@ -48,7 +40,7 @@ export function TabStrip() {
       {tabs.map((tab) => (
         <div
           key={tab.id}
-          className={clsx('tab', tab.id === activeTabId && 'tab--active')}
+          className={clsx('tab', tab.id === activeTabId && 'tab--active', tab.dirty && 'tab--dirty')}
           onClick={() => setActiveTab(tab.id)}
           onAuxClick={(e) => {
             if (e.button === 1) closeTab(tab.id)
@@ -60,13 +52,14 @@ export function TabStrip() {
           <span className="tab__title">{tabTitle(tab, t)}</span>
           <button
             className="tab__close"
-            title={t('common.close')}
+            title={tab.dirty ? t('shell.tabs.unsaved.closeDirty') : t('common.close')}
             onClick={(e) => {
               e.stopPropagation()
               closeTab(tab.id)
             }}
           >
-            <Icon name="close" size={14} />
+            {tab.dirty && <Icon name="circle-filled" size={10} className="tab__dirty" />}
+            <Icon name="close" size={14} className="tab__close-icon" />
           </button>
         </div>
       ))}

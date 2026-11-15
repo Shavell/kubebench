@@ -1,6 +1,17 @@
 import { create } from 'zustand'
 import type { TabDescriptor } from '@/core/plugin/types'
 
+/**
+ * A close of tabs with unsaved changes, waiting for the user to confirm
+ * that the changes may be discarded (TabCloseGuard asks).
+ */
+export interface PendingTabClose {
+  /** The dirty tabs the close would discard. */
+  tabIds: string[]
+  /** Performs the close once confirmed. */
+  close: () => void
+}
+
 interface LayoutState {
   activePluginId: string
   sidebarCollapsed: boolean
@@ -26,6 +37,12 @@ interface LayoutState {
   closeTabsToRight: (id: string) => void
   closeAllTabs: () => void
   setActiveTab: (id: string) => void
+  /** Set while a close of dirty tabs waits for confirmation. */
+  pendingClose: PendingTabClose | null
+  /** Marks a tab as having unsaved changes, or no longer. */
+  setTabDirty: (id: string, dirty: boolean) => void
+  /** Confirms (discarding the tabs' changes) or cancels the pending close. */
+  resolvePendingClose: (discard: boolean) => void
 }
 
 const SIDEBAR_MIN = 170
@@ -78,33 +95,68 @@ export const useLayoutStore = create<LayoutState>((set) => ({
     ),
 
   closeTab: (id) =>
-    set((s) => {
-      const index = s.tabs.findIndex((t) => t.id === id)
-      const tabs = s.tabs.filter((t) => t.id !== id)
-      let activeTabId = s.activeTabId
-      if (s.activeTabId === id) {
-        const neighbor = tabs[index] ?? tabs[index - 1]
-        activeTabId = neighbor?.id ?? null
-      }
-      return { tabs, activeTabId }
-    }),
+    guardClose((tabs) => tabs.filter((t) => t.id === id), () =>
+      set((s) => {
+        const index = s.tabs.findIndex((t) => t.id === id)
+        const tabs = s.tabs.filter((t) => t.id !== id)
+        let activeTabId = s.activeTabId
+        if (s.activeTabId === id) {
+          const neighbor = tabs[index] ?? tabs[index - 1]
+          activeTabId = neighbor?.id ?? null
+        }
+        return { tabs, activeTabId }
+      }),
+    ),
 
   closeOtherTabs: (id) =>
-    set((s) => ({
-      tabs: s.tabs.filter((t) => t.id === id),
-      activeTabId: s.tabs.some((t) => t.id === id) ? id : null,
-    })),
+    guardClose((tabs) => tabs.filter((t) => t.id !== id), () =>
+      set((s) => ({
+        tabs: s.tabs.filter((t) => t.id === id),
+        activeTabId: s.tabs.some((t) => t.id === id) ? id : null,
+      })),
+    ),
 
   closeTabsToRight: (id) =>
-    set((s) => {
-      const index = s.tabs.findIndex((t) => t.id === id)
-      if (index === -1) return s
-      const tabs = s.tabs.slice(0, index + 1)
-      const activeTabId = tabs.some((t) => t.id === s.activeTabId) ? s.activeTabId : id
-      return { tabs, activeTabId }
-    }),
+    guardClose((tabs) => tabsRightOf(tabs, id), () =>
+      set((s) => {
+        const index = s.tabs.findIndex((t) => t.id === id)
+        if (index === -1) return s
+        const tabs = s.tabs.slice(0, index + 1)
+        const activeTabId = tabs.some((t) => t.id === s.activeTabId) ? s.activeTabId : id
+        return { tabs, activeTabId }
+      }),
+    ),
 
-  closeAllTabs: () => set({ tabs: [], activeTabId: null }),
+  closeAllTabs: () => guardClose((tabs) => tabs, () => set({ tabs: [], activeTabId: null })),
 
   setActiveTab: (id) => set({ activeTabId: id }),
+
+  pendingClose: null,
+
+  setTabDirty: (id, dirty) =>
+    set((s) => ({ tabs: s.tabs.map((t) => (t.id === id && Boolean(t.dirty) !== dirty ? { ...t, dirty } : t)) })),
+
+  resolvePendingClose: (discard) => {
+    const pending = useLayoutStore.getState().pendingClose
+    set({ pendingClose: null })
+    if (!discard || !pending) return
+    set((s) => ({ tabs: s.tabs.map((t) => (pending.tabIds.includes(t.id) ? { ...t, dirty: false } : t)) }))
+    pending.close()
+  },
 }))
+
+function tabsRightOf(tabs: TabDescriptor[], id: string): TabDescriptor[] {
+  const index = tabs.findIndex((t) => t.id === id)
+  return index === -1 ? [] : tabs.slice(index + 1)
+}
+
+/**
+ * Runs `close` unless the tabs it closes (`closing` picks them) have
+ * unsaved changes: then the close waits in `pendingClose` until the user
+ * confirms or cancels it.
+ */
+function guardClose(closing: (tabs: TabDescriptor[]) => TabDescriptor[], close: () => void): void {
+  const dirty = closing(useLayoutStore.getState().tabs).filter((t) => t.dirty)
+  if (dirty.length === 0) close()
+  else useLayoutStore.setState({ pendingClose: { tabIds: dirty.map((t) => t.id), close } })
+}

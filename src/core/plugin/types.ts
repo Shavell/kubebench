@@ -25,6 +25,11 @@ export interface TabDescriptor {
   kind: string
   /** Serializable payload for the renderer (resource refs, yaml text...). */
   props?: Record<string, unknown>
+  /**
+   * Unsaved changes (set with layoutStore.setTabDirty): the tab strip marks
+   * the tab, and closing it asks before the changes are discarded.
+   */
+  dirty?: boolean
 }
 
 export interface SidebarViewContribution {
