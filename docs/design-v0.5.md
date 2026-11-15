@@ -90,10 +90,15 @@ cluster-to-cluster compare, port-forward, light/dark per-plugin theming.
 | `KUBEBENCH_SESSION_TTL` | `168h` | Session lifetime (Go duration) |
 | `KUBEBENCH_AUDIT_RETENTION_DAYS` | `90` | Audit rows older than this are pruned daily (0 = keep forever) |
 | `KUBEBENCH_ALLOW_PATH_KUBECONFIG` | `true` outside a cluster, `false` in-cluster | Allow adding clusters by server-side file path |
-| `KUBECONFIG` | — | Dev/VM convenience: seeds the inventory on first run |
+| `KUBEBENCH_ALLOW_KUBECONFIG_EXEC` | `false` | Let pasted kubeconfigs run exec credential plugins and auth providers and read server-side files (certificate, key and token files). This gives every admin command execution as the server's account |
+| `KUBECONFIG` | — | Dev/VM convenience: seeds the inventory on first run (a path list is merged the way kubectl merges it) |
 
 The backend parses these once into `internal/config.Config`; invalid values
-are all reported at once and the binary exits with status 2.
+are all reported at once and the binary exits with status 2. Ports, in `PORT`
+and `KUBEBENCH_LISTEN_ADDR`, are numbers from 1 to 65535.
+`KUBEBENCH_ADMIN_PASSWORD` is only read for a new database and is checked
+then: a value other than the default that breaks the password policy
+(§3.5) stops the first start with status 2 before the admin is created.
 
 "First run" means a new database (no users yet). Only then are the
 bootstrap admin created and the inventory seeded from `KUBECONFIG` and, in
@@ -170,7 +175,11 @@ The frontend `ApiError` exposes `status` and `code`.
   `502 kubernetes`, so the browser does not mistake it for the end of its
   own KubeBench session.
 - Missing capabilities of the legacy endpoints (Helm, Prometheus-only
-  metrics) answer `503 capability_unavailable`.
+  metrics) answer `503 capability_unavailable`. So does a metric series
+  whose Prometheus query fails, with the reason: only `source=auto` falls
+  back to metrics-server, and only for CPU and memory, the metrics it has.
+  Helm and the metrics endpoints wait (≤3 s) for a fresh runtime's
+  capability probe and Prometheus discovery, like `/api/info` (§4.1).
 
 ### 3.4 Audit log
 
@@ -186,8 +195,16 @@ error text. Pruned per `KUBEBENCH_AUDIT_RETENTION_DAYS`.
 - Refused attempts are audited too: status 4xx, detail `"<code>: <message>"`.
 - The default target kind is the first path segment after `/api/` (or
   `/api/plugins/<id>/`), made singular (`/api/deployments/scale` →
-  `deployment`); `auditKinds` in `routes.go` overrides it per route.
-  Handlers may refine target and detail once they have read the body.
+  `deployment`); `auditKinds` in `routes.go` overrides it per route. On the
+  core routes under `/api/resource` and `/api/workloads/`, which act on the
+  kind their `kind` parameter names, that parameter sets the target kind;
+  every other route ignores it. Handlers may refine target and detail once
+  they have read the body.
+- Rows are bounded: action, target and detail keep at most 200, 512 and
+  1000 characters. An audited request whose URL parameters do not fit (a
+  target over 512 or a default detail over 1000 characters) is refused
+  with `400 bad_request` before its handler runs, so a row always shows a
+  command or any other parameter completely.
 - Request bodies are never recorded (they may carry passwords or Secret
   data); dry runs are not audited.
 - WebSocket rows are written when the connection is hijacked (status 101);
@@ -204,7 +221,13 @@ error text. Pruned per `KUBEBENCH_AUDIT_RETENTION_DAYS`.
 - Login rate limit: 10 failed attempts per (client IP, username) per 15 min
   → `429 rate_limited` with `Retry-After`. Behind a trusted proxy the client
   IP is the last `X-Forwarded-For` entry. Wrong current passwords in
-  `POST /api/auth/password` count against the same limit.
+  `POST /api/auth/password` count against the same limit. The limiter keeps
+  a digest of the username, at most 10 000 entries.
+- Requests must be read within 1 minute (`ReadTimeout`; headers within
+  10 s). The deadline ends once the request has been read, so streams and
+  long operations are not limited.
+- The SQLite file and its `-wal`/`-shm` files are created `0600` (existing
+  ones are tightened on start): they hold cluster credentials and sessions.
 - Non-GET requests with an `Origin` header that does not match the request
   host → `403 forbidden` (CSRF defence in depth; WebSocket upgrades too).
   `X-Forwarded-Host` is only compared when `KUBEBENCH_TRUST_PROXY` is set.
@@ -274,11 +297,14 @@ route answers `409 no_cluster` instead. Without any usable cluster,
 - `PATCH /api/clusters/{id}` (admin) `{"name"?, "readOnly"?, "environment"?}`.
 - `POST /api/clusters` (admin) `{"name", "content"? | "path"? | "address"?, "context"?}`
   → `{"ok": true, "id"}`. With `path` it is rejected with `403 forbidden`
-  unless `features.pathKubeconfig`. Without that feature, pasted kubeconfigs
-  whose selected context reads server-side files (certificate authority,
-  client certificate/key, token file) or runs exec plugins or auth
-  providers are rejected the same way. Kubeconfigs added by path are stored
-  flattened (referenced certificate files embedded).
+  unless `features.pathKubeconfig`. Unless `KUBEBENCH_ALLOW_KUBECONFIG_EXEC`
+  is set, pasted kubeconfigs whose selected context reads server-side files
+  (certificate authority, client certificate/key, token file) or runs exec
+  plugins or auth providers are rejected the same way: pasted content is
+  untrusted, and would otherwise run commands or read files as the server's
+  account. A kubeconfig added by path is one of the server's own files and
+  may use them. Kubeconfigs added by path are stored flattened (referenced
+  certificate files embedded).
 
 ### 4.4 Resources (fixes)
 
@@ -286,6 +312,9 @@ route answers `409 no_cluster` instead. Without any usable cluster,
   name (fixes cross-kind mixing, e.g. Deployment `web` vs Service `web`).
 - `/api/logs` accepts `tail` (default 300, max 5000), `previous=true`,
   `sinceSeconds`.
+- Secret values are redacted on every read route (`/api/resource`,
+  `/api/resource/get`, `/api/yaml`): `data`, `stringData` and kubectl's
+  `last-applied-configuration` annotation, which repeats them.
 
 ### 4.5 Kubernetes read passthrough (for external plugins)
 
@@ -301,6 +330,13 @@ path targets `secrets` are rejected (`403 forbidden`; use `/api/resource`).
   `false` is true).
 - Upstream errors become `{"error": <Status.message>, "code": "kubernetes"}`
   with the upstream status (a `401` becomes `502`, see §3.3).
+- Redirects are never followed, here or by the runtime's typed, dynamic
+  and metrics clients (the stored credential would go along), and an
+  upstream `3xx` becomes `502 kubernetes`.
+- Responses are served as `application/json` (JSON upstream) or
+  `text/plain` (logs), anything else as `application/octet-stream`, with
+  `X-Content-Type-Options: nosniff` and `Content-Security-Policy: sandbox;
+  default-src 'none'`: the upstream type is never echoed.
 
 ### 4.6 Plugins
 
@@ -326,7 +362,9 @@ path targets `secrets` are rejected (`403 forbidden`; use `/api/resource`).
   external plugins (disabled → `404 plugin_disabled`) and only `.js`,
   `.mjs`, `.css`, `.json`, `.map`, `.svg` and `.png` files. `plugin.json`
   may carry an optional `category` (default `tools`). An external plugin
-  whose id belongs to a built-in backend plugin is skipped.
+  whose id belongs to a built-in backend plugin is skipped; one whose id
+  belongs to a built-in frontend plugin is never loaded, its catalog entry
+  does not affect the built-in plugin, and Extensions shows the clash.
 
 ## 5. Backend plugin contract (`backend/internal/plugin`)
 

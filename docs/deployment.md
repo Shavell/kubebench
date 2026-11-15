@@ -210,14 +210,15 @@ refuses to start with an invalid value (every problem is reported at once).
 | `KUBEBENCH_DB` | `kubebench.db` | SQLite file |
 | `KUBEBENCH_DATA_DIR` | directory of `KUBEBENCH_DB` | Writable state: Helm repository cache, uploads, plugins |
 | `KUBEBENCH_PLUGINS_DIR` | `$KUBEBENCH_DATA_DIR/plugins` | External (frontend) plugins |
-| `KUBEBENCH_ADMIN_PASSWORD` | `admin` | Bootstrap admin password (first start only); the default must be changed at the first sign-in |
+| `KUBEBENCH_ADMIN_PASSWORD` | `admin` | Bootstrap admin password (first start only, 8 characters to 72 bytes); the default must be changed at the first sign-in |
 | `KUBEBENCH_SECURE_COOKIES` | `auto` | `auto` (Secure on TLS or a trusted `X-Forwarded-Proto: https`), `true`, `false` |
 | `KUBEBENCH_TRUST_PROXY` | `false` | Honour `X-Forwarded-Proto/For` (behind an ingress or reverse proxy) |
 | `KUBEBENCH_TLS_CERT` / `KUBEBENCH_TLS_KEY` | (unset) | Serve HTTPS directly |
 | `KUBEBENCH_SESSION_TTL` | `168h` | Session lifetime (Go duration) |
 | `KUBEBENCH_AUDIT_RETENTION_DAYS` | `90` | Audit rows older than this are pruned daily (`0` = keep forever) |
 | `KUBEBENCH_ALLOW_PATH_KUBECONFIG` | `true` outside a cluster, `false` inside | Allow adding clusters by a path on the server |
-| `KUBECONFIG` | (unset) | Seeds the cluster inventory on the first start |
+| `KUBEBENCH_ALLOW_KUBECONFIG_EXEC` | `false` | Let pasted kubeconfigs run exec credential plugins (`aws eks get-token`, `kubelogin`, …) and auth providers and read files on the server. **Every admin can then run commands as the server's user**; add such clusters by path instead where possible |
+| `KUBECONFIG` | (unset) | Seeds the cluster inventory on the first start; a list (`a:b`) is merged like kubectl does |
 
 Where each deployment sets them:
 
@@ -241,7 +242,12 @@ header, so a proxy has to pass the original `Host` through.
 **Kubernetes**: enable the chart's Ingress with a TLS secret (for example
 from cert-manager); `config.trustProxy` then defaults to `true`. For
 ingress-nginx add `proxy-read-timeout`/`proxy-send-timeout` (`"3600"`) and
-`proxy-buffering: "off"` annotations; Traefik needs nothing extra.
+`proxy-buffering: "off"` annotations; Traefik needs nothing extra. With
+`trustProxy`, KubeBench believes `X-Forwarded-For`, so only the ingress
+controller should reach the pod: set `networkPolicy.enabled=true` with
+`networkPolicy.ingressFrom` naming the controller's pods
+([chart README](../charts/kubebench/README.md#networkpolicy)); otherwise any
+pod in the cluster could forge the header and evade login throttling.
 
 **VM behind a reverse proxy**: bind KubeBench to loopback and trust the proxy:
 

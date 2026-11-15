@@ -89,6 +89,20 @@ those commits.
 - Login rate limiting, an Origin check on state-changing requests, `Secure`
   session cookies behind TLS, and `KUBEBENCH_ALLOW_PATH_KUBECONFIG` (off in
   clusters) for adding clusters by server-side path.
+- Pasted kubeconfigs may no longer run exec plugins or auth providers or
+  read files on the server unless `KUBEBENCH_ALLOW_KUBECONFIG_EXEC=true`;
+  kubeconfigs added by path still may.
+- Secret values no longer leak to viewers through kubectl's
+  `last-applied-configuration` annotation.
+- The `/api/k8s` passthrough and the cluster clients behind the other
+  endpoints no longer follow redirects, which would send the stored
+  credential elsewhere, and the passthrough no longer serves the cluster's
+  content type from KubeBench's origin.
+- Request bodies must arrive within a minute; the database is created
+  readable by its owner only; audit rows have a size limit and requests
+  too long to be recorded completely are refused.
+- The chart's NetworkPolicy can restrict who reaches the pod
+  (`networkPolicy.ingressFrom`), as needed behind an Ingress.
 
 ## [0.4.0] - 2026-08-14
 
