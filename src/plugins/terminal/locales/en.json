@@ -1,29 +1,104 @@
 {
   "manifest": {
     "name": "Terminal & Editors",
-    "description": "Problems, logs and terminal panels, plus the YAML, pod logs and shell tabs."
+    "description": "Problems, live logs and terminal sessions in the panel, plus the YAML, log and shell tabs."
   },
   "panels": {
     "problems": "Problems",
     "logs": "Logs",
     "terminal": "Terminal"
   },
-  "exec": {
-    "modeLive": "one-shot exec",
-    "modeMock": "mock session",
-    "inputLabel": "Shell command",
-    "ended": "Session ended. Reopen the Shell action to reconnect.",
-    "denied": "Shell access is not available: {{reason}}",
-    "hint": "Right-click a pod → Shell to open a container terminal here."
+  "shell": {
+    "sessions": "Terminal sessions",
+    "newSession": "New terminal",
+    "newSessionTitle": "New terminal session",
+    "noSessions": "No terminal session",
+    "hint": "Open one here, or right-click a pod → Shell.",
+    "closeSession": "Close session",
+    "closeSessionOf": "Close the session in {{pod}} ({{container}})",
+    "namespace": "Namespace",
+    "pod": "Pod",
+    "container": "Container",
+    "noPods": "There are no pods in this namespace.",
+    "reconnect": "Reconnect",
+    "copy": "Copy",
+    "paste": "Paste",
+    "selectAll": "Select all",
+    "clear": "Clear",
+    "nothingSelected": "Select text in the terminal to copy it.",
+    "copyFailed": "Could not copy to the clipboard",
+    "pasteFailed": "Could not read the clipboard",
+    "pasteHint": "Paste with Ctrl+V (⌘V on macOS) instead.",
+    "mock": "mock",
+    "mockHint": "Simulated shell: the demo data answers the commands, nothing runs in a container.",
+    "loadFailed": "The terminal could not be loaded",
+    "badTarget": "This tab does not name a namespace, pod and container.",
+    "status": {
+      "loading": "Loading the terminal…",
+      "loadFailed": "Terminal not loaded",
+      "connecting": "Connecting…",
+      "open": "Connected",
+      "exited": "Exited with code {{code}}",
+      "failed": "Session ended: {{message}}",
+      "refused": "The connection was refused",
+      "lost": "Connection lost"
+    }
   },
   "logs": {
+    "noTarget": "No log open",
+    "hint": "Right-click a pod → Logs to follow its output here.",
+    "badTarget": "This tab does not name a namespace, pod and container.",
     "filterLabel": "Filter log lines",
-    "loading": "loading…",
+    "container": "Container",
+    "tail": "Lines to start with",
+    "tailLines_one": "Last {{lines}} line",
+    "tailLines_other": "Last {{lines}} lines",
+    "tailAll": "Whole log",
+    "previous": "Previous instance of the container",
+    "timestamps": "Timestamps",
+    "wrap": "Wrap lines",
+    "colorize": "Colour by level",
+    "follow": "Follow",
+    "pause": "Pause",
+    "download": "Download as .log",
+    "clear": "Clear",
+    "reconnect": "Reconnect",
     "lines_one": "{{lines}} line",
     "lines_other": "{{lines}} lines",
-    "empty": "No matching log lines",
-    "error": "Could not load logs: {{message}}",
-    "hint": "Right-click a pod → Logs to stream its output here."
+    "linesFiltered_one": "{{shown}} of {{total}} line",
+    "linesFiltered_other": "{{shown}} of {{total}} lines",
+    "pods_one": "{{pods}} pod",
+    "pods_other": "{{pods}} pods",
+    "podsOf_one": "{{shown}} of {{total}} pod",
+    "podsOf_other": "{{shown}} of {{total}} pods",
+    "linesLabel": "Log lines",
+    "toBottom": "Newest line",
+    "noMatch": "No line matches the filter.",
+    "waiting": "Waiting for the log…",
+    "emptyLog": "The log is empty.",
+    "noLinesYet": "No log lines yet.",
+    "status": {
+      "connecting": "Connecting…",
+      "live": "Following",
+      "paused_one": "Paused · {{lines}} new line",
+      "paused_other": "Paused · {{lines}} new lines",
+      "ended": "Ended",
+      "retrying": "Disconnected, retrying in {{seconds}} s"
+    },
+    "notice": {
+      "ended": "End of the log.",
+      "resumed": "Reconnected: the lines written in between follow."
+    }
+  },
+  "workloadLogs": {
+    "action": "Logs (all pods)",
+    "tabTitle": "{{name}} · logs",
+    "badTarget": "This tab names no namespace, or neither a label selector nor a workload.",
+    "resolving": "Finding the pods…",
+    "loadFailed": "The pods of {{title}} could not be found",
+    "noSelector": "{{title}} has no pod selector",
+    "unsupportedKind": "Logs of all pods are not available for {{kind}} objects.",
+    "notFound": "{{kind}} {{name}} was not found."
   },
   "problems": {
     "unavailable": "Problem detection is unavailable on live clusters"

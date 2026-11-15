@@ -143,6 +143,26 @@
   --vscode-terminal-ansiYellow: #f5f543;
   --vscode-terminal-ansiCyan: #29b8db;
   --vscode-terminal-ansiRed: #f14c4c;
+  /* The rest of the 16-colour palette, cursor and selection of the terminal. */
+  --vscode-terminal-background: #1e1e1e;
+  --vscode-terminalCursor-foreground: #aeafad;
+  --vscode-terminal-selectionBackground: #264f78;
+  --vscode-terminal-ansiBlack: #000000;
+  --vscode-terminal-ansiBlue: #2472c8;
+  --vscode-terminal-ansiMagenta: #bc3fbc;
+  --vscode-terminal-ansiWhite: #e5e5e5;
+  --vscode-terminal-ansiBrightBlack: #666666;
+  --vscode-terminal-ansiBrightRed: #f14c4c;
+  --vscode-terminal-ansiBrightGreen: #23d18b;
+  --vscode-terminal-ansiBrightYellow: #f5f543;
+  --vscode-terminal-ansiBrightBlue: #3b8eea;
+  --vscode-terminal-ansiBrightMagenta: #d670d6;
+  --vscode-terminal-ansiBrightCyan: #29b8db;
+  --vscode-terminal-ansiBrightWhite: #e5e5e5;
+  /* Toggle buttons that are switched on (log view options). */
+  --vscode-inputOption-activeBackground: rgba(0, 127, 212, 0.4);
+  --vscode-inputOption-activeBorder: #007acc;
+  --vscode-inputOption-activeForeground: #ffffff;
 
   /* Charts */
   --vscode-charts-blue: #3794ff;
@@ -287,6 +307,26 @@
   --vscode-terminal-ansiYellow: #949800;
   --vscode-terminal-ansiCyan: #0598bc;
   --vscode-terminal-ansiRed: #cd3131;
+  /* The rest of the 16-colour palette, cursor and selection of the terminal. */
+  --vscode-terminal-background: #ffffff;
+  --vscode-terminalCursor-foreground: #000000;
+  --vscode-terminal-selectionBackground: #add6ff;
+  --vscode-terminal-ansiBlack: #000000;
+  --vscode-terminal-ansiBlue: #0451a5;
+  --vscode-terminal-ansiMagenta: #bc05bc;
+  --vscode-terminal-ansiWhite: #555555;
+  --vscode-terminal-ansiBrightBlack: #666666;
+  --vscode-terminal-ansiBrightRed: #cd3131;
+  --vscode-terminal-ansiBrightGreen: #14ce14;
+  --vscode-terminal-ansiBrightYellow: #b5ba00;
+  --vscode-terminal-ansiBrightBlue: #0451a5;
+  --vscode-terminal-ansiBrightMagenta: #bc05bc;
+  --vscode-terminal-ansiBrightCyan: #0598bc;
+  --vscode-terminal-ansiBrightWhite: #a5a5a5;
+  /* Toggle buttons that are switched on (log view options). */
+  --vscode-inputOption-activeBackground: rgba(0, 144, 241, 0.2);
+  --vscode-inputOption-activeBorder: #007acc;
+  --vscode-inputOption-activeForeground: #000000;
 
   /* Charts */
   --vscode-charts-blue: #1a85ff;

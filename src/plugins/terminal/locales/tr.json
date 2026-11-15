@@ -1,29 +1,104 @@
 {
   "manifest": {
     "name": "Terminal ve düzenleyiciler",
-    "description": "Sorunlar, loglar ve terminal panelleri ile YAML, Pod logları ve shell sekmeleri."
+    "description": "Panelde sorunlar, canlı loglar ve terminal oturumları ile YAML, log ve shell sekmeleri."
   },
   "panels": {
     "problems": "Sorunlar",
     "logs": "Loglar",
     "terminal": "Terminal"
   },
-  "exec": {
-    "modeLive": "tek seferlik exec",
-    "modeMock": "demo oturumu",
-    "inputLabel": "Shell komutu",
-    "ended": "Oturum sona erdi. Yeniden bağlanmak için Shell eylemini tekrar açın.",
-    "denied": "Shell erişimi kullanılamıyor: {{reason}}",
-    "hint": "Burada bir container terminali açmak için bir Pod'a sağ tıklayın → Shell."
+  "shell": {
+    "sessions": "Terminal oturumları",
+    "newSession": "Yeni terminal",
+    "newSessionTitle": "Yeni terminal oturumu",
+    "noSessions": "Terminal oturumu yok",
+    "hint": "Buradan bir oturum açın ya da bir Pod'a sağ tıklayın → Shell.",
+    "closeSession": "Oturumu kapat",
+    "closeSessionOf": "{{pod}} ({{container}}) oturumunu kapat",
+    "namespace": "Namespace",
+    "pod": "Pod",
+    "container": "Container",
+    "noPods": "Bu Namespace'te Pod yok.",
+    "reconnect": "Yeniden bağlan",
+    "copy": "Kopyala",
+    "paste": "Yapıştır",
+    "selectAll": "Tümünü seç",
+    "clear": "Temizle",
+    "nothingSelected": "Kopyalamak için terminalde metin seçin.",
+    "copyFailed": "Panoya kopyalanamadı",
+    "pasteFailed": "Pano okunamadı",
+    "pasteHint": "Bunun yerine Ctrl+V (macOS'ta ⌘V) ile yapıştırın.",
+    "mock": "demo",
+    "mockHint": "Simüle edilmiş shell: komutları demo verileri yanıtlar, container'da hiçbir şey çalışmaz.",
+    "loadFailed": "Terminal yüklenemedi",
+    "badTarget": "Bu sekme bir Namespace, Pod ve container belirtmiyor.",
+    "status": {
+      "loading": "Terminal yükleniyor…",
+      "loadFailed": "Terminal yüklenmedi",
+      "connecting": "Bağlanıyor…",
+      "open": "Bağlı",
+      "exited": "{{code}} çıkış koduyla sona erdi",
+      "failed": "Oturum sona erdi: {{message}}",
+      "refused": "Bağlantı reddedildi",
+      "lost": "Bağlantı koptu"
+    }
   },
   "logs": {
+    "noTarget": "Açık log yok",
+    "hint": "Çıktısını burada izlemek için bir Pod'a sağ tıklayın → Loglar.",
+    "badTarget": "Bu sekme bir Namespace, Pod ve container belirtmiyor.",
     "filterLabel": "Log satırlarını filtrele",
-    "loading": "yükleniyor…",
+    "container": "Container",
+    "tail": "Başlangıçta gösterilecek satırlar",
+    "tailLines_one": "Son {{lines}} satır",
+    "tailLines_other": "Son {{lines}} satır",
+    "tailAll": "Logun tamamı",
+    "previous": "Container'ın önceki örneği",
+    "timestamps": "Zaman damgaları",
+    "wrap": "Satırları kaydır",
+    "colorize": "Düzeye göre renklendir",
+    "follow": "İzle",
+    "pause": "Duraklat",
+    "download": ".log olarak indir",
+    "clear": "Temizle",
+    "reconnect": "Yeniden bağlan",
     "lines_one": "{{lines}} satır",
     "lines_other": "{{lines}} satır",
-    "empty": "Eşleşen log satırı yok",
-    "error": "Loglar yüklenemedi: {{message}}",
-    "hint": "Çıktısını burada izlemek için bir Pod'a sağ tıklayın → Loglar."
+    "linesFiltered_one": "{{total}} satırdan {{shown}}",
+    "linesFiltered_other": "{{total}} satırdan {{shown}}",
+    "pods_one": "{{pods}} Pod",
+    "pods_other": "{{pods}} Pod",
+    "podsOf_one": "{{total}} Pod'dan {{shown}}",
+    "podsOf_other": "{{total}} Pod'dan {{shown}}",
+    "linesLabel": "Log satırları",
+    "toBottom": "En yeni satır",
+    "noMatch": "Filtreyle eşleşen satır yok.",
+    "waiting": "Log bekleniyor…",
+    "emptyLog": "Log boş.",
+    "noLinesYet": "Henüz log satırı yok.",
+    "status": {
+      "connecting": "Bağlanıyor…",
+      "live": "İzleniyor",
+      "paused_one": "Duraklatıldı · {{lines}} yeni satır",
+      "paused_other": "Duraklatıldı · {{lines}} yeni satır",
+      "ended": "Sona erdi",
+      "retrying": "Bağlantı koptu, {{seconds}} sn sonra yeniden denenecek"
+    },
+    "notice": {
+      "ended": "Logun sonu.",
+      "resumed": "Yeniden bağlanıldı: arada yazılan satırlar aşağıda."
+    }
+  },
+  "workloadLogs": {
+    "action": "Loglar (tüm Pod'lar)",
+    "tabTitle": "{{name}} · loglar",
+    "badTarget": "Bu sekme bir Namespace belirtmiyor ya da ne bir etiket seçici ne de bir iş yükü belirtiyor.",
+    "resolving": "Pod'lar bulunuyor…",
+    "loadFailed": "{{title}} için Pod'lar bulunamadı",
+    "noSelector": "{{title}} için bir Pod seçici yok",
+    "unsupportedKind": "{{kind}} nesneleri için tüm Pod'ların logları kullanılamıyor.",
+    "notFound": "{{kind}} {{name}} bulunamadı."
   },
   "problems": {
     "unavailable": "Canlı cluster'larda sorun tespiti kullanılamıyor"

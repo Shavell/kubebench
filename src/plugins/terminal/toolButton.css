@@ -1,0 +1,30 @@
+.term-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--vscode-icon-foreground);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.term-tool:hover:where(:not(:disabled)) {
+  background: var(--vscode-toolbar-hoverBackground);
+}
+.term-tool:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.term-tool:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+.term-tool--on {
+  background: var(--vscode-inputOption-activeBackground);
+  border-color: var(--vscode-inputOption-activeBorder);
+  color: var(--vscode-inputOption-activeForeground);
+}

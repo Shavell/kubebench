@@ -1,0 +1,223 @@
+.kb-logs {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+}
+
+.kb-logs__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  flex-shrink: 0;
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
+}
+
+.kb-logs__summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1 1 260px;
+}
+
+.kb-logs__label {
+  font-family: var(--font-mono);
+  color: var(--vscode-editor-foreground);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.kb-logs__pods {
+  padding: 0 6px;
+  border-radius: 8px;
+  background: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.kb-logs__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.kb-logs__status--ok .codicon {
+  color: var(--status-running);
+}
+.kb-logs__status--muted .codicon {
+  color: var(--status-unknown);
+}
+.kb-logs__status--bad {
+  color: var(--vscode-errorForeground);
+}
+
+.kb-logs__count {
+  white-space: nowrap;
+}
+
+.kb-logs__controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.kb-logs__filter {
+  width: 180px;
+  min-width: 90px;
+  margin-right: 4px;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-family: inherit;
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 2px;
+  outline: none;
+}
+.kb-logs__filter:focus {
+  border-color: var(--vscode-focusBorder);
+}
+.kb-logs__filter::placeholder {
+  color: var(--vscode-input-placeholderForeground);
+}
+
+.kb-logs__select {
+  /* .kb-select fills its field; in the toolbar it is as wide as its options. */
+  width: auto;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+.kb-logs__select--container {
+  max-width: 180px;
+}
+
+.kb-logs__separator {
+  width: 1px;
+  height: 16px;
+  margin: 0 4px;
+  background: var(--vscode-panel-border);
+}
+
+.kb-logs__frame {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.kb-logs__body {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  padding: 6px 0 6px 2px;
+  font-family: var(--font-mono);
+  font-size: var(--terminal-font-size, 12.5px);
+  line-height: 1.5;
+  color: var(--vscode-terminal-foreground);
+  user-select: text;
+  outline: none;
+}
+.kb-logs__body:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+/* Off-screen chunks are not laid out or painted; their size is remembered once seen. */
+.kb-logs__chunk {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 3000px;
+}
+
+.logline {
+  white-space: pre;
+}
+.kb-logs__body--wrap .logline {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.kb-logs__body--no-timestamps .logline__ts {
+  display: none;
+}
+
+.logline__ts {
+  color: var(--vscode-descriptionForeground);
+}
+
+.logline__source--0 {
+  color: var(--vscode-charts-blue);
+}
+.logline__source--1 {
+  color: var(--vscode-charts-green);
+}
+.logline__source--2 {
+  color: var(--vscode-charts-purple);
+}
+.logline__source--3 {
+  color: var(--vscode-charts-orange);
+}
+.logline__source--4 {
+  color: var(--vscode-charts-yellow);
+}
+.logline__source--5 {
+  color: var(--vscode-charts-red);
+}
+
+.kb-logs__body--colours .logline--error {
+  color: var(--vscode-terminal-ansiRed);
+}
+.kb-logs__body--colours .logline--warn {
+  color: var(--vscode-terminal-ansiYellow);
+}
+.kb-logs__body--colours .logline--debug {
+  color: var(--vscode-descriptionForeground);
+}
+
+/* Errors the stream reported, e.g. a pod that cannot be followed: always marked. */
+.logline--failure {
+  color: var(--vscode-errorForeground);
+  font-style: italic;
+}
+
+.logline--notice {
+  margin: 4px 0;
+  color: var(--vscode-descriptionForeground);
+  font-family: var(--font-ui);
+  font-style: italic;
+  border-top: 1px dashed var(--vscode-panel-border);
+}
+
+.kb-logs__empty {
+  color: var(--vscode-descriptionForeground);
+  font-family: var(--font-ui);
+}
+
+.kb-logs__jump {
+  position: absolute;
+  right: 16px;
+  bottom: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border: none;
+  border-radius: 12px;
+  font-size: 12px;
+  cursor: pointer;
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  box-shadow: 0 2px 6px var(--vscode-widget-shadow);
+}
+.kb-logs__jump:hover {
+  background: var(--vscode-button-hoverBackground);
+}
