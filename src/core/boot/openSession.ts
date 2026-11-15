@@ -1,7 +1,6 @@
 import { isApiError } from '@/data/apiClient'
 import { createApiProviders } from '@/data/api'
 import { fetchServerInfo } from '@/data/api/info'
-import { createMockProviders } from '@/data/mock'
 import { dataModeFromInfo, setDataMode } from '@/data/mode'
 import type { DataProviders } from '@/data/providers'
 import type { MockPolicy } from './mockPolicy'
@@ -18,6 +17,8 @@ export type BootSession =
   | { kind: 'failed'; error: unknown }
 
 async function openMockSession(): Promise<BootSession> {
+  // The demo dataset is a chunk of its own: live sessions never download it.
+  const { createMockProviders } = await import('@/data/mock')
   const providers = createMockProviders()
   setDataMode(dataModeFromInfo('mock', await providers.session.info()))
   return { kind: 'ready', providers }

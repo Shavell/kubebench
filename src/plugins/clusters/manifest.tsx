@@ -1,10 +1,13 @@
+import { lazyComponent } from '@/core/plugin/lazyComponent'
 import type { PluginManifest } from '@/core/plugin/types'
-import { ClustersPage } from './ClustersPage'
 import { ClustersSidebar } from './ClustersSidebar'
 import en from './locales/en.json'
 import tr from './locales/tr.json'
 import { CLUSTERS_NS } from './namespace'
 import { INVENTORY_TAB_KIND, openInventoryTab } from './tabs'
+
+// Tab pages load on first use (separate chunks), keeping the main bundle small.
+const ClustersPage = lazyComponent(() => import('./ClustersPage').then((m) => m.ClustersPage))
 
 /** Cluster inventory and switching. Display strings are keys in the "clusters" namespace. */
 export const clustersPlugin: PluginManifest = {

@@ -1,10 +1,13 @@
+import { lazyComponent } from '@/core/plugin/lazyComponent'
 import type { PluginManifest } from '@/core/plugin/types'
 import en from './locales/en.json'
 import tr from './locales/tr.json'
 import { USERS_NS } from './namespace'
 import { openUsersTab, USERS_TAB_KIND } from './tabs'
-import { UsersPage } from './UsersPage'
 import { UsersSidebar } from './UsersSidebar'
+
+// Tab pages load on first use (separate chunks), keeping the main bundle small.
+const UsersPage = lazyComponent(() => import('./UsersPage').then((m) => m.UsersPage))
 
 /**
  * Admin-only user management: registered at boot only for global admins

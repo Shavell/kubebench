@@ -1,11 +1,14 @@
+import { lazyComponent } from '@/core/plugin/lazyComponent'
 import type { PluginManifest } from '@/core/plugin/types'
 import { CrdSidebar } from './CrdSidebar'
 import { NS } from './i18n'
 import en from './locales/en.json'
 import tr from './locales/tr.json'
-import { CrdListPage } from './pages/CrdListPage'
-import { CustomResourceListPage } from './pages/CustomResourceListPage'
 import { openDefinitionsTab } from './tabs'
+
+// Tab pages load on first use (separate chunks), keeping the main bundle small.
+const CrdListPage = lazyComponent(() => import('./pages/CrdListPage').then((m) => m.CrdListPage))
+const CustomResourceListPage = lazyComponent(() => import('./pages/CustomResourceListPage').then((m) => m.CustomResourceListPage))
 
 /** Display strings below are i18n keys in the plugin's namespace (locales/*.json). */
 export const crdPlugin: PluginManifest = {

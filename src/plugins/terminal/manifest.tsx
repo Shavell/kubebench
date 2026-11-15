@@ -1,3 +1,4 @@
+import { lazyComponent } from '@/core/plugin/lazyComponent'
 import type { PluginManifest } from '@/core/plugin/types'
 import { NS } from './i18n'
 import en from './locales/en.json'
@@ -5,10 +6,12 @@ import tr from './locales/tr.json'
 import { TerminalPanel } from './panels/TerminalPanel'
 import { LogsPanel } from './panels/LogsPanel'
 import { ProblemsPanel } from './panels/ProblemsPanel'
-import { PodLogsTab } from './PodLogsTab'
-import { PodExecTab } from './PodExecTab'
-import { WorkloadLogsTab } from './WorkloadLogsTab'
 import { workloadLogsAction } from './workloadLogs'
+
+// Tab pages load on first use (separate chunks), keeping the main bundle small.
+const PodLogsTab = lazyComponent(() => import('./PodLogsTab').then((m) => m.PodLogsTab))
+const PodExecTab = lazyComponent(() => import('./PodExecTab').then((m) => m.PodExecTab))
+const WorkloadLogsTab = lazyComponent(() => import('./WorkloadLogsTab').then((m) => m.WorkloadLogsTab))
 
 /**
  * Contributes the bottom panel tabs (problems, live logs, terminal

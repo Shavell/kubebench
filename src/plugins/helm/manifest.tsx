@@ -1,14 +1,17 @@
+import { lazyComponent } from '@/core/plugin/lazyComponent'
 import type { PluginManifest } from '@/core/plugin/types'
 import { HelmSidebar } from './HelmSidebar'
 import { NS } from './i18n'
 import en from './locales/en.json'
 import tr from './locales/tr.json'
-import { InstallPage } from './pages/install/InstallPage'
-import { ReleaseDetailPage } from './pages/ReleaseDetailPage'
-import { ReleaseListPage } from './pages/ReleaseListPage'
-import { RepoListPage } from './pages/RepoListPage'
-import { UpgradePage } from './pages/UpgradePage'
 import { openInstallTab, openReleasesTab, openReposTab } from './tabs'
+
+// Tab pages load on first use (separate chunks), keeping the main bundle small.
+const InstallPage = lazyComponent(() => import('./pages/install/InstallPage').then((m) => m.InstallPage))
+const ReleaseDetailPage = lazyComponent(() => import('./pages/ReleaseDetailPage').then((m) => m.ReleaseDetailPage))
+const ReleaseListPage = lazyComponent(() => import('./pages/ReleaseListPage').then((m) => m.ReleaseListPage))
+const RepoListPage = lazyComponent(() => import('./pages/RepoListPage').then((m) => m.RepoListPage))
+const UpgradePage = lazyComponent(() => import('./pages/UpgradePage').then((m) => m.UpgradePage))
 
 /** Display strings below are i18n keys in the plugin's namespace (locales/*.json). */
 export const helmPlugin: PluginManifest = {
