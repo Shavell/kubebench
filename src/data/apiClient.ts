@@ -155,17 +155,41 @@ export async function apiFetch<T>(path: string, init: ApiRequestInit = {}): Prom
   }
 
   const payload = await readBody(res)
-  if (!res.ok) {
-    const bodyCode =
-      payload && typeof payload === 'object' ? (payload as { code?: unknown }).code : undefined
-    const code: ApiErrorCode =
-      typeof bodyCode === 'string' && bodyCode ? bodyCode : (STATUS_CODES[res.status] ?? 'http_error')
-    if ((res.status === 401 && !path.startsWith('/auth/')) || code === 'password_change_required') {
-      sessionListeners.forEach((listener) => listener(code))
-    }
-    throw new ApiError(res.status, code, failureMessage(res, payload))
-  }
+  if (!res.ok) throw refusal(path, res, payload)
   return payload as T
+}
+
+/** The ApiError of a failed response; tells the shell when the session is gone. */
+function refusal(path: string, res: Response, payload: unknown): ApiError {
+  const bodyCode =
+    payload && typeof payload === 'object' ? (payload as { code?: unknown }).code : undefined
+  const code: ApiErrorCode =
+    typeof bodyCode === 'string' && bodyCode ? bodyCode : (STATUS_CODES[res.status] ?? 'http_error')
+  if ((res.status === 401 && !path.startsWith('/auth/')) || code === 'password_change_required') {
+    sessionListeners.forEach((listener) => listener(code))
+  }
+  return new ApiError(res.status, code, failureMessage(res, payload))
+}
+
+/**
+ * Why the server refuses `GET /api<path>`, for clients that cannot read a
+ * refused response themselves (EventSource): repeats the request and
+ * returns its ApiError, like apiFetch would throw it, or null when the
+ * server accepts the request now (the response is then dropped unread).
+ */
+export async function apiRefusal(path: string, params?: QueryParams): Promise<ApiError | null> {
+  const controller = new AbortController()
+  let res: Response
+  try {
+    res = await fetch(apiUrl(path, params), { signal: controller.signal })
+  } catch (err) {
+    return new ApiError(0, 'network', errorMessage(err))
+  }
+  if (res.ok) {
+    controller.abort()
+    return null
+  }
+  return refusal(path, res, await readBody(res))
 }
 
 export function apiGet<T>(path: string, params?: QueryParams, init?: ApiRequestInit): Promise<T> {

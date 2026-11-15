@@ -4,8 +4,11 @@ import { deployments, namespaces, nodes, pods, services, syncDeploymentPods } fr
 import { crds, customResources } from './mockCrds'
 import { delay, delayReject } from './delay'
 import { eventsFor } from './mockEvents'
+import { mockExecOutput } from './mockExec'
 import { genericMock } from './mockGeneric'
 import { podLogs } from './mockLogs'
+import { streamMockLogs } from './mockLogStream'
+import { openMockTerminal } from './mockTerminal'
 import { releases, repositories, valuesYaml } from './mockHelm'
 import { clusterAllocation, clusterStats, generateSeries } from './mockMetrics'
 import { createMockAudit } from './mockAudit'
@@ -88,43 +91,12 @@ export function createMockProviders(): DataProviders {
         )
         return delay(found ?? { kind: key, metadata: { name } })
       },
-      execCommand: (ns, podName, container, command) => {
-        const pod = pods.find((p) => p.namespace === ns && p.name === podName)
-        const env = pod?.containers[0]?.env ?? []
-        const [bin, ...args] = command.trim().split(/\s+/)
-        const out = (() => {
-          switch (bin) {
-            case '':
-              return []
-            case 'help':
-              return ['Mock shell. Try: ls, pwd, whoami, hostname, env, ps, uname']
-            case 'ls':
-              return ['app  bin  dev  etc  home  lib  proc  root  sys  tmp  usr  var']
-            case 'pwd':
-              return ['/']
-            case 'whoami':
-              return ['root']
-            case 'hostname':
-              return [podName]
-            case 'uname':
-              return [`Linux ${podName} 6.6.16 #1 SMP x86_64 GNU/Linux`]
-            case 'env':
-              return [
-                `HOSTNAME=${podName}`,
-                'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
-                'KUBERNETES_SERVICE_HOST=10.96.0.1',
-                ...env.map((e) => `${e.name}=${e.value}`),
-              ]
-            case 'ps':
-              return ['PID   USER     COMMAND', `1     root     /app/${container}`, '27    root     sh']
-            case 'cat':
-              return args.length ? [`cat: ${args[0]}: Permission denied (mock)`] : ['usage: cat FILE']
-            default:
-              return [`/bin/sh: ${bin}: command not found`]
-          }
-        })()
-        return delay(out)
-      },
+      execCommand: (ns, podName, container, command) => delay(mockExecOutput(ns, podName, container, command)),
+      streamLogs: (request, handlers) => streamMockLogs(request, handlers),
+      openTerminal: (target, handlers) =>
+        openMockTerminal(target, handlers, (command) =>
+          delay(mockExecOutput(target.namespace, target.pod, target.container, command)),
+        ),
       k8sGet: <T>(path: string) => mockK8sGet<T>(path),
       deletePod: (ns, name) => {
         const idx = pods.findIndex((p) => p.namespace === ns && p.name === name)

@@ -1,5 +1,13 @@
 import type { QueryParams } from './apiClient'
 import type {
+  LogStream,
+  LogStreamHandlers,
+  LogStreamRequest,
+  TerminalConnection,
+  TerminalHandlers,
+  TerminalTarget,
+} from './streams'
+import type {
   AppUser,
   AssignmentRole,
   AuditPage,
@@ -49,6 +57,10 @@ export interface ClusterProvider {
   getResource(key: string, namespace: string | null, name: string): Promise<KubeObject>
   /** Runs one command in a container and returns its output lines. */
   execCommand(namespace: string, pod: string, container: string, command: string): Promise<string[]>
+  /** Follows container logs as they are written (design §7.1, Server-Sent Events). */
+  streamLogs(request: LogStreamRequest, handlers: LogStreamHandlers): LogStream
+  /** Opens an interactive terminal (TTY) in a container (design §7.1, WebSocket). */
+  openTerminal(target: TerminalTarget, handlers: TerminalHandlers): TerminalConnection
   /**
    * Read-only Kubernetes API passthrough (GET /api/k8s/<path>), e.g.
    * `k8sGet('/api/v1/namespaces')`. Secrets are not readable this way.

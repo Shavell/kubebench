@@ -1,7 +1,9 @@
 import { apiDelete, apiGet, apiPost, type QueryParams } from '../apiClient'
 import type { ClusterProvider } from '../providers'
 import type { LiveCapabilities } from '../types'
-import { rejectUnavailable } from './unavailable'
+import { streamLogs } from './logStream'
+import { openTerminal, refusedTerminal } from './terminal'
+import { capabilityUnavailable, rejectUnavailable } from './unavailable'
 
 /**
  * GET /api/k8s/<path> (design §4.5). A query string written into `path`
@@ -41,6 +43,11 @@ export function createApiCluster(capabilities: LiveCapabilities): ClusterProvide
       capabilities.exec
         ? apiPost('/exec', undefined, { ns, pod, container, cmd })
         : rejectUnavailable('exec'),
+    streamLogs,
+    openTerminal: (target, handlers) =>
+      capabilities.exec
+        ? openTerminal(target, handlers)
+        : refusedTerminal(handlers, capabilityUnavailable('exec').message),
     k8sGet,
     deletePod: async (ns, name) => {
       await apiDelete('/pods', { ns, name })
