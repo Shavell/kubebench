@@ -44,7 +44,8 @@
   justify-content: center;
   gap: 12px;
 }
-.topo-empty .kb-empty {
+.topo-empty .kb-empty,
+.topo-empty .kb-unavailable {
   height: auto;
 }
 

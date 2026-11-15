@@ -35,7 +35,8 @@
     "label": "Odak: {{kind}} {{name}}",
     "clear": "Tüm namespace'i göster",
     "missing": "{{kind}} {{name}} bulunamadı",
-    "missingHint": "Silinmiş ya da yeniden adlandırılmış olabilir."
+    "missingHint": "Silinmiş ya da yeniden adlandırılmış olabilir.",
+    "unavailable": "{{kind}} {{name}} gösterilemiyor"
   },
   "lists": {
     "pods": "Pod'lar",

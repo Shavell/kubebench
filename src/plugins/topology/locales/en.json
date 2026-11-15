@@ -35,7 +35,8 @@
     "label": "Focused on {{kind}} {{name}}",
     "clear": "Show the whole namespace",
     "missing": "{{kind}} {{name}} was not found",
-    "missingHint": "It may have been deleted or renamed."
+    "missingHint": "It may have been deleted or renamed.",
+    "unavailable": "{{kind}} {{name}} cannot be shown"
   },
   "lists": {
     "pods": "Pods",

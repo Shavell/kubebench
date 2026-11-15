@@ -70,8 +70,25 @@ function TopologyView({ tab }: { tab: TabDescriptor }) {
     }
     if (data.pending === LIST_NAMES.length) return <div className="page-loading">{t('page.loading', { namespace })}</div>
     if (focus && !focusFound) {
+      const list = LIST_OF[focus.kind]!
+      const failed = data.errors.find((e) => e.list === list)
+      if (failed) {
+        return (
+          <div className="topo-empty">
+            <Unavailable
+              code={failed.code}
+              reason={failed.error}
+              title={t('focus.unavailable', { kind: focus.kind, name: focus.name })}
+              onRetry={refreshData}
+            />
+            <Button variant="secondary" icon="type-hierarchy" onClick={showNamespace}>
+              {t('focus.clear')}
+            </Button>
+          </div>
+        )
+      }
       // Until its list arrives, the whole namespace would only flash by.
-      if (!data.snapshot[LIST_OF[focus.kind]!]) return <div className="page-loading">{t('page.loading', { namespace })}</div>
+      if (!data.snapshot[list]) return <div className="page-loading">{t('page.loading', { namespace })}</div>
       return (
         <div className="topo-empty">
           <EmptyState icon="search" title={t('focus.missing', { kind: focus.kind, name: focus.name })} hint={t('focus.missingHint')} />
