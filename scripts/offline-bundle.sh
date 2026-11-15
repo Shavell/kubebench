@@ -208,11 +208,12 @@ EOF
 (cd "$stage" && find . -type f -printf '%P\n' | LC_ALL=C sort | xargs sha256sum) >"$work/SHA256SUMS"
 mv "$work/SHA256SUMS" "$stage/SHA256SUMS"
 
-# Reproducible archive: fixed order, owners and timestamps.
+# Reproducible archive: fixed order, owners, modes and timestamps. The modes
+# also make files readable that arrive as 0600 (`docker save -o` writes those).
 epoch="${SOURCE_DATE_EPOCH:-$(git -C "$root" log -1 --format=%ct 2>/dev/null || date +%s)}"
 mkdir -p "$output_dir"
 bundle="$output_dir/$name.tar.gz"
-"$tar" --sort=name --owner=0 --group=0 --numeric-owner --mtime="@$epoch" \
+"$tar" --sort=name --owner=0 --group=0 --numeric-owner --mode='u+rwX,go+rX,go-w' --mtime="@$epoch" \
   -C "$work" -cf - "$name" | gzip -n -9 >"$bundle"
 (cd "$output_dir" && sha256sum "$name.tar.gz" >"$name.tar.gz.sha256")
 printf 'offline-bundle: wrote %s (%s)\n' "${bundle#"$root"/}" "$(du -h "$bundle" | cut -f1)"
