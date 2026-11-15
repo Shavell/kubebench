@@ -1,0 +1,170 @@
+/* Topology graph (design §7.9). Colours only through --vscode-* tokens. */
+
+.topo-page .kb-toolbar {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.topo-page .kb-toolbar__actions {
+  flex-wrap: wrap;
+}
+
+.topo-page__body {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+.topo-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 16px;
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+.topo-status__focus {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--vscode-foreground);
+}
+.topo-status__errors {
+  display: flex;
+  flex-direction: column;
+  color: var(--vscode-errorForeground);
+}
+
+.topo-empty {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.topo-empty .kb-empty {
+  height: auto;
+}
+
+.topo-canvas {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--vscode-editor-background);
+}
+.topo-canvas__svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+.topo-canvas__svg.is-panning {
+  cursor: grabbing;
+}
+.topo-canvas__controls {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  gap: 4px;
+}
+.topo-canvas__controls .kb-button {
+  padding: 4px 6px;
+}
+
+/* Nodes */
+.topo-node {
+  cursor: pointer;
+  transition: opacity 120ms ease;
+  --topo-tone: var(--vscode-descriptionForeground);
+}
+.topo-node--ok {
+  --topo-tone: var(--vscode-charts-green);
+}
+.topo-node--warning {
+  --topo-tone: var(--vscode-editorWarning-foreground);
+}
+.topo-node--error,
+.topo-node--missing {
+  --topo-tone: var(--vscode-errorForeground);
+}
+.topo-node.is-missing {
+  cursor: default;
+}
+.topo-node__box {
+  fill: var(--vscode-editorWidget-background);
+  stroke: var(--vscode-editorWidget-border);
+  stroke-width: 1;
+}
+.topo-node.is-missing .topo-node__box {
+  fill: transparent;
+  stroke: var(--topo-tone);
+  stroke-dasharray: 4 3;
+}
+.topo-node__bar {
+  fill: var(--topo-tone);
+}
+.topo-node__kind {
+  font-size: 10px;
+  font-family: monospace;
+  fill: var(--vscode-descriptionForeground);
+}
+.topo-node__status {
+  font-size: 10px;
+  fill: var(--topo-tone);
+}
+.topo-node__name {
+  font-size: 12px;
+  fill: var(--vscode-foreground);
+}
+.topo-node:hover .topo-node__box,
+.topo-node:focus-visible .topo-node__box,
+.topo-node.is-focused .topo-node__box {
+  stroke: var(--vscode-focusBorder);
+  stroke-width: 2;
+}
+.topo-node:focus {
+  outline: none;
+}
+
+/* Edges */
+.topo-edge {
+  fill: none;
+  stroke: var(--vscode-descriptionForeground);
+  stroke-opacity: 0.45;
+  stroke-width: 1.2;
+  transition: stroke-opacity 120ms ease;
+}
+.topo-edge--references {
+  stroke-dasharray: 4 3;
+}
+.topo-edge.is-active {
+  stroke: var(--vscode-focusBorder);
+  stroke-opacity: 1;
+  stroke-width: 2;
+}
+.topo-arrow path {
+  fill: var(--vscode-descriptionForeground);
+  fill-opacity: 0.6;
+}
+.topo-arrow.is-active path {
+  fill: var(--vscode-focusBorder);
+  fill-opacity: 1;
+}
+
+/* While a node is hovered, everything off its chain fades. */
+.topo-canvas__svg.is-hovering .topo-node:not(.is-active) {
+  opacity: 0.3;
+}
+.topo-canvas__svg.is-hovering .topo-edge:not(.is-active) {
+  stroke-opacity: 0.12;
+}
+
+.topo-page .topo-page__namespace {
+  width: auto;
+  min-width: 140px;
+}

@@ -12,6 +12,7 @@ import { workloadsPlugin } from './workloads/manifest'
 import { editorPlugin } from './editor/manifest'
 import { argocdPlugin } from './argocd/manifest'
 import { storagePlugin } from './storage/manifest'
+import { topologyPlugin } from './topology/manifest'
 
 /**
  * The single place built-in modules are wired in. Comment one out and its
@@ -30,6 +31,7 @@ export const allPlugins: PluginManifest[] = [
   editorPlugin,
   argocdPlugin,
   storagePlugin,
+  topologyPlugin,
 ]
 
 /** Registered at boot only when the signed-in user is a global admin. */
