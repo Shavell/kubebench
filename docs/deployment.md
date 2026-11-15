@@ -218,6 +218,7 @@ refuses to start with an invalid value (every problem is reported at once).
 | `KUBEBENCH_AUDIT_RETENTION_DAYS` | `90` | Audit rows older than this are pruned daily (`0` = keep forever) |
 | `KUBEBENCH_ALLOW_PATH_KUBECONFIG` | `true` outside a cluster, `false` inside | Allow adding clusters by a path on the server |
 | `KUBECONFIG` | (unset) | Seeds the cluster inventory on the first start |
+| `KUBEBENCH_NAMESPACE` | in a pod: its namespace | The namespace KubeBench runs in; deleting a namespace of that name from KubeBench is refused unless forced |
 
 Where each deployment sets them:
 

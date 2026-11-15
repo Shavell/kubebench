@@ -41,7 +41,9 @@ those commits.
   from templates; generic delete; label and annotation editing.
 - Node cordon, drain and taints; Deployment rollout history, rollback and
   pause; restart and scale for StatefulSets, DaemonSets and ReplicaSets;
-  debug containers; CronJob trigger and suspend; namespace create and delete.
+  force and multi-select bulk delete of Pods; debug containers; CronJob
+  trigger and suspend; namespace create and delete, which refuses system
+  namespaces and KubeBench's own (`KUBEBENCH_NAMESPACE`) unless forced.
 - Helm: install and upgrade with values editing and dry-run diffs, chart
   repositories, search, and chart upload for offline clusters.
 - Live updates pushed from shared informers.

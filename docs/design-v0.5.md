@@ -91,6 +91,7 @@ cluster-to-cluster compare, port-forward, light/dark per-plugin theming.
 | `KUBEBENCH_AUDIT_RETENTION_DAYS` | `90` | Audit rows older than this are pruned daily (0 = keep forever) |
 | `KUBEBENCH_ALLOW_PATH_KUBECONFIG` | `true` outside a cluster, `false` in-cluster | Allow adding clusters by server-side file path |
 | `KUBECONFIG` | — | Dev/VM convenience: seeds the inventory on first run |
+| `KUBEBENCH_NAMESPACE` | in a pod: the pod's namespace | The namespace KubeBench runs in; deleting a namespace of that name is refused unless forced (§7.3) |
 
 The backend parses these once into `internal/config.Config`; invalid values
 are all reported at once and the binary exits with status 2.
@@ -647,6 +648,52 @@ All write unless noted; audited.
   StatefulSet/DaemonSet/ReplicaSet, multi-select bulk delete on pod lists,
   force delete, debug container (opens a terminal), CronJob trigger/suspend,
   namespace create/delete (type-to-confirm).
+
+Details settled by the implementation:
+
+- Node list entries gain `unschedulable` and `taints` (`[{key,value,effect}]`),
+  Deployment entries `paused`; all omitted when false or empty.
+- Boolean switches default to the action the route names: `unschedulable`,
+  `paused` and `suspend` are `true` when absent. Mutations without a result
+  answer `{"ok":true}`.
+- Drain: defaults as in the path above; `timeoutSeconds` 1–600, `gracePeriod`
+  −1 (the pod's own) to 3600. It cordons first and answers `200` when the
+  evictions ended: `{"node","cordoned","completed","evicted":["ns/pod"],
+  "failed":[{"pod","error"}],"blockedByPDB":["ns/pod"],"skipped":[{"pod",
+  "reason":"daemonSet"|"mirror"}],"errors":[…]}`. Pods a drain must not lose
+  (no controller without `force`, emptyDir without `deleteEmptyDirData`,
+  DaemonSet pods without `ignoreDaemonSets`) stop it before any eviction and
+  are reported in `errors`, like kubectl. An eviction a PodDisruptionBudget
+  refuses (429) is retried every 5 s until the timeout.
+- Taints: key a qualified name, value a label value, effect `NoSchedule` |
+  `PreferNoSchedule` | `NoExecute`, each key once per effect, else `400`.
+  Answers `{"taints":[…]}`; taints kept unchanged keep their `timeAdded`.
+- History: `{"currentRevision","paused","revisions":[{"revision","replicaSet",
+  "images","changeCause","created","replicas","readyReplicas","current"}]}`,
+  newest first. The current revision is the ReplicaSet whose pod template the
+  Deployment has (the revision annotations lag behind during a rollout).
+- Rollback (kubectl rollout undo): `409 conflict` while paused or for the
+  current revision, `404 not_found` for a revision the Deployment does not
+  have.
+- Restart and scale check `kind` (`400` otherwise); scale goes through the
+  `scale` subresource. `/api/deployments/scale|restart` keep working.
+- `DELETE /api/pods?force=true` deletes with grace period 0. Bulk delete
+  takes 1–200 items and answers `{"results":[{"namespace","name","error"?}]}`
+  in order; its audit detail lists the pods.
+- Debug: `image` defaults to `busybox:1.37`, `target` must name a container
+  of the pod; answers `{"namespace","pod","container"}`, the container being
+  `debugger-xxxxx` with stdin and TTY.
+- Trigger answers `{"namespace","job"}`; the Job is the CronJob's controller-
+  owned child, like `kubectl create job --from=cronjob/<name>`.
+- Namespaces: the name must be a DNS-1123 label and labels valid. Deleting a
+  system namespace (`default`, `kube-system`, `kube-public`,
+  `kube-node-lease`) or `KUBEBENCH_NAMESPACE` answers `403 forbidden` unless
+  `force=true`. The UI does not offer to delete system namespaces; for
+  KubeBench's own it offers "Delete anyway" after the refusal.
+- Refusals by KubeBench itself use `bad_request`, `not_found`, `conflict` and
+  `forbidden`; errors from the cluster keep the code `kubernetes`.
+- Frontend: `DataProviders.workloadOps` (`WorkloadOpsProvider`); the shared
+  `Table` gains an optional checkbox `selection`.
 
 ### 7.4 Helm plugin v2 (backend plugin `helm`)
 
