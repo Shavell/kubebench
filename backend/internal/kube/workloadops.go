@@ -33,11 +33,11 @@ func (r *Runtime) RestartWorkload(ctx context.Context, kind, namespace, name str
 	var err error
 	switch kind {
 	case "Deployment":
-		_, err = apps.Deployments(namespace).Patch(ctx, name, types.StrategicMergePatchType, patch, metav1.PatchOptions{})
+		_, err = apps.Deployments(namespace).Patch(ctx, name, types.StrategicMergePatchType, patch, metav1.PatchOptions{FieldManager: FieldManager})
 	case "StatefulSet":
-		_, err = apps.StatefulSets(namespace).Patch(ctx, name, types.StrategicMergePatchType, patch, metav1.PatchOptions{})
+		_, err = apps.StatefulSets(namespace).Patch(ctx, name, types.StrategicMergePatchType, patch, metav1.PatchOptions{FieldManager: FieldManager})
 	case "DaemonSet":
-		_, err = apps.DaemonSets(namespace).Patch(ctx, name, types.StrategicMergePatchType, patch, metav1.PatchOptions{})
+		_, err = apps.DaemonSets(namespace).Patch(ctx, name, types.StrategicMergePatchType, patch, metav1.PatchOptions{FieldManager: FieldManager})
 	default:
 		return opError(OpInvalid, "only a Deployment, StatefulSet or DaemonSet can be restarted, not %q", kind)
 	}
@@ -57,6 +57,6 @@ func (r *Runtime) ScaleWorkload(ctx context.Context, kind, namespace, name strin
 		return opError(OpInvalid, "replicas must be at least 0")
 	}
 	patch := []byte(fmt.Sprintf(`{"spec":{"replicas":%d}}`, replicas))
-	_, err := r.Dyn.Resource(resource).Namespace(namespace).Patch(ctx, name, types.MergePatchType, patch, metav1.PatchOptions{}, "scale")
+	_, err := r.Dyn.Resource(resource).Namespace(namespace).Patch(ctx, name, types.MergePatchType, patch, metav1.PatchOptions{FieldManager: FieldManager}, "scale")
 	return err
 }

@@ -13,8 +13,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-// FieldManager is the field manager of every change KubeBench makes with
-// server-side apply.
+// FieldManager is the field manager of every change KubeBench makes, with
+// server-side apply and with patches, updates and creates alike, so that
+// managedFields attribute them to KubeBench.
 const FieldManager = "kubebench"
 
 // ApplyAction is what applying a document did (or, in a dry run, would do).

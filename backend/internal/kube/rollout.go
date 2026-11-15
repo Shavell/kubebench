@@ -144,7 +144,7 @@ func (r *Runtime) RollbackDeployment(ctx context.Context, namespace, name string
 	if err != nil {
 		return err
 	}
-	_, err = deployments.Patch(ctx, name, types.JSONPatchType, patch, metav1.PatchOptions{})
+	_, err = deployments.Patch(ctx, name, types.JSONPatchType, patch, metav1.PatchOptions{FieldManager: FieldManager})
 	return err
 }
 
@@ -171,7 +171,7 @@ func rollbackAnnotations(d *appsv1.Deployment, rs *appsv1.ReplicaSet) map[string
 // once it is resumed.
 func (r *Runtime) PauseDeployment(ctx context.Context, namespace, name string, paused bool) error {
 	patch := fmt.Sprintf(`{"spec":{"paused":%t}}`, paused)
-	_, err := r.CS.AppsV1().Deployments(namespace).Patch(ctx, name, types.MergePatchType, []byte(patch), metav1.PatchOptions{})
+	_, err := r.CS.AppsV1().Deployments(namespace).Patch(ctx, name, types.MergePatchType, []byte(patch), metav1.PatchOptions{FieldManager: FieldManager})
 	return err
 }
 

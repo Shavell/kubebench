@@ -41,7 +41,7 @@ func (r *Runtime) TriggerCronJob(ctx context.Context, namespace, name string) (*
 	}
 	jobs := r.CS.BatchV1().Jobs(namespace)
 	for attempt := 1; ; attempt++ {
-		created, err := jobs.Create(ctx, jobFromCronJob(cronJob, manualJobName(name)), metav1.CreateOptions{})
+		created, err := jobs.Create(ctx, jobFromCronJob(cronJob, manualJobName(name)), metav1.CreateOptions{FieldManager: FieldManager})
 		if err == nil {
 			return &CronJobRun{Namespace: namespace, Job: created.Name}, nil
 		}
@@ -94,6 +94,6 @@ func manualJobName(cronJob string) string {
 // already run are not affected.
 func (r *Runtime) SuspendCronJob(ctx context.Context, namespace, name string, suspend bool) error {
 	patch := fmt.Sprintf(`{"spec":{"suspend":%t}}`, suspend)
-	_, err := r.CS.BatchV1().CronJobs(namespace).Patch(ctx, name, types.MergePatchType, []byte(patch), metav1.PatchOptions{})
+	_, err := r.CS.BatchV1().CronJobs(namespace).Patch(ctx, name, types.MergePatchType, []byte(patch), metav1.PatchOptions{FieldManager: FieldManager})
 	return err
 }

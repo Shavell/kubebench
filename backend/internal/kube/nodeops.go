@@ -35,7 +35,7 @@ var taintEffects = []corev1.TaintEffect{
 // already run on the node stay.
 func (r *Runtime) CordonNode(ctx context.Context, name string, unschedulable bool) error {
 	patch := fmt.Sprintf(`{"spec":{"unschedulable":%t}}`, unschedulable)
-	_, err := r.CS.CoreV1().Nodes().Patch(ctx, name, types.MergePatchType, []byte(patch), metav1.PatchOptions{})
+	_, err := r.CS.CoreV1().Nodes().Patch(ctx, name, types.MergePatchType, []byte(patch), metav1.PatchOptions{FieldManager: FieldManager})
 	return err
 }
 
@@ -55,7 +55,7 @@ func (r *Runtime) SetNodeTaints(ctx context.Context, name string, taints []Taint
 			return err
 		}
 		node.Spec.Taints = withTimeAdded(taints, node.Spec.Taints)
-		updated, err = nodes.Update(ctx, node, metav1.UpdateOptions{})
+		updated, err = nodes.Update(ctx, node, metav1.UpdateOptions{FieldManager: FieldManager})
 		return err
 	})
 	if err != nil {

@@ -193,7 +193,7 @@ func (r *Runtime) PodLogs(ctx context.Context, namespace, pod string, o LogOptio
 func (r *Runtime) ScaleDeployment(ctx context.Context, namespace, name string, replicas int) error {
 	patch := fmt.Sprintf(`{"spec":{"replicas":%d}}`, replicas)
 	_, err := r.CS.AppsV1().Deployments(namespace).Patch(
-		ctx, name, types.MergePatchType, []byte(patch), metav1.PatchOptions{},
+		ctx, name, types.MergePatchType, []byte(patch), metav1.PatchOptions{FieldManager: FieldManager},
 	)
 	return err
 }

@@ -68,6 +68,9 @@ func newRuntime(cluster store.Cluster) (*Runtime, error) {
 	}
 	config.QPS = 50
 	config.Burst = 100
+	// Names KubeBench in the API server's audit log, and as the field
+	// manager of changes made without an explicit one.
+	config.UserAgent = FieldManager
 
 	cs, dyn, metrics, err := clientsFor(config)
 	if err != nil {

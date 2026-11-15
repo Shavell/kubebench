@@ -27,7 +27,7 @@ func (r *Runtime) CreateNamespace(ctx context.Context, name string, labels map[s
 		return opError(OpInvalid, "%s", errs.ToAggregate().Error())
 	}
 	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: name, Labels: labels}}
-	_, err := r.CS.CoreV1().Namespaces().Create(ctx, ns, metav1.CreateOptions{})
+	_, err := r.CS.CoreV1().Namespaces().Create(ctx, ns, metav1.CreateOptions{FieldManager: FieldManager})
 	return err
 }
 

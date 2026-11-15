@@ -122,7 +122,7 @@ func (r *Runtime) AddDebugContainer(ctx context.Context, namespace, podName, ima
 	if err != nil {
 		return nil, err
 	}
-	if _, err := pods.Patch(ctx, podName, types.StrategicMergePatchType, patch, metav1.PatchOptions{}, "ephemeralcontainers"); err != nil {
+	if _, err := pods.Patch(ctx, podName, types.StrategicMergePatchType, patch, metav1.PatchOptions{FieldManager: FieldManager}, "ephemeralcontainers"); err != nil {
 		return nil, err
 	}
 	return &DebugContainer{Namespace: namespace, Pod: podName, Container: debugger.Name}, nil
