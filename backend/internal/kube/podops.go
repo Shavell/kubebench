@@ -102,7 +102,7 @@ func (r *Runtime) AddDebugContainer(ctx context.Context, namespace, podName, ima
 	if err != nil {
 		return nil, err
 	}
-	if target != "" && !hasContainer(pod, target) {
+	if target != "" && !hasAppContainer(pod, target) {
 		return nil, opError(OpInvalid, "pod %s has no container %q to target", podName, target)
 	}
 	debugger := corev1.EphemeralContainer{
@@ -144,7 +144,9 @@ func appendPatch(pod *corev1.Pod, c corev1.EphemeralContainer) ([]byte, error) {
 	return strategicpatch.CreateTwoWayMergePatch(before, after, pod)
 }
 
-func hasContainer(pod *corev1.Pod, name string) bool {
+// hasAppContainer reports whether name is one of the pod's regular
+// containers, the only ones an ephemeral container may target.
+func hasAppContainer(pod *corev1.Pod, name string) bool {
 	for _, c := range pod.Spec.Containers {
 		if c.Name == name {
 			return true
