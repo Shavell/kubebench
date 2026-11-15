@@ -38,7 +38,7 @@ func testResolver(topic string) (schema.GroupVersionResource, error) {
 	case "namespaces":
 		return namespacesGVR, nil
 	}
-	return schema.GroupVersionResource{}, fmt.Errorf("the cluster does not serve %s", topic)
+	return schema.GroupVersionResource{}, &NotServedError{Topic: topic}
 }
 
 func object(gvr schema.GroupVersionResource, kind, namespace, name string) *unstructured.Unstructured {
@@ -87,7 +87,7 @@ func newTestHub(t *testing.T, dyn *dynamicfake.FakeDynamicClient, opts Options) 
 
 func subscribe(t *testing.T, h *Hub, topics ...string) *Subscription {
 	t.Helper()
-	sub, err := h.Subscribe(topics)
+	sub, err := h.Subscribe(1, topics)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -235,7 +235,7 @@ func TestWatchDeniedIsPolled(t *testing.T) {
 
 func TestIdleInformerStops(t *testing.T) {
 	h, l := newTestHub(t, newFakeDynamic(), Options{Idle: 50 * time.Millisecond})
-	first, err := h.Subscribe([]string{"pods"})
+	first, err := h.Subscribe(1, []string{"pods"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -276,7 +276,7 @@ func TestCloseEndsSubscriptionsAndInformers(t *testing.T) {
 	before := runtime.NumGoroutine()
 	dyn := newFakeDynamic()
 	h := NewHub(dyn, testResolver, Options{Logf: func(string, ...any) {}})
-	sub, err := h.Subscribe([]string{"pods", "deployments", "namespaces"})
+	sub, err := h.Subscribe(1, []string{"pods", "deployments", "namespaces"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -290,7 +290,7 @@ func TestCloseEndsSubscriptionsAndInformers(t *testing.T) {
 		t.Fatal("Done is not closed")
 	}
 	sub.Close() // after the hub closed
-	if _, err := h.Subscribe([]string{"pods"}); !errors.Is(err, ErrClosed) {
+	if _, err := h.Subscribe(1, []string{"pods"}); !errors.Is(err, ErrClosed) {
 		t.Fatalf("Subscribe after Close: %v", err)
 	}
 	// Close waited for the informers; their goroutines are gone.
@@ -340,14 +340,14 @@ func TestLimits(t *testing.T) {
 	if len(st) != 2 || st[0].Topic != "deployments" || st[0].Mode != ModePolling || st[1].Mode != ModeStarting {
 		t.Fatalf("statuses = %v", st)
 	}
-	if _, err := h.Subscribe([]string{"pods"}); !errors.Is(err, ErrTooManySubscribers) {
+	if _, err := h.Subscribe(1, []string{"pods"}); !errors.Is(err, ErrTooManySubscribers) {
 		t.Fatalf("second subscription: %v", err)
 	}
 }
 
 func TestPendingChangesCollapse(t *testing.T) {
 	h := NewHub(newFakeDynamic(), testResolver, Options{})
-	sub := newSubscription(h)
+	sub := newSubscription(h, 1)
 	for i := range maxPendingChanges {
 		sub.addChange(Change{Topic: "pods", Namespace: fmt.Sprintf("ns-%d", i)})
 	}
@@ -383,5 +383,91 @@ func TestValidTopic(t *testing.T) {
 	}
 	if r, g := SplitTopic("volumesnapshots.snapshot.storage.k8s.io"); r != "volumesnapshots" || g != "snapshot.storage.k8s.io" {
 		t.Errorf("SplitTopic = %q, %q", r, g)
+	}
+}
+
+// A topic that failed to resolve for another reason than NotServedError
+// (discovery failed) is resolved again and then watched.
+func TestTransientResolveFailureIsRetried(t *testing.T) {
+	var mu sync.Mutex
+	fails := 1
+	resolve := func(topic string) (schema.GroupVersionResource, error) {
+		mu.Lock()
+		defer mu.Unlock()
+		if fails > 0 {
+			fails--
+			return schema.GroupVersionResource{}, errors.New("cannot resolve pods: connection refused")
+		}
+		return testResolver(topic)
+	}
+	h := NewHub(newFakeDynamic(), resolve, Options{Retry: 10 * time.Millisecond, Logf: func(string, ...any) {}})
+	t.Cleanup(h.Close)
+	sub := subscribe(t, h, "pods", "widgets.example.com")
+	st := sub.TakeStatuses()
+	if len(st) != 2 || st[0].Topic != "pods" || st[0].Mode != ModePolling || st[0].Reason != "cannot resolve pods: connection refused" {
+		t.Fatalf("statuses = %v", st)
+	}
+	waitStatus(t, sub, "pods", ModeLive)
+	if informers, _ := h.Stats(); len(informers) != 1 {
+		t.Fatalf("informers = %v", informers)
+	}
+}
+
+// The retry of a failed resolution ends with its subscription.
+func TestResolveRetryEndsWithSubscription(t *testing.T) {
+	before := runtime.NumGoroutine()
+	failing := func(string) (schema.GroupVersionResource, error) {
+		return schema.GroupVersionResource{}, errors.New("connection refused")
+	}
+	h := NewHub(newFakeDynamic(), failing, Options{Retry: 5 * time.Millisecond, Logf: func(string, ...any) {}})
+	sub, err := h.Subscribe(1, []string{"pods"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(20 * time.Millisecond)
+	sub.Close()
+	assertNoLeak(t, before)
+	h.Close()
+}
+
+// One owner watches at most MaxOwnerTypes resource types across its
+// subscriptions; other owners are not limited by it.
+func TestOwnerTypeLimit(t *testing.T) {
+	h, _ := newTestHub(t, newFakeDynamic(), Options{MaxOwnerTypes: 2})
+	first, err := h.Subscribe(1, []string{"pods", "deployments"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(first.Close)
+	first.TakeStatuses()
+	// A second stream of the same owner: a type it watches already is
+	// fine, a third one is polled.
+	second, err := h.Subscribe(1, []string{"deployments.apps", "namespaces"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	st := second.TakeStatuses()
+	if len(st) != 2 || st[0].Topic != "deployments.apps" || st[0].Mode == ModePolling ||
+		st[1].Mode != ModePolling || st[1].Reason != "you watch too many resource types on this cluster at once" {
+		t.Fatalf("statuses = %v", st)
+	}
+	other, err := h.Subscribe(2, []string{"namespaces"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(other.Close)
+	if st := other.TakeStatuses(); len(st) != 1 || st[0].Mode == ModePolling {
+		t.Fatalf("another owner: %v", st)
+	}
+	// Closing a stream frees its types for the owner.
+	second.Close()
+	first.Close()
+	again, err := h.Subscribe(1, []string{"namespaces"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(again.Close)
+	if st := again.TakeStatuses(); len(st) != 1 || st[0].Mode == ModePolling {
+		t.Fatalf("after close: %v", st)
 	}
 }

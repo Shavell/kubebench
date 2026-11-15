@@ -59,7 +59,7 @@ func (s *Server) handleWatch(w http.ResponseWriter, r *http.Request, c *call) {
 		return
 	}
 	defer release()
-	sub, err := c.rt.Watch().Subscribe(topics)
+	sub, err := c.rt.Watch().Subscribe(c.user.ID, topics)
 	switch {
 	case errors.Is(err, watch.ErrClosed):
 		writeErr(w, errorf(http.StatusServiceUnavailable, plugin.CodeCapabilityUnavailable,

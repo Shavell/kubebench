@@ -9,6 +9,7 @@
 package watch
 
 import (
+	"errors"
 	"regexp"
 	"strings"
 
@@ -45,8 +46,20 @@ type TopicStatus struct {
 
 // Resolver maps a topic to the resource it names, at the version the
 // cluster prefers. Its error is shown to users as the reason the topic is
-// polled, so it should read as one (e.g. "the cluster does not serve …").
+// polled, so it should read as one. A *NotServedError is final; the hub
+// resolves the topic again after any other error (e.g. discovery failed).
 type Resolver func(topic string) (schema.GroupVersionResource, error)
+
+// NotServedError is the Resolver error for a topic whose resource the
+// cluster does not serve.
+type NotServedError struct{ Topic string }
+
+func (e *NotServedError) Error() string { return "the cluster does not serve " + e.Topic }
+
+func isNotServed(err error) bool {
+	var ns *NotServedError
+	return errors.As(err, &ns)
+}
 
 // MaxTopicLength bounds a topic: a resource name and a DNS subdomain group.
 const MaxTopicLength = 317

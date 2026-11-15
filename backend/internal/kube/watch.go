@@ -27,7 +27,7 @@ func (r *Runtime) resolveTopic(topic string) (schema.GroupVersionResource, error
 	resource, group := watch.SplitTopic(topic)
 	gvr, _, err := r.ResolveResource(group, resource)
 	if meta.IsNoMatchError(err) {
-		return gvr, fmt.Errorf("the cluster does not serve %s", topic)
+		return gvr, &watch.NotServedError{Topic: topic}
 	}
 	if err != nil {
 		return gvr, fmt.Errorf("cannot resolve %s: %v", topic, err)

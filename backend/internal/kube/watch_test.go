@@ -28,7 +28,7 @@ func TestResolveTopic(t *testing.T) {
 // Closing a runtime closes its hub: subscriptions end.
 func TestCloseEndsWatchSubscriptions(t *testing.T) {
 	rt, _ := editingRuntime(t)
-	sub, err := rt.Watch().Subscribe([]string{"widgets.example.com"})
+	sub, err := rt.Watch().Subscribe(1, []string{"widgets.example.com"})
 	if err != nil {
 		t.Fatal(err)
 	}

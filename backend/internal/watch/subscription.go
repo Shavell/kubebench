@@ -18,7 +18,9 @@ const maxPendingChanges = 256
 // collect them. Close it when done.
 type Subscription struct {
 	hub    *Hub
+	owner  int64
 	notify chan struct{}
+	gone   chan struct{} // closed once unsubscribed
 
 	// watching maps each informer the subscription is attached to to the
 	// subscribed topics it serves (two topics may name one resource).
@@ -31,10 +33,12 @@ type Subscription struct {
 	closed   bool
 }
 
-func newSubscription(h *Hub) *Subscription {
+func newSubscription(h *Hub, owner int64) *Subscription {
 	return &Subscription{
 		hub:      h,
+		owner:    owner,
 		notify:   make(chan struct{}, 1),
+		gone:     make(chan struct{}),
 		watching: map[schema.GroupVersionResource][]string{},
 		changes:  map[Change]struct{}{},
 		statuses: map[string]TopicStatus{},

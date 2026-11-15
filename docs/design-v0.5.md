@@ -472,7 +472,8 @@ func WriteK8sError(w http.ResponseWriter, err error) // maps apierrors → statu
   `Caps()` and `WaitProbed(ctx)` (the capability probe), `RawGet` (the
   §4.5 passthrough). `ResolveKind`/`ResolveResource` reset the mapper and
   retry once on a no-match error (e.g. a CRD installed since the last
-  discovery), so plugins should prefer them over `Mapper()`.
+  discovery), at most once per 10 s per runtime, so plugins should prefer
+  them over `Mapper()`.
   `kube.NewRuntimeForTest(cluster, cs, dyn)` builds one around fake clients
   without background work.
 - `WriteK8sError` reports a Kubernetes `401` as `502` (§3.3); a no-match
@@ -1228,8 +1229,10 @@ start lazily and stop when unused. Frontend: scoped invalidation
   resolved through discovery to the preferred version.
 - **Events**: `event: status` `{topic, mode, reason?}` with `mode`
   `starting` (informer listing), `live` or `polling` (the cluster does not
-  serve the resource, the credential may not list/watch it, or the
-  cluster's informer limit is reached; `reason` says which) — the first
+  serve the resource, the credential may not list/watch it, the cluster's
+  or the caller's informer limit is reached, or the topic could not be
+  resolved yet — discovery failed; it is resolved again every 30 s;
+  `reason` says which) — the first
   ones at once, then on every change; `event: change` `{topic, namespace}`
   collected for 500 ms (`namespace` `""` = cluster-scoped, or anywhere
   after more than 256 pending changes); `event: end` with the reason when
@@ -1240,7 +1243,8 @@ start lazily and stop when unused. Frontend: scoped invalidation
   informer per resource, keeping only object metadata, started on the
   first subscription and stopped 5 min after the last subscriber left.
   Limits: 16 watch streams per user (`429 rate_limited`), 512 subscribers
-  and 64 informers per cluster. `GET /api/watch/status` (read) lists the
+  and 64 informers per cluster, 32 resource types per user across their
+  streams (beyond it the topic is polled). `GET /api/watch/status` (read) lists the
   informers `{resource, mode, reason?, subscribers, idleSince?}` and the
   subscriber count, for diagnostics. Lists are still served by direct API
   calls, not from the informer caches.
