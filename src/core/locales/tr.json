@@ -121,6 +121,7 @@
     "unreachableHint": "KubeBench sunucusu yanıt vermedi. Sunucunun çalıştığından ve bu tarayıcıdan erişilebilir olduğundan emin olup tekrar deneyin.",
     "failedHint": "KubeBench sunucusu bir hatayla yanıt verdi. Tekrar deneyin; hata sürerse sunucu loglarını kontrol edin.",
     "status": "HTTP {{status}}: {{message}}",
+    "notKubeBench": "Sunucu /api/info isteğine bir KubeBench oturumuyla yanıt vermedi. Onun yerine bir proxy ya da başka bir uygulama yanıt veriyor olabilir.",
     "retry": "Tekrar dene"
   },
   "password": {

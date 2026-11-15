@@ -1,3 +1,5 @@
+import { PLATFORM_NS } from '@/core/locales'
+import { i18n } from '@/i18n'
 import { ApiError, apiGet } from '../apiClient'
 import type {
   ActiveCluster,
@@ -45,7 +47,7 @@ function cluster(value: unknown): ActiveCluster | null {
  */
 function parseServerInfo(body: unknown): ServerInfo {
   if (!isObject(body) || typeof body.user !== 'string' || !isObject(body.permissions)) {
-    throw new ApiError(502, 'http_error', 'The server did not answer /api/info with a KubeBench session')
+    throw new ApiError(502, 'http_error', i18n.t('boot.notKubeBench', { ns: PLATFORM_NS }))
   }
   const perms = body.permissions
   const capabilities = isObject(body.capabilities) ? body.capabilities : {}

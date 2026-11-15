@@ -121,6 +121,7 @@
     "unreachableHint": "The KubeBench server did not answer. Check that it is running and reachable from this browser, then try again.",
     "failedHint": "The KubeBench server answered with an error. Try again; if it keeps failing, check the server logs.",
     "status": "HTTP {{status}}: {{message}}",
+    "notKubeBench": "The server did not answer /api/info with a KubeBench session. A proxy or another application may be answering in its place.",
     "retry": "Try again"
   },
   "password": {
