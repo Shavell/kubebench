@@ -103,6 +103,10 @@
         "title": "Something went wrong",
         "hint": "Try again. If the problem persists, check the server logs."
       }
+    },
+    "copy": {
+      "name": "Copy name",
+      "yaml": "Copy YAML"
     }
   },
   "editor": {
@@ -261,10 +265,123 @@
     "commands": {
       "about": "Help: About",
       "changePassword": "Account: Change Password",
-      "signOut": "Account: Sign Out"
+      "signOut": "Account: Sign Out",
+      "shortcuts": "Help: Keyboard Shortcuts"
     },
     "notices": {
       "demoSignOut": "Demo mode has no sign-in, so there is nothing to sign out of."
+    }
+  },
+  "namespaces": {
+    "pinnedGroup": "Pinned",
+    "othersGroup": "Other namespaces",
+    "search": "Filter namespaces",
+    "loading": "Loading namespaces…",
+    "noMatch": "No matching namespace",
+    "pin": "Pin to the top",
+    "unpin": "Unpin",
+    "hide": "Hide from the list",
+    "unhide": "Show in the list again",
+    "showHidden_one": "Show hidden ({{count}})",
+    "showHidden_other": "Show hidden ({{count}})",
+    "keysHint": "Alt+P pin · Alt+H hide"
+  },
+  "palette": {
+    "kubectl": {
+      "hint": "kubectl-style commands: get, describe, logs, exec, ns, ctx · Tab completes · ? lists all shortcuts",
+      "usage": {
+        "get": "get <kind> [name] [-n namespace | -A]",
+        "describe": "describe <kind>/<name> [-n namespace]",
+        "logs": "logs <pod> [-n namespace] [-c container]",
+        "exec": "exec <pod> [-n namespace] [-c container]",
+        "ns": "ns <namespace>",
+        "ctx": "ctx <cluster>"
+      },
+      "help": {
+        "get": "Open a resource list or an object",
+        "describe": "Open an object's details",
+        "logs": "Show a container's logs in the panel",
+        "exec": "Open a shell in a container",
+        "ns": "Set the namespace filter",
+        "ctx": "Switch to another cluster"
+      },
+      "alias": "Alias",
+      "loading": "Loading…",
+      "loadFailed": "Could not load the suggestions: {{error}}",
+      "namespaceDetail": "namespace",
+      "openList": "Open the {{kind}} list",
+      "openListIn": "Open the {{kind}} list in {{namespace}}",
+      "inNamespace": "in {{namespace}}",
+      "unknownKind": "Unknown resource type \"{{kind}}\"",
+      "noObjects": "No {{kind}} found",
+      "podFirst": "Name the Pod first, then its container",
+      "containerDetail": "container {{container}}",
+      "noPods": "No matching Pod",
+      "allNamespaces": "All namespaces",
+      "current": "current",
+      "noClusters": "No matching cluster",
+      "noPanel": "The terminal panel is not available (the Terminal plugin is disabled)."
+    },
+    "aliases": {
+      "errors": {
+        "nameRequired": "Enter a name for the alias.",
+        "nameSpaces": "An alias is one word, without spaces.",
+        "nameReserved": "This name is a command already.",
+        "nameTaken": "An alias with this name exists already.",
+        "expansionRequired": "Enter the command the alias stands for.",
+        "expansionInvalid": "The command must start with get, describe, logs, exec, ns or ctx."
+      }
+    }
+  },
+  "shortcuts": {
+    "title": "Keyboard shortcuts",
+    "description": "Ctrl stands for Cmd on macOS. Shortcuts that are a single key do not apply while you type in a field.",
+    "groups": {
+      "commands": "Commands",
+      "lists": "Tables and lists",
+      "palette": "Command palette",
+      "namespaces": "Namespace picker"
+    },
+    "entries": {
+      "openPalette": "Show the command palette",
+      "lists": {
+        "moveRow": "Move between rows",
+        "firstLast": "First or last row",
+        "page": "One page up or down",
+        "openRow": "Open the row",
+        "selectRow": "Select the row (lists with checkboxes)",
+        "rowMenu": "Row actions menu"
+      },
+      "palette": {
+        "choose": "Choose a suggestion",
+        "complete": "Complete the command",
+        "run": "Run",
+        "close": "Close"
+      },
+      "namespaces": {
+        "pin": "Pin or unpin the namespace",
+        "hide": "Hide or show the namespace"
+      }
+    },
+    "keys": {
+      "ArrowUp": "↑",
+      "ArrowDown": "↓",
+      "Enter": "Enter",
+      "Escape": "Esc",
+      "Tab": "Tab",
+      "Space": "Space",
+      "PageUp": "Page Up",
+      "PageDown": "Page Down",
+      "Home": "Home",
+      "End": "End",
+      "ContextMenu": "Menu key"
+    }
+  },
+  "lazyView": {
+    "loading": "Loading…",
+    "loadFailed": {
+      "title": "This view could not be shown",
+      "hint": "Its code could not be loaded or it stopped with an error. Retry; after an upgrade, reload the page."
     }
   }
 }

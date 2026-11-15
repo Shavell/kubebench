@@ -6,6 +6,7 @@ import type {
   PluginManifest,
   PluginSource,
   ResourceActionContribution,
+  ResourceKindContribution,
   SettingsSectionContribution,
   SidebarViewContribution,
   StatusBarItemContribution,
@@ -124,6 +125,11 @@ class PluginRegistry {
 
   settingsSections(): Contributed<SettingsSectionContribution>[] {
     return this.contributions((p) => p.settingsSections)
+  }
+
+  /** Kinds addressable by kubectl names in the palette (`get`, `describe`). */
+  resourceKinds(): Contributed<ResourceKindContribution>[] {
+    return this.contributions((p) => p.resourceKinds)
   }
 
   subscribe(listener: () => void): () => void {

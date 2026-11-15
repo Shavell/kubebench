@@ -103,6 +103,10 @@
         "title": "Bir sorun oluştu",
         "hint": "Tekrar deneyin. Sorun devam ederse sunucu loglarını kontrol edin."
       }
+    },
+    "copy": {
+      "name": "Adı kopyala",
+      "yaml": "YAML'ı kopyala"
     }
   },
   "editor": {
@@ -261,10 +265,123 @@
     "commands": {
       "about": "Yardım: Hakkında",
       "changePassword": "Hesap: Parolayı değiştir",
-      "signOut": "Hesap: Çıkış yap"
+      "signOut": "Hesap: Çıkış yap",
+      "shortcuts": "Yardım: Klavye kısayolları"
     },
     "notices": {
       "demoSignOut": "Demo modunda giriş olmadığından çıkış yapılacak bir oturum da yok."
+    }
+  },
+  "namespaces": {
+    "pinnedGroup": "Sabitlenenler",
+    "othersGroup": "Diğer namespace'ler",
+    "search": "Namespace'leri filtrele",
+    "loading": "Namespace'ler yükleniyor…",
+    "noMatch": "Eşleşen namespace yok",
+    "pin": "En üste sabitle",
+    "unpin": "Sabitlemeyi kaldır",
+    "hide": "Listede gizle",
+    "unhide": "Listede yeniden göster",
+    "showHidden_one": "Gizlenenleri göster ({{count}})",
+    "showHidden_other": "Gizlenenleri göster ({{count}})",
+    "keysHint": "Alt+P sabitle · Alt+H gizle"
+  },
+  "palette": {
+    "kubectl": {
+      "hint": "kubectl tarzı komutlar: get, describe, logs, exec, ns, ctx · Tab tamamlar · ? tüm kısayolları listeler",
+      "usage": {
+        "get": "get <tür> [ad] [-n namespace | -A]",
+        "describe": "describe <tür>/<ad> [-n namespace]",
+        "logs": "logs <pod> [-n namespace] [-c container]",
+        "exec": "exec <pod> [-n namespace] [-c container]",
+        "ns": "ns <namespace>",
+        "ctx": "ctx <cluster>"
+      },
+      "help": {
+        "get": "Bir kaynak listesini veya nesneyi açın",
+        "describe": "Bir nesnenin ayrıntılarını açın",
+        "logs": "Bir container'ın loglarını panelde gösterin",
+        "exec": "Bir container'da shell açın",
+        "ns": "Namespace filtresini ayarlayın",
+        "ctx": "Başka bir cluster'a geçin"
+      },
+      "alias": "Takma ad",
+      "loading": "Yükleniyor…",
+      "loadFailed": "Öneriler yüklenemedi: {{error}}",
+      "namespaceDetail": "namespace",
+      "openList": "{{kind}} listesini aç",
+      "openListIn": "{{namespace}} içindeki {{kind}} listesini aç",
+      "inNamespace": "{{namespace}} içinde",
+      "unknownKind": "Bilinmeyen kaynak türü: \"{{kind}}\"",
+      "noObjects": "Hiç {{kind}} bulunamadı",
+      "podFirst": "Önce Pod'u, ardından container'ını yazın",
+      "containerDetail": "container: {{container}}",
+      "noPods": "Eşleşen Pod yok",
+      "allNamespaces": "Tüm namespace'ler",
+      "current": "geçerli",
+      "noClusters": "Eşleşen cluster yok",
+      "noPanel": "Terminal paneli kullanılamıyor (Terminal eklentisi devre dışı)."
+    },
+    "aliases": {
+      "errors": {
+        "nameRequired": "Takma ad için bir ad girin.",
+        "nameSpaces": "Takma ad boşluk içermeyen tek bir sözcüktür.",
+        "nameReserved": "Bu ad zaten bir komut.",
+        "nameTaken": "Bu adda bir takma ad zaten var.",
+        "expansionRequired": "Takma adın yerine geçeceği komutu girin.",
+        "expansionInvalid": "Komut get, describe, logs, exec, ns veya ctx ile başlamalı."
+      }
+    }
+  },
+  "shortcuts": {
+    "title": "Klavye kısayolları",
+    "description": "macOS'ta Ctrl yerine Cmd kullanılır. Tek tuştan oluşan kısayollar bir alana yazarken çalışmaz.",
+    "groups": {
+      "commands": "Komutlar",
+      "lists": "Tablolar ve listeler",
+      "palette": "Komut paleti",
+      "namespaces": "Namespace seçici"
+    },
+    "entries": {
+      "openPalette": "Komut paletini göster",
+      "lists": {
+        "moveRow": "Satırlar arasında gezin",
+        "firstLast": "İlk veya son satır",
+        "page": "Bir sayfa yukarı veya aşağı",
+        "openRow": "Satırı aç",
+        "selectRow": "Satırı seç (onay kutulu listeler)",
+        "rowMenu": "Satır işlemleri menüsü"
+      },
+      "palette": {
+        "choose": "Bir öneri seçin",
+        "complete": "Komutu tamamla",
+        "run": "Çalıştır",
+        "close": "Kapat"
+      },
+      "namespaces": {
+        "pin": "Namespace'i sabitle veya sabitlemeyi kaldır",
+        "hide": "Namespace'i gizle veya göster"
+      }
+    },
+    "keys": {
+      "ArrowUp": "↑",
+      "ArrowDown": "↓",
+      "Enter": "Enter",
+      "Escape": "Esc",
+      "Tab": "Tab",
+      "Space": "Boşluk",
+      "PageUp": "Page Up",
+      "PageDown": "Page Down",
+      "Home": "Home",
+      "End": "End",
+      "ContextMenu": "Menü tuşu"
+    }
+  },
+  "lazyView": {
+    "loading": "Yükleniyor…",
+    "loadFailed": {
+      "title": "Bu görünüm gösterilemedi",
+      "hint": "Kodu yüklenemedi ya da bir hatayla durdu. Yeniden deneyin; bir yükseltmeden sonra sayfayı yeniden yükleyin."
     }
   }
 }

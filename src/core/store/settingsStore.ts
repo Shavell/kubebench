@@ -21,7 +21,9 @@ interface SettingsState {
    * i18n imports; src/i18n validates it.
    */
   language: 'auto' | (string & {})
-  set: <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => void
+  /** Command keyboard shortcuts (the palette's Ctrl+Shift+P / F1 always work). */
+  shortcutsEnabled: boolean
+  set:<K extends keyof SettingsState>(key: K, value: SettingsState[K]) => void
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -33,6 +35,7 @@ export const useSettingsStore = create<SettingsState>()(
       autoRefreshSeconds: 0,
       metricsSource: 'auto',
       language: 'auto',
+      shortcutsEnabled: true,
       set: (key, value) => set({ [key]: value }),
     }),
     { name: 'kubebench.settings' },

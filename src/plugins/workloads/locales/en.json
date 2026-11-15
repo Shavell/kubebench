@@ -108,7 +108,9 @@
     "role": "Role",
     "reason": "Reason",
     "message": "Message",
-    "count": "Count"
+    "count": "Count",
+    "object": "Object",
+    "lastSeen": "Last seen"
   },
   "values": {
     "addresses_one": "{{count}} address",
@@ -404,5 +406,13 @@
       "qualifiedName": "Use a name like dedicated or example.com/zone: letters, digits, -, _ and ., at most 63 characters, with an optional DNS prefix.",
       "labelValue": "At most 63 letters, digits, -, _ and ., starting and ending with a letter or digit."
     }
+  },
+  "eventsView": {
+    "warningsOnly_one": "Warnings only ({{value}})",
+    "warningsOnly_other": "Warnings only ({{value}})",
+    "groupByReason": "Group by reason",
+    "noWarnings": "No warnings",
+    "groupSummary_one": "{{events}} event · {{occurrences}} occurrences · last {{lastSeen}} ago",
+    "groupSummary_other": "{{events}} events · {{occurrences}} occurrences · last {{lastSeen}} ago"
   }
 }

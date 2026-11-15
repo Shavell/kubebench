@@ -1,7 +1,8 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import clsx from 'clsx'
 import { Icon } from './Icon'
+import { useListFilterFocus } from './listFilterFocus'
 import './ListFilterBar.css'
 
 interface ListFilterBarProps {
@@ -17,8 +18,8 @@ interface ListFilterBarProps {
 
 /**
  * Compact filter controls that live inside a Toolbar's action area.
- * Collapsed to a single funnel button until needed; column headers
- * handle sorting.
+ * Collapsed to a single funnel button until needed (or `/` is pressed,
+ * see listFilterFocus); column headers handle sorting.
  */
 export function ListFilterBar({
   search,
@@ -31,6 +32,17 @@ export function ListFilterBar({
   const [open, setOpen] = useState(false)
   const active = Boolean(search) || filtersActive
   const expanded = open || active
+  const inputRef = useRef<HTMLInputElement>(null)
+  const focusRequest = useListFilterFocus((s) => s.seq)
+  const handledRequest = useRef(focusRequest)
+
+  // The `/` shortcut: expand, then focus the search field once it is rendered.
+  useEffect(() => {
+    if (focusRequest === handledRequest.current) return
+    handledRequest.current = focusRequest
+    setOpen(true)
+    requestAnimationFrame(() => inputRef.current?.focus())
+  }, [focusRequest])
 
   return (
     <div className="inline-filters">
@@ -40,6 +52,7 @@ export function ListFilterBar({
           <div className="inline-filters__search">
             <Icon name="search" size={12} />
             <input
+              ref={inputRef}
               value={search}
               onChange={(e) => onSearch(e.target.value)}
               placeholder={t('common.filter')}
