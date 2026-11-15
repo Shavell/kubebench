@@ -1015,6 +1015,8 @@ Bodies are validated server-side (DNS-1123 names, quantities, access modes).
   route is `write` + DryRunnable. References are checked before the create
   (`400`): the PV to bind must be Available and fit (class, size, modes,
   volume mode); a clone or restore must be at least as large as its source.
+  A PV's `nodes` must exist; its required node affinity matches their
+  `kubernetes.io/hostname` labels (the node name when unlabelled).
 - Resize (write) answers the updated claim summary; a size that does not
   grow is `400`, a claim that is not Bound or whose class does not allow
   expansion `409 conflict`. `GET /snapshots` without the CRDs is

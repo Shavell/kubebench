@@ -164,3 +164,23 @@ func TestCreateStorageClass(t *testing.T) {
 		}
 	}
 }
+
+// The node affinity matches kubernetes.io/hostname, which need not be the
+// node's name: the volume is pinned to the label of the node picked.
+func TestCreatePVPinsHostnameLabel(t *testing.T) {
+	renamed := node("ip-10-0-1-5.ec2.internal")
+	renamed.Labels = map[string]string{hostnameLabel: "ip-10-0-1-5"}
+	e := newEnv(t, envOptions{}, renamed, node("plain"))
+	body := map[string]any{
+		"name": "loc", "capacity": "1Gi", "accessModes": []string{"RWO"}, "storageClassName": "manual",
+		"local": map[string]string{"path": "/mnt/ssd"}, "nodes": []string{"ip-10-0-1-5.ec2.internal", "plain"},
+	}
+	expect(t, e.do(http.MethodPost, "/pvs", body), http.StatusOK, "")
+	pv, err := e.cs.CoreV1().PersistentVolumes().Get(context.Background(), "loc", metav1.GetOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := affinityNodes(pv); len(got) != 2 || got[0] != "ip-10-0-1-5" || got[1] != "plain" {
+		t.Fatalf("affinity = %v", got)
+	}
+}

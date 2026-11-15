@@ -1,7 +1,7 @@
 {
   "manifest": {
     "name": "Depolama",
-    "description": "PersistentVolume'ler, claim'ler ve StorageClass'lar: genel bakış, oluşturma sihirbazları, snapshot'lar ve volume genişletme.",
+    "description": "PersistentVolume'lar, claim'ler ve StorageClass'lar: genel bakış, oluşturma sihirbazları, snapshot'lar ve volume genişletme.",
     "tooltip": "Depolama",
     "sidebarTitle": "Depolama"
   },
@@ -19,7 +19,7 @@
   "sidebar": {
     "overview": "Genel bakış",
     "pvcs": "PersistentVolumeClaim'ler",
-    "pvs": "PersistentVolume'ler",
+    "pvs": "PersistentVolume'lar",
     "classes": "StorageClass'lar",
     "snapshots": "VolumeSnapshot'lar",
     "create": "Oluştur"
@@ -93,16 +93,16 @@
     "capacity": "Kapasite",
     "bars": {
       "requested": "Claim'lerin istediği / sağlanan",
-      "available": "Claim edilmemiş volume'ler / sağlanan"
+      "available": "Claim edilmemiş volume'lar / sağlanan"
     },
-    "capacityDetail": "Claim'ler {{requested}} istiyor; PersistentVolume'ler {{provisioned}} tutuyor."
+    "capacityDetail": "Claim'ler {{requested}} istiyor; PersistentVolume'lar {{provisioned}} tutuyor."
   },
   "classes": {
     "title": "StorageClass'lar",
     "loading": "StorageClass'lar yükleniyor…",
     "unavailable": "StorageClass'lar kullanılamıyor",
     "empty": "StorageClass yok",
-    "emptyHint": "Bir sınıf volume sağlayana kadar claim'ler yalnızca mevcut PersistentVolume'lere bağlanabilir.",
+    "emptyHint": "Bir sınıf volume sağlayana kadar claim'ler yalnızca mevcut PersistentVolume'lara bağlanabilir.",
     "default": "varsayılan",
     "defaultHint": "Sınıf belirtmeyen claim'ler bu sınıfı alır",
     "extraDefaultHint": "Bu da varsayılan olarak işaretli, ancak daha yeni bir varsayılan sınıf geçerli"
@@ -128,9 +128,9 @@
     "resizing": "boyutlandırılıyor…"
   },
   "pvs": {
-    "title": "PersistentVolume'ler",
-    "loading": "PersistentVolume'ler yükleniyor…",
-    "unavailable": "PersistentVolume'ler kullanılamıyor",
+    "title": "PersistentVolume'lar",
+    "loading": "PersistentVolume'lar yükleniyor…",
+    "unavailable": "PersistentVolume'lar kullanılamıyor",
     "empty": "PersistentVolume yok"
   },
   "snapshots": {
@@ -145,7 +145,7 @@
   },
   "expand": {
     "title": "{{name}} genişletilsin",
-    "description": "Şu an {{current}} ({{storageClass}} sınıfı). Volume'ler yalnızca büyüyebilir; sürücü volume'u genişletir ve dosya sistemlerini bir Pod bağladığında yeniden boyutlandırır.",
+    "description": "Şu an {{current}} ({{storageClass}} sınıfı). Volume'lar yalnızca büyüyebilir; sürücü volume'u genişletir ve dosya sistemlerini bir Pod bağladığında yeniden boyutlandırır.",
     "newSize": "Yeni boyut",
     "submit": "Genişlet",
     "mustGrow": "{{current}} değerinden büyük olmalı",
@@ -207,7 +207,7 @@
       "title": "Yeni PersistentVolumeClaim",
       "sources": {
         "new": "Yeni bir volume sağla",
-        "bind": "Available durumundaki bir PersistentVolume'e bağla",
+        "bind": "Available durumundaki bir PersistentVolume'a bağla",
         "clone": "Mevcut bir PVC'yi klonla",
         "restore": "Bir VolumeSnapshot'ı geri yükle"
       },
@@ -216,7 +216,7 @@
       "classDefaultMarker": "{{name}} (varsayılan)",
       "noClass": "Yok (yalnızca statik bağlama)",
       "noClassShort": "sınıf yok",
-      "classHelp": "Sınıf belirtmezseniz cluster'ın varsayılanı geçerli olur; \"Yok\" yalnızca sınıfı olmayan volume'lere bağlanır.",
+      "classHelp": "Sınıf belirtmezseniz cluster'ın varsayılanı geçerli olur; \"Yok\" yalnızca sınıfı olmayan volume'lara bağlanır.",
       "bindHelp": "Sınıf, boyut ve erişim modları volume'a uymalıdır; bunlar volume'dan doldurulur.",
       "pickVolume": "Bir volume seçin…",
       "noAvailableVolumes": "Available durumunda volume yok",
@@ -249,7 +249,7 @@
       "reclaimHelp": "Claim'i silindiğinde sağlanan volume'a ne olacağı.",
       "bindingHelp": "WaitForFirstConsumer, volume'u ilk Pod'un yerleştirildiği yerde sağlar (bölge farkında); Immediate hemen sağlar.",
       "expansionHelp": "Bu sınıfın claim'lerinin sonradan büyümesine izin verir.",
-      "noExpansionHint": "{{name}} volume'leri genişletemez.",
+      "noExpansionHint": "{{name}} volume'ları genişletemez.",
       "defaultHelp": "Sınıf belirtmeyen claim'ler bu sınıfı alır.",
       "replacesDefault": "Şu an varsayılan {{name}}. Sınıf belirtmeyen claim'ler en yeni varsayılanı alır; bu sınıf onun yerine geçecekse {{name}} üzerindeki işareti kaldırın."
     }
@@ -273,14 +273,14 @@
     "mountOption": "seçenekler boş olamaz ve boşluk içeremez",
     "bindAndClone": "mevcut bir volume'a bağlanan claim ayrıca klonlanamaz",
     "oneSource": "hostPath, nfs, local ya da csi kaynaklarından tam olarak birini ayarlayın",
-    "noBlock": "hostPath ve NFS volume'leri ham blok aygıtı olamaz",
+    "noBlock": "hostPath ve NFS volume'ları ham blok aygıtı olamaz",
     "localNodes": "yerel bir volume tek bir Node üzerinde yaşar: bulunduğu Node'u (ya da Node'ları) seçin",
-    "nfsNodes": "NFS volume'üne her Node'dan erişilebilir; Node affinity almaz",
+    "nfsNodes": "NFS volume'una her Node'dan erişilebilir; Node affinity almaz",
     "parameterKey": "anahtarlar boş olamaz"
   },
   "hints": {
     "awsEbs": {
-      "note": "EBS volume'leri tek bir erişilebilirlik bölgesinde yaşar; WaitForFirstConsumer onları Pod'un bölgesinde oluşturur.",
+      "note": "EBS volume'ları tek bir erişilebilirlik bölgesinde yaşar; WaitForFirstConsumer onları Pod'un bölgesinde oluşturur.",
       "params": {
         "type": "Volume tipi: gp3 (varsayılan), gp2, io1, io2, st1 ya da sc1",
         "iops": "Sağlanan IOPS (gp3, io1, io2)",
@@ -314,16 +314,16 @@
       }
     },
     "localPath": {
-      "note": "Pod'un yerleştiği Node üzerinde bir dizin oluşturur; volume'ler genişletilemez ya da taşınamaz.",
+      "note": "Pod'un yerleştiği Node üzerinde bir dizin oluşturur; volume'lar genişletilemez ya da taşınamaz.",
       "params": {
         "nodePath": "Node üzerindeki temel dizin (sağlayıcının yapılandırması izin veriyorsa)"
       }
     },
     "noProvisioner": {
-      "note": "Hiçbir şey sağlamaz: claim'ler elle oluşturulan PersistentVolume'lere (ör. yerel diskler) bağlanır."
+      "note": "Hiçbir şey sağlamaz: claim'ler elle oluşturulan PersistentVolume'lara (ör. yerel diskler) bağlanır."
     },
     "csiHostpath": {
-      "note": "Kubernetes CSI test sürücüsü: volume'ler tek bir Node üzerindeki dizinlerdir; snapshot, klon ve genişletmeyi destekler."
+      "note": "Kubernetes CSI test sürücüsü: volume'lar tek bir Node üzerindeki dizinlerdir; snapshot, klon ve genişletmeyi destekler."
     },
     "csiNfs": {
       "note": "Mevcut bir NFS export'u üzerinde her volume için bir alt dizin oluşturur.",

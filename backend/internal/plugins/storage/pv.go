@@ -78,6 +78,9 @@ type pvSpec struct {
 	mode     *corev1.PersistentVolumeMode
 	reclaim  corev1.PersistentVolumeReclaimPolicy
 	source   string // the kind of source, for the audit row
+	// hostnames are the kubernetes.io/hostname labels of req.Nodes, which
+	// the node affinity matches (set by checkCluster).
+	hostnames []string
 }
 
 func (req PVRequest) validate() (pvSpec, error) {
@@ -232,16 +235,26 @@ func fsType(field, fs string) error {
 	return nil
 }
 
-// checkCluster checks that the pinned nodes exist.
-func (s pvSpec) checkCluster(ctx context.Context, rt *kube.Runtime) error {
+// checkCluster checks that the pinned nodes exist and records their
+// hostname labels: a node's name need not be its kubernetes.io/hostname
+// (e.g. a kubelet with --hostname-override), and the affinity matches the
+// label. A node without the label is matched by its name, which is what
+// the kubelet sets it to by default.
+func (s *pvSpec) checkCluster(ctx context.Context, rt *kube.Runtime) error {
+	s.hostnames = nil
 	for _, n := range s.req.Nodes {
-		_, err := rt.CS.CoreV1().Nodes().Get(ctx, n, metav1.GetOptions{})
+		node, err := rt.CS.CoreV1().Nodes().Get(ctx, n, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
 			return invalidf("nodes", "no node %q", n)
 		}
 		if err != nil {
 			return err
 		}
+		hostname := node.Labels[hostnameLabel]
+		if hostname == "" {
+			hostname = node.Name
+		}
+		s.hostnames = append(s.hostnames, hostname)
 	}
 	return nil
 }
@@ -282,10 +295,10 @@ func (s pvSpec) object() *corev1.PersistentVolume {
 			ReadOnly: req.CSI.ReadOnly, VolumeAttributes: req.CSI.VolumeAttributes,
 		}
 	}
-	if len(req.Nodes) > 0 {
+	if len(s.hostnames) > 0 {
 		pv.Spec.NodeAffinity = &corev1.VolumeNodeAffinity{Required: &corev1.NodeSelector{
 			NodeSelectorTerms: []corev1.NodeSelectorTerm{{MatchExpressions: []corev1.NodeSelectorRequirement{{
-				Key: hostnameLabel, Operator: corev1.NodeSelectorOpIn, Values: req.Nodes,
+				Key: hostnameLabel, Operator: corev1.NodeSelectorOpIn, Values: s.hostnames,
 			}}}},
 		}}
 	}

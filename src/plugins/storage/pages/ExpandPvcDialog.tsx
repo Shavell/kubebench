@@ -20,7 +20,8 @@ import { SizeInput } from '../wizards/SizeInput'
 export function ExpandPvcDialog({ pvc, onClose }: { pvc: PvcSummary; onClose: () => void }) {
   const { t } = useTranslation(NS)
   const current = pvc.capacity || pvc.requested
-  const initial = splitSize(pvc.requested)
+  // Starts at (or just below) the current request, so nothing grows unasked.
+  const initial = splitSize(pvc.requested, 'down')
   const [amount, setAmount] = useState(initial.amount)
   const [unit, setUnit] = useState<SizeUnit>(initial.unit)
   const [busy, setBusy] = useState(false)

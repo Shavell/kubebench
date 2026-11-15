@@ -42,11 +42,20 @@ export function sizeText(amount: string, unit: SizeUnit): string {
   return trimmed ? `${trimmed}${unit}` : ''
 }
 
-/** The form's amount and unit for a quantity, e.g. a source claim's size; Gi when it has no form unit. */
-export function splitSize(text: string): { amount: string; unit: SizeUnit } {
+/**
+ * The form's amount and unit for a quantity. A quantity without a form
+ * unit ("10G") is rounded: 'up' to whole Gi where the size must be at
+ * least the quantity (a clone's or restore's source), 'down' to whole Mi
+ * (Gi when exact) where it must be at most the quantity (binding to a
+ * volume of that capacity) or must not exceed it unasked (an expansion's
+ * starting value).
+ */
+export function splitSize(text: string, rounding: 'up' | 'down' = 'up'): { amount: string; unit: SizeUnit } {
   const match = /^(\d+(?:\.\d+)?)(Mi|Gi|Ti)$/.exec(text)
   if (match) return { amount: match[1], unit: match[2] as SizeUnit }
   const bytes = quantityBytes(text)
   if (bytes === null) return { amount: '', unit: 'Gi' }
-  return { amount: String(Math.ceil(bytes / 2 ** 30)), unit: 'Gi' }
+  if (rounding === 'up') return { amount: String(Math.ceil(bytes / 2 ** 30)), unit: 'Gi' }
+  const mi = Math.floor(bytes / 2 ** 20)
+  return mi % 1024 === 0 ? { amount: String(mi / 1024), unit: 'Gi' } : { amount: String(mi), unit: 'Mi' }
 }

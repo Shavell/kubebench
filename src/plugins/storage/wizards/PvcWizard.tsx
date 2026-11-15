@@ -276,7 +276,7 @@ function bindTo(form: PvcForm, pv: PvSummary): PvcForm {
     ...form,
     volumeName: pv.name,
     storageClass: pv.storageClass || NO_CLASS,
-    ...splitSize(pv.capacity),
+    ...splitSize(pv.capacity, 'down'), // the claim must fit the volume
     accessModes: pv.accessModes.slice(0, 1),
     volumeMode: pv.volumeMode,
   }
