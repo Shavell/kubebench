@@ -15,6 +15,7 @@ import { createMockPlugins } from './mockPlugins'
 import { createMockSession } from './mockSession'
 import { createMockUsers } from './mockUsers'
 import { mockEditing } from './mockEditing'
+import { createMockWorkloadOps } from './mockWorkloadOps'
 import {
   customResourceYaml,
   deploymentYaml,
@@ -202,6 +203,7 @@ export function createMockProviders(): DataProviders {
     session: createMockSession(),
     audit: createMockAudit(),
     plugins: createMockPlugins(),
+    workloadOps: createMockWorkloadOps(),
     metrics: {
       listSources: () =>
         delay([

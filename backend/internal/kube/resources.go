@@ -190,25 +190,10 @@ func (r *Runtime) PodLogs(ctx context.Context, namespace, pod string, o LogOptio
 	return lines, nil
 }
 
-func (r *Runtime) DeletePod(ctx context.Context, namespace, name string) error {
-	return r.CS.CoreV1().Pods(namespace).Delete(ctx, name, metav1.DeleteOptions{})
-}
-
 func (r *Runtime) ScaleDeployment(ctx context.Context, namespace, name string, replicas int) error {
 	patch := fmt.Sprintf(`{"spec":{"replicas":%d}}`, replicas)
 	_, err := r.CS.AppsV1().Deployments(namespace).Patch(
 		ctx, name, types.MergePatchType, []byte(patch), metav1.PatchOptions{},
-	)
-	return err
-}
-
-func (r *Runtime) RestartDeployment(ctx context.Context, namespace, name string) error {
-	patch := fmt.Sprintf(
-		`{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":%q}}}}}`,
-		time.Now().Format(time.RFC3339),
-	)
-	_, err := r.CS.AppsV1().Deployments(namespace).Patch(
-		ctx, name, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{},
 	)
 	return err
 }

@@ -9,6 +9,9 @@ import { Icon } from '@/shared/Icon'
 import { Toolbar } from '@/shared/Toolbar'
 import { ResourceEditButtons } from '../../editing/ResourceEditButtons'
 import { useWorkloadsTranslation } from '../../i18n'
+import { DeploymentOpsActions } from '../../ops/DeploymentOpsActions'
+import { RolloutHistory } from '../../ops/RolloutHistory'
+import { WorkloadOpsDialogs } from '../../ops/WorkloadOpsDialogs'
 import { DetailRow, DetailSection } from './DetailBits'
 import '@/shared/tabPage.css'
 import './DeploymentDetail.css'
@@ -81,9 +84,11 @@ export function DeploymentDetail({ deployment: d, onDeleted }: { deployment: Dep
         >
           <Icon name="sync" size={14} /> {t('common.restart')}
         </button>
+        <DeploymentOpsActions deployment={d} />
         <ResourceEditButtons resource={resource} onDeleted={onDeleted} />
         <ResourceActionButtons resource={resource} />
       </Toolbar>
+      <WorkloadOpsDialogs />
       <div className="detail">
         {opError && (
           <div className="detail__error">
@@ -136,6 +141,9 @@ export function DeploymentDetail({ deployment: d, onDeleted }: { deployment: Dep
             ))}
           </tbody>
         </table>
+
+        <DetailSection title={t('workloadOps.rollout.history')} />
+        <RolloutHistory deployment={d} />
 
         <DetailSection title={t('common.events')} />
         <EventsTable kind="Deployment" namespace={d.namespace} name={d.name} />

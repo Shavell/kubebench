@@ -27,6 +27,9 @@ type NodeInfo struct {
 	InternalIP       string            `json:"internalIP"`
 	Labels           map[string]string `json:"labels"`
 	Annotations      map[string]string `json:"annotations"`
+	// Unschedulable: the node is cordoned.
+	Unschedulable bool    `json:"unschedulable,omitempty"`
+	Taints        []Taint `json:"taints,omitempty"`
 }
 
 type NamespaceInfo struct {
@@ -80,6 +83,8 @@ type DeploymentInfo struct {
 	Available     int32             `json:"available"`
 	Age           string            `json:"age"`
 	Labels        map[string]string `json:"labels"`
+	// Paused: rollouts are paused (kubectl rollout pause).
+	Paused bool `json:"paused,omitempty"`
 }
 
 type ServiceInfo struct {
@@ -160,6 +165,8 @@ func MapNode(n *corev1.Node) NodeInfo {
 		InternalIP:       internalIP,
 		Labels:           orEmpty(n.Labels),
 		Annotations:      orEmpty(n.Annotations),
+		Unschedulable:    n.Spec.Unschedulable,
+		Taints:           mapTaints(n.Spec.Taints),
 	}
 }
 
@@ -286,6 +293,7 @@ func MapDeployment(d *appsv1.Deployment) DeploymentInfo {
 		Available:     d.Status.AvailableReplicas,
 		Age:           FormatAge(d.CreationTimestamp.Time),
 		Labels:        orEmpty(labels),
+		Paused:        d.Spec.Paused,
 	}
 }
 

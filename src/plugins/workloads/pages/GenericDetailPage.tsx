@@ -10,6 +10,8 @@ import { ResourceDialogs } from '../editing/ResourceDialogs'
 import { ResourceEditButtons } from '../editing/ResourceEditButtons'
 import { useWorkloadsTranslation } from '../i18n'
 import { catalogByKey } from '../resourceCatalog'
+import { ObjectOpsActions } from '../ops/ObjectOpsActions'
+import { WorkloadOpsDialogs } from '../ops/WorkloadOpsDialogs'
 import { DetailRow, DetailSection } from './detail/DetailBits'
 import '@/shared/tabPage.css'
 
@@ -48,9 +50,11 @@ export function GenericDetailPage({ tab }: { tab: TabDescriptor }) {
     <div className="page">
       <Toolbar title={namespace ? `${namespace} / ${name}` : name}>
         <ResourceEditButtons resource={resource} onDeleted={() => closeTab(tab.id)} />
+        <ObjectOpsActions kind={descriptor.kind} obj={obj} />
         <ResourceActionButtons resource={resource} />
       </Toolbar>
       <ResourceDialogs />
+      <WorkloadOpsDialogs />
       <div className="detail">
         <div className="detail__grid">
           <DetailRow label={t('common.kind')} value={descriptor.kind} />

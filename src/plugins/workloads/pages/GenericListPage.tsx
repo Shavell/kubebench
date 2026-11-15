@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useLayoutStore } from '@/core/store/layoutStore'
 import { ALL_NAMESPACES, useContextStore } from '@/core/store/contextStore'
-import { useProviderQuery } from '@/data/DataContext'
+import { useProviderQuery, useProviders } from '@/data/DataContext'
 import type { TabDescriptor } from '@/core/plugin/types'
 import type { KubeObject } from '@/data/types'
 import { formatNumber } from '@/i18n/format'
@@ -15,10 +15,12 @@ import { catalogByKey, objName, objNamespace, resourceLabel, withHeaders } from 
 import { ResourceDialogs } from '../editing/ResourceDialogs'
 import { NewResourceButton } from '../editing/ResourceEditButtons'
 import { genericMenu } from '../rowActions'
+import { WorkloadOpsDialogs } from '../ops/WorkloadOpsDialogs'
 import '@/shared/tabPage.css'
 
 export function GenericListPage({ tab }: { tab: TabDescriptor }) {
   const { t } = useWorkloadsTranslation()
+  const providers = useProviders()
   const key = tab.props?.resourceKey as string
   const descriptor = catalogByKey.get(key)
   const globalNamespace = useContextStore((s) => s.namespace)
@@ -85,7 +87,12 @@ export function GenericListPage({ tab }: { tab: TabDescriptor }) {
           rowKey={(o) => `${objNamespace(o)}/${objName(o)}`}
           onRowClick={openDetail}
           onRowContextMenu={(o, e) =>
-            genericMenu(e, { kind: descriptor.kind, apiVersion: o.apiVersion, namespace: objNamespace(o) || undefined, name: objName(o) })
+            genericMenu(
+              e,
+              { kind: descriptor.kind, apiVersion: o.apiVersion, namespace: objNamespace(o) || undefined, name: objName(o) },
+              providers,
+              o,
+            )
           }
         />
       </div>
@@ -120,6 +127,7 @@ export function GenericListPage({ tab }: { tab: TabDescriptor }) {
       </Toolbar>
       {body()}
       <ResourceDialogs />
+      <WorkloadOpsDialogs />
     </div>
   )
 }

@@ -10,6 +10,9 @@ import { MetricChart } from '@/shared/charts/MetricChart'
 import { chartColor } from '@/shared/charts/chartTheme'
 import { ResourceEditButtons } from '../../editing/ResourceEditButtons'
 import { useWorkloadsTranslation } from '../../i18n'
+import { NodeOpsActions } from '../../ops/NodeOpsActions'
+import { NodeScheduling } from '../../ops/NodeScheduling'
+import { WorkloadOpsDialogs } from '../../ops/WorkloadOpsDialogs'
 import { DetailRow, DetailSection } from './DetailBits'
 import '@/shared/tabPage.css'
 
@@ -33,9 +36,11 @@ export function NodeDetail({ node, onDeleted }: { node: K8sNode; onDeleted: () =
   return (
     <div className="page">
       <Toolbar title={node.name}>
+        <NodeOpsActions node={node} />
         <ResourceEditButtons resource={resource} onDeleted={onDeleted} />
         <ResourceActionButtons resource={resource} />
       </Toolbar>
+      <WorkloadOpsDialogs />
       <div className="detail">
         <div className="detail__grid">
           <DetailRow label={t('columns.status')} value={<Badge>{node.status}</Badge>} />
@@ -52,6 +57,8 @@ export function NodeDetail({ node, onDeleted }: { node: K8sNode; onDeleted: () =
           <DetailRow label={t('columns.internalIP')} value={node.internalIP} />
           <DetailRow label={t('columns.age')} value={node.age} />
         </div>
+
+        <NodeScheduling node={node} />
 
         <DetailSection title={t('common.labels')} />
         {Object.entries(node.labels).map(([k, v]) => (

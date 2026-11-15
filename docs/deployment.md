@@ -219,6 +219,7 @@ refuses to start with an invalid value (every problem is reported at once).
 | `KUBEBENCH_ALLOW_PATH_KUBECONFIG` | `true` outside a cluster, `false` inside | Allow adding clusters by a path on the server |
 | `KUBEBENCH_ALLOW_KUBECONFIG_EXEC` | `false` | Let pasted kubeconfigs run exec credential plugins (`aws eks get-token`, `kubelogin`, …) and auth providers and read files on the server. **Every admin can then run commands as the server's user**; add such clusters by path instead where possible |
 | `KUBECONFIG` | (unset) | Seeds the cluster inventory on the first start; a list (`a:b`) is merged like kubectl does |
+| `KUBEBENCH_NAMESPACE` | in a pod: its namespace | The namespace KubeBench runs in; deleting a namespace of that name from KubeBench is refused unless forced |
 
 Where each deployment sets them:
 

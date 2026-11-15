@@ -10,6 +10,7 @@ import { showContextMenu, type ContextMenuItem } from '@/shared/contextMenu'
 import { notify } from '@/shared/notify'
 import { editingMenuItems, yamlMenuItem } from './editing/menuItems'
 import { tw } from './i18n'
+import { deploymentOpsItems, objectOpsItems, podOpsItems } from './ops/menuItems'
 
 const ICONS: Record<string, string> = {
   Pod: 'package',
@@ -81,6 +82,7 @@ export function podMenu(e: React.MouseEvent, pod: Pod, onDelete: (pod: Pod) => v
       ...yamlMenuItem(ref),
       ...editingMenuItems(ref, { withDelete: false }),
       can('write') && { label: tw('common.delete'), icon: 'trash', danger: true, onClick: () => onDelete(pod) },
+      ...podOpsItems(pod),
       ...contributed(ref),
     ]),
   )
@@ -105,6 +107,7 @@ export function deploymentMenu(e: React.MouseEvent, d: Deployment, providers: Da
         icon: 'add',
         onClick: () => mutate(() => providers.cluster.scaleDeployment(d.namespace, d.name, d.replicas + 1)),
       },
+      ...deploymentOpsItems(d, providers),
       SEPARATOR,
       ...yamlMenuItem(ref),
       ...editingMenuItems(ref),
@@ -113,7 +116,14 @@ export function deploymentMenu(e: React.MouseEvent, d: Deployment, providers: Da
   )
 }
 
-/** Menu for a row of any other kind: YAML, labels, delete (Secrets: reveal) plus contributed actions. */
-export function genericMenu(e: React.MouseEvent, ref: ResourceRef) {
-  showContextMenu(e, menu([...yamlMenuItem(ref), ...editingMenuItems(ref), ...contributed(ref)]))
+/**
+ * Menu for a row of any other kind: YAML, the kind's operations (`row` is
+ * the row's object: node, namespace or generic object), labels, delete
+ * (Secrets: reveal) and contributed actions.
+ */
+export function genericMenu(e: React.MouseEvent, ref: ResourceRef, providers: DataProviders, row?: unknown) {
+  showContextMenu(
+    e,
+    menu([...yamlMenuItem(ref), ...objectOpsItems(ref, row, providers), ...editingMenuItems(ref), ...contributed(ref)]),
+  )
 }

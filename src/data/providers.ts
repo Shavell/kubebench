@@ -31,6 +31,16 @@ import type {
   DeleteOptions,
   MetadataPatch,
   ObjectRef,
+  CronJobRun,
+  DebugContainer,
+  DrainOptions,
+  DrainResult,
+  NodeTaint,
+  PodDeleteResult,
+  PodKey,
+  RestartableKind,
+  RolloutHistory,
+  ScalableKind,
 } from './types'
 
 /**
@@ -161,4 +171,39 @@ export interface DataProviders {
   session: SessionProvider
   audit: AuditProvider
   plugins: PluginsProvider
+  workloadOps: WorkloadOpsProvider
+}
+
+/**
+ * Node, rollout, workload, Pod, CronJob and namespace operations (design
+ * §7.3). In mock mode they change the in-memory dataset.
+ */
+export interface WorkloadOpsProvider {
+  /** Cordons (unschedulable) or uncordons a node. */
+  cordonNode(name: string, unschedulable: boolean): Promise<void>
+  /** Cordons the node and evicts its Pods; resolves when the drain ended, with every Pod's outcome. */
+  drainNode(name: string, options: DrainOptions): Promise<DrainResult>
+  /** Replaces the node's taints and returns the stored list. */
+  setNodeTaints(name: string, taints: NodeTaint[]): Promise<NodeTaint[]>
+  deploymentHistory(namespace: string, name: string): Promise<RolloutHistory>
+  /** Refused (`conflict`) while the Deployment is paused or for the current revision. */
+  rollbackDeployment(namespace: string, name: string, revision: number): Promise<void>
+  pauseDeployment(namespace: string, name: string, paused: boolean): Promise<void>
+  restartWorkload(kind: RestartableKind, namespace: string, name: string): Promise<void>
+  scaleWorkload(kind: ScalableKind, namespace: string, name: string, replicas: number): Promise<void>
+  /** Deletes at once (grace period 0), without waiting for the containers to stop. */
+  forceDeletePod(namespace: string, name: string): Promise<void>
+  /** Deletes up to 200 Pods; one result per Pod, in order. */
+  deletePods(pods: PodKey[], force: boolean): Promise<PodDeleteResult[]>
+  /** Adds an interactive ephemeral container; attach to it with the pod-exec tab kind. */
+  addDebugContainer(namespace: string, pod: string, options: { image?: string; target?: string }): Promise<DebugContainer>
+  /** Creates a Job from the CronJob now. */
+  triggerCronJob(namespace: string, name: string): Promise<CronJobRun>
+  suspendCronJob(namespace: string, name: string, suspend: boolean): Promise<void>
+  createNamespace(name: string, labels: Record<string, string>): Promise<void>
+  /**
+   * System namespaces and the one KubeBench runs in are refused with
+   * `forbidden` unless `force` is set.
+   */
+  deleteNamespace(name: string, force: boolean): Promise<void>
 }
