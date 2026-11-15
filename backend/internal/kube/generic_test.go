@@ -48,11 +48,16 @@ func TestSecretValuesAreRedactedOnEveryReadPath(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	text, err := rt.ObjectYAML(ctx, "Secret", "shop", "db")
+	ref := ObjectRef{Kind: "Secret", Namespace: "shop", Name: "db"}
+	text, err := rt.ObjectYAML(ctx, ref, false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for name, got := range map[string]string{"ListGeneric": asJSON(t, list), "GetGeneric": asJSON(t, one), "ObjectYAML": text} {
+	neat, err := rt.ObjectYAML(ctx, ref, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, got := range map[string]string{"ListGeneric": asJSON(t, list), "GetGeneric": asJSON(t, one), "ObjectYAML": text, "ObjectYAML neat": neat} {
 		if strings.Contains(got, value) || strings.Contains(got, encoded) {
 			t.Errorf("%s leaks the Secret value: %s", name, got)
 		}
