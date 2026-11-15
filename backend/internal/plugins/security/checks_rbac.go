@@ -11,10 +11,17 @@ import (
 
 // grants reports whether rule allows one of verbs on resource in group for
 // any object, counting "*" in each list. A rule limited to resourceNames
-// does not count: it is the narrow grant the remediations recommend (and
-// the access plugin's risks ignore it too).
+// does not count: for reading Secrets or exec it is the narrow grant the
+// remediations recommend (and the access plugin's risks ignore it too).
 func grants(rule rbacv1.PolicyRule, group, resource string, verbs ...string) bool {
-	return len(rule.ResourceNames) == 0 && matches(rule.APIGroups, group) && matches(rule.Resources, resource) &&
+	return len(rule.ResourceNames) == 0 && grantsNamed(rule, group, resource, verbs...)
+}
+
+// grantsNamed is grants that also counts rules limited to resourceNames.
+// The escalation verbs need it: impersonating system:masters or binding
+// cluster-admin by name is the dangerous case, not a narrow grant.
+func grantsNamed(rule rbacv1.PolicyRule, group, resource string, verbs ...string) bool {
+	return matches(rule.APIGroups, group) && matches(rule.Resources, resource) &&
 		slices.ContainsFunc(verbs, func(v string) bool { return matches(rule.Verbs, v) })
 }
 
@@ -77,20 +84,21 @@ func checkPodCreate(_ *scan, r *roleInfo) ([]string, bool) {
 }
 
 // checkEscalation reports bind and escalate on roles and impersonate on
-// identities: each lets a subject exceed the permissions it holds.
+// identities: each lets a subject exceed the permissions it holds, also
+// when the rule names its targets.
 func checkEscalation(_ *scan, r *roleInfo) ([]string, bool) {
 	var ev []string
 	for _, rule := range r.rules {
 		var verbs []string
 		for _, res := range []string{"roles", "clusterroles"} {
 			for _, verb := range []string{"bind", "escalate"} {
-				if grants(rule, rbacv1.GroupName, res, verb) && !slices.Contains(verbs, verb) {
+				if grantsNamed(rule, rbacv1.GroupName, res, verb) && !slices.Contains(verbs, verb) {
 					verbs = append(verbs, verb)
 				}
 			}
 		}
 		for _, res := range []string{"users", "groups", "serviceaccounts"} {
-			if grants(rule, "", res, "impersonate") && !slices.Contains(verbs, "impersonate") {
+			if grantsNamed(rule, "", res, "impersonate") && !slices.Contains(verbs, "impersonate") {
 				verbs = append(verbs, "impersonate")
 			}
 		}

@@ -264,6 +264,8 @@ func TestRiskChecks(t *testing.T) {
 		{"one named secret", rbacv1.PolicyRule{Verbs: l("get"), APIGroups: l(""), Resources: l("secrets"), ResourceNames: l("tls")}, nil},
 		{"bind", rule(l("bind"), l("rbac.authorization.k8s.io"), l("clusterroles")), []string{"escalate-bind"}},
 		{"impersonate", rule(l("impersonate"), l(""), l("serviceaccounts")), []string{"impersonate"}},
+		{"impersonate system:masters", rbacv1.PolicyRule{Verbs: l("impersonate"), APIGroups: l(""), Resources: l("groups"), ResourceNames: l("system:masters")}, []string{"impersonate"}},
+		{"bind cluster-admin", rbacv1.PolicyRule{Verbs: l("bind", "escalate"), APIGroups: l("rbac.authorization.k8s.io"), Resources: l("clusterroles"), ResourceNames: l("cluster-admin")}, []string{"escalate-bind"}},
 		{"exec", rule(l("create"), l(""), l("pods/exec")), []string{"pod-exec"}},
 		{"tokens", rule(l("create"), l(""), l("serviceaccounts/token")), []string{"token-create"}},
 		{"rbac", rule(l("patch"), l("rbac.authorization.k8s.io"), l("rolebindings")), []string{"rbac-write"}},

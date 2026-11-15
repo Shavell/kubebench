@@ -297,6 +297,13 @@ func TestRoleChecks(t *testing.T) {
 			[]string{"bind, escalate: bind,escalate rbac.authorization.k8s.io/clusterroles"}},
 		{"rbac-escalation", []rbacv1.PolicyRule{rule(core, []string{"users", "groups"}, []string{"impersonate"})},
 			[]string{"impersonate: impersonate users,groups"}},
+		// Named targets of the escalation verbs still escalate (cluster-admin).
+		{"rbac-escalation", []rbacv1.PolicyRule{{APIGroups: core, Resources: []string{"users"}, Verbs: []string{"impersonate"}, ResourceNames: []string{"system:admin"}}},
+			[]string{"impersonate: impersonate users (system:admin)"}},
+		{"rbac-escalation", []rbacv1.PolicyRule{{APIGroups: core, Resources: []string{"groups"}, Verbs: []string{"impersonate"}, ResourceNames: []string{"system:masters"}}},
+			[]string{"impersonate: impersonate groups (system:masters)"}},
+		{"rbac-escalation", []rbacv1.PolicyRule{{APIGroups: []string{"rbac.authorization.k8s.io"}, Resources: []string{"clusterroles"}, Verbs: []string{"bind", "escalate"}, ResourceNames: []string{"cluster-admin"}}},
+			[]string{"bind, escalate: bind,escalate rbac.authorization.k8s.io/clusterroles (cluster-admin)"}},
 	}
 	for _, tt := range tests {
 		ev, failed := checksByID[tt.check].role(nil, &roleInfo{rules: tt.rules})

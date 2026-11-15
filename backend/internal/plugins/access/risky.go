@@ -45,6 +45,18 @@ func canAny(rule *rbacv1.PolicyRule, group string, resources []string, verbs ...
 	return slices.ContainsFunc(resources, func(res string) bool { return can(rule, group, res, verbs...) })
 }
 
+// canNamedAny is canAny that also counts rules limited to resourceNames.
+// The escalation verbs need it: impersonating system:masters or binding
+// cluster-admin by name is the dangerous case, not a narrow grant.
+func canNamedAny(rule *rbacv1.PolicyRule, group string, resources []string, verbs ...string) bool {
+	if len(rule.ResourceNames) == 0 {
+		return canAny(rule, group, resources, verbs...)
+	}
+	unnamed := *rule
+	unnamed.ResourceNames = nil
+	return canAny(&unnamed, group, resources, verbs...)
+}
+
 var mutating = []string{"create", "update", "patch"}
 
 // riskChecks are evaluated per rule. "full-access" supersedes the two
@@ -55,11 +67,11 @@ var riskChecks = []riskCheck{
 			slices.Contains(r.Resources, rbacv1.ResourceAll) && len(r.ResourceNames) == 0
 	}},
 	{"escalate-bind", severityCritical, func(r *rbacv1.PolicyRule) bool {
-		return canAny(r, rbacv1.GroupName, []string{"roles", "clusterroles"}, "escalate", "bind")
+		return canNamedAny(r, rbacv1.GroupName, []string{"roles", "clusterroles"}, "escalate", "bind")
 	}},
 	{"impersonate", severityCritical, func(r *rbacv1.PolicyRule) bool {
-		return canAny(r, "", []string{"users", "groups", "serviceaccounts"}, "impersonate") ||
-			can(r, "authentication.k8s.io", "userextras", "impersonate")
+		return canNamedAny(r, "", []string{"users", "groups", "serviceaccounts"}, "impersonate") ||
+			canNamedAny(r, "authentication.k8s.io", []string{"userextras"}, "impersonate")
 	}},
 	{"wildcard-verbs", severityHigh, func(r *rbacv1.PolicyRule) bool {
 		return slices.Contains(r.Verbs, rbacv1.VerbAll) && len(r.Resources) > 0

@@ -1062,7 +1062,8 @@ stored in plugin KV, shared by all users of the cluster);
 namespaces, hostPath, hostPorts, capabilities, privilege escalation,
 runAsNonRoot, seccomp, …), workload hygiene (requests/limits, probes,
 `:latest`), RBAC (cluster-admin bindings, wildcards, secrets access,
-escalate/bind/impersonate, default SA tokens), network (namespaces without
+escalate/bind/impersonate — also when the rule names its targets —, default
+SA tokens), network (namespaces without
 NetworkPolicy), secrets in env vars, PSA labels, workloads in `default`.
 System namespaces excluded by default (toggle).
 
@@ -1160,7 +1161,10 @@ UI: Who can…, subjects + effective permissions, risky roles, binding graph.
   `secrets-read`, `pod-exec`, `token-create`, `rbac-write`, `node-proxy`,
   `webhook-write`, `csr-approve`, `workload-create`,
   `persistentvolume-create`; severities `critical` | `high` | `medium`),
-  with their bindings and the number of subjects, most severe first.
+  with their bindings and the number of subjects, most severe first. A rule
+  limited to resourceNames is a narrow grant and raises no risk, except for
+  `escalate-bind` and `impersonate`: naming the target (`cluster-admin`,
+  `system:masters`) is the dangerous case there.
 - `GET /graph?namespace=&system=true`: `{subjects, bindings, roles, edges,
   truncated}`; with a namespace its RoleBindings plus the
   ClusterRoleBindings naming one of its ServiceAccounts; `system:…`
