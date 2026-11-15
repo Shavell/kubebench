@@ -176,5 +176,60 @@
     "title": "Delete Pod {{name}}?",
     "message": "The Pod is deleted. If a controller such as a Deployment owns it, the controller replaces it with a new one.",
     "deleted": "Pod {{name}} deleted."
+  },
+  "editing": {
+    "menu": {
+      "metadata": "Edit Labels & Annotations…",
+      "reveal": "Reveal Values…",
+      "delete": "Delete…"
+    },
+    "buttons": {
+      "metadata": "Labels",
+      "reveal": "Reveal values",
+      "new": "New",
+      "newHint": "Create a {{kind}} or any other resource from a template or a file"
+    },
+    "delete": {
+      "title": "Delete {{kind}} {{name}}?",
+      "message": "The {{kind}} {{name}} is deleted from namespace {{namespace}}.",
+      "messageCluster": "The {{kind}} {{name}} is deleted from the cluster. It is cluster-scoped, so its name has to be typed.",
+      "propagation": "Objects it owns",
+      "policy": {
+        "background": "Background: delete them after it",
+        "foreground": "Foreground: delete them first",
+        "orphan": "Orphan: keep them"
+      },
+      "policyHelp": {
+        "background": "It disappears at once; Kubernetes then deletes the objects it owns in the background.",
+        "foreground": "It stays, marked for deletion, until every object it owns is deleted; then it disappears too.",
+        "orphan": "Only it is deleted. The objects it owns keep running without an owner."
+      },
+      "cascade": "Deleting it cascades: {{chain}}.",
+      "cascadeOrphan": "Nothing cascades: {{chain}} would otherwise be deleted with it.",
+      "deleted": "{{kind}} {{name}} deleted."
+    },
+    "metadata": {
+      "title": "Labels and annotations of {{kind}} {{name}}",
+      "description": "Only what you change is sent; keys you remove are deleted from the object.",
+      "loading": "Loading labels and annotations…",
+      "addLabel": "Add label",
+      "addAnnotation": "Add annotation",
+      "lastAppliedKept": "kubectl's last-applied-configuration annotation is not shown and stays as it is.",
+      "keyInvalid": "A key has at most one \"/\": an optional prefix, then a name.",
+      "prefixInvalid": "The prefix must be a DNS subdomain such as example.com (lower case, at most 253 characters).",
+      "nameInvalid": "The name must be at most 63 letters, digits, \"-\", \"_\" or \".\", starting and ending with a letter or digit.",
+      "valueInvalid": "The value of label {{key}} must be empty or at most 63 letters, digits, \"-\", \"_\" or \".\", starting and ending with a letter or digit.",
+      "saved": "Labels and annotations of {{kind}} {{name}} saved."
+    },
+    "reveal": {
+      "title": "Reveal the values of Secret {{name}}?",
+      "warning": "The values are shown in plain text, here only, and are not kept once you close this dialog. Revealing is recorded in the audit log. Make sure nobody is looking over your shoulder.",
+      "confirm": "Reveal",
+      "shown": "These are the Secret's real values. They are gone when you close this dialog.",
+      "empty": "This Secret holds no values.",
+      "binary": "Binary data, {{size}}",
+      "copy": "Copy the value of {{key}}",
+      "copyBase64": "Copy the value of {{key}} as base64"
+    }
   }
 }

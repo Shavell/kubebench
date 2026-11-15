@@ -1,13 +1,13 @@
 import { ResourceActionButtons } from '@/core/plugin/ResourceActionButtons'
 import { useLayoutStore } from '@/core/store/layoutStore'
-import { useProviderQuery, useProviders } from '@/data/DataContext'
+import { useProviderQuery } from '@/data/DataContext'
 import type { TabDescriptor } from '@/core/plugin/types'
 import type { KubeObject } from '@/data/types'
 import { EventsTable } from '@/shared/EventsTable'
-import { Icon } from '@/shared/Icon'
-import { notify } from '@/shared/notify'
 import { Toolbar } from '@/shared/Toolbar'
 import { Unavailable } from '@/shared/Unavailable'
+import { ResourceDialogs } from '../editing/ResourceDialogs'
+import { ResourceEditButtons } from '../editing/ResourceEditButtons'
 import { useWorkloadsTranslation } from '../i18n'
 import { catalogByKey } from '../resourceCatalog'
 import { DetailRow, DetailSection } from './detail/DetailBits'
@@ -24,8 +24,7 @@ export function GenericDetailPage({ tab }: { tab: TabDescriptor }) {
   const namespace = (tab.props?.namespace as string | null) ?? null
   const name = tab.props?.name as string
   const descriptor = catalogByKey.get(key)
-  const providers = useProviders()
-  const openTab = useLayoutStore((s) => s.openTab)
+  const closeTab = useLayoutStore((s) => s.closeTab)
 
   const { data, loading, error, errorCode } = useProviderQuery(
     (p) => p.cluster.getResource(key, namespace, name),
@@ -40,22 +39,7 @@ export function GenericDetailPage({ tab }: { tab: TabDescriptor }) {
   const labels = obj.metadata?.labels ?? {}
   const annotations = obj.metadata?.annotations ?? {}
 
-  const viewYaml = async () => {
-    let text: string
-    try {
-      text = await providers.cluster.getResourceYaml(descriptor.kind, namespace, name)
-    } catch (err) {
-      notify.error(err)
-      return
-    }
-    openTab({
-      id: `yaml:${key}:${namespace ?? '-'}/${name}`,
-      title: `${name}.yaml`,
-      icon: 'file-code',
-      kind: 'yaml',
-      props: { text, readOnly: true },
-    })
-  }
+  const resource = { kind: descriptor.kind, apiVersion: obj.apiVersion, namespace: namespace ?? undefined, name }
 
   // Reuse the list columns (minus Name/Namespace/Age/Message) as a quick summary.
   const summaryCols = descriptor.columns.filter((c) => !NOT_IN_SUMMARY.has(c.key))
@@ -63,13 +47,10 @@ export function GenericDetailPage({ tab }: { tab: TabDescriptor }) {
   return (
     <div className="page">
       <Toolbar title={namespace ? `${namespace} / ${name}` : name}>
-        <button className="kb-button kb-button--secondary" onClick={viewYaml}>
-          <Icon name="file-code" size={14} /> {t('actions.yaml')}
-        </button>
-        <ResourceActionButtons
-          resource={{ kind: descriptor.kind, apiVersion: obj.apiVersion, namespace: namespace ?? undefined, name }}
-        />
+        <ResourceEditButtons resource={resource} onDeleted={() => closeTab(tab.id)} />
+        <ResourceActionButtons resource={resource} />
       </Toolbar>
+      <ResourceDialogs />
       <div className="detail">
         <div className="detail__grid">
           <DetailRow label={t('common.kind')} value={descriptor.kind} />

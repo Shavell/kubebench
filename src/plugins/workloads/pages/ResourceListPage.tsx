@@ -14,6 +14,8 @@ import { Unavailable } from '@/shared/Unavailable'
 import { tw, useWorkloadsTranslation } from '../i18n'
 import { richLabel, withHeaders, type ColumnSpec } from '../resourceCatalog'
 import { DeletePodDialog } from '../DeletePodDialog'
+import { ResourceDialogs } from '../editing/ResourceDialogs'
+import { NewResourceButton } from '../editing/ResourceEditButtons'
 import { deploymentMenu, genericMenu, podMenu } from '../rowActions'
 import '@/shared/tabPage.css'
 
@@ -107,6 +109,9 @@ const serviceColumns: ColumnSpec<Service>[] = [
 ]
 
 const NAMESPACED = ['Pods', 'Deployments', 'Services']
+
+/** The kind of each namespaced list, for its New button's template. */
+const KINDS: Record<string, string> = { Pods: 'Pod', Deployments: 'Deployment', Services: 'Service' }
 
 export function ResourceListPage({ tab }: { tab: TabDescriptor }) {
   const { t } = useWorkloadsTranslation()
@@ -229,7 +234,7 @@ export function ResourceListPage({ tab }: { tab: TabDescriptor }) {
             rows={rows as Pod[]}
             rowKey={(p) => `${p.namespace}/${p.name}`}
             onRowClick={(p) => openDetail('Pod', p.namespace, p.name, 'package')}
-            onRowContextMenu={(p, e) => podMenu(e, p, providers, setDeleting)}
+            onRowContextMenu={(p, e) => podMenu(e, p, setDeleting)}
           />
         )}
         {resource === 'Nodes' && (
@@ -238,7 +243,7 @@ export function ResourceListPage({ tab }: { tab: TabDescriptor }) {
             rows={rows as K8sNode[]}
             rowKey={(n) => n.name}
             onRowClick={(n) => openDetail('Node', null, n.name, 'server')}
-            onRowContextMenu={(n, e) => genericMenu(e, { kind: 'Node', apiVersion: 'v1', name: n.name }, providers)}
+            onRowContextMenu={(n, e) => genericMenu(e, { kind: 'Node', apiVersion: 'v1', name: n.name })}
           />
         )}
         {resource === 'Namespaces' && (
@@ -247,7 +252,7 @@ export function ResourceListPage({ tab }: { tab: TabDescriptor }) {
             rows={rows as Namespace[]}
             rowKey={(ns) => ns.name}
             onRowContextMenu={(ns, e) =>
-              genericMenu(e, { kind: 'Namespace', apiVersion: 'v1', name: ns.name }, providers)
+              genericMenu(e, { kind: 'Namespace', apiVersion: 'v1', name: ns.name })
             }
           />
         )}
@@ -267,7 +272,7 @@ export function ResourceListPage({ tab }: { tab: TabDescriptor }) {
             rowKey={(s) => `${s.namespace}/${s.name}`}
             onRowClick={(s) => openDetail('Service', s.namespace, s.name, 'plug')}
             onRowContextMenu={(s, e) =>
-              genericMenu(e, { kind: 'Service', apiVersion: 'v1', namespace: s.namespace, name: s.name }, providers)
+              genericMenu(e, { kind: 'Service', apiVersion: 'v1', namespace: s.namespace, name: s.name })
             }
           />
         )}
@@ -277,8 +282,12 @@ export function ResourceListPage({ tab }: { tab: TabDescriptor }) {
 
   return (
     <div className="page">
-      <Toolbar title={scopedTitle}>{filterBar}</Toolbar>
+      <Toolbar title={scopedTitle}>
+        {filterBar}
+        {isNamespaced && <NewResourceButton kind={KINDS[resource]} namespace={nsFilter} />}
+      </Toolbar>
       {body()}
+      <ResourceDialogs />
       <DeletePodDialog pod={deleting} onClose={() => setDeleting(null)} />
     </div>
   )

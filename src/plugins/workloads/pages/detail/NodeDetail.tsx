@@ -1,24 +1,20 @@
 import { ResourceActionButtons } from '@/core/plugin/ResourceActionButtons'
-import { useLayoutStore } from '@/core/store/layoutStore'
 import { useSettingsStore } from '@/core/store/settingsStore'
-import { useProviderQuery, useProviders } from '@/data/DataContext'
+import { useProviderQuery } from '@/data/DataContext'
 import type { K8sNode } from '@/data/types'
 import { formatNumber } from '@/i18n/format'
 import { Badge } from '@/shared/Badge'
 import { EventsTable } from '@/shared/EventsTable'
-import { Icon } from '@/shared/Icon'
-import { notify } from '@/shared/notify'
 import { Toolbar } from '@/shared/Toolbar'
 import { TimeSeriesChart } from '@/shared/charts/TimeSeriesChart'
 import { chartColor } from '@/shared/charts/chartTheme'
+import { ResourceEditButtons } from '../../editing/ResourceEditButtons'
 import { useWorkloadsTranslation } from '../../i18n'
 import { DetailRow, DetailSection } from './DetailBits'
 import '@/shared/tabPage.css'
 
-export function NodeDetail({ node }: { node: K8sNode }) {
+export function NodeDetail({ node, onDeleted }: { node: K8sNode; onDeleted: () => void }) {
   const { t } = useWorkloadsTranslation()
-  const providers = useProviders()
-  const openTab = useLayoutStore((s) => s.openTab)
   const windowMinutes = useSettingsStore((s) => s.metricsWindow)
 
   const { data: cpu } = useProviderQuery(
@@ -32,30 +28,13 @@ export function NodeDetail({ node }: { node: K8sNode }) {
   const { data: pods } = useProviderQuery((p) => p.cluster.listPods(), [])
   const nodePods = (pods ?? []).filter((p) => p.node === node.name)
 
-  const viewYaml = async () => {
-    let text: string
-    try {
-      text = await providers.cluster.getResourceYaml('Node', null, node.name)
-    } catch (err) {
-      notify.error(err)
-      return
-    }
-    openTab({
-      id: `yaml:node:${node.name}`,
-      title: `${node.name}.yaml`,
-      icon: 'file-code',
-      kind: 'yaml',
-      props: { text, readOnly: true },
-    })
-  }
+  const resource = { kind: 'Node', apiVersion: 'v1', name: node.name }
 
   return (
     <div className="page">
       <Toolbar title={node.name}>
-        <button className="kb-button kb-button--secondary" onClick={viewYaml}>
-          <Icon name="file-code" size={14} /> {t('actions.yaml')}
-        </button>
-        <ResourceActionButtons resource={{ kind: 'Node', apiVersion: 'v1', name: node.name }} />
+        <ResourceEditButtons resource={resource} onDeleted={onDeleted} />
+        <ResourceActionButtons resource={resource} />
       </Toolbar>
       <div className="detail">
         <div className="detail__grid">

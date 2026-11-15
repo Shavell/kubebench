@@ -1,14 +1,14 @@
 import { ResourceActionButtons } from '@/core/plugin/ResourceActionButtons'
 import { useLayoutStore } from '@/core/store/layoutStore'
-import { useProviderQuery, useProviders, type QueryState } from '@/data/DataContext'
+import { useProviderQuery, type QueryState } from '@/data/DataContext'
 import type { TabDescriptor } from '@/core/plugin/types'
 import { Badge } from '@/shared/Badge'
 import { EmptyState } from '@/shared/EmptyState'
 import { EventsTable } from '@/shared/EventsTable'
-import { Icon } from '@/shared/Icon'
-import { notify } from '@/shared/notify'
 import { Toolbar } from '@/shared/Toolbar'
 import { Unavailable } from '@/shared/Unavailable'
+import { ResourceDialogs } from '../editing/ResourceDialogs'
+import { ResourceEditButtons } from '../editing/ResourceEditButtons'
 import { useWorkloadsTranslation } from '../i18n'
 import { DetailRow, DetailSection } from './detail/DetailBits'
 import { PodDetail } from './detail/PodDetail'
@@ -16,13 +16,23 @@ import { NodeDetail } from './detail/NodeDetail'
 import { DeploymentDetail } from './detail/DeploymentDetail'
 import '@/shared/tabPage.css'
 
+/** A kind's detail page, with the dialogs its toolbar and menus open. */
 export function ResourceDetailPage({ tab }: { tab: TabDescriptor }) {
+  return (
+    <>
+      <ResourceDetail tab={tab} />
+      <ResourceDialogs />
+    </>
+  )
+}
+
+function ResourceDetail({ tab }: { tab: TabDescriptor }) {
   const { t } = useWorkloadsTranslation()
   const kind = tab.props?.kind as string
   const namespace = (tab.props?.namespace as string | null) ?? null
   const name = tab.props?.name as string
-  const providers = useProviders()
-  const openTab = useLayoutStore((s) => s.openTab)
+  const closeTab = useLayoutStore((s) => s.closeTab)
+  const closeThisTab = () => closeTab(tab.id)
 
   const pods = useProviderQuery((p) => p.cluster.listPods(), [])
   const nodes = useProviderQuery((p) => p.cluster.listNodes(), [])
@@ -49,41 +59,24 @@ export function ResourceDetailPage({ tab }: { tab: TabDescriptor }) {
   if (kind === 'Node') {
     const node = nodes.data?.find((n) => n.name === name)
     if (!node) return pending(nodes)
-    return <NodeDetail node={node} />
+    return <NodeDetail node={node} onDeleted={closeThisTab} />
   }
 
   if (kind === 'Deployment') {
     const d = deployments.data?.find((x) => x.namespace === namespace && x.name === name)
     if (!d) return pending(deployments)
-    return <DeploymentDetail deployment={d} />
+    return <DeploymentDetail deployment={d} onDeleted={closeThisTab} />
   }
 
   if (kind === 'Service') {
     const s = services.data?.find((x) => x.namespace === namespace && x.name === name)
     if (!s) return pending(services)
-    const viewYaml = async () => {
-      let text: string
-      try {
-        text = await providers.cluster.getResourceYaml('Service', s.namespace, s.name)
-      } catch (err) {
-        notify.error(err)
-        return
-      }
-      openTab({
-        id: `yaml:service:${s.namespace}/${s.name}`,
-        title: `${s.name}.yaml`,
-        icon: 'file-code',
-        kind: 'yaml',
-        props: { text, readOnly: true },
-      })
-    }
+    const resource = { kind: 'Service', apiVersion: 'v1', namespace: s.namespace, name: s.name }
     return (
       <div className="page">
         <Toolbar title={`${s.namespace} / ${s.name}`}>
-          <button className="kb-button kb-button--secondary" onClick={viewYaml}>
-            <Icon name="file-code" size={14} /> {t('actions.yaml')}
-          </button>
-          <ResourceActionButtons resource={{ kind: 'Service', apiVersion: 'v1', namespace: s.namespace, name: s.name }} />
+          <ResourceEditButtons resource={resource} onDeleted={closeThisTab} />
+          <ResourceActionButtons resource={resource} />
         </Toolbar>
         <div className="detail">
           <div className="detail__grid">

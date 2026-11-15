@@ -176,5 +176,60 @@
     "title": "{{name}} adlı Pod silinsin mi?",
     "message": "Pod silinir. Deployment gibi bir controller'a aitse controller onun yerine yenisini oluşturur.",
     "deleted": "{{name}} adlı Pod silindi."
+  },
+  "editing": {
+    "menu": {
+      "metadata": "Etiketleri ve ek açıklamaları düzenle…",
+      "reveal": "Değerleri göster…",
+      "delete": "Sil…"
+    },
+    "buttons": {
+      "metadata": "Etiketler",
+      "reveal": "Değerleri göster",
+      "new": "Yeni",
+      "newHint": "Bir şablondan veya dosyadan {{kind}} ya da başka bir kaynak oluşturun"
+    },
+    "delete": {
+      "title": "{{name}} adlı {{kind}} silinsin mi?",
+      "message": "{{name}} adlı {{kind}}, {{namespace}} namespace'inden silinir.",
+      "messageCluster": "{{name}} adlı {{kind}} cluster'dan silinir. Cluster kapsamlı bir nesne olduğu için adının yazılması gerekir.",
+      "propagation": "Sahip olduğu nesneler",
+      "policy": {
+        "background": "Arka planda: kendisinden sonra silinsin",
+        "foreground": "Ön planda: önce onlar silinsin",
+        "orphan": "Sahipsiz bırak: korunsun"
+      },
+      "policyHelp": {
+        "background": "Nesne hemen kaybolur; ardından Kubernetes sahip olduğu nesneleri arka planda siler.",
+        "foreground": "Nesne, sahip olduğu tüm nesneler silinene kadar silinmek üzere işaretli olarak kalır; sonra o da kaybolur.",
+        "orphan": "Yalnızca nesnenin kendisi silinir. Sahip olduğu nesneler sahipsiz olarak çalışmaya devam eder."
+      },
+      "cascade": "Silme işlemi zincirleme ilerler: {{chain}}.",
+      "cascadeOrphan": "Hiçbir şey zincirleme silinmez; aksi halde {{chain}} onunla birlikte silinirdi.",
+      "deleted": "{{name}} adlı {{kind}} silindi."
+    },
+    "metadata": {
+      "title": "{{name}} adlı {{kind}} için etiketler ve ek açıklamalar",
+      "description": "Yalnızca değiştirdikleriniz gönderilir; kaldırdığınız anahtarlar nesneden silinir.",
+      "loading": "Etiketler ve ek açıklamalar yükleniyor…",
+      "addLabel": "Etiket ekle",
+      "addAnnotation": "Ek açıklama ekle",
+      "lastAppliedKept": "kubectl'in last-applied-configuration ek açıklaması gösterilmez ve olduğu gibi kalır.",
+      "keyInvalid": "Bir anahtarda en fazla bir \"/\" bulunur: isteğe bağlı bir önek ve ardından bir ad.",
+      "prefixInvalid": "Önek, example.com gibi bir DNS alt alan adı olmalıdır (küçük harf, en fazla 253 karakter).",
+      "nameInvalid": "Ad en fazla 63 harf, rakam, \"-\", \"_\" veya \".\" içermeli ve bir harf ya da rakamla başlayıp bitmelidir.",
+      "valueInvalid": "{{key}} etiketinin değeri boş olmalı ya da en fazla 63 harf, rakam, \"-\", \"_\" veya \".\" içermeli ve bir harf ya da rakamla başlayıp bitmelidir.",
+      "saved": "{{name}} adlı {{kind}} için etiketler ve ek açıklamalar kaydedildi."
+    },
+    "reveal": {
+      "title": "{{name}} adlı Secret'ın değerleri gösterilsin mi?",
+      "warning": "Değerler yalnızca burada, düz metin olarak gösterilir ve bu pencereyi kapattığınızda saklanmaz. Değerlerin gösterilmesi denetim kaydına yazılır. Ekranınızı kimsenin görmediğinden emin olun.",
+      "confirm": "Göster",
+      "shown": "Bunlar Secret'ın gerçek değerleridir. Bu pencereyi kapattığınızda kaybolurlar.",
+      "empty": "Bu Secret hiç değer içermiyor.",
+      "binary": "İkili veri, {{size}}",
+      "copy": "{{key}} değerini kopyala",
+      "copyBase64": "{{key}} değerini base64 olarak kopyala"
+    }
   }
 }
