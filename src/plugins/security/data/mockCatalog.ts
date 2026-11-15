@@ -18,6 +18,7 @@ const SPECS: Spec[] = [
   ['proc-mount', 'medium', 'pss-baseline', 'workload', ['PSS baseline']],
   ['unsafe-sysctls', 'medium', 'pss-baseline', 'workload', ['PSS baseline']],
   ['selinux-apparmor', 'medium', 'pss-baseline', 'workload', ['PSS baseline']],
+  ['seccomp-unconfined', 'medium', 'pss-baseline', 'workload', ['CIS 5.7.2', 'PSS baseline']],
   ['privilege-escalation', 'medium', 'pss-restricted', 'workload', ['CIS 5.2.6', 'PSS restricted']],
   ['run-as-non-root', 'medium', 'pss-restricted', 'workload', ['CIS 5.2.7', 'PSS restricted']],
   ['seccomp', 'medium', 'pss-restricted', 'workload', ['CIS 5.7.2', 'PSS restricted']],

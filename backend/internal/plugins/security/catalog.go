@@ -102,6 +102,13 @@ var catalog = []*Check{
 		Remediation: "Leave seLinuxOptions.user and role unset, use a container_t-family type, and do not set an Unconfined AppArmor profile.",
 		workload:    checkSELinuxAppArmor,
 	},
+	{
+		ID: "seccomp-unconfined", Title: "Unconfined seccomp profile", Severity: SeverityMedium, Category: CategoryBaseline,
+		Frameworks: []string{"CIS 5.7.2", pssBaseline}, Target: targetWorkload,
+		message:     "The pod or its containers explicitly set an Unconfined seccomp profile: %s",
+		Remediation: "Remove seccompProfile.type: Unconfined from the pod and its containers, and set RuntimeDefault on the pod (or Localhost with a reviewed profile).",
+		workload:    checkSeccompUnconfined,
+	},
 	// Pod Security Standards, restricted.
 	{
 		ID: "privilege-escalation", Title: "Privilege escalation allowed", Severity: SeverityMedium, Category: CategoryRestricted,
@@ -120,14 +127,14 @@ var catalog = []*Check{
 	{
 		ID: "seccomp", Title: "No seccomp profile", Severity: SeverityMedium, Category: CategoryRestricted,
 		Frameworks: []string{"CIS 5.7.2", pssRestricted}, Target: targetWorkload,
-		message:     "Containers run without a RuntimeDefault or Localhost seccomp profile: %s",
+		message:     "Containers run without a seccomp profile: %s",
 		Remediation: "Set securityContext.seccompProfile.type: RuntimeDefault on the pod (or Localhost with a reviewed profile).",
 		workload:    checkSeccomp,
 	},
 	{
 		ID: "drop-capabilities", Title: "Capabilities not dropped", Severity: SeverityLow, Category: CategoryRestricted,
 		Frameworks: []string{"CIS 5.2.10", pssRestricted}, Target: targetWorkload,
-		message:     "Containers do not drop ALL capabilities: %s",
+		message:     "Containers do not drop ALL capabilities, or add back more than NET_BIND_SERVICE: %s",
 		Remediation: "Set securityContext.capabilities.drop: [\"ALL\"] and add back only NET_BIND_SERVICE if the container binds a low port.",
 		workload:    checkDropCapabilities,
 	},

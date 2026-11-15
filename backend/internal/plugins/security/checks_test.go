@@ -118,9 +118,27 @@ func TestWorkloadChecks(t *testing.T) {
 		{"seccomp", func(s *corev1.PodSpec) { s.SecurityContext.SeccompProfile = nil }, []string{"app (not set)"}},
 		{"seccomp", func(s *corev1.PodSpec) {
 			app(s).SecurityContext.SeccompProfile = &corev1.SeccompProfile{Type: corev1.SeccompProfileTypeUnconfined}
-		}, []string{"app (Unconfined)"}},
+		}, nil},
+		{"seccomp-unconfined", func(s *corev1.PodSpec) {
+			s.SecurityContext.SeccompProfile = nil
+			app(s).SecurityContext.SeccompProfile = &corev1.SeccompProfile{Type: corev1.SeccompProfileTypeLocalhost}
+		}, nil},
+		{"seccomp-unconfined", func(s *corev1.PodSpec) {
+			app(s).SecurityContext.SeccompProfile = &corev1.SeccompProfile{Type: corev1.SeccompProfileTypeUnconfined}
+		}, []string{"app"}},
+		{"seccomp-unconfined", func(s *corev1.PodSpec) {
+			// Forbidden at pod level even when every container overrides it.
+			s.SecurityContext.SeccompProfile = &corev1.SeccompProfile{Type: corev1.SeccompProfileTypeUnconfined}
+			app(s).SecurityContext.SeccompProfile = &corev1.SeccompProfile{Type: corev1.SeccompProfileTypeRuntimeDefault}
+		}, []string{"pod"}},
 		{"drop-capabilities", nil, nil},
 		{"drop-capabilities", func(s *corev1.PodSpec) { app(s).SecurityContext.Capabilities.Drop = []corev1.Capability{"NET_RAW"} }, []string{"app"}},
+		{"drop-capabilities", func(s *corev1.PodSpec) {
+			app(s).SecurityContext.Capabilities.Add = []corev1.Capability{"NET_BIND_SERVICE"}
+		}, nil},
+		{"drop-capabilities", func(s *corev1.PodSpec) {
+			app(s).SecurityContext.Capabilities.Add = []corev1.Capability{"CHOWN", "NET_BIND_SERVICE", "cap_setuid"}
+		}, []string{"app: adds CHOWN", "app: adds SETUID"}},
 		{"volume-types", func(s *corev1.PodSpec) {
 			s.Volumes = append(s.Volumes, corev1.Volume{Name: "host", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: "/data"}}})
 		}, nil},

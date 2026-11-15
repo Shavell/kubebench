@@ -248,6 +248,11 @@
       "message": "The pod weakens its SELinux or AppArmor confinement: {{evidence}}",
       "remediation": "Leave seLinuxOptions.user and role unset, use a container_t-family type, and do not set an Unconfined AppArmor profile."
     },
+    "seccomp-unconfined": {
+      "title": "Unconfined seccomp profile",
+      "message": "The pod or its containers explicitly set an Unconfined seccomp profile: {{evidence}}",
+      "remediation": "Remove seccompProfile.type: Unconfined from the pod and its containers, and set RuntimeDefault on the pod (or Localhost with a reviewed profile)."
+    },
     "privilege-escalation": {
       "title": "Privilege escalation allowed",
       "message": "Containers do not set allowPrivilegeEscalation: false: {{evidence}}",
@@ -260,12 +265,12 @@
     },
     "seccomp": {
       "title": "No seccomp profile",
-      "message": "Containers run without a RuntimeDefault or Localhost seccomp profile: {{evidence}}",
+      "message": "Containers run without a seccomp profile: {{evidence}}",
       "remediation": "Set securityContext.seccompProfile.type: RuntimeDefault on the pod (or Localhost with a reviewed profile)."
     },
     "drop-capabilities": {
       "title": "Capabilities not dropped",
-      "message": "Containers do not drop ALL capabilities: {{evidence}}",
+      "message": "Containers do not drop ALL capabilities, or add back more than NET_BIND_SERVICE: {{evidence}}",
       "remediation": "Set securityContext.capabilities.drop: [\"ALL\"] and add back only NET_BIND_SERVICE if the container binds a low port."
     },
     "volume-types": {

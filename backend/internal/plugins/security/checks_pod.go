@@ -210,27 +210,40 @@ func checkRunAsNonRoot(_ *scan, w *workload) ([]string, bool) {
 	return found(ev)
 }
 
-func checkSeccomp(_ *scan, w *workload) ([]string, bool) {
+// checkSeccompUnconfined reports an explicit Unconfined seccomp profile,
+// which the baseline level forbids at pod and container level alike.
+func checkSeccompUnconfined(_ *scan, w *workload) ([]string, bool) {
 	var ev []string
-	var pod *corev1.SeccompProfile
-	if w.spec.SecurityContext != nil {
-		pod = w.spec.SecurityContext.SeccompProfile
+	unconfined := func(p *corev1.SeccompProfile) bool {
+		return p != nil && p.Type == corev1.SeccompProfileTypeUnconfined
+	}
+	if sc := w.spec.SecurityContext; sc != nil && unconfined(sc.SeccompProfile) {
+		ev = append(ev, "pod")
 	}
 	for _, c := range w.containers() {
-		profile := pod
-		if c.SecurityContext != nil && c.SecurityContext.SeccompProfile != nil {
-			profile = c.SecurityContext.SeccompProfile
-		}
-		switch {
-		case profile == nil:
-			ev = append(ev, c.Name+" (not set)")
-		case profile.Type != corev1.SeccompProfileTypeRuntimeDefault && profile.Type != corev1.SeccompProfileTypeLocalhost:
-			ev = append(ev, fmt.Sprintf("%s (%s)", c.Name, profile.Type))
+		if sc := c.SecurityContext; sc != nil && unconfined(sc.SeccompProfile) {
+			ev = append(ev, c.Name)
 		}
 	}
 	return found(ev)
 }
 
+// checkSeccomp reports containers without an effective profile (neither
+// their own nor the pod's). An explicit Unconfined profile is the baseline
+// check seccomp-unconfined's finding, so it is not reported twice.
+func checkSeccomp(_ *scan, w *workload) ([]string, bool) {
+	var ev []string
+	podSet := w.spec.SecurityContext != nil && w.spec.SecurityContext.SeccompProfile != nil
+	for _, c := range w.containers() {
+		if !podSet && (c.SecurityContext == nil || c.SecurityContext.SeccompProfile == nil) {
+			ev = append(ev, c.Name+" (not set)")
+		}
+	}
+	return found(ev)
+}
+
+// checkDropCapabilities reports containers that do not drop ALL, and each
+// capability other than NET_BIND_SERVICE they add back.
 func checkDropCapabilities(_ *scan, w *workload) ([]string, bool) {
 	var ev []string
 	for _, c := range w.containers() {
@@ -240,6 +253,14 @@ func checkDropCapabilities(_ *scan, w *workload) ([]string, bool) {
 		}
 		if caps == nil || !slices.ContainsFunc(caps.Drop, func(d corev1.Capability) bool { return capName(d) == "ALL" }) {
 			ev = append(ev, c.Name)
+		}
+		if caps == nil {
+			continue
+		}
+		for _, add := range caps.Add {
+			if name := capName(add); name != "NET_BIND_SERVICE" {
+				ev = append(ev, c.Name+": adds "+name)
+			}
 		}
 	}
 	return found(ev)

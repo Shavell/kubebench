@@ -248,6 +248,11 @@
       "message": "Pod, SELinux veya AppArmor kısıtlamasını zayıflatıyor: {{evidence}}",
       "remediation": "seLinuxOptions.user ve role değerlerini boş bırakın, container_t ailesinden bir tür kullanın ve Unconfined bir AppArmor profili ayarlamayın."
     },
+    "seccomp-unconfined": {
+      "title": "Unconfined seccomp profili",
+      "message": "Pod veya container'ları açıkça Unconfined bir seccomp profili ayarlıyor: {{evidence}}",
+      "remediation": "seccompProfile.type: Unconfined ayarını pod'dan ve container'larından kaldırın; pod'da RuntimeDefault ayarlayın (veya incelenmiş bir profille Localhost)."
+    },
     "privilege-escalation": {
       "title": "Ayrıcalık yükseltmeye izin veriliyor",
       "message": "Container'lar allowPrivilegeEscalation: false ayarlamıyor: {{evidence}}",
@@ -260,12 +265,12 @@
     },
     "seccomp": {
       "title": "seccomp profili yok",
-      "message": "Container'lar RuntimeDefault veya Localhost seccomp profili olmadan çalışıyor: {{evidence}}",
+      "message": "Container'lar seccomp profili olmadan çalışıyor: {{evidence}}",
       "remediation": "Pod'da securityContext.seccompProfile.type: RuntimeDefault ayarlayın (veya incelenmiş bir profille Localhost)."
     },
     "drop-capabilities": {
       "title": "Capability'ler bırakılmıyor",
-      "message": "Container'lar ALL capability'lerini bırakmıyor: {{evidence}}",
+      "message": "Container'lar ALL capability'lerini bırakmıyor veya NET_BIND_SERVICE dışında capability geri ekliyor: {{evidence}}",
       "remediation": "securityContext.capabilities.drop: [\"ALL\"] ayarlayın; container düşük numaralı bir port kullanıyorsa yalnızca NET_BIND_SERVICE'i geri ekleyin."
     },
     "volume-types": {
