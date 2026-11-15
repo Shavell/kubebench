@@ -19,7 +19,8 @@
     "available": "Kullanılabilir",
     "unavailable": "Kullanılamıyor",
     "loadFailed": "Yüklenemedi",
-    "core": "Çekirdek"
+    "core": "Çekirdek",
+    "conflict": "Kimlik çakışması"
   },
   "toggle": {
     "enabled": "{{name}} herkes için etkinleştirildi.",
@@ -48,7 +49,9 @@
     "loaded": "Bu pencerede yüklü",
     "loadedYes": "Evet",
     "loadedNo": "Hayır",
-    "loadError": "Yükleme hatası"
+    "loadError": "Yükleme hatası",
+    "conflict": "Çakışma",
+    "conflictHint": "Eklenti dizinindeki bir harici eklenti bu kimliği kullanıyor ({{entry}}). Bu eklenti hiçbir zaman yüklenmez: manifestinde ve dizin adında ona kendi kimliğini verin."
   },
   "categories": {
     "core": "Çekirdek",

@@ -102,6 +102,21 @@ export function describeLoadError(error: PluginLoadError): string {
 }
 
 /**
+ * The catalog entry that describes plugin `id` from `source`. An external
+ * plugin directory that reuses a built-in plugin's id is never loaded
+ * (loadExternalPlugin skips registered ids), so its entry says nothing
+ * about the built-in plugin and must not disable it.
+ */
+export function serverEntryFor(
+  id: string,
+  source: PluginSource,
+  serverPlugins: Record<string, ServerPlugin>,
+): ServerPlugin | undefined {
+  const entry = serverPlugins[id]
+  return source === 'builtin' && entry?.external ? undefined : entry
+}
+
+/**
  * Effective status of one plugin. Core plugins are always on. Otherwise
  * the admin's choice wins, then the server's flag, then the default:
  * built-in plugins start enabled, external ones disabled.
@@ -115,7 +130,7 @@ export function resolvePluginStatus(
   const loading = !state.loaded
   if (manifest?.core) return { enabled: true, available: true, loading }
 
-  const server = state.serverPlugins[id]
+  const server = serverEntryFor(id, source, state.serverPlugins)
   const enabled = state.settings[id]?.enabled ?? server?.enabled ?? source === 'builtin'
   const unavailable = (reason: string) => ({ enabled, available: false, reason, loading })
 

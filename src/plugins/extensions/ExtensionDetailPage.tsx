@@ -102,6 +102,12 @@ function StatusFacts({ extension }: { extension: Extension }) {
           </>
         )}
       </dd>
+      {extension.conflict && (
+        <>
+          <dt>{t('detail.conflict')}</dt>
+          <dd className="ext-detail__reason">{t('detail.conflictHint', { entry: extension.conflict.entry })}</dd>
+        </>
+      )}
       {backendId && (
         <>
           <dt>{t('detail.requires')}</dt>

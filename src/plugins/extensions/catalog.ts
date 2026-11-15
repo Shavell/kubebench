@@ -1,5 +1,6 @@
 import {
   resolvePluginStatus,
+  serverEntryFor,
   usePluginStatusStore,
   type PluginLoadError,
   type ResolvedPluginStatus,
@@ -29,6 +30,8 @@ export interface Extension {
   manifest?: PluginManifest
   /** The entry in GET /api/plugins (backend and external plugins). */
   server?: ServerPlugin
+  /** An external plugin that reuses this built-in plugin's id and is therefore never loaded. */
+  conflict?: ServerPlugin
   status: ResolvedPluginStatus
   loadError?: PluginLoadError
 }
@@ -48,8 +51,9 @@ export function useExtensions(): Extension[] {
   const ids = new Set([...registry.all().map((p) => p.id), ...Object.keys(state.serverPlugins)])
   const extensions = [...ids].map((id): Extension => {
     const manifest = registry.get(id)
-    const server = state.serverPlugins[id]
-    const source: PluginSource = registry.sourceOf(id) ?? (server?.external ? 'external' : 'builtin')
+    const entry = state.serverPlugins[id]
+    const source: PluginSource = registry.sourceOf(id) ?? (entry?.external ? 'external' : 'builtin')
+    const server = serverEntryFor(id, source, state.serverPlugins)
     const core = Boolean(manifest?.core)
     return {
       id,
@@ -63,6 +67,7 @@ export function useExtensions(): Extension[] {
       core,
       manifest,
       server,
+      conflict: entry !== server ? entry : undefined,
       status: resolvePluginStatus(id, manifest, source, state),
       loadError: state.externalErrors[id],
     }

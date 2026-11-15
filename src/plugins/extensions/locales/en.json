@@ -19,7 +19,8 @@
     "available": "Available",
     "unavailable": "Unavailable",
     "loadFailed": "Load failed",
-    "core": "Core"
+    "core": "Core",
+    "conflict": "Id conflict"
   },
   "toggle": {
     "enabled": "{{name}} is enabled for everyone.",
@@ -48,7 +49,9 @@
     "loaded": "Loaded in this window",
     "loadedYes": "Yes",
     "loadedNo": "No",
-    "loadError": "Load error"
+    "loadError": "Load error",
+    "conflict": "Conflict",
+    "conflictHint": "An external plugin in the plugins directory uses this id ({{entry}}). It is never loaded: give it an id of its own, in its manifest and its directory name."
   },
   "categories": {
     "core": "Core",
