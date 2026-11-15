@@ -57,8 +57,9 @@ Usage: install.sh [options]
                              (dpkg), rpm, or the tarball (default: auto)
   --offline <path>           install from local files instead of GitHub: an
                              offline bundle (.tar.gz or extracted directory),
-                             a .deb/.rpm, or kubebench_<v>_linux_<arch>.tar.gz
-  --port <port>              PORT in the env file (default 9876)
+                             a .deb/.rpm, or kubebench_<v>_linux_<arch>.tar.gz;
+                             sets KUBEBENCH_UPDATE_MODE=off unless set
+  --port <port>             PORT in the env file (default 9876)
   --listen <host:port>       KUBEBENCH_LISTEN_ADDR in the env file
   --admin-password <pw>      bootstrap admin password; without it a random one
                              is generated on a fresh install and printed once
@@ -552,6 +553,11 @@ configure() {
   if [[ -n "$opt_kubeconfig" ]]; then
     run install -m 0640 -o root -g "$SERVICE_USER" "$opt_kubeconfig" "$KUBECONFIG_DEST"
     env_set KUBECONFIG "$KUBECONFIG_DEST"
+  fi
+  # An offline install has no route to GitHub: no update checks, unless the
+  # operator chose a mode in the env file before.
+  if [[ -n "$opt_offline" && -z "$(env_get KUBEBENCH_UPDATE_MODE)" ]]; then
+    env_set KUBEBENCH_UPDATE_MODE off
   fi
 
   # The bootstrap password only matters while there is no database yet.

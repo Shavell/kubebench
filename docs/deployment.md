@@ -195,13 +195,16 @@ sha256sum -c SHA256SUMS
 ```
 
 - **VM**: `sudo bash install.sh --offline .` (or pass the `.tar.gz` itself);
-  the installer verifies the package against `packages/checksums.txt`.
+  the installer verifies the package against `packages/checksums.txt` and
+  turns the update check off (`KUBEBENCH_UPDATE_MODE=off`).
 - **Kubernetes**: load `images/kube-bench_<version>_linux_<arch>.tar` on every
   node (`docker load -i`, `ctr -n k8s.io images import`, `k3s ctr images import`)
   or push it to an internal registry, then
-  `helm install kubebench kubernetes/kubebench-<version>.tgz -n kubebench --create-namespace`
+  `helm install kubebench kubernetes/kubebench-<version>.tgz -n kubebench --create-namespace --set config.updateMode=off`
   (add `--set image.repository=<registry>/kube-bench` for a registry) or
-  `kubectl apply -f kubernetes/kubebench.yaml`.
+  `kubectl apply -f kubernetes/kubebench.yaml` followed by
+  `kubectl -n kubebench set env deployment/kubebench KUBEBENCH_UPDATE_MODE=off`
+  ([update checks](#update-checks)).
 - **Helm charts inside KubeBench**: without internet access, use a chart
   repository inside the network or upload a chart `.tgz` (Helm > Install).
 
@@ -230,6 +233,8 @@ refuses to start with an invalid value (every problem is reported at once).
 | `KUBEBENCH_ALLOW_KUBECONFIG_EXEC` | `false` | Let pasted kubeconfigs run exec credential plugins (`aws eks get-token`, `kubelogin`, …) and auth providers and read files on the server. **Every admin can then run commands as the server's user**; add such clusters by path instead where possible |
 | `KUBECONFIG` | (unset) | Seeds the cluster inventory on the first start; a list (`a:b`) is merged like kubectl does |
 | `KUBEBENCH_NAMESPACE` | in a pod: its namespace | The namespace KubeBench runs in; deleting a namespace of that name from KubeBench is refused unless forced |
+| `KUBEBENCH_UPDATE_MODE` | `stable` | Update check against GitHub releases: `stable`, `prerelease` (also prereleases) or `off` (no requests; use it for air-gapped installs). Administrators can change it in Settings > Updates; see [Update checks](#update-checks) |
+| `KUBEBENCH_UPDATE_URL` | `https://api.github.com/repos/Shavell/kube-bench/releases` | Releases list the check reads (GitHub's JSON); a mirror inside the network works too |
 
 Where each deployment sets them:
 
@@ -323,6 +328,29 @@ before the new one opens the database. Package upgrades keep a modified
 new chart's defaults; `--reuse-values` would keep the old defaults too.
 Upgrading the Helm chart from 0.1.0 renames its resources; see the
 [chart README](../charts/kubebench/README.md#upgrading).
+
+### Update checks
+
+KubeBench looks for new releases on GitHub (`KUBEBENCH_UPDATE_MODE`,
+default `stable`). Administrators see "Update available: vX.Y.Z" in the
+status bar, with the release notes and the upgrade command for each
+install method; everyone sees the latest version in Help > About. After an
+upgrade, every user is shown the release's What's new once (Help: What's
+New shows the whole changelog at any time).
+
+- The check runs when the UI asks for it, at most every 6 hours (failed
+  checks are retried after 15 minutes, rate limits after their reset), and
+  never delays the start. It sends no data about the installation beyond
+  the request itself (`User-Agent: KubeBench/<version>`).
+- It uses `HTTPS_PROXY`/`HTTP_PROXY`/`NO_PROXY`. Behind a chart
+  NetworkPolicy, allow `api.github.com:443` in
+  `networkPolicy.extraEgressCIDRs`.
+- **Air-gapped installs**: set `off`, which makes no requests at all.
+  `install.sh --offline` writes `KUBEBENCH_UPDATE_MODE=off` unless the env
+  file sets a mode; with Helm use `--set config.updateMode=off`. Or mirror
+  the releases JSON inside the network and set `KUBEBENCH_UPDATE_URL`.
+- Development and snapshot builds (`dev`, `0.5.0-3-gabc1234`, `-dirty`,
+  `-snapshot-`) show the latest release but never claim an update.
 
 ## Backup and restore
 

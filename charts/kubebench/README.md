@@ -129,7 +129,9 @@ must allow the API server *endpoints* (often `:6443`), not only the
 set `networkPolicy.apiServer.cidrs` when rendering offline (`helm template`,
 GitOps), otherwise any address is allowed on `networkPolicy.apiServer.ports`.
 Remote clusters, Helm repositories and other destinations go into
-`networkPolicy.extraEgressCIDRs` or `networkPolicy.extraEgress`.
+`networkPolicy.extraEgressCIDRs` or `networkPolicy.extraEgress`; so does
+`api.github.com:443` for the update check, unless `config.updateMode` is
+`off`.
 
 ## Persistence and backups
 
@@ -147,7 +149,9 @@ helm upgrade kubebench oci://ghcr.io/shavell/charts/kubebench --version <new> -n
   --reset-then-reuse-values
 ```
 
-replaces the pod (`Recreate`); the database is migrated on start.
+replaces the pod (`Recreate`); the database is migrated on start. With
+`config.updateMode` other than `off`, administrators see new releases in
+the status bar, and every user gets the release's What's new once.
 `--reset-then-reuse-values` (Helm 3.14+) applies the values you set before on
 top of the new chart's defaults. Plain `--reuse-values` keeps the old chart's
 defaults as well, so it misses settings that a newer chart adds or changes.
@@ -193,6 +197,7 @@ kubectl -n kubebench delete pvc/kubebench-data secret/kubebench-auth
 | `config.sessionTTL` | `168h` | `KUBEBENCH_SESSION_TTL` (Go duration, at least `1m`). |
 | `config.auditRetentionDays` | `90` | `KUBEBENCH_AUDIT_RETENTION_DAYS` (`0` = keep forever). |
 | `config.allowPathKubeconfig` | `false` | `KUBEBENCH_ALLOW_PATH_KUBECONFIG`: add clusters by a path inside the pod. |
+| `config.updateMode` | `stable` | `KUBEBENCH_UPDATE_MODE`: check GitHub for new releases (`stable`, `prerelease`) or never (`off`, for air-gapped clusters). Admins can change it in Settings. |
 | `extraEnv` | `[]` | Extra container env entries; they override the chart's variables. |
 | `extraEnvFrom` | `[]` | Extra `envFrom` sources. |
 | `serviceAccount.create` | `true` | Create the ServiceAccount. |
