@@ -7,6 +7,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"io/fs"
+	"log"
+	"os"
 	"time"
 
 	"modernc.org/sqlite"
@@ -59,6 +62,9 @@ func ValidClusterRole(role string) bool {
 
 // Open opens (creating if needed) and migrates the database at path.
 func Open(path string) (*Store, error) {
+	if err := restrictFiles(path); err != nil {
+		return nil, err
+	}
 	// foreign_keys makes deletes cascade to sessions/assignments;
 	// _time_format=sqlite stores times as "YYYY-MM-DD HH:MM:SS.fff+00:00"
 	// so UTC values compare correctly as text in SQL.
@@ -78,6 +84,39 @@ func Open(path string) (*Store, error) {
 }
 
 func (s *Store) Close() error { return s.db.Close() }
+
+// dbFileMode keeps the database, which holds cluster credentials and
+// session tokens, readable by the server's own account only. SQLite gives
+// its -wal and -shm files the database file's mode.
+const dbFileMode = 0o600
+
+// restrictFiles creates the database file with dbFileMode, whatever the
+// umask, and tightens the mode of an existing database and its -wal and
+// -shm files (older versions created them world-readable). A file that
+// cannot be changed, e.g. on a mount owned by another user, is logged
+// rather than refused.
+func restrictFiles(path string) error {
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, dbFileMode)
+	if err != nil {
+		return err
+	}
+	if err := f.Close(); err != nil {
+		return err
+	}
+	for _, file := range []string{path, path + "-wal", path + "-shm"} {
+		info, err := os.Stat(file)
+		if errors.Is(err, fs.ErrNotExist) {
+			continue
+		}
+		if err == nil && info.Mode().Perm()&^dbFileMode != 0 {
+			err = os.Chmod(file, dbFileMode)
+		}
+		if err != nil {
+			log.Printf("[store] cannot restrict the permissions of %s: %v", file, err)
+		}
+	}
+	return nil
+}
 
 // now is the store's clock; every persisted time is UTC.
 func now() time.Time { return time.Now().UTC() }
