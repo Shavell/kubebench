@@ -12,18 +12,43 @@ import (
 // checkOrigin rejects state-changing requests (and WebSocket upgrades)
 // whose Origin header names another host: defence in depth against CSRF on
 // top of the SameSite=Lax session cookie (§3.5). Requests without an
-// Origin (curl, scripts) pass.
+// Origin (curl, scripts) pass, except browser WebSocket upgrades.
 func (s *Server) checkOrigin(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if origin := r.Header.Get("Origin"); origin != "" && needsOriginCheck(r) && !s.sameOrigin(origin, r) {
-			writeErr(w, errOriginMismatch)
+		if err := s.originError(r); err != nil {
+			writeErr(w, err)
 			return
 		}
 		next.ServeHTTP(w, r)
 	})
 }
 
-var errOriginMismatch = errorf(http.StatusForbidden, plugin.CodeForbidden, "cross-origin request rejected")
+var (
+	errOriginMismatch = errorf(http.StatusForbidden, plugin.CodeForbidden, "cross-origin request rejected")
+	errOriginMissing  = errorf(http.StatusForbidden, plugin.CodeForbidden, "WebSocket request without an Origin rejected")
+)
+
+// originError is why r fails the origin check, or nil. A WebSocket upgrade
+// without an Origin passes only when it does not come from a browser:
+// browsers always send Origin on WebSocket handshakes, and they mark their
+// requests with Fetch Metadata headers (Sec-Fetch-*) that page scripts
+// cannot set or remove.
+func (s *Server) originError(r *http.Request) error {
+	origin := r.Header.Get("Origin")
+	switch {
+	case origin == "":
+		if isWebSocketUpgrade(r) && fromBrowser(r) {
+			return errOriginMissing
+		}
+	case needsOriginCheck(r) && !s.sameOrigin(origin, r):
+		return errOriginMismatch
+	}
+	return nil
+}
+
+func fromBrowser(r *http.Request) bool {
+	return r.Header.Get("Sec-Fetch-Mode") != "" || r.Header.Get("Sec-Fetch-Site") != ""
+}
 
 func needsOriginCheck(r *http.Request) bool {
 	switch r.Method {
