@@ -576,6 +576,16 @@ interface SettingsSectionContribution { id: string; title: string; component: Co
     each other.
   - External plugins register only under the id of an enabled external
     plugin whose script is loading, and never as `core`.
+  - `CommandContribution.keybinding` (e.g. `"Ctrl+,"`, `"Alt+N"`, `"?"`;
+    Ctrl is Cmd on macOS) binds a global shortcut, shown in the palette and
+    in the shortcuts list (`?`, Settings); never inside terminals, plain
+    keys never while typing, and none when Settings turns shortcuts off.
+  - `PluginManifest.resourceKinds` (`ResourceKindContribution`: kind,
+    kubectl names, `openList(ns?)`, `openDetail`, `listObjects`) feeds the
+    palette's kubectl-style commands `get`/`describe`; `logs`, `exec`, `ns`
+    and `ctx` are core and respect the read/exec permissions. Aliases are
+    kept per user in the browser. Built-in tab pages are loaded lazily with
+    `lazyComponent()` (`core/plugin/lazyComponent.tsx`).
 
 ### 6.5 Plugin-owned data (`src/data/pluginData.ts`)
 

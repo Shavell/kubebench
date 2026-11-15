@@ -1,5 +1,6 @@
 import type { KubeObject } from '../types'
 import { apiVersionOf } from './mockKinds'
+import { MOCK_CLUSTER_EVENTS } from './mockClusterEvents'
 
 /**
  * Mock objects for the generic resource browser, keyed by catalog key.
@@ -224,8 +225,5 @@ export const genericMock: Record<string, KubeObject[]> = {
   endpointslices: [
     obj('EndpointSlice', 'shop-frontend-abcde', 'shop', '45d', { addressType: 'IPv4', endpoints: [{}, {}] }),
   ],
-  events: [
-    obj('Event', 'shop-payments.17a', 'shop', '2m', { type: 'Warning', reason: 'BackOff', message: 'Back-off restarting failed container', count: 14 }),
-    obj('Event', 'shop-frontend.18b', 'shop', '26m', { type: 'Warning', reason: 'FailedScheduling', message: '0/3 nodes are available: insufficient cpu', count: 12 }),
-  ],
+  events: MOCK_CLUSTER_EVENTS,
 }

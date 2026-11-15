@@ -121,7 +121,11 @@
       "toggleSidebar": "View: Toggle Sidebar",
       "closeTab": "View: Close Active Tab",
       "closeAllTabs": "View: Close All Tabs",
-      "showPlugin": "View: Show {{name}}"
+      "showPlugin": "View: Show {{name}}",
+      "nextTab": "View: Next Tab",
+      "previousTab": "View: Previous Tab",
+      "focusFilter": "View: Filter the List",
+      "pickNamespace": "View: Pick Namespace"
     },
     "palette": {
       "label": "Command palette",

@@ -1,17 +1,20 @@
+import { lazyComponent } from '@/core/plugin/lazyComponent'
 import type { PluginManifest } from '@/core/plugin/types'
 import { NS } from './i18n'
 import en from './locales/en.json'
 import tr from './locales/tr.json'
-import { ClassListPage } from './pages/ClassListPage'
-import { OverviewPage } from './pages/OverviewPage'
-import { PvcListPage } from './pages/PvcListPage'
-import { PvListPage } from './pages/PvListPage'
-import { SnapshotListPage } from './pages/SnapshotListPage'
 import { StorageSidebar } from './StorageSidebar'
 import { openClassWizard, openListTab, openPvcWizard, openPvWizard, TAB_KINDS } from './tabs'
-import { ClassWizard } from './wizards/ClassWizard'
-import { PvcWizard } from './wizards/PvcWizard'
-import { PvWizard } from './wizards/PvWizard'
+
+// Tab pages load on first use (separate chunks), keeping the main bundle small.
+const ClassListPage = lazyComponent(() => import('./pages/ClassListPage').then((m) => m.ClassListPage))
+const OverviewPage = lazyComponent(() => import('./pages/OverviewPage').then((m) => m.OverviewPage))
+const PvcListPage = lazyComponent(() => import('./pages/PvcListPage').then((m) => m.PvcListPage))
+const PvListPage = lazyComponent(() => import('./pages/PvListPage').then((m) => m.PvListPage))
+const SnapshotListPage = lazyComponent(() => import('./pages/SnapshotListPage').then((m) => m.SnapshotListPage))
+const ClassWizard = lazyComponent(() => import('./wizards/ClassWizard').then((m) => m.ClassWizard))
+const PvcWizard = lazyComponent(() => import('./wizards/PvcWizard').then((m) => m.PvcWizard))
+const PvWizard = lazyComponent(() => import('./wizards/PvWizard').then((m) => m.PvWizard))
 
 /** Display strings below are i18n keys in the plugin's namespace (locales/*.json). */
 export const storagePlugin: PluginManifest = {

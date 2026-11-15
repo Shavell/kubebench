@@ -7,7 +7,9 @@ import { refreshData } from '@/data/DataContext'
 import type { DataProviders } from '@/data/providers'
 import type { Deployment, Pod } from '@/data/types'
 import { showContextMenu, type ContextMenuItem } from '@/shared/contextMenu'
+import { copyMenuItems } from '@/shared/copyActions'
 import { notify } from '@/shared/notify'
+import { targetOf } from './editing/dialogStore'
 import { editingMenuItems, yamlMenuItem } from './editing/menuItems'
 import { tw } from './i18n'
 import { deploymentOpsItems, objectOpsItems, podOpsItems } from './ops/menuItems'
@@ -42,6 +44,12 @@ function contributed(ref: ResourceRef): ContextMenuItem[] {
   return [SEPARATOR, ...resourceActionItems(ref)]
 }
 
+/** "Copy name" and "Copy YAML" of the row's object. */
+function copyItems(ref: ResourceRef, providers: DataProviders): ContextMenuItem[] {
+  const target = targetOf(ref)
+  return target ? copyMenuItems(target, providers.cluster) : []
+}
+
 /** Runs a row mutation; a failure becomes an error toast rather than vanishing. */
 async function mutate(action: () => Promise<void>) {
   try {
@@ -64,9 +72,9 @@ function openDetail(kind: string, namespace: string | null, name: string) {
 
 /**
  * Context menu for a pod row: details, logs & shell (bottom panel), YAML,
- * labels, delete (asks first, through `onDelete`) and contributed actions.
+ * copy name/YAML, labels, delete (asks first, through `onDelete`) and contributed actions.
  */
-export function podMenu(e: React.MouseEvent, pod: Pod, onDelete: (pod: Pod) => void) {
+export function podMenu(e: React.MouseEvent, pod: Pod, providers: DataProviders, onDelete: (pod: Pod) => void) {
   const container = pod.containers[0]?.name ?? pod.name
   const target = { namespace: pod.namespace, pod: pod.name, container }
   const ref = { kind: 'Pod', apiVersion: 'v1', namespace: pod.namespace, name: pod.name }
@@ -80,6 +88,8 @@ export function podMenu(e: React.MouseEvent, pod: Pod, onDelete: (pod: Pod) => v
       can('exec') && { label: tw('actions.shell'), icon: 'terminal', onClick: () => showInPanel('pod-exec', target) },
       SEPARATOR,
       ...yamlMenuItem(ref),
+      ...copyItems(ref, providers),
+      SEPARATOR,
       ...editingMenuItems(ref, { withDelete: false }),
       can('write') && { label: tw('common.delete'), icon: 'trash', danger: true, onClick: () => onDelete(pod) },
       ...podOpsItems(pod),
@@ -88,7 +98,7 @@ export function podMenu(e: React.MouseEvent, pod: Pod, onDelete: (pod: Pod) => v
   )
 }
 
-/** Context menu for a deployment row: details, scale/restart, YAML, labels, delete, contributed actions. */
+/** Context menu for a deployment row: details, scale/restart, YAML, copy, labels, delete, contributed actions. */
 export function deploymentMenu(e: React.MouseEvent, d: Deployment, providers: DataProviders) {
   const canWrite = can('write')
   const ref = { kind: 'Deployment', apiVersion: 'apps/v1', namespace: d.namespace, name: d.name }
@@ -110,6 +120,8 @@ export function deploymentMenu(e: React.MouseEvent, d: Deployment, providers: Da
       ...deploymentOpsItems(d, providers),
       SEPARATOR,
       ...yamlMenuItem(ref),
+      ...copyItems(ref, providers),
+      SEPARATOR,
       ...editingMenuItems(ref),
       ...contributed(ref),
     ]),
@@ -117,13 +129,20 @@ export function deploymentMenu(e: React.MouseEvent, d: Deployment, providers: Da
 }
 
 /**
- * Menu for a row of any other kind: YAML, the kind's operations (`row` is
+ * Menu for a row of any other kind: YAML, copy name/YAML, the kind's operations (`row` is
  * the row's object: node, namespace or generic object), labels, delete
  * (Secrets: reveal) and contributed actions.
  */
 export function genericMenu(e: React.MouseEvent, ref: ResourceRef, providers: DataProviders, row?: unknown) {
   showContextMenu(
     e,
-    menu([...yamlMenuItem(ref), ...objectOpsItems(ref, row, providers), ...editingMenuItems(ref), ...contributed(ref)]),
+    menu([
+      ...yamlMenuItem(ref),
+      ...copyItems(ref, providers),
+      SEPARATOR,
+      ...objectOpsItems(ref, row, providers),
+      ...editingMenuItems(ref),
+      ...contributed(ref),
+    ]),
   )
 }

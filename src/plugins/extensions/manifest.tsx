@@ -1,10 +1,13 @@
+import { lazyComponent } from '@/core/plugin/lazyComponent'
 import type { PluginManifest } from '@/core/plugin/types'
-import { ExtensionDetailPage } from './ExtensionDetailPage'
 import { ExtensionsSidebar } from './ExtensionsSidebar'
 import en from './locales/en.json'
 import tr from './locales/tr.json'
 import { EXTENSIONS_NS } from './namespace'
 import { EXTENSION_TAB_KIND } from './tabs'
+
+// Tab pages load on first use (separate chunks), keeping the main bundle small.
+const ExtensionDetailPage = lazyComponent(() => import('./ExtensionDetailPage').then((m) => m.ExtensionDetailPage))
 
 /**
  * Extensions view (design §6.4): every plugin with its version, category,

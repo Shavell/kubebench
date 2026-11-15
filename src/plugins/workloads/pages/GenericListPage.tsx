@@ -6,6 +6,7 @@ import type { TabDescriptor } from '@/core/plugin/types'
 import type { KubeObject } from '@/data/types'
 import { formatNumber } from '@/i18n/format'
 import { ListFilterBar } from '@/shared/ListFilterBar'
+import { NamespaceOptions } from '@/shared/NamespaceOptions'
 import { Table } from '@/shared/Table'
 import { Toolbar } from '@/shared/Toolbar'
 import { EmptyState } from '@/shared/EmptyState'
@@ -16,16 +17,23 @@ import { ResourceDialogs } from '../editing/ResourceDialogs'
 import { NewResourceButton } from '../editing/ResourceEditButtons'
 import { genericMenu } from '../rowActions'
 import { WorkloadOpsDialogs } from '../ops/WorkloadOpsDialogs'
+import { EventsListPage } from './EventsListPage'
 import '@/shared/tabPage.css'
 
+/** A catalog resource list; Events have their own view (warning filter, grouping). */
 export function GenericListPage({ tab }: { tab: TabDescriptor }) {
+  return tab.props?.resourceKey === 'events' ? <EventsListPage tab={tab} /> : <CatalogListPage tab={tab} />
+}
+
+function CatalogListPage({ tab }: { tab: TabDescriptor }) {
   const { t } = useWorkloadsTranslation()
   const providers = useProviders()
   const key = tab.props?.resourceKey as string
   const descriptor = catalogByKey.get(key)
   const globalNamespace = useContextStore((s) => s.namespace)
   const [search, setSearch] = useState('')
-  const [localNs, setLocalNs] = useState('')
+  /** Page-local namespace filter (palette `-n` presets it); empty = the global filter. */
+  const [localNs, setLocalNs] = useState((tab.props?.namespace as string | undefined) ?? '')
 
   const nsFilter = descriptor?.namespaced
     ? localNs || (globalNamespace === ALL_NAMESPACES ? undefined : globalNamespace)
@@ -117,11 +125,7 @@ export function GenericListPage({ tab }: { tab: TabDescriptor }) {
                   ? t('filters.namespaceAll')
                   : t('filters.namespaceGlobal', { namespace: globalNamespace })}
               </option>
-              {(namespaces ?? []).map((ns) => (
-                <option key={ns.name} value={ns.name}>
-                  {ns.name}
-                </option>
-              ))}
+              <NamespaceOptions names={(namespaces ?? []).map((ns) => ns.name)} selected={localNs} />
             </select>
           )}
         </ListFilterBar>

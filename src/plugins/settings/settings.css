@@ -58,3 +58,71 @@
   font-size: 12px;
   color: var(--vscode-descriptionForeground);
 }
+
+/* Keyboard shortcuts section. */
+.settings-shortcuts {
+  margin: 12px 4px 0;
+}
+
+/* Command palette aliases section. */
+.settings-aliases__help,
+.settings-aliases__empty {
+  margin: 10px 4px 0;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.settings-aliases__list {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.settings-aliases__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  border-bottom: 1px solid var(--vscode-tree-tableColumnsBorder);
+  font-size: 13px;
+}
+
+.settings-aliases__name {
+  font-weight: 600;
+}
+.settings-aliases__name,
+.settings-aliases__expansion {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.settings-aliases__expansion {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-aliases__actions {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.settings-aliases__form {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 10px 4px 0;
+}
+.settings-aliases__field {
+  flex: 1;
+  min-width: 0;
+}
+.settings-aliases__field--name {
+  flex: 0 0 120px;
+}
+.settings-aliases__buttons {
+  display: flex;
+  gap: 6px;
+  padding-top: 20px;
+}

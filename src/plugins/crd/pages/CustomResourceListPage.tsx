@@ -1,11 +1,12 @@
 import { useTranslation } from 'react-i18next'
 import { openYamlTab } from '@/core/plugin/editorTabs'
 import { resourceActionItems } from '@/core/plugin/resourceActions'
-import { useProviderQuery } from '@/data/DataContext'
+import { useProviderQuery, useProviders } from '@/data/DataContext'
 import type { TabDescriptor } from '@/core/plugin/types'
 import { CORE_NS } from '@/i18n'
 import { Badge } from '@/shared/Badge'
 import { showContextMenu } from '@/shared/contextMenu'
+import { copyMenuItems } from '@/shared/copyActions'
 import { Table, type Column } from '@/shared/Table'
 import { Toolbar } from '@/shared/Toolbar'
 import { EmptyState } from '@/shared/EmptyState'
@@ -17,6 +18,7 @@ import '@/shared/tabPage.css'
 export function CustomResourceListPage({ tab }: { tab: TabDescriptor }) {
   const { t } = useTranslation(NS)
   const crdName = tab.props?.crdName as string
+  const providers = useProviders()
 
   const { data: crds } = useProviderQuery((p) => p.crd.listCrds(), [], { topics: ['customresourcedefinitions.apiextensions.k8s.io'] })
   const { data, loading, error, errorCode } = useProviderQuery(
@@ -58,7 +60,7 @@ export function CustomResourceListPage({ tab }: { tab: TabDescriptor }) {
     openYamlTab({ apiVersion: `${crd.group}/${crd.versions[0]}`, kind: crd.kind, namespace: r.namespace, name: r.name })
   }
 
-  // YAML plus the actions other plugins contribute for this kind (design §6.4).
+  // YAML, copy name/YAML and the actions other plugins contribute for this kind (design §6.4).
   const rowMenu = (r: CustomResource, e: React.MouseEvent) => {
     const ref = {
       kind: crd?.kind ?? r.crdName,
@@ -68,6 +70,7 @@ export function CustomResourceListPage({ tab }: { tab: TabDescriptor }) {
     }
     showContextMenu(e, [
       { label: t('instances.viewYaml'), icon: 'file-code', onClick: () => viewYaml(r) },
+      ...(ref.apiVersion ? copyMenuItems({ ...ref, apiVersion: ref.apiVersion }, providers.cluster) : []),
       ...resourceActionItems(ref),
     ])
   }

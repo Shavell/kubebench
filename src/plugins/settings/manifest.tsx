@@ -1,10 +1,13 @@
+import { lazyComponent } from '@/core/plugin/lazyComponent'
 import type { PluginManifest } from '@/core/plugin/types'
 import { useLayoutStore } from '@/core/store/layoutStore'
 import { i18n } from '@/i18n'
 import en from './locales/en.json'
 import tr from './locales/tr.json'
 import { SETTINGS_NS } from './namespace'
-import { SettingsPage } from './SettingsPage'
+
+// Tab pages load on first use (separate chunks), keeping the main bundle small.
+const SettingsPage = lazyComponent(() => import('./SettingsPage').then((m) => m.SettingsPage))
 
 function openSettingsTab(): void {
   useLayoutStore.getState().openTab({
@@ -35,6 +38,7 @@ export const settingsPlugin: PluginManifest = {
       id: 'settings.open',
       title: 'commands.open',
       icon: 'settings-gear',
+      keybinding: 'Ctrl+,',
       run: openSettingsTab,
     },
   ],

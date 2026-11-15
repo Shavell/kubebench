@@ -1,14 +1,17 @@
+import { lazyComponent } from '@/core/plugin/lazyComponent'
 import type { PluginManifest } from '@/core/plugin/types'
 import { AccessSidebar } from './AccessSidebar'
 import { NS } from './i18n'
 import en from './locales/en.json'
 import tr from './locales/tr.json'
-import { GraphPage } from './pages/GraphPage'
-import { RiskyRolesPage } from './pages/RiskyRolesPage'
-import { SubjectPage } from './pages/SubjectPage'
-import { SubjectsPage } from './pages/SubjectsPage'
-import { WhoCanPage } from './pages/WhoCanPage'
 import { openListTab, openSubject, TAB_KINDS } from './tabs'
+
+// Tab pages load on first use (separate chunks), keeping the main bundle small.
+const GraphPage = lazyComponent(() => import('./pages/GraphPage').then((m) => m.GraphPage))
+const RiskyRolesPage = lazyComponent(() => import('./pages/RiskyRolesPage').then((m) => m.RiskyRolesPage))
+const SubjectPage = lazyComponent(() => import('./pages/SubjectPage').then((m) => m.SubjectPage))
+const SubjectsPage = lazyComponent(() => import('./pages/SubjectsPage').then((m) => m.SubjectsPage))
+const WhoCanPage = lazyComponent(() => import('./pages/WhoCanPage').then((m) => m.WhoCanPage))
 
 /** Display strings below are i18n keys in the plugin's namespace (locales/*.json). */
 export const accessPlugin: PluginManifest = {

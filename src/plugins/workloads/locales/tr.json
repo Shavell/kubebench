@@ -108,7 +108,9 @@
     "role": "Rol",
     "reason": "Neden",
     "message": "Mesaj",
-    "count": "Sayı"
+    "count": "Sayı",
+    "object": "Nesne",
+    "lastSeen": "Son görülme"
   },
   "values": {
     "addresses_one": "{{count}} adres",
@@ -404,5 +406,13 @@
       "qualifiedName": "dedicated veya example.com/zone gibi bir ad kullanın: harfler, rakamlar, -, _ ve ., en fazla 63 karakter; isteğe bağlı bir DNS önekiyle.",
       "labelValue": "En fazla 63 harf, rakam, -, _ ve .; harf ya da rakamla başlayıp bitmeli."
     }
+  },
+  "eventsView": {
+    "warningsOnly_one": "Yalnızca uyarılar ({{value}})",
+    "warningsOnly_other": "Yalnızca uyarılar ({{value}})",
+    "groupByReason": "Nedene göre grupla",
+    "noWarnings": "Uyarı yok",
+    "groupSummary_one": "{{events}} olay · {{occurrences}} kez · son: {{lastSeen}} önce",
+    "groupSummary_other": "{{events}} olay · {{occurrences}} kez · son: {{lastSeen}} önce"
   }
 }

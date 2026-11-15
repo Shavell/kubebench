@@ -2,9 +2,11 @@ import { useTranslation } from 'react-i18next'
 import { Toolbar } from '@/shared/Toolbar'
 import { SETTINGS_NS } from './namespace'
 import { AboutSection } from './sections/AboutSection'
+import { AliasesSection } from './sections/AliasesSection'
 import { AppearanceSection } from './sections/AppearanceSection'
 import { DataSection } from './sections/DataSection'
 import { PluginSettingsSections } from './sections/PluginSettingsSections'
+import { ShortcutsSection } from './sections/ShortcutsSection'
 import { TerminalSection } from './sections/TerminalSection'
 import './settings.css'
 
@@ -19,6 +21,8 @@ export function SettingsPage() {
           <AppearanceSection />
           <DataSection />
           <TerminalSection />
+          <ShortcutsSection />
+          <AliasesSection />
           <PluginSettingsSections />
           <AboutSection />
         </div>

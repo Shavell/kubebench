@@ -1,14 +1,17 @@
+import { lazyComponent } from '@/core/plugin/lazyComponent'
 import type { PluginManifest } from '@/core/plugin/types'
 import { runScan } from './actions'
 import { NS } from './i18n'
 import en from './locales/en.json'
 import tr from './locales/tr.json'
-import { AcceptedPage } from './pages/AcceptedPage'
-import { ChecksPage } from './pages/ChecksPage'
-import { FindingsPage } from './pages/FindingsPage'
-import { OverviewPage } from './pages/OverviewPage'
 import { SecuritySidebar } from './SecuritySidebar'
 import { openFindings, openSecurityTab, TAB_KINDS } from './tabs'
+
+// Tab pages load on first use (separate chunks), keeping the main bundle small.
+const AcceptedPage = lazyComponent(() => import('./pages/AcceptedPage').then((m) => m.AcceptedPage))
+const ChecksPage = lazyComponent(() => import('./pages/ChecksPage').then((m) => m.ChecksPage))
+const FindingsPage = lazyComponent(() => import('./pages/FindingsPage').then((m) => m.FindingsPage))
+const OverviewPage = lazyComponent(() => import('./pages/OverviewPage').then((m) => m.OverviewPage))
 
 /** Kinds whose objects findings are about; their views offer "Security findings". */
 const FINDING_KINDS = [

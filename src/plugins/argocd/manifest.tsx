@@ -1,12 +1,9 @@
+import { lazyComponent } from '@/core/plugin/lazyComponent'
 import type { PluginManifest } from '@/core/plugin/types'
 import { ArgoSidebar } from './ArgoSidebar'
 import { NS } from './i18n'
 import en from './locales/en.json'
 import tr from './locales/tr.json'
-import { ApplicationDetailPage } from './pages/ApplicationDetailPage'
-import { ApplicationSetsPage } from './pages/ApplicationSetsPage'
-import { ApplicationsPage } from './pages/ApplicationsPage'
-import { ProjectsPage } from './pages/ProjectsPage'
 import {
   APPLICATION_SETS_TAB_ID,
   APPLICATIONS_TAB_ID,
@@ -15,6 +12,12 @@ import {
   openProjectsTab,
   PROJECTS_TAB_ID,
 } from './tabs'
+
+// Tab pages load on first use (separate chunks), keeping the main bundle small.
+const ApplicationDetailPage = lazyComponent(() => import('./pages/ApplicationDetailPage').then((m) => m.ApplicationDetailPage))
+const ApplicationSetsPage = lazyComponent(() => import('./pages/ApplicationSetsPage').then((m) => m.ApplicationSetsPage))
+const ApplicationsPage = lazyComponent(() => import('./pages/ApplicationsPage').then((m) => m.ApplicationsPage))
+const ProjectsPage = lazyComponent(() => import('./pages/ProjectsPage').then((m) => m.ProjectsPage))
 
 /**
  * Argo CD (design §7.5). Needs the `argocd` backend plugin: on clusters

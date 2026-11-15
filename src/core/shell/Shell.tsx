@@ -13,6 +13,7 @@ import { SessionGuard } from './SessionGuard'
 import { SideBar } from './SideBar'
 import { StatusBar } from './StatusBar'
 import { TabCloseGuard } from './TabCloseGuard'
+import { useGlobalShortcuts } from './useGlobalShortcuts'
 import { WorkbenchDialogs } from './WorkbenchDialogs'
 import './Shell.css'
 
@@ -28,18 +29,7 @@ export function Shell() {
     document.documentElement.style.setProperty('--terminal-font-size', `${terminalFontSize}px`)
   }, [terminalFontSize])
 
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      const paletteChord = (e.metaKey || e.ctrlKey) && e.shiftKey && e.code === 'KeyP'
-      if (paletteChord || e.key === 'F1') {
-        e.preventDefault()
-        const s = useLayoutStore.getState()
-        s.setPaletteOpen(!s.paletteOpen)
-      }
-    }
-    window.addEventListener('keydown', onKeyDown, true)
-    return () => window.removeEventListener('keydown', onKeyDown, true)
-  }, [])
+  useGlobalShortcuts()
 
   return (
     <div className="shell">

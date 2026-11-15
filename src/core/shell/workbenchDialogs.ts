@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type WorkbenchDialog = 'about' | 'changePassword'
+export type WorkbenchDialog = 'about' | 'changePassword' | 'shortcuts'
 
 /**
  * Which workbench-level dialog is open. Commands, the status bar and its

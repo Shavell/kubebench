@@ -1,10 +1,13 @@
+import { lazyComponent } from '@/core/plugin/lazyComponent'
 import { openNewResourceTab } from '@/core/plugin/editorTabs'
 import type { PluginManifest } from '@/core/plugin/types'
 import { EDITOR_NS } from './i18n'
 import en from './locales/en.json'
 import tr from './locales/tr.json'
-import { NewResourceTab } from './NewResourceTab'
-import { YamlEditorTab } from './YamlEditorTab'
+
+// Tab pages load on first use (separate chunks), keeping the main bundle small.
+const NewResourceTab = lazyComponent(() => import('./NewResourceTab').then((m) => m.NewResourceTab))
+const YamlEditorTab = lazyComponent(() => import('./YamlEditorTab').then((m) => m.YamlEditorTab))
 
 /**
  * The resource editor (design §7.2): the "yaml" tab kind (view, edit,

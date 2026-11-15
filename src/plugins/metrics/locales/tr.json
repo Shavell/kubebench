@@ -42,6 +42,16 @@
       "usage": "Kullanım",
       "requests": "İstekler",
       "limits": "Limitler"
+    },
+    "warnings": {
+      "title": "Son uyarılar",
+      "tab": "Uyarı olayları",
+      "unavailable": "Olaylar kullanılamıyor",
+      "loading": "Olaylar yükleniyor…",
+      "none": "Uyarı olayı yok",
+      "count_one": "{{value}} uyarı",
+      "count_other": "{{value}} uyarı",
+      "viewAll": "Tümünü gör"
     }
   },
   "node": {

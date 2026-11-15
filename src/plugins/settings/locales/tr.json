@@ -16,7 +16,9 @@
     "appearance": "Görünüm",
     "data": "Veri",
     "terminal": "Terminal ve loglar",
-    "about": "Hakkında"
+    "about": "Hakkında",
+    "shortcuts": "Klavye kısayolları",
+    "aliases": "Komut takma adları"
   },
   "appearance": {
     "theme": {
@@ -79,5 +81,24 @@
     "noCluster": "Yok",
     "server": "API sunucusu",
     "storage": "Ayarlar bu tarayıcıda saklanır."
+  },
+  "shortcuts": {
+    "enabled": {
+      "label": "Klavye kısayolları",
+      "help": "Tarayıcının veya bir uzak masaüstünün bu tuşlara ihtiyacı varsa kapatın. Komut paleti (Ctrl+Shift+P veya F1) her zaman açılır."
+    }
+  },
+  "aliases": {
+    "help": "Palet komutları için kısa adlar; bu tarayıcıda hesabınız için saklanır. Takma ad yazdığınız ilk sözcüğün yerine geçer: kgp = get pods ise \"kgp -n shop\", \"get pods -n shop\" komutunu çalıştırır.",
+    "empty": "Henüz takma ad yok.",
+    "name": "Takma ad",
+    "expansion": "Komut",
+    "add": "Takma ad ekle",
+    "save": "Kaydet",
+    "cancel": "İptal",
+    "edit": "Düzenle",
+    "remove": "Kaldır",
+    "editLabel": "{{name}} takma adını düzenle",
+    "removeLabel": "{{name}} takma adını kaldır"
   }
 }

@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react'
+import type { DataProviders } from '@/data/providers'
 
 /**
  * A tab in the editor area. Tabs are plain serializable descriptors;
@@ -70,6 +71,12 @@ export interface CommandContribution {
   title: string
   /** Codicon name shown next to the title. */
   icon?: string
+  /**
+   * Global keyboard shortcut, e.g. "Ctrl+," or "Alt+N" (Ctrl is Cmd on
+   * macOS); shown in the palette and the shortcuts list. Not bound inside
+   * terminals, which need the keys themselves.
+   */
+  keybinding?: string
   run: () => void
 }
 
@@ -108,6 +115,31 @@ export interface ResourceActionContribution {
    */
   permission?: 'read' | 'write' | 'exec'
   run: (ref: ResourceRef) => void
+}
+
+/** An object of a resource kind, as kubectl-style palette commands name it. */
+export interface ResourceKindObject {
+  namespace?: string
+  name: string
+}
+
+/**
+ * A resource kind a plugin can list and show, addressed by kubectl names in
+ * the command palette: `get <kind> [-n ns]` opens the list, `describe
+ * <kind>/<name>` (or `get <kind> <name>`) the object's details.
+ */
+export interface ResourceKindContribution {
+  /** Kubernetes kind, e.g. 'Pod'. */
+  kind: string
+  /** Lowercase kubectl names: plural first, then singular and short names ('pods', 'pod', 'po'). */
+  names: string[]
+  namespaced: boolean
+  icon?: string
+  /** Opens the list; `namespace` scopes a namespaced list (otherwise the global filter applies). */
+  openList: (namespace?: string) => void
+  openDetail: (object: ResourceKindObject) => void
+  /** Objects for name completion, in `namespace` or in all namespaces. */
+  listObjects: (providers: DataProviders, namespace?: string) => Promise<ResourceKindObject[]>
 }
 
 /** A section a plugin adds to the Settings page. */
@@ -167,6 +199,8 @@ export interface PluginManifest {
   commands?: CommandContribution[]
   resourceActions?: ResourceActionContribution[]
   settingsSections?: SettingsSectionContribution[]
+  /** Kinds for the palette's kubectl-style `get` and `describe` commands. */
+  resourceKinds?: ResourceKindContribution[]
 }
 
 /** Where a registered plugin came from. */

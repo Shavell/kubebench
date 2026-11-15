@@ -1,0 +1,64 @@
+.kb-keycaps {
+  display: inline-flex;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.kb-keycap {
+  display: inline-block;
+  min-width: 18px;
+  padding: 1px 5px;
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 16px;
+  text-align: center;
+  color: var(--vscode-keybindingLabel-foreground);
+  background: var(--vscode-keybindingLabel-background);
+  border: 1px solid var(--vscode-keybindingLabel-border);
+  border-bottom-color: var(--vscode-keybindingLabel-bottomBorder);
+  border-radius: 3px;
+}
+
+.kb-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px 24px;
+}
+
+.kb-shortcuts__title {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--vscode-descriptionForeground);
+}
+
+.kb-shortcuts__list {
+  margin: 0;
+}
+
+.kb-shortcuts__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 0;
+  font-size: 13px;
+  border-bottom: 1px solid color-mix(in srgb, var(--vscode-panel-border) 35%, transparent);
+}
+.kb-shortcuts__row dt {
+  min-width: 0;
+}
+.kb-shortcuts__row dd {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.kb-shortcuts__or {
+  color: var(--vscode-descriptionForeground);
+  font-size: 11px;
+}

@@ -16,7 +16,9 @@
     "appearance": "Appearance",
     "data": "Data",
     "terminal": "Terminal and logs",
-    "about": "About"
+    "about": "About",
+    "shortcuts": "Keyboard shortcuts",
+    "aliases": "Command aliases"
   },
   "appearance": {
     "theme": {
@@ -79,5 +81,24 @@
     "noCluster": "None",
     "server": "API server",
     "storage": "Settings are stored in this browser."
+  },
+  "shortcuts": {
+    "enabled": {
+      "label": "Keyboard shortcuts",
+      "help": "Turn them off when the browser or a remote desktop needs these keys. The command palette (Ctrl+Shift+P or F1) always opens."
+    }
+  },
+  "aliases": {
+    "help": "Short names for palette commands, kept in this browser for your account. An alias replaces the first word you type: with kgp = get pods, \"kgp -n shop\" runs \"get pods -n shop\".",
+    "empty": "No aliases yet.",
+    "name": "Alias",
+    "expansion": "Command",
+    "add": "Add alias",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "remove": "Remove",
+    "editLabel": "Edit alias {{name}}",
+    "removeLabel": "Remove alias {{name}}"
   }
 }

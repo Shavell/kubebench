@@ -1,12 +1,15 @@
+import { lazyComponent } from '@/core/plugin/lazyComponent'
 import type { PluginManifest } from '@/core/plugin/types'
 import { NS } from './i18n'
 import en from './locales/en.json'
 import tr from './locales/tr.json'
 import { MetricsSidebar } from './MetricsSidebar'
-import { ClusterOverviewPage } from './pages/ClusterOverviewPage'
-import { NodeMetricsPage } from './pages/NodeMetricsPage'
 import { StatusBarMetrics } from './StatusBarMetrics'
 import { openOverviewTab } from './tabs'
+
+// Tab pages load on first use (separate chunks), keeping the main bundle small.
+const ClusterOverviewPage = lazyComponent(() => import('./pages/ClusterOverviewPage').then((m) => m.ClusterOverviewPage))
+const NodeMetricsPage = lazyComponent(() => import('./pages/NodeMetricsPage').then((m) => m.NodeMetricsPage))
 
 /** Display strings below are i18n keys in the plugin's namespace (locales/*.json). */
 export const metricsPlugin: PluginManifest = {

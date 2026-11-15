@@ -23,6 +23,8 @@ interface SettingsState {
   language: 'auto' | (string & {})
   /** Refresh views when the cluster changes (design §7.10); off = auto-refresh only. */
   liveUpdates: boolean
+  /** Command keyboard shortcuts (the palette's Ctrl+Shift+P / F1 always work). */
+  shortcutsEnabled: boolean
   set: <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => void
 }
 
@@ -36,6 +38,7 @@ export const useSettingsStore = create<SettingsState>()(
       metricsSource: 'auto',
       language: 'auto',
       liveUpdates: true,
+      shortcutsEnabled: true,
       set: (key, value) => set({ [key]: value }),
     }),
     { name: 'kubebench.settings' },

@@ -37,8 +37,7 @@
   cursor: pointer;
   font-family: inherit;
 }
-.status-bar__item--button:focus-visible,
-.status-bar__item--select:focus-within {
+.status-bar__item--button:focus-visible {
   outline: 1px solid var(--vscode-focusBorder);
   outline-offset: -1px;
 }
@@ -74,22 +73,6 @@
   font-weight: 600;
 }
 
-.status-bar__select {
-  appearance: none;
-  background: transparent;
-  border: none;
-  color: inherit;
-  font-size: 12px;
-  cursor: pointer;
-  padding: 0;
-}
-.status-bar__select:focus {
-  outline: none;
-}
-.status-bar__select option {
-  background: var(--vscode-dropdown-background);
-  color: var(--vscode-input-foreground);
-}
 
 /* Menus of status bar items (cluster switcher, user menu), above the bar.
    Same layer as context menus. */

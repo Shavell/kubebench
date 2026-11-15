@@ -121,7 +121,11 @@
       "toggleSidebar": "Görünüm: Kenar çubuğunu aç/kapat",
       "closeTab": "Görünüm: Etkin sekmeyi kapat",
       "closeAllTabs": "Görünüm: Tüm sekmeleri kapat",
-      "showPlugin": "Görünüm: {{name}} görünümünü göster"
+      "showPlugin": "Görünüm: {{name}} görünümünü göster",
+      "nextTab": "Görünüm: Sonraki sekme",
+      "previousTab": "Görünüm: Önceki sekme",
+      "focusFilter": "Görünüm: Listeyi filtrele",
+      "pickNamespace": "Görünüm: Namespace seç"
     },
     "palette": {
       "label": "Komut paleti",

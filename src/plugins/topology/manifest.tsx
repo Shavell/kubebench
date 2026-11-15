@@ -1,12 +1,15 @@
+import { lazyComponent } from '@/core/plugin/lazyComponent'
 import type { PluginManifest, ResourceRef } from '@/core/plugin/types'
 import { ALL_NAMESPACES, useContextStore } from '@/core/store/contextStore'
-import { TopologyPage } from './components/TopologyPage'
 import { NS } from './i18n'
 import en from './locales/en.json'
 import tr from './locales/tr.json'
 import type { TopologyKind } from './model/types'
 import { FOCUSABLE_KINDS, ICON, openTopology, TAB_KIND } from './tabs'
 import { TopologySidebar } from './TopologySidebar'
+
+// Tab pages load on first use (separate chunks), keeping the main bundle small.
+const TopologyPage = lazyComponent(() => import('./components/TopologyPage').then((m) => m.TopologyPage))
 
 /** The namespace list views filter on, else `default`. */
 function currentNamespace(): string {
