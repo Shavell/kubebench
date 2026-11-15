@@ -1,0 +1,238 @@
+{
+  "manifest": {
+    "name": "Access",
+    "description": "RBAC explorer: who can perform a request, each subject's effective permissions with a quick can-i, risky roles and the binding graph.",
+    "tooltip": "Access (RBAC)",
+    "sidebarTitle": "Access"
+  },
+  "commands": {
+    "whoCan": "Access: Who can…",
+    "subjects": "Access: Open subjects",
+    "risky": "Access: Open risky roles",
+    "graph": "Access: Open binding graph"
+  },
+  "resourceActions": {
+    "permissions": "Show effective permissions"
+  },
+  "sidebar": {
+    "whoCan": "Who can…",
+    "subjects": "Subjects",
+    "risky": "Risky roles",
+    "graph": "Binding graph"
+  },
+  "kinds": {
+    "User": "User",
+    "Group": "Group",
+    "ServiceAccount": "ServiceAccount"
+  },
+  "severity": {
+    "critical": "Critical",
+    "high": "High",
+    "medium": "Medium"
+  },
+  "columns": {
+    "subject": "Subject",
+    "kind": "Kind",
+    "grantedBy": "Granted by",
+    "clusterBindings": "ClusterRoleBindings",
+    "namespaces": "RoleBindings in",
+    "roles": "Roles",
+    "scope": "Scope",
+    "via": "Through",
+    "verbs": "Verbs",
+    "apiGroups": "API groups",
+    "resources": "Resources / URLs",
+    "from": "From",
+    "severity": "Severity",
+    "role": "Role",
+    "risks": "Risks",
+    "bindings": "Bindings",
+    "subjects": "Subjects"
+  },
+  "request": {
+    "mode": "Ask about",
+    "modeResource": "A resource",
+    "modeUrl": "A non-resource URL",
+    "verb": "Verb",
+    "path": "URL path",
+    "pathHelp": "For example /metrics or /healthz.",
+    "group": "API group",
+    "resource": "Resource",
+    "subresource": "Subresource",
+    "namespace": "Namespace",
+    "clusterWide": "(cluster-wide)",
+    "name": "Object name",
+    "groupPlaceholder": "core",
+    "namePlaceholder": "any",
+    "hint": "Leave the API group empty for the core group. Cluster-wide asks about cluster-scoped resources or all namespaces, which only ClusterRoleBindings grant. Rules limited to resourceNames only match when an object name is given."
+  },
+  "paths": {
+    "roleMissingHint": "This role does not exist, so the binding grants nothing.",
+    "open": "Open",
+    "inNamespace": "in {{namespace}}",
+    "clusterWide": "cluster-wide",
+    "via": "through group {{group}}"
+  },
+  "subjects": {
+    "title": "Subjects",
+    "open": "Show effective permissions",
+    "missing": "not found",
+    "loading": "Loading subjects…",
+    "unavailable": "Subjects cannot be listed",
+    "empty": "No subjects match",
+    "emptyHint": "Clear the filter or show system subjects.",
+    "summary": "{{shown}} of {{total}}",
+    "allKinds": "All kinds",
+    "hideSystem": "Hide system subjects"
+  },
+  "whoCan": {
+    "title": "Who can…",
+    "intro": "Finds every subject that RBAC allows to perform a request, with the binding and role that grant it. Groups are listed as the bindings name them.",
+    "ask": "Who can?",
+    "presets": "Common questions",
+    "preset": {
+      "readSecrets": "Read secrets",
+      "execPods": "Exec into pods",
+      "createPods": "Create pods",
+      "impersonate": "Impersonate ServiceAccounts",
+      "bindRoles": "Bind ClusterRoles",
+      "deleteNamespaces": "Delete namespaces"
+    },
+    "resultTitle": "{{verb}} {{target}} {{scope}}",
+    "count_one": "{{count}} subject",
+    "count_other": "{{count}} subjects",
+    "loading": "Evaluating…",
+    "unavailable": "The question cannot be answered",
+    "nobody": "No binding grants this",
+    "nobodyHint": "Only subjects outside RBAC (for example system:masters through another authorizer) could perform it.",
+    "rule": "rule: {{rule}}"
+  },
+  "canI": {
+    "title": "Can it…?",
+    "intro": "Asks the cluster through a SubjectAccessReview, so every authorizer answers, not only RBAC. KubeBench never impersonates the subject.",
+    "ask": "Check",
+    "yes": "Allowed",
+    "no": "Denied",
+    "question": "{{verb}} {{target}}",
+    "reason": "Reason: {{reason}}",
+    "evaluationError": "Evaluation error: {{error}}",
+    "otherAuthorizer": "No RBAC binding grants this: another authorizer (Node, a webhook) allowed it.",
+    "deniedDespiteRbac": "RBAC rules grant this, yet the cluster denied it (another authorizer or a stale view).",
+    "grantedBy": "Granted by"
+  },
+  "subject": {
+    "title": "{{kind}} {{name}}",
+    "openServiceAccount": "Open ServiceAccount",
+    "loading": "Loading permissions…",
+    "unavailable": "Permissions cannot be shown",
+    "missingServiceAccount": "This ServiceAccount does not exist; bindings that name it take effect once it is created.",
+    "identity": "Identity",
+    "user": "User name",
+    "groups": "Groups",
+    "bindings_one": "{{count}} binding",
+    "bindings_other": "{{count}} bindings",
+    "noBindings": "No binding reaches this subject",
+    "noBindingsHint": "It has only what other authorizers allow.",
+    "direct": "directly",
+    "rules": "Effective rules",
+    "noRules": "No rules",
+    "rulesIn": "In namespace {{namespace}}",
+    "rulesClusterWide": "Cluster-wide (every namespace)"
+  },
+  "rules": {
+    "coreGroup": "core"
+  },
+  "risky": {
+    "title": "Risky roles",
+    "intro": "Roles whose rules allow privilege escalation, reading secrets or running code. Hover a risk for details.",
+    "aggregated": "aggregated",
+    "rolesDetail": "roles",
+    "loading": "Checking roles…",
+    "unavailable": "Roles cannot be checked",
+    "empty": "No risky roles match",
+    "emptyHint": "Clear the filter or show system roles.",
+    "summary": "{{shown}} of {{total}}",
+    "allSeverities": "All severities",
+    "hideSystem": "Hide system roles",
+    "boundOnly": "Bound roles only"
+  },
+  "risks": {
+    "full-access": {
+      "title": "Full access",
+      "description": "Every verb on every resource in every API group, like cluster-admin."
+    },
+    "escalate-bind": {
+      "title": "Escalate or bind roles",
+      "description": "Can create or bind roles with permissions it does not hold itself."
+    },
+    "impersonate": {
+      "title": "Impersonation",
+      "description": "Can act as other users, groups or ServiceAccounts."
+    },
+    "wildcard-verbs": {
+      "title": "Wildcard verbs",
+      "description": "Grants every verb (*), including ones added in future versions."
+    },
+    "wildcard-resources": {
+      "title": "Wildcard resources",
+      "description": "Grants access to every resource (*) of its API groups, including secrets and subresources."
+    },
+    "secrets-read": {
+      "title": "Reads secrets",
+      "description": "Can get, list or watch Secrets, which hold credentials and tokens."
+    },
+    "pod-exec": {
+      "title": "Exec into pods",
+      "description": "Can run commands in or attach to running containers."
+    },
+    "token-create": {
+      "title": "Creates ServiceAccount tokens",
+      "description": "Can mint tokens for ServiceAccounts and use their permissions."
+    },
+    "rbac-write": {
+      "title": "Changes RBAC",
+      "description": "Can create or change roles and bindings."
+    },
+    "node-proxy": {
+      "title": "Node proxy",
+      "description": "Can reach the kubelet API through nodes/proxy, bypassing admission and audit."
+    },
+    "webhook-write": {
+      "title": "Changes admission webhooks",
+      "description": "Can intercept or change every request the API server admits."
+    },
+    "csr-approve": {
+      "title": "Approves certificates",
+      "description": "Can approve CertificateSigningRequests, issuing client certificates."
+    },
+    "workload-create": {
+      "title": "Creates workloads",
+      "description": "Can create pods or controllers, and run them as any ServiceAccount of the namespace."
+    },
+    "persistentvolume-create": {
+      "title": "Creates PersistentVolumes",
+      "description": "Can create volumes such as hostPath that expose node files."
+    }
+  },
+  "graph": {
+    "title": "Binding graph",
+    "namespace": "Namespace",
+    "allNamespaces": "All namespaces",
+    "includeSystem": "Show system bindings",
+    "columns": {
+      "subjects": "Subjects",
+      "bindings": "Bindings",
+      "roles": "Roles"
+    },
+    "aria": "Binding graph: {{subjects}} subjects, {{bindings}} bindings, {{roles}} roles",
+    "introNamespace": "RoleBindings in {{namespace}} and the ClusterRoleBindings of its ServiceAccounts. Hover a node to follow it; click to open it.",
+    "introCluster": "Every binding of the cluster. Hover a node to follow it; click to open it.",
+    "truncated": "Only the first {{count}} bindings are shown; pick a namespace.",
+    "missingSubject": "does not exist",
+    "missingRole": "does not exist, grants nothing",
+    "loading": "Loading bindings…",
+    "unavailable": "The binding graph cannot be shown",
+    "empty": "No bindings",
+    "emptyHint": "Pick another namespace or show system bindings."
+  }
+}

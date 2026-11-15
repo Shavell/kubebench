@@ -1,0 +1,238 @@
+{
+  "manifest": {
+    "name": "Erişim",
+    "description": "RBAC gezgini: bir isteği kimlerin yapabileceği, her subject'in geçerli yetkileri ve hızlı can-i, riskli roller ve binding grafiği.",
+    "tooltip": "Erişim (RBAC)",
+    "sidebarTitle": "Erişim"
+  },
+  "commands": {
+    "whoCan": "Erişim: Kimler yapabilir…",
+    "subjects": "Erişim: Subject'leri aç",
+    "risky": "Erişim: Riskli rolleri aç",
+    "graph": "Erişim: Binding grafiğini aç"
+  },
+  "resourceActions": {
+    "permissions": "Geçerli yetkileri göster"
+  },
+  "sidebar": {
+    "whoCan": "Kimler yapabilir…",
+    "subjects": "Subject'ler",
+    "risky": "Riskli roller",
+    "graph": "Binding grafiği"
+  },
+  "kinds": {
+    "User": "User",
+    "Group": "Group",
+    "ServiceAccount": "ServiceAccount"
+  },
+  "severity": {
+    "critical": "Kritik",
+    "high": "Yüksek",
+    "medium": "Orta"
+  },
+  "columns": {
+    "subject": "Subject",
+    "kind": "Tür",
+    "grantedBy": "Yetkiyi veren",
+    "clusterBindings": "ClusterRoleBinding'ler",
+    "namespaces": "RoleBinding'lerin olduğu yer",
+    "roles": "Roller",
+    "scope": "Kapsam",
+    "via": "Üzerinden",
+    "verbs": "Verb'ler",
+    "apiGroups": "API grupları",
+    "resources": "Kaynaklar / URL'ler",
+    "from": "Kaynağı",
+    "severity": "Önem",
+    "role": "Rol",
+    "risks": "Riskler",
+    "bindings": "Binding'ler",
+    "subjects": "Subject'ler"
+  },
+  "request": {
+    "mode": "Sorulan",
+    "modeResource": "Bir kaynak",
+    "modeUrl": "Kaynak dışı bir URL",
+    "verb": "Verb",
+    "path": "URL yolu",
+    "pathHelp": "Örneğin /metrics veya /healthz.",
+    "group": "API grubu",
+    "resource": "Kaynak",
+    "subresource": "Alt kaynak",
+    "namespace": "Namespace",
+    "clusterWide": "(cluster geneli)",
+    "name": "Nesne adı",
+    "groupPlaceholder": "core",
+    "namePlaceholder": "herhangi biri",
+    "hint": "Core grup için API grubunu boş bırakın. Cluster geneli, yalnızca ClusterRoleBinding'lerin verebildiği cluster kapsamlı kaynakları veya tüm namespace'leri sorar. resourceNames ile sınırlı kurallar yalnızca bir nesne adı verildiğinde eşleşir."
+  },
+  "paths": {
+    "roleMissingHint": "Bu rol mevcut değil; bu yüzden binding hiçbir yetki vermez.",
+    "open": "Aç",
+    "inNamespace": "{{namespace}} içinde",
+    "clusterWide": "cluster geneli",
+    "via": "{{group}} grubu üzerinden"
+  },
+  "subjects": {
+    "title": "Subject'ler",
+    "open": "Geçerli yetkileri göster",
+    "missing": "bulunamadı",
+    "loading": "Subject'ler yükleniyor…",
+    "unavailable": "Subject'ler listelenemiyor",
+    "empty": "Eşleşen subject yok",
+    "emptyHint": "Filtreyi temizleyin veya sistem subject'lerini gösterin.",
+    "summary": "{{shown}} / {{total}}",
+    "allKinds": "Tüm türler",
+    "hideSystem": "Sistem subject'lerini gizle"
+  },
+  "whoCan": {
+    "title": "Kimler yapabilir…",
+    "intro": "RBAC'ın bir isteği yapmaya izin verdiği tüm subject'leri, yetkiyi veren binding ve rolle birlikte bulur. Gruplar binding'lerde geçtiği şekliyle listelenir.",
+    "ask": "Kimler yapabilir?",
+    "presets": "Sık sorulanlar",
+    "preset": {
+      "readSecrets": "Secret'ları okuma",
+      "execPods": "Pod'larda exec",
+      "createPods": "Pod oluşturma",
+      "impersonate": "ServiceAccount'ları taklit etme",
+      "bindRoles": "ClusterRole bağlama",
+      "deleteNamespaces": "Namespace silme"
+    },
+    "resultTitle": "{{verb}} {{target}} {{scope}}",
+    "count_one": "{{count}} subject",
+    "count_other": "{{count}} subject",
+    "loading": "Değerlendiriliyor…",
+    "unavailable": "Soru yanıtlanamıyor",
+    "nobody": "Bu yetkiyi veren binding yok",
+    "nobodyHint": "Bunu yalnızca RBAC dışındaki subject'ler (örneğin başka bir authorizer üzerinden system:masters) yapabilir.",
+    "rule": "kural: {{rule}}"
+  },
+  "canI": {
+    "title": "Yapabilir mi…?",
+    "intro": "Cluster'a bir SubjectAccessReview ile sorar; böylece yalnızca RBAC değil tüm authorizer'lar yanıt verir. KubeBench subject'i asla taklit etmez.",
+    "ask": "Kontrol et",
+    "yes": "İzin var",
+    "no": "İzin yok",
+    "question": "{{verb}} {{target}}",
+    "reason": "Gerekçe: {{reason}}",
+    "evaluationError": "Değerlendirme hatası: {{error}}",
+    "otherAuthorizer": "Bu yetkiyi veren bir RBAC binding'i yok: başka bir authorizer (Node, bir webhook) izin verdi.",
+    "deniedDespiteRbac": "RBAC kuralları bu yetkiyi veriyor, ancak cluster reddetti (başka bir authorizer veya güncel olmayan bir görünüm).",
+    "grantedBy": "Yetkiyi veren"
+  },
+  "subject": {
+    "title": "{{kind}} {{name}}",
+    "openServiceAccount": "ServiceAccount'ı aç",
+    "loading": "Yetkiler yükleniyor…",
+    "unavailable": "Yetkiler gösterilemiyor",
+    "missingServiceAccount": "Bu ServiceAccount mevcut değil; onu adlandıran binding'ler ServiceAccount oluşturulduğunda geçerli olur.",
+    "identity": "Kimlik",
+    "user": "Kullanıcı adı",
+    "groups": "Gruplar",
+    "bindings_one": "{{count}} binding",
+    "bindings_other": "{{count}} binding",
+    "noBindings": "Bu subject'e ulaşan binding yok",
+    "noBindingsHint": "Yalnızca diğer authorizer'ların izin verdiklerine sahiptir.",
+    "direct": "doğrudan",
+    "rules": "Geçerli kurallar",
+    "noRules": "Kural yok",
+    "rulesIn": "{{namespace}} namespace'inde",
+    "rulesClusterWide": "Cluster geneli (tüm namespace'ler)"
+  },
+  "rules": {
+    "coreGroup": "core"
+  },
+  "risky": {
+    "title": "Riskli roller",
+    "intro": "Kuralları yetki yükseltmeye, Secret okumaya veya kod çalıştırmaya izin veren roller. Ayrıntılar için bir riskin üzerine gelin.",
+    "aggregated": "birleştirilmiş",
+    "rolesDetail": "rol",
+    "loading": "Roller denetleniyor…",
+    "unavailable": "Roller denetlenemiyor",
+    "empty": "Eşleşen riskli rol yok",
+    "emptyHint": "Filtreyi temizleyin veya sistem rollerini gösterin.",
+    "summary": "{{shown}} / {{total}}",
+    "allSeverities": "Tüm önem düzeyleri",
+    "hideSystem": "Sistem rollerini gizle",
+    "boundOnly": "Yalnızca bağlı roller"
+  },
+  "risks": {
+    "full-access": {
+      "title": "Tam erişim",
+      "description": "cluster-admin gibi, tüm API gruplarındaki tüm kaynaklarda tüm verb'ler."
+    },
+    "escalate-bind": {
+      "title": "Rol yükseltme veya bağlama",
+      "description": "Kendisinde olmayan yetkilere sahip roller oluşturabilir veya bağlayabilir."
+    },
+    "impersonate": {
+      "title": "Taklit etme",
+      "description": "Başka kullanıcılar, gruplar veya ServiceAccount'lar adına işlem yapabilir."
+    },
+    "wildcard-verbs": {
+      "title": "Joker verb'ler",
+      "description": "Gelecek sürümlerde eklenecekler dahil tüm verb'leri (*) verir."
+    },
+    "wildcard-resources": {
+      "title": "Joker kaynaklar",
+      "description": "API gruplarındaki tüm kaynaklara (*) erişim verir; Secret'lar ve alt kaynaklar dahil."
+    },
+    "secrets-read": {
+      "title": "Secret okur",
+      "description": "Kimlik bilgileri ve token'lar içeren Secret'ları get, list veya watch edebilir."
+    },
+    "pod-exec": {
+      "title": "Pod'larda exec",
+      "description": "Çalışan container'larda komut çalıştırabilir veya onlara bağlanabilir."
+    },
+    "token-create": {
+      "title": "ServiceAccount token'ı oluşturur",
+      "description": "ServiceAccount'lar için token üretip onların yetkilerini kullanabilir."
+    },
+    "rbac-write": {
+      "title": "RBAC'ı değiştirir",
+      "description": "Roller ve binding'ler oluşturabilir veya değiştirebilir."
+    },
+    "node-proxy": {
+      "title": "Node proxy",
+      "description": "nodes/proxy ile kubelet API'sine erişebilir; admission ve audit atlanır."
+    },
+    "webhook-write": {
+      "title": "Admission webhook'larını değiştirir",
+      "description": "API sunucusunun kabul ettiği her isteği yakalayabilir veya değiştirebilir."
+    },
+    "csr-approve": {
+      "title": "Sertifika onaylar",
+      "description": "CertificateSigningRequest'leri onaylayarak istemci sertifikası verebilir."
+    },
+    "workload-create": {
+      "title": "Workload oluşturur",
+      "description": "Pod veya controller oluşturup bunları namespace'teki herhangi bir ServiceAccount ile çalıştırabilir."
+    },
+    "persistentvolume-create": {
+      "title": "PersistentVolume oluşturur",
+      "description": "Node dosyalarını açığa çıkaran hostPath gibi volume'lar oluşturabilir."
+    }
+  },
+  "graph": {
+    "title": "Binding grafiği",
+    "namespace": "Namespace",
+    "allNamespaces": "Tüm namespace'ler",
+    "includeSystem": "Sistem binding'lerini göster",
+    "columns": {
+      "subjects": "Subject'ler",
+      "bindings": "Binding'ler",
+      "roles": "Roller"
+    },
+    "aria": "Binding grafiği: {{subjects}} subject, {{bindings}} binding, {{roles}} rol",
+    "introNamespace": "{{namespace}} içindeki RoleBinding'ler ve ServiceAccount'larının ClusterRoleBinding'leri. İzlemek için bir düğümün üzerine gelin; açmak için tıklayın.",
+    "introCluster": "Cluster'ın tüm binding'leri. İzlemek için bir düğümün üzerine gelin; açmak için tıklayın.",
+    "truncated": "Yalnızca ilk {{count}} binding gösteriliyor; bir namespace seçin.",
+    "missingSubject": "mevcut değil",
+    "missingRole": "mevcut değil, yetki vermez",
+    "loading": "Binding'ler yükleniyor…",
+    "unavailable": "Binding grafiği gösterilemiyor",
+    "empty": "Binding yok",
+    "emptyHint": "Başka bir namespace seçin veya sistem binding'lerini gösterin."
+  }
+}
