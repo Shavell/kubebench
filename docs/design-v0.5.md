@@ -155,6 +155,10 @@ on routes that opt in (core flag `allowDryRun`, plugin flag
 `plugin.DryRunnable`) and whose handlers then really perform a dry run
 (`plugin.IsDryRun(r)`). The relaxation is per route because a handler that
 ignored `dryRun` would otherwise let a viewer mutate.
+One exception: a dry run that touches a core Secret (apply, edit) needs
+`write` and is audited like the change itself (detail `"dryRun":true`),
+because its result (`unchanged` or not) would let a viewer, who sees
+Secret values only redacted, confirm guessed values.
 
 ### 3.3 Error format
 
@@ -208,7 +212,7 @@ error text. Pruned per `KUBEBENCH_AUDIT_RETENTION_DAYS`.
   with `400 bad_request` before its handler runs, so a row always shows a
   command or any other parameter completely.
 - Request bodies are never recorded (they may carry passwords or Secret
-  data); dry runs are not audited.
+  data); dry runs are not audited, except those touching Secrets (§3.2).
 - WebSocket rows are written when the connection is hijacked (status 101);
   extra rows written through a plugin's `Context.Audit` have status 0.
 
@@ -659,7 +663,8 @@ and `new-resource` with `{namespace?, kind?}` (see 7.2);
 ### 7.2 Resource editing (core + editor/workloads plugins)
 
 - `POST /api/resource/apply?dryRun=&force=&ns=` (write; exactly
-  `dryRun=true` → read and not audited, a real server-side dry run). Body:
+  `dryRun=true` → read and not audited, a real server-side dry run, unless
+  a document is a Secret: then write and audited, §3.2). Body:
   YAML or JSON, any number of documents (`---`-separated YAML or
   concatenated JSON; `kind: List` is flattened, empty documents skipped),
   at most 4 MiB (`413`). Server-side apply with `fieldManager=kubebench`,

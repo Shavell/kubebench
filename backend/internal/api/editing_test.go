@@ -119,6 +119,45 @@ func TestApplyAccessAndAudit(t *testing.T) {
 	expect(t, sendText(e, http.MethodPost, "/api/resource/apply?dryRun=1", "bob", shopManifests), http.StatusForbidden, plugin.CodeForbiddenRole)
 }
 
+// A dry run of a Secret tells whether a guessed value is the real one
+// ("unchanged"), so it is treated like the apply: write access, audited.
+func TestSecretDryRunNeedsWriteAccess(t *testing.T) {
+	db := kubetest.Object("v1", "Secret", "shop", "db", map[string]any{"type": "Opaque", "data": map[string]any{"pin": "NDgyMQ=="}})
+	e, dyn := editingEnv(t, db)
+	guess := "apiVersion: v1\nkind: Secret\nmetadata: {name: db, namespace: shop}\ntype: Opaque\ndata: {pin: NDgyMQ==}\n"
+
+	before := len(dyn.Actions())
+	expect(t, sendText(e, http.MethodPost, "/api/resource/apply?dryRun=true", "bob", guess), http.StatusForbidden, plugin.CodeForbiddenRole)
+	if len(dyn.Actions()) != before {
+		t.Fatal("a viewer's Secret dry run reached the cluster")
+	}
+	// Mixed in with other objects too.
+	expect(t, sendText(e, http.MethodPost, "/api/resource/apply?dryRun=true&ns=shop", "bob", shopManifests+"---\n"+guess), http.StatusForbidden, plugin.CodeForbiddenRole)
+
+	rec := sendText(e, http.MethodPost, "/api/resource/apply?dryRun=true", "alice", guess)
+	expect(t, rec, http.StatusOK, "")
+	if res := decode[applyResponse](t, rec).Results; len(res) != 1 || res[0].Error != "" {
+		t.Fatalf("operator's dry run = %+v", res)
+	}
+	rows := e.audit()
+	if len(rows) != 3 {
+		t.Fatalf("audit rows = %+v, want every Secret dry run", rows)
+	}
+	if r := rows[0]; r.Username != "alice" || r.Action != "POST /api/resource/apply" || r.Status != 200 ||
+		r.Target != "secret/shop/db" || !strings.Contains(r.Detail, `"dryRun":true`) {
+		t.Fatalf("dry run row = %+v", r)
+	}
+	if r := rows[2]; r.Username != "bob" || r.Status != http.StatusForbidden || !strings.HasPrefix(r.Detail, "forbidden_role: ") {
+		t.Fatalf("refused row = %+v", r)
+	}
+
+	// Other dry runs stay read access and unaudited.
+	expect(t, sendText(e, http.MethodPost, "/api/resource/apply?dryRun=true&ns=shop", "bob", shopManifests), http.StatusOK, "")
+	if n := len(e.audit()); n != 3 {
+		t.Fatalf("a ConfigMap dry run was audited (%d rows)", n)
+	}
+}
+
 func TestApplyOnReadOnlyCluster(t *testing.T) {
 	e, _ := editingEnv(t)
 	expect(t, e.do(http.MethodPatch, "/api/clusters/1", "admin", map[string]any{"readOnly": true}), http.StatusOK, "")

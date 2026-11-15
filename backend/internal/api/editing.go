@@ -12,6 +12,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"kubebench/internal/kube"
@@ -78,12 +79,22 @@ func (s *Server) handleApply(w http.ResponseWriter, r *http.Request, c *call) {
 		return
 	}
 
+	dryRun := plugin.IsDryRun(r)
+	if dryRun && touchesSecrets(c.rt, objects) {
+		var done func()
+		w, done, err = s.secretDryRun(w, r, c, "POST /api/resource/apply")
+		defer done()
+		if err != nil {
+			writeErr(w, err)
+			return
+		}
+	}
 	results := c.rt.Apply(r.Context(), objects, kube.ApplyOptions{
 		Namespace: q.Get("ns"),
-		DryRun:    plugin.IsDryRun(r),
+		DryRun:    dryRun,
 		Force:     force,
 	})
-	c.setAudit(applyAuditTarget(results), applyAuditDetail(results, force))
+	c.setAudit(applyAuditTarget(results), applyAuditDetail(results, force, dryRun))
 	out := make([]applyResult, len(results))
 	for i, res := range results {
 		out[i] = toApplyResult(res)
@@ -135,8 +146,32 @@ func applyAuditTarget(results []kube.ApplyResult) string {
 	return target
 }
 
-// applyAuditDetail counts the outcomes, e.g. {"configured":1,"failed":1}.
-func applyAuditDetail(results []kube.ApplyResult, force bool) string {
+// touchesSecrets reports whether any of objects is a core Secret.
+func touchesSecrets(rt *kube.Runtime, objects []*unstructured.Unstructured) bool {
+	for _, obj := range objects {
+		if gvr, _, err := rt.ResolveKind(obj.GetAPIVersion(), obj.GetKind()); err == nil && gvr.GroupResource() == secretsResource {
+			return true
+		}
+	}
+	return false
+}
+
+// secretDryRun treats a dry run that touches a Secret like the change
+// itself: it needs write access and is audited. A dry run tells whether
+// the object would change, so a viewer, who sees Secret values only
+// redacted, could otherwise confirm guessed values one unaudited dry run
+// at a time (an "unchanged" result means the guess is right). The handler
+// answers through the returned writer and calls done when it returns; err
+// is the denial, which the row records once the handler writes it.
+func (s *Server) secretDryRun(w http.ResponseWriter, r *http.Request, c *call, action string) (_ http.ResponseWriter, done func(), err error) {
+	aw := s.newAuditWriter(w, r, c, action, auditTarget{kind: "resource", kindParam: true})
+	c.audit = aw
+	return aw, aw.finish, mutationDenied(c.role, c.cluster)
+}
+
+// applyAuditDetail counts the outcomes, e.g. {"configured":1,"failed":1},
+// and flags forced applies and (audited) dry runs.
+func applyAuditDetail(results []kube.ApplyResult, force, dryRun bool) string {
 	detail := map[string]any{}
 	for _, res := range results {
 		outcome := string(res.Action)
@@ -148,6 +183,9 @@ func applyAuditDetail(results []kube.ApplyResult, force bool) string {
 	}
 	if force {
 		detail["force"] = true
+	}
+	if dryRun {
+		detail["dryRun"] = true
 	}
 	return auditJSON(detail)
 }
