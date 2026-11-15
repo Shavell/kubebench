@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"mime"
 	"net/http"
 	"net/url"
 	"strings"
@@ -24,7 +26,8 @@ var blockedSubresources = []string{"attach", "exec", "portforward", "proxy"}
 
 // handlePassthrough proxies a read to the cluster API for external plugins
 // (§4.5): GET /api/k8s/api/v1/namespaces returns the API server's JSON for
-// /api/v1/namespaces, with its status code.
+// /api/v1/namespaces, with its status code. Errors and redirects become
+// API errors.
 func (s *Server) handlePassthrough(w http.ResponseWriter, r *http.Request, c *call) {
 	path, query := r.PathValue("path"), r.URL.Query()
 	if err := checkPassthrough(path, query); err != nil {
@@ -47,10 +50,38 @@ func (s *Server) handlePassthrough(w http.ResponseWriter, r *http.Request, c *ca
 		writeUpstreamError(w, res)
 		return
 	}
-	w.Header().Set("Content-Type", res.ContentType)
-	w.Header().Set("X-Content-Type-Options", "nosniff")
+	if res.Status >= http.StatusMultipleChoices {
+		// A redirect: RawGet does not follow it, and passing it on would
+		// send the browser to wherever it points.
+		plugin.WriteError(w, http.StatusBadGateway, plugin.CodeKubernetes,
+			fmt.Errorf("the cluster API answered %d %s; redirects are not followed", res.Status, http.StatusText(res.Status)))
+		return
+	}
+	h := w.Header()
+	h.Set("Content-Type", passthroughContentType(res.ContentType))
+	h.Set("X-Content-Type-Options", "nosniff")
+	// The body comes from the cluster (an aggregated API, say): even opened
+	// as a page it must not run as a document of KubeBench's origin.
+	h.Set("Content-Security-Policy", "sandbox; default-src 'none'")
 	w.WriteHeader(res.Status)
 	_, _ = w.Write(res.Body)
+}
+
+// passthroughContentType is the Content-Type a passthrough response is
+// served with. The upstream type is never echoed: JSON stays JSON, plain
+// text (pod logs) stays text, and anything else, HTML or SVG included, is
+// sent as an opaque download.
+func passthroughContentType(upstream string) string {
+	mediaType, _, err := mime.ParseMediaType(upstream)
+	switch {
+	case err != nil:
+		return "application/octet-stream"
+	case mediaType == "application/json" || strings.HasSuffix(mediaType, "+json"):
+		return "application/json"
+	case mediaType == "text/plain":
+		return "text/plain; charset=utf-8"
+	}
+	return "application/octet-stream"
 }
 
 // checkPassthrough allows reads below /api, /apis and /version, except

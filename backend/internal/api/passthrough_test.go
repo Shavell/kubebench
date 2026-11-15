@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"kubebench/internal/plugin"
@@ -107,5 +108,59 @@ func TestPassthrough(t *testing.T) {
 	ok := e.do(http.MethodGet, "/api/k8s/api/v1/namespaces", "bob", nil)
 	if ok.Header().Get("Content-Type") != "application/json" || ok.Body.String() != `{"kind":"List","items":[]}` {
 		t.Fatalf("raw body = %q (%s)", ok.Body.String(), ok.Header().Get("Content-Type"))
+	}
+}
+
+// Whatever an aggregated API or a proxy in front of the cluster answers,
+// the passthrough serves data, never a page of KubeBench's origin, and it
+// never follows a redirect with the stored credential.
+func TestPassthroughServesOnlyData(t *testing.T) {
+	var sinkHits atomic.Int32
+	sink := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		sinkHits.Add(1)
+		_, _ = w.Write([]byte(`{"internal":"metadata"}`))
+	}))
+	t.Cleanup(sink.Close)
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/apis/evil.example.com/v1/page":
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			_, _ = w.Write([]byte(`<script>alert(document.cookie)</script>`))
+		case "/apis/evil.example.com/v1/image":
+			w.Header().Set("Content-Type", "image/svg+xml")
+			_, _ = w.Write([]byte(`<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"/>`))
+		case "/apis/evil.example.com/v1/redirect":
+			http.Redirect(w, r, sink.URL+"/latest/meta-data/iam", http.StatusFound)
+		case "/api/v1/namespaces/default/pods/web-1/log":
+			w.Header().Set("Content-Type", "text/plain")
+			_, _ = w.Write([]byte("line 1\n"))
+		case "/apis/metrics.k8s.io/v1beta1/nodes":
+			w.Header().Set("Content-Type", "application/json;charset=utf-8")
+			_, _ = w.Write([]byte(`{"kind":"NodeMetricsList","items":[]}`))
+		}
+	}))
+	t.Cleanup(upstream.Close)
+	e := newTestEnv(t, nil)
+	e.apiServer = upstream.URL
+
+	for path, want := range map[string]string{
+		"/api/k8s/apis/evil.example.com/v1/page":            "application/octet-stream",
+		"/api/k8s/apis/evil.example.com/v1/image":           "application/octet-stream",
+		"/api/k8s/api/v1/namespaces/default/pods/web-1/log": "text/plain; charset=utf-8",
+		"/api/k8s/apis/metrics.k8s.io/v1beta1/nodes":        "application/json",
+	} {
+		rec := e.do(http.MethodGet, path, "bob", nil)
+		expect(t, rec, http.StatusOK, "")
+		h := rec.Header()
+		if h.Get("Content-Type") != want || h.Get("X-Content-Type-Options") != "nosniff" ||
+			h.Get("Content-Security-Policy") != "sandbox; default-src 'none'" {
+			t.Errorf("%s: headers %v, want Content-Type %q, nosniff and a sandbox CSP", path, h, want)
+		}
+	}
+
+	rec := e.do(http.MethodGet, "/api/k8s/apis/evil.example.com/v1/redirect", "bob", nil)
+	expect(t, rec, http.StatusBadGateway, plugin.CodeKubernetes)
+	if rec.Header().Get("Location") != "" || sinkHits.Load() != 0 {
+		t.Fatalf("the redirect was followed or passed on (sink hits %d, Location %q)", sinkHits.Load(), rec.Header().Get("Location"))
 	}
 }
