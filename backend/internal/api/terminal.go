@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"net/http"
 	"slices"
 	"strings"
@@ -89,5 +90,8 @@ func (s *Server) handleTerminal(w http.ResponseWriter, r *http.Request, c *call)
 	if err != nil {
 		return // Upgrade has answered with the error
 	}
-	newTerminalSession(conn, s.streams).run(r.Context(), executor)
+	// The session ends itself (see terminalSession.hangup). It must not end
+	// with the request's context: net/http cancels that as soon as a read
+	// of the hijacked connection fails, before the shell could be hung up.
+	newTerminalSession(conn, s.streams).run(context.WithoutCancel(r.Context()), executor)
 }

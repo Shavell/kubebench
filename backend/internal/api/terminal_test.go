@@ -28,13 +28,24 @@ import (
 )
 
 // echoShell stands in for the process in the container: it echoes every
-// input line ("echo:<line>"), prints every resize ("[resize 80x24]") and
-// exits on "exit <code>". With fail set it fails at once instead.
+// input line ("echo:<line>"), prints every resize ("[resize 80x24]"),
+// exits on "exit <code>" and when its input ends, unless it was told
+// "ignore-eof" before. With fail set it fails at once instead.
 type echoShell struct {
 	target  kube.ExecTarget
 	fail    error
 	stopped chan struct{} // closed when the session returned
 	ctxErr  atomic.Value  // the context error the session ended with
+
+	mu    sync.Mutex
+	input strings.Builder // everything the shell read
+}
+
+// received is the input the shell has read so far.
+func (f *echoShell) received() string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.input.String()
 }
 
 func (f *echoShell) Stream(o remotecommand.StreamOptions) error {
@@ -60,6 +71,9 @@ func (f *echoShell) StreamWithContext(ctx context.Context, o remotecommand.Strea
 		r := bufio.NewReader(o.Stdin)
 		for {
 			line, err := r.ReadString('\r')
+			f.mu.Lock()
+			f.input.WriteString(line)
+			f.mu.Unlock()
 			if err != nil {
 				return
 			}
@@ -70,6 +84,7 @@ func (f *echoShell) StreamWithContext(ctx context.Context, o remotecommand.Strea
 			}
 		}
 	}()
+	ignoreEOF := false
 	for {
 		select {
 		case <-ctx.Done():
@@ -77,7 +92,11 @@ func (f *echoShell) StreamWithContext(ctx context.Context, o remotecommand.Strea
 			return ctx.Err()
 		case line, ok := <-lines:
 			if !ok {
-				return nil // stdin closed
+				if ignoreEOF {
+					lines = nil // wait for the context alone
+					continue
+				}
+				return nil // the input ended
 			}
 			if code, found := strings.CutPrefix(line, "exit "); found {
 				n, _ := strconv.Atoi(code)
@@ -86,6 +105,7 @@ func (f *echoShell) StreamWithContext(ctx context.Context, o remotecommand.Strea
 				}
 				return utilexec.CodeExitError{Err: fmt.Errorf("command terminated with exit code %d", n), Code: n}
 			}
+			ignoreEOF = ignoreEOF || line == "ignore-eof"
 			fmt.Fprintf(o.Stdout, "echo:%s\r\n", line)
 		}
 	}
@@ -381,8 +401,32 @@ func TestTerminalClientLeaving(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("the session outlived its client")
 	}
+	// The shell was told to finish through its terminal, and did.
+	if got := shell.received(); got != "hi\r"+interruptKey+endOfInputKey {
+		t.Fatalf("shell input = %q, want the line, then Ctrl+C and Ctrl+D (ctx: %v)", got, shell.ctxErr.Load())
+	}
+	if err, _ := shell.ctxErr.Load().(error); err != nil {
+		t.Fatalf("the shell ended by itself, yet its context ended with %v", err)
+	}
+}
+
+func TestTerminalHangupCutsOffAStubbornProcess(t *testing.T) {
+	e, srv, sh := terminalEnv(t, func(s *streamSettings) { s.terminalHangupGrace = 200 * time.Millisecond })
+	conn, _, err := dial(t, e, srv, "alice", "ns=default&pod=web-1&container=app", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	send(t, conn, `{"type":"input","data":"ignore-eof\r"}`)
+	readOutput(t, conn, "echo:ignore-eof")
+	conn.Close()
+	shell := sh.started()[0]
+	select {
+	case <-shell.stopped:
+	case <-time.After(5 * time.Second):
+		t.Fatal("a process ignoring the hangup kept the stream open")
+	}
 	if err, _ := shell.ctxErr.Load().(error); !errors.Is(err, context.Canceled) {
-		t.Fatalf("session ended with %v, want a cancelled context", err)
+		t.Fatalf("session ended with %v, want the stream cut off", err)
 	}
 }
 

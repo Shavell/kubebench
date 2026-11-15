@@ -55,7 +55,12 @@ type terminalSession struct {
 	stdinW  *io.PipeWriter
 	sizes   *sizeQueue
 	input   chan struct{} // signals client input, for the idle timeout
-	idle    atomic.Bool   // the session ended because of the idle timeout
+
+	cancel     context.CancelFunc
+	done       chan struct{} // closed when the remote stream has ended
+	hangupOnce sync.Once
+	clientGone atomic.Bool // the client left or stopped answering pings
+	idle       atomic.Bool // the idle timeout ended the session
 }
 
 func newTerminalSession(conn *websocket.Conn, settings streamSettings) *terminalSession {
@@ -66,6 +71,7 @@ func newTerminalSession(conn *websocket.Conn, settings streamSettings) *terminal
 		stdinR:   stdinR,
 		stdinW:   stdinW,
 		input:    make(chan struct{}, 1),
+		done:     make(chan struct{}),
 	}
 }
 
@@ -73,32 +79,72 @@ func newTerminalSession(conn *websocket.Conn, settings streamSettings) *terminal
 // the client stops answering pings or the idle timeout passes.
 func (t *terminalSession) run(ctx context.Context, executor remotecommand.Executor) {
 	defer t.conn.Close()
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	ctx, t.cancel = context.WithCancel(ctx)
+	defer t.cancel()
 	t.sizes = &sizeQueue{sizes: make(chan remotecommand.TerminalSize, 1), done: ctx.Done()}
 
-	go t.readClient(cancel)
-	go t.keepAlive(ctx, cancel)
+	go t.readClient()
+	go t.keepAlive(ctx)
 	err := executor.StreamWithContext(ctx, remotecommand.StreamOptions{
 		Stdin:             t.stdinR,
 		Stdout:            t,
 		Tty:               true,
 		TerminalSizeQueue: t.sizes,
 	})
+	close(t.done)
 	// Unblocks a client message still waiting for the process to read it.
 	_ = t.stdinR.Close()
-	t.finish(ctx, err)
+	t.finish(err)
+}
+
+// The keys that end what runs in a terminal, the way a user would: Ctrl+C
+// interrupts the foreground program, Ctrl+D ends the shell's input. The
+// interrupt also discards input the terminal has not delivered yet, so
+// the end of input follows after a pause.
+const (
+	interruptKey  = "\x03"
+	endOfInputKey = "\x04"
+	hangupPause   = 300 * time.Millisecond
+)
+
+// hangup ends the session from KubeBench's side (the client left, or the
+// idle timeout passed). Container runtimes keep a TTY session's process
+// running when its stream or input closes (kubectl exec leaves it behind
+// too), so the shell is first told to finish through its terminal, as the
+// Kubernetes dashboard does. A process still there after the grace period
+// is cut off; it may then stay in the container, like jobs the shell left
+// running in the background.
+func (t *terminalSession) hangup() {
+	t.hangupOnce.Do(func() {
+		go func() {
+			// Each write blocks until the process reads it, or the stream ends.
+			_, _ = io.WriteString(t.stdinW, interruptKey)
+			select {
+			case <-time.After(hangupPause):
+			case <-t.done:
+			}
+			_, _ = io.WriteString(t.stdinW, endOfInputKey)
+			_ = t.stdinW.Close()
+		}()
+		go func() {
+			select {
+			case <-t.done:
+			case <-time.After(t.settings.terminalHangupGrace):
+				t.cancel()
+			}
+		}()
+	})
 }
 
 // finish tells the client how the session ended and closes the WebSocket.
-func (t *terminalSession) finish(ctx context.Context, err error) {
+func (t *terminalSession) finish(err error) {
 	var exitErr utilexec.ExitError
 	switch {
 	case t.idle.Load():
 		t.sendJSON(terminalError{Type: "error", Message: fmt.Sprintf(
 			"the session was closed after %s without input", t.settings.terminalIdle)})
-	case ctx.Err() != nil:
-		return // the client left or stopped answering: nobody to tell
+	case t.clientGone.Load():
+		return // nobody to tell
 	case err == nil:
 		t.sendJSON(terminalExit{Type: "exit", Code: 0})
 	case errors.As(err, &exitErr):
@@ -112,10 +158,12 @@ func (t *terminalSession) finish(ctx context.Context, err error) {
 }
 
 // readClient reads the client's messages until the connection fails or
-// closes, then cancels the session.
-func (t *terminalSession) readClient(cancel context.CancelFunc) {
-	defer cancel()
-	defer t.stdinW.Close()
+// closes, then hangs the session up.
+func (t *terminalSession) readClient() {
+	defer func() {
+		t.clientGone.Store(true)
+		t.hangup()
+	}()
 	pongWait := 2 * t.settings.terminalPing
 	extend := func() error { return t.conn.SetReadDeadline(time.Now().Add(pongWait)) }
 	t.conn.SetReadLimit(maxTerminalMessage)
@@ -164,7 +212,7 @@ func (t *terminalSession) touch() {
 // keepAlive pings the client and ends the session once the idle timeout
 // passes without input. Output alone does not count as activity: a
 // forgotten session that keeps printing is still forgotten.
-func (t *terminalSession) keepAlive(ctx context.Context, cancel context.CancelFunc) {
+func (t *terminalSession) keepAlive(ctx context.Context) {
 	ping := time.NewTicker(t.settings.terminalPing)
 	defer ping.Stop()
 	idle := time.NewTimer(t.settings.terminalIdle)
@@ -176,14 +224,15 @@ func (t *terminalSession) keepAlive(ctx context.Context, cancel context.CancelFu
 		case <-ping.C:
 			if err := t.conn.WriteControl(websocket.PingMessage, nil,
 				time.Now().Add(t.settings.terminalWriteWait)); err != nil {
-				cancel()
+				t.clientGone.Store(true)
+				t.hangup()
 				return
 			}
 		case <-t.input:
 			idle.Reset(t.settings.terminalIdle)
 		case <-idle.C:
 			t.idle.Store(true)
-			cancel()
+			t.hangup()
 			return
 		}
 	}
