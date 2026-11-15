@@ -518,3 +518,27 @@ export interface UpdateStatus {
   /** Why the last check failed; empty after a success. */
   error: string
 }
+
+// Live updates (design §7.10, GET /api/watch).
+
+/**
+ * How a topic's changes reach the UI: `live` as they happen, `starting`
+ * while the server's informer lists the resource, `polling` when the
+ * server cannot watch it (`reason` says why) and the UI refreshes it on a
+ * timer instead.
+ */
+export type WatchTopicMode = 'starting' | 'live' | 'polling'
+
+/** `event: status` of a watch stream. */
+export interface WatchTopicStatus {
+  /** A resource: `pods`, `deployments`, `applications.argoproj.io`, … */
+  topic: string
+  mode: WatchTopicMode
+  reason?: string
+}
+
+/** `event: change`: an object of `topic` changed in `namespace` ('' = cluster-scoped or anywhere). */
+export interface WatchChange {
+  topic: string
+  namespace: string
+}

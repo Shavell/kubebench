@@ -28,7 +28,7 @@ export function NodeDetail({ node, onDeleted }: { node: K8sNode; onDeleted: () =
     (p) => p.metrics.nodeSeries(node.name, 'memory', windowMinutes),
     [node.name, windowMinutes],
   )
-  const { data: pods } = useProviderQuery((p) => p.cluster.listPods(), [])
+  const { data: pods } = useProviderQuery((p) => p.cluster.listPods(), [], { topics: ['pods'] })
   const nodePods = (pods ?? []).filter((p) => p.node === node.name)
 
   const resource = { kind: 'Node', apiVersion: 'v1', name: node.name }

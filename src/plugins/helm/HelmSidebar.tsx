@@ -19,7 +19,7 @@ import {
 export function HelmSidebar() {
   const { t } = useTranslation(NS)
   const activeTabId = useLayoutStore((s) => s.activeTabId)
-  const releasesQuery = usePluginQuery(() => helmData().listReleases(), [])
+  const releasesQuery = usePluginQuery(() => helmData().listReleases(), [], { topics: ['secrets'] })
   const reposQuery = usePluginQuery(() => helmData().listRepos(), [])
   const releases = releasesQuery.data ?? []
 

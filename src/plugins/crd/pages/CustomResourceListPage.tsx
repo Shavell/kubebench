@@ -18,10 +18,12 @@ export function CustomResourceListPage({ tab }: { tab: TabDescriptor }) {
   const { t } = useTranslation(NS)
   const crdName = tab.props?.crdName as string
 
-  const { data: crds } = useProviderQuery((p) => p.crd.listCrds(), [])
+  const { data: crds } = useProviderQuery((p) => p.crd.listCrds(), [], { topics: ['customresourcedefinitions.apiextensions.k8s.io'] })
   const { data, loading, error, errorCode } = useProviderQuery(
     (p) => p.crd.listCustomResources(crdName),
     [crdName],
+    // A CRD's name (<plural>.<group>) is the watch topic of its resources.
+    { topics: [crdName] },
   )
 
   const crd = crds?.find((c) => c.name === crdName)

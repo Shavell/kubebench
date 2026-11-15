@@ -54,11 +54,11 @@ export function WorkloadsSidebar() {
   const activeTabId = useLayoutStore((s) => s.activeTabId)
 
   // Counts for the rich types (nice to keep the familiar badges).
-  const podsQuery = useProviderQuery((p) => p.cluster.listPods(), [])
-  const nodesQuery = useProviderQuery((p) => p.cluster.listNodes(), [])
-  const deploymentsQuery = useProviderQuery((p) => p.cluster.listDeployments(), [])
-  const servicesQuery = useProviderQuery((p) => p.cluster.listServices(), [])
-  const namespacesQuery = useProviderQuery((p) => p.cluster.listNamespaces(), [])
+  const podsQuery = useProviderQuery((p) => p.cluster.listPods(), [], { topics: ['pods'] })
+  const nodesQuery = useProviderQuery((p) => p.cluster.listNodes(), [], { topics: ['nodes'] })
+  const deploymentsQuery = useProviderQuery((p) => p.cluster.listDeployments(), [], { topics: ['deployments'] })
+  const servicesQuery = useProviderQuery((p) => p.cluster.listServices(), [], { topics: ['services'] })
+  const namespacesQuery = useProviderQuery((p) => p.cluster.listNamespaces(), [], { topics: ['namespaces'] })
   const queries = [podsQuery, nodesQuery, deploymentsQuery, servicesQuery, namespacesQuery]
 
   const rich = (resource: string, count: number | undefined): TreeNode => ({

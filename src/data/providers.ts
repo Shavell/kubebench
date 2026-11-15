@@ -6,6 +6,8 @@ import type {
   TerminalConnection,
   TerminalHandlers,
   TerminalTarget,
+  WatchHandlers,
+  WatchStream,
 } from './streams'
 import type {
   AppUser,
@@ -181,6 +183,7 @@ export interface DataProviders {
   plugins: PluginsProvider
   workloadOps: WorkloadOpsProvider
   updates: UpdatesProvider
+  live: LiveProvider
 }
 
 /** Release checks and the What's new state of the signed-in user (design §7.11). */
@@ -232,4 +235,10 @@ export interface WorkloadOpsProvider {
    * `forbidden` unless `force` is set.
    */
   deleteNamespace(name: string, force: boolean): Promise<void>
+}
+
+/** Live updates (design §7.10): which resources of the active cluster change. */
+export interface LiveProvider {
+  /** Follows changes of `topics` (1 to 32 resources) until closed. */
+  watch(topics: readonly string[], handlers: WatchHandlers): WatchStream
 }

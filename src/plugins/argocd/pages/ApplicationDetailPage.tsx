@@ -42,7 +42,10 @@ export function ApplicationDetailPage({ tab }: { tab: TabDescriptor }) {
   const [dialog, setDialog] = useState<OpenDialog>(null)
   const [cascade, setCascade] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const query = usePluginQuery(() => argoCd().getApplication(namespace, name), [namespace, name])
+  const query = usePluginQuery(() => argoCd().getApplication(namespace, name), [namespace, name], {
+    topics: ['applications.argoproj.io'],
+    namespace,
+  })
   const app = query.data
   const operating = app?.operating ?? false
 

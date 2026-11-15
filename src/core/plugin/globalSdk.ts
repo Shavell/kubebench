@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { usePermissions } from '@/core/permissions'
 import { useLayoutStore } from '@/core/store/layoutStore'
 import { apiFetch, type QueryParams } from '@/data/apiClient'
-import { refreshData } from '@/data/DataContext'
+import { refreshData, refreshTopics } from '@/data/DataContext'
 import { appVersion } from '@/data/mode'
 import { pluginApi, usePluginQuery } from '@/data/pluginData'
 import type { DataProviders } from '@/data/providers'
@@ -50,7 +50,7 @@ export function installGlobalSdk(providers: DataProviders): void {
       pluginApi,
       k8sGet: <T>(path: string, params?: QueryParams) => providers.cluster.k8sGet<T>(path, params),
     }),
-    data: Object.freeze({ usePluginQuery, refreshData }),
+    data: Object.freeze({ usePluginQuery, refreshData, refreshTopics }),
     layout: Object.freeze({ openTab: (tab) => useLayoutStore.getState().openTab(tab) }),
     permissions: Object.freeze({ usePermissions }),
     ui: Object.freeze({ Table, Badge, EmptyState, Toolbar, Dialog, ConfirmDialog, CodeEditor, notify }),

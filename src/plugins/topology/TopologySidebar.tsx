@@ -10,7 +10,7 @@ import { openTopology, topologyTabId } from './tabs'
 export function TopologySidebar() {
   const { t } = useTranslation(NS)
   const activeTabId = useLayoutStore((s) => s.activeTabId)
-  const namespaces = useProviderQuery((p) => p.cluster.listNamespaces(), [])
+  const namespaces = useProviderQuery((p) => p.cluster.listNamespaces(), [], { topics: ['namespaces'] })
 
   const nodes: TreeNode[] = [
     {

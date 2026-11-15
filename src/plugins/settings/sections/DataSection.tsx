@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useSettingsStore } from '@/core/store/settingsStore'
 import { useProviderQuery } from '@/data/DataContext'
-import { Field, Select, type SelectOption } from '@/shared/form'
+import { Checkbox, Field, Select, type SelectOption } from '@/shared/form'
 import { SETTINGS_NS } from '../namespace'
 import { SettingsSection } from '../SettingsSection'
 
@@ -10,12 +10,13 @@ type MetricsSource = 'auto' | 'metrics-server' | 'prometheus'
 const METRICS_WINDOWS = [15, 30, 60]
 const REFRESH_INTERVALS = [0, 10, 30, 60]
 
-/** Metrics source and history window, auto-refresh of lists. */
+/** Metrics source and history window, auto-refresh of lists, live updates. */
 export function DataSection() {
   const { t } = useTranslation(SETTINGS_NS)
   const metricsSource = useSettingsStore((s) => s.metricsSource)
   const metricsWindow = useSettingsStore((s) => s.metricsWindow)
   const autoRefreshSeconds = useSettingsStore((s) => s.autoRefreshSeconds)
+  const liveUpdates = useSettingsStore((s) => s.liveUpdates)
   const setSetting = useSettingsStore((s) => s.set)
   const { data: sources } = useProviderQuery((p) => p.metrics.listSources(), [])
   const prometheus = sources?.find((s) => s.id === 'prometheus')
@@ -68,6 +69,9 @@ export function DataSection() {
           }))}
           onChange={(value) => setSetting('autoRefreshSeconds', value)}
         />
+      </Field>
+      <Field layout="inline" label={t('data.liveUpdates.label')} help={t('data.liveUpdates.help')}>
+        <Checkbox checked={liveUpdates} onChange={(value) => setSetting('liveUpdates', value)} />
       </Field>
     </SettingsSection>
   )

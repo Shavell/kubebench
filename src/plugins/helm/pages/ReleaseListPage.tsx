@@ -24,7 +24,10 @@ export function ReleaseListPage() {
   const scope = namespace === ALL_NAMESPACES ? undefined : namespace
   const write = usePermission('write')
   const [search, setSearch] = useState('')
-  const query = usePluginQuery(() => helmData().listReleases(scope), [scope])
+  const query = usePluginQuery(() => helmData().listReleases(scope), [scope], {
+    topics: ['secrets'],
+    namespace: scope,
+  })
 
   const columns = useMemo<Column<HelmRelease>[]>(
     () => [

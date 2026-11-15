@@ -21,6 +21,8 @@ interface SettingsState {
    * i18n imports; src/i18n validates it.
    */
   language: 'auto' | (string & {})
+  /** Refresh views when the cluster changes (design §7.10); off = auto-refresh only. */
+  liveUpdates: boolean
   set: <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => void
 }
 
@@ -33,6 +35,7 @@ export const useSettingsStore = create<SettingsState>()(
       autoRefreshSeconds: 0,
       metricsSource: 'auto',
       language: 'auto',
+      liveUpdates: true,
       set: (key, value) => set({ [key]: value }),
     }),
     { name: 'kubebench.settings' },

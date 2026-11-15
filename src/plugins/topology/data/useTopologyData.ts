@@ -10,7 +10,8 @@ import type { TopologySnapshot } from '../model/types'
  * (e.g. Secrets without RBAC) leaves the others standing. Pods,
  * Deployments and Services come from the read-only Kubernetes passthrough,
  * which keeps owner references, selectors and volumes; the other kinds
- * from the generic resource lists. Re-runs on refreshData().
+ * from the generic resource lists. Re-runs on refreshData() and when live
+ * updates report a change of its list's topic in the namespace.
  */
 
 export type ListName = keyof TopologySnapshot
@@ -50,24 +51,30 @@ interface ItemList {
 const passthrough = (p: DataProviders, path: string) =>
   p.cluster.k8sGet<ItemList>(path).then((list) => list.items ?? [])
 
-function useList(load: (p: DataProviders) => Promise<KubeObject[]>, namespace: string): QueryState<KubeObject[]> {
-  return useProviderQuery(load, [namespace])
+/** One list of `topic` in `namespace` (undefined for a cluster-scoped list). */
+function useList(
+  load: (p: DataProviders) => Promise<KubeObject[]>,
+  namespace: string,
+  topic: string,
+  scoped = true,
+): QueryState<KubeObject[]> {
+  return useProviderQuery(load, [namespace], { topics: [topic], namespace: scoped ? namespace : undefined })
 }
 
 export function useTopologyData(namespace: string): TopologyData {
   const ns = encodeURIComponent(namespace)
   const queries: Record<ListName, QueryState<KubeObject[]>> = {
-    pods: useList((p) => passthrough(p, `/api/v1/namespaces/${ns}/pods`), namespace),
-    deployments: useList((p) => passthrough(p, `/apis/apps/v1/namespaces/${ns}/deployments`), namespace),
-    services: useList((p) => passthrough(p, `/api/v1/namespaces/${ns}/services`), namespace),
-    replicaSets: useList((p) => p.cluster.listResource('replicasets', namespace), namespace),
-    statefulSets: useList((p) => p.cluster.listResource('statefulsets', namespace), namespace),
-    daemonSets: useList((p) => p.cluster.listResource('daemonsets', namespace), namespace),
-    ingresses: useList((p) => p.cluster.listResource('ingresses', namespace), namespace),
-    pvcs: useList((p) => p.cluster.listResource('persistentvolumeclaims', namespace), namespace),
-    pvs: useList((p) => p.cluster.listResource('persistentvolumes'), namespace),
-    configMaps: useList((p) => p.cluster.listResource('configmaps', namespace), namespace),
-    secrets: useList((p) => p.cluster.listResource('secrets', namespace), namespace),
+    pods: useList((p) => passthrough(p, `/api/v1/namespaces/${ns}/pods`), namespace, 'pods'),
+    deployments: useList((p) => passthrough(p, `/apis/apps/v1/namespaces/${ns}/deployments`), namespace, 'deployments'),
+    services: useList((p) => passthrough(p, `/api/v1/namespaces/${ns}/services`), namespace, 'services'),
+    replicaSets: useList((p) => p.cluster.listResource('replicasets', namespace), namespace, 'replicasets'),
+    statefulSets: useList((p) => p.cluster.listResource('statefulsets', namespace), namespace, 'statefulsets'),
+    daemonSets: useList((p) => p.cluster.listResource('daemonsets', namespace), namespace, 'daemonsets'),
+    ingresses: useList((p) => p.cluster.listResource('ingresses', namespace), namespace, 'ingresses'),
+    pvcs: useList((p) => p.cluster.listResource('persistentvolumeclaims', namespace), namespace, 'persistentvolumeclaims'),
+    pvs: useList((p) => p.cluster.listResource('persistentvolumes'), namespace, 'persistentvolumes', false),
+    configMaps: useList((p) => p.cluster.listResource('configmaps', namespace), namespace, 'configmaps'),
+    secrets: useList((p) => p.cluster.listResource('secrets', namespace), namespace, 'secrets'),
   }
 
   // A refresh keeps each list's previous data, so the snapshot (and the

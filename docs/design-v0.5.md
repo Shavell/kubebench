@@ -591,7 +591,8 @@ export function definePluginData<T>(pluginId: string, impl: {
   live: (api: ReturnType<typeof pluginApi>) => T
 }): () => T          // memoized; picks by dataMode.mode, never falls back
 
-export function usePluginQuery<T>(fn: () => Promise<T>, deps: DependencyList): QueryState<T>
+export function usePluginQuery<T>(fn: () => Promise<T>, deps: DependencyList,
+  scope?: { topics?: readonly string[]; namespace?: string }): QueryState<T>   // scope: §7.10
 export function usePluginStatus(pluginId: string): { enabled: boolean; available: boolean; reason?: string; loading: boolean }
 ```
 
@@ -1206,6 +1207,44 @@ Implementation (`src/plugins/topology`, no backend routes):
 heartbeat comments every 25 s, backed by per-cluster shared informers that
 start lazily and stop when unused. Frontend: scoped invalidation
 (`refreshData(topic?)`), status bar "Live" indicator, Settings toggle.
+
+- **Topics** are resources as kubectl names them: `pods`, `deployments`,
+  or `<resource>.<group>` (`applications.argoproj.io`); 1–32 per stream,
+  lower case, duplicates dropped (else `400 bad_request`). A topic is
+  resolved through discovery to the preferred version.
+- **Events**: `event: status` `{topic, mode, reason?}` with `mode`
+  `starting` (informer listing), `live` or `polling` (the cluster does not
+  serve the resource, the credential may not list/watch it, or the
+  cluster's informer limit is reached; `reason` says which) — the first
+  ones at once, then on every change; `event: change` `{topic, namespace}`
+  collected for 500 ms (`namespace` `""` = cluster-scoped, or anywhere
+  after more than 256 pending changes); `event: end` with the reason when
+  the server ends the stream: the cluster's runtime was rebuilt or removed,
+  or the caller's session/assignment ended (checked every heartbeat, like
+  log streams). Clients may reconnect after `end`.
+- **Hub** (`internal/watch`, one per Runtime, closed with it): one dynamic
+  informer per resource, keeping only object metadata, started on the
+  first subscription and stopped 5 min after the last subscriber left.
+  Limits: 16 watch streams per user (`429 rate_limited`), 512 subscribers
+  and 64 informers per cluster. `GET /api/watch/status` (read) lists the
+  informers `{resource, mode, reason?, subscribers, idleSince?}` and the
+  subscriber count, for diagnostics. Lists are still served by direct API
+  calls, not from the informer caches.
+- **Frontend**: queries declare `scope: {topics, namespace?}`
+  (`useQuery`/`useProviderQuery`/`usePluginQuery`, SDK
+  `data.usePluginQuery`). `refreshData()` re-runs every query (mutations);
+  `refreshTopics(changes)` only the queries of a changed topic in that
+  namespace (the TS signature keeps `refreshData()` argument-free because
+  it is used as an event handler). The stream subscribes to the union of
+  the mounted queries' topics (`live.watch` provider; the mock reports all
+  topics live), opens a replacement before closing the old stream when
+  topics are added, refreshes a topic once its informer synced and every
+  view after a reconnect. Status bar: Live / Polling / Offline (red;
+  reconnects with backoff) / Connecting / Live updates off; its menu lists
+  polled topics with the reason and toggles the setting. Settings → Data →
+  Live updates (default on). Auto-refresh stays the fallback: while live,
+  it refreshes queries without topics and polled topics (polled topics
+  every 30 s when auto-refresh is off); otherwise everything.
 
 ### 7.11 Updates and What's new (core)
 

@@ -2,7 +2,7 @@ import type { DependencyList } from 'react'
 import { registry } from '@/core/plugin/registry'
 import { resolvePluginStatus, usePluginStatusStore } from '@/core/plugin/pluginStatusStore'
 import { apiDelete, apiGet, apiPatch, apiPost, apiPut, type QueryParams } from './apiClient'
-import { useQuery, type QueryState } from './DataContext'
+import { useQuery, type QueryScope, type QueryState } from './DataContext'
 import { dataMode } from './mode'
 
 /**
@@ -49,9 +49,14 @@ export function definePluginData<T>(
   }
 }
 
-/** Query hook for plugin data; re-runs on `deps` changes and on refreshData(). */
-export function usePluginQuery<T>(fn: () => Promise<T>, deps: DependencyList): QueryState<T> {
-  return useQuery(fn, deps)
+/**
+ * Query hook for plugin data; re-runs on `deps` changes and on
+ * refreshData(), and — when `scope` names the resources it reads (topics
+ * like `pods` or `applications.argoproj.io`) — when live updates report
+ * a change of them (design §7.10).
+ */
+export function usePluginQuery<T>(fn: () => Promise<T>, deps: DependencyList, scope?: QueryScope): QueryState<T> {
+  return useQuery(fn, deps, scope)
 }
 
 /** Enabled/available state of a plugin, e.g. to show an Unavailable page. */

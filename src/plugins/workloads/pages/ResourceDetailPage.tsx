@@ -34,10 +34,10 @@ function ResourceDetail({ tab }: { tab: TabDescriptor }) {
   const closeTab = useLayoutStore((s) => s.closeTab)
   const closeThisTab = () => closeTab(tab.id)
 
-  const pods = useProviderQuery((p) => p.cluster.listPods(), [])
-  const nodes = useProviderQuery((p) => p.cluster.listNodes(), [])
-  const deployments = useProviderQuery((p) => p.cluster.listDeployments(), [])
-  const services = useProviderQuery((p) => p.cluster.listServices(), [])
+  const pods = useProviderQuery((p) => p.cluster.listPods(), [], { topics: ['pods'] })
+  const nodes = useProviderQuery((p) => p.cluster.listNodes(), [], { topics: ['nodes'] })
+  const deployments = useProviderQuery((p) => p.cluster.listDeployments(), [], { topics: ['deployments'] })
+  const services = useProviderQuery((p) => p.cluster.listServices(), [], { topics: ['services'] })
 
   /** Shown until the object turns up: why its list failed, else a loading line. */
   const pending = (query: QueryState<unknown>) =>

@@ -21,7 +21,10 @@ export function PvcListPage() {
   const { t } = useTranslation(NS)
   const namespace = useContextStore((s) => s.namespace)
   const ns = namespace === ALL_NAMESPACES ? undefined : namespace
-  const query = usePluginQuery(() => storageData().listPvcs(ns), [ns])
+  const query = usePluginQuery(() => storageData().listPvcs(ns), [ns], {
+    topics: ['persistentvolumeclaims'],
+    namespace: ns,
+  })
   const [expanding, setExpanding] = useState<PvcSummary | null>(null)
 
   const columns = useMemo<Column<PvcSummary>[]>(

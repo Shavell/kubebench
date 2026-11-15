@@ -36,7 +36,7 @@ function healthIcon(app: ArgoApplicationSummary): string {
 export function ArgoSidebar() {
   const { t } = useTranslation(NS)
   const activeTabId = useLayoutStore((s) => s.activeTabId)
-  const apps = usePluginQuery(() => argoCd().listApplications(), [])
+  const apps = usePluginQuery(() => argoCd().listApplications(), [], { topics: ['applications.argoproj.io'] })
   const list = apps.data ?? []
 
   const projects = [...new Set(list.map((a) => a.project))].sort()

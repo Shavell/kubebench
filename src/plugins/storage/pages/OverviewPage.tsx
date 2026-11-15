@@ -25,7 +25,7 @@ const gib = (bytes: number) => Math.round((bytes / GIB) * 10) / 10
 /** Storage at a glance: counts, capacity, classes (with the default) and CSI drivers. */
 export function OverviewPage() {
   const { t } = useTranslation(NS)
-  const overview = usePluginQuery(() => storageData().overview(), [])
+  const overview = usePluginQuery(() => storageData().overview(), [], { topics: ['persistentvolumeclaims', 'persistentvolumes', 'storageclasses'] })
   const drivers = usePluginQuery(() => storageData().listCsiDrivers(), [])
 
   const driverColumns = useMemo<Column<CsiDriverSummary>[]>(

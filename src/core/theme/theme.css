@@ -69,6 +69,9 @@
   --vscode-statusBarItem-stagingForeground: #1e1e1e;
   --vscode-statusBarItem-developmentBackground: #16825d;
   --vscode-statusBarItem-developmentForeground: #ffffff;
+  /* Live updates cannot reach the server (design §7.10). */
+  --vscode-statusBarItem-offlineBackground: #6c1717;
+  --vscode-statusBarItem-offlineForeground: #ffffff;
 
   /* Editor tabs */
   --vscode-tab-activeBackground: #1e1e1e;
@@ -233,6 +236,9 @@
   --vscode-statusBarItem-stagingForeground: #1e1e1e;
   --vscode-statusBarItem-developmentBackground: #16825d;
   --vscode-statusBarItem-developmentForeground: #ffffff;
+  /* Live updates cannot reach the server (design §7.10). */
+  --vscode-statusBarItem-offlineBackground: #6c1717;
+  --vscode-statusBarItem-offlineForeground: #ffffff;
 
   /* Editor tabs */
   --vscode-tab-activeBackground: #ffffff;

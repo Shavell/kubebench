@@ -12,6 +12,7 @@ import { createApiCrd } from './crd'
 import { createApiMetrics } from './metrics'
 import { createApiWorkloadOps } from './workloadOps'
 import { createApiUpdates } from './updates'
+import { createApiLive } from './watch'
 
 /**
  * Live providers backed by the Go backend (`/api`). Capabilities come from
@@ -30,5 +31,6 @@ export function createApiProviders(capabilities: LiveCapabilities): DataProvider
     plugins: createApiPlugins(),
     workloadOps: createApiWorkloadOps(),
     updates: createApiUpdates(),
+    live: createApiLive(),
   }
 }

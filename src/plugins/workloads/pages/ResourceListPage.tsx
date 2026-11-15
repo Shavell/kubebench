@@ -133,7 +133,7 @@ export function ResourceListPage({ tab }: { tab: TabDescriptor }) {
   const nsFilter = localNs || (globalNamespace === ALL_NAMESPACES ? undefined : globalNamespace)
   const label = richLabel(resource)
 
-  const { data: namespaces } = useProviderQuery((p) => p.cluster.listNamespaces(), [])
+  const { data: namespaces } = useProviderQuery((p) => p.cluster.listNamespaces(), [], { topics: ['namespaces'] })
 
   type AnyRow = Pod | K8sNode | Namespace | Deployment | Service
   const query = useProviderQuery<AnyRow[]>(
@@ -154,6 +154,8 @@ export function ResourceListPage({ tab }: { tab: TabDescriptor }) {
       }
     },
     [resource, nsFilter],
+    // The resources of this page ('Pods', …) are their watch topics in lower case.
+    { topics: [resource.toLowerCase()], namespace: nsFilter },
   )
 
   if (query.loading && !query.data) {

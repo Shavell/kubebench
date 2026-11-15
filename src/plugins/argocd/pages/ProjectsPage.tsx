@@ -20,8 +20,8 @@ const list = (items: string[]) => (items.length ? items.join(', ') : '—')
 /** AppProjects: what their applications may deploy, from where and to where. */
 export function ProjectsPage() {
   const { t } = useTranslation(NS)
-  const projects = usePluginQuery(() => argoCd().listProjects(), [])
-  const apps = usePluginQuery(() => argoCd().listApplications(), [])
+  const projects = usePluginQuery(() => argoCd().listProjects(), [], { topics: ['appprojects.argoproj.io'] })
+  const apps = usePluginQuery(() => argoCd().listApplications(), [], { topics: ['applications.argoproj.io'] })
 
   const appCounts = useMemo(() => {
     const counts = new Map<string, number>()

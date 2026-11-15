@@ -55,6 +55,9 @@ func (s *Server) routes() {
 	s.handle("GET /api/metrics/pod", accessRead, s.handlePodSeries)
 	s.handle("GET /api/crds", accessRead, s.handleCrds)
 	s.handle("GET /api/crds/instances", accessRead, s.handleCrdInstances)
+	// Live updates (§7.10): change notifications and the informers behind them.
+	s.handle("GET /api/watch", accessRead, s.handleWatch)
+	s.handle("GET /api/watch/status", accessRead, s.handleWatchStatus)
 
 	// The active cluster: changes (audited).
 	s.handle("DELETE /api/pods", accessWrite, s.handleDeletePod)

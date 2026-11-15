@@ -26,7 +26,10 @@ export function DeploymentDetail({ deployment: d, onDeleted }: { deployment: Dep
   const [opError, setOpError] = useState<string | null>(null)
 
   const app = d.labels.app ?? d.labels['k8s-app'] ?? d.name
-  const { data: pods } = useProviderQuery((p) => p.cluster.listPods(d.namespace), [d.namespace])
+  const { data: pods } = useProviderQuery((p) => p.cluster.listPods(d.namespace), [d.namespace], {
+    topics: ['pods'],
+    namespace: d.namespace,
+  })
   const ownPods = (pods ?? []).filter((p) => p.labels.app === app)
 
   const runOp = async (op: () => Promise<void>) => {

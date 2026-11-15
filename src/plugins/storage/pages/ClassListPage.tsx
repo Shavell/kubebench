@@ -14,7 +14,7 @@ import '../storage.css'
 /** StorageClasses, with the default class marked. */
 export function ClassListPage() {
   const { t } = useTranslation(NS)
-  const query = usePluginQuery(() => storageData().overview(), [])
+  const query = usePluginQuery(() => storageData().overview(), [], { topics: ['persistentvolumeclaims', 'persistentvolumes', 'storageclasses'] })
 
   const body = () => {
     if (query.loading && !query.data) return <div className="page-loading">{t('classes.loading')}</div>
