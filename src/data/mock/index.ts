@@ -14,6 +14,7 @@ import { mockK8sGet } from './mockK8s'
 import { createMockPlugins } from './mockPlugins'
 import { createMockSession } from './mockSession'
 import { createMockUsers } from './mockUsers'
+import { mockEditing } from './mockEditing'
 import {
   customResourceYaml,
   deploymentYaml,
@@ -160,6 +161,7 @@ export function createMockProviders(): DataProviders {
         }
         return delay(undefined)
       },
+      ...mockEditing,
     },
     crd: {
       listCrds: () => delay(crds),

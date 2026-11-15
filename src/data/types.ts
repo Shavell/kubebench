@@ -351,3 +351,63 @@ export interface ClusterStats {
   cpuCapacityCores: number
   memoryCapacityGi: number
 }
+
+// --- Resource editing (design §7.2) ---------------------------------------
+
+/** One object of any kind, for the generic YAML, apply, delete and metadata endpoints. */
+export interface ObjectRef {
+  /** e.g. "apps/v1", "v1", "cert-manager.io/v1". */
+  apiVersion: string
+  kind: string
+  /** Empty or null for cluster-scoped kinds. */
+  namespace?: string | null
+  name: string
+}
+
+/** What applying a document did, or in a dry run would do. */
+export type ApplyAction = 'created' | 'configured' | 'unchanged'
+
+/** The outcome of one object of POST /api/resource/apply. */
+export interface ApplyResult {
+  apiVersion: string
+  kind: string
+  /** The namespace it went to (defaulted when the manifest named none); absent for cluster-scoped kinds. */
+  namespace?: string
+  name: string
+  /** Absent when the object failed (see `error`). */
+  action?: ApplyAction
+  error?: string
+  /**
+   * §3.3 code of `error`: `conflict` means fields the manifest changes are
+   * owned by another field manager (a forced apply takes them over);
+   * `not_found` a kind the cluster does not serve.
+   */
+  code?: string
+  /** E.g. that the namespace of a cluster-scoped object was ignored. */
+  warnings?: string[]
+}
+
+export interface ApplyOptions {
+  /** For namespaced objects that name no namespace; the server uses "default" without it. */
+  namespace?: string
+  /** Validate everything on the server (admission included) without persisting anything. */
+  dryRun?: boolean
+  /** Take over fields owned by other field managers instead of reporting a conflict. */
+  force?: boolean
+}
+
+/** What happens to the objects a deleted one owns (e.g. a Deployment's ReplicaSets and Pods). */
+export type DeletePropagation = 'Background' | 'Foreground' | 'Orphan'
+
+export interface DeleteOptions {
+  /** Default: the resource's own default (Background for built-in workloads). */
+  propagation?: DeletePropagation
+  /** Overrides the termination grace period; 0 deletes at once. */
+  gracePeriodSeconds?: number
+}
+
+/** Labels and annotations to set; a null value removes the key, keys not named stay. */
+export interface MetadataPatch {
+  labels?: Record<string, string | null>
+  annotations?: Record<string, string | null>
+}

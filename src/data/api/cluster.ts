@@ -2,6 +2,7 @@ import { apiDelete, apiGet, apiPost, type QueryParams } from '../apiClient'
 import type { ClusterProvider } from '../providers'
 import type { LiveCapabilities } from '../types'
 import { rejectUnavailable } from './unavailable'
+import { apiEditing } from './editing'
 
 /**
  * GET /api/k8s/<path> (design §4.5). A query string written into `path`
@@ -51,5 +52,6 @@ export function createApiCluster(capabilities: LiveCapabilities): ClusterProvide
     restartDeployment: async (ns, name) => {
       await apiPost('/deployments/restart', undefined, { ns, name })
     },
+    ...apiEditing,
   }
 }
