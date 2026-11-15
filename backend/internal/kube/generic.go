@@ -111,6 +111,11 @@ func redactSecret(obj map[string]any) {
 	}
 }
 
+// RedactSecret is redactSecret for content read outside the runtime's
+// clients, e.g. the Secrets in a Helm release's rendered manifest: obj is
+// a Secret's content (data, stringData, metadata), changed in place.
+func RedactSecret(obj map[string]any) { redactSecret(obj) }
+
 // IsRedacted reports whether s is one of redactSecret's markers ("<12
 // bytes, redacted>", "<redacted>") rather than a real value. A base64
 // data value cannot look like one.

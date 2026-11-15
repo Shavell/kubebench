@@ -11,9 +11,9 @@ import (
 )
 
 // The Helm plugin's mutations go through the router's gates: viewers are
-// refused before the handler runs, repositories need an admin, dry runs
-// need only read access, and every attempt is audited without the
-// request body.
+// refused before the handler runs, dry runs and OCI fetches included,
+// release values need exec, repositories need an admin, and every attempt
+// is audited without the request body.
 func TestHelmPluginGates(t *testing.T) {
 	p := helm.New()
 	if err := plugin.StartAll(context.Background(), t.TempDir(), []plugin.Plugin{p}); err != nil {
@@ -31,6 +31,10 @@ func TestHelmPluginGates(t *testing.T) {
 		auditTarget    string
 	}{
 		{http.MethodPost, "/api/plugins/helm/install", install, "release"},
+		{http.MethodPost, "/api/plugins/helm/install?dryRun=true", install, "release"},
+		{http.MethodPost, "/api/plugins/helm/releases/shop/web/upgrade?dryRun=true", map[string]any{}, "release/shop/web"},
+		{http.MethodGet, "/api/plugins/helm/releases/shop/web/values", nil, "release/shop/web"},
+		{http.MethodGet, "/api/plugins/helm/charts/oci/values?ref=oci://10.0.0.5:5000/x&version=1", nil, "chart"},
 		{http.MethodPost, "/api/plugins/helm/releases/shop/web/upgrade", map[string]any{}, "release/shop/web"},
 		{http.MethodPost, "/api/plugins/helm/releases/shop/web/rollback", map[string]int{"revision": 1}, "release/shop/web"},
 		{http.MethodDelete, "/api/plugins/helm/releases/shop/web?keepHistory=true", nil, "release/shop/web"},
@@ -52,12 +56,12 @@ func TestHelmPluginGates(t *testing.T) {
 		t.Fatalf("refused requests reached the cluster: %v", m)
 	}
 
-	// A viewer's dry run reaches the handler (which finds no such upload)
-	// and is not audited.
+	// An operator's dry run reaches the handler (which finds no such
+	// upload) and is audited.
 	rows := len(e.audit())
-	expect(t, e.do(http.MethodPost, "/api/plugins/helm/install?dryRun=true", "bob", install), http.StatusNotFound, plugin.CodeNotFound)
-	if len(e.audit()) != rows {
-		t.Fatal("a dry run was audited")
+	expect(t, e.do(http.MethodPost, "/api/plugins/helm/install?dryRun=true", "alice", install), http.StatusNotFound, plugin.CodeNotFound)
+	if row := e.lastAudit(); len(e.audit()) != rows+1 || row.Username != "alice" || row.Target != "release/shop/web" {
+		t.Fatalf("dry-run row %+v", row)
 	}
 
 	// The handler names the release in the row; credentials never appear.

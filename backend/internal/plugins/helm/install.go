@@ -86,7 +86,9 @@ func detached(ctx context.Context) (context.Context, context.CancelFunc) {
 }
 
 // install installs ch as in describes. A dry run renders the manifest with
-// the cluster's API versions and lookups, without creating anything.
+// the cluster's API versions and lookups, without creating anything: as
+// template lookups read the cluster with KubeBench's own credential, the
+// route needs write access for dry runs too (§7.4).
 func install(ctx context.Context, cfg *action.Configuration, in InstallRequest, ch *chart.Chart) (*InstallResult, error) {
 	values, err := parseValues(in.Values)
 	if err != nil {
@@ -107,7 +109,7 @@ func install(ctx context.Context, cfg *action.Configuration, in InstallRequest, 
 	if err != nil {
 		return nil, err
 	}
-	return &InstallResult{Release: summarize(rel), Manifest: manifestOf(rel), Notes: notesOf(rel)}, nil
+	return &InstallResult{Release: summarize(rel), Manifest: redactManifest(manifestOf(rel)), Notes: notesOf(rel)}, nil
 }
 
 // upgrade upgrades the release name to ch (nil: its current chart).
@@ -142,8 +144,8 @@ func upgrade(ctx context.Context, cfg *action.Configuration, namespace, name str
 		return nil, err
 	}
 	return &UpgradeResult{
-		Release: summarize(rel), Manifest: manifestOf(rel), Notes: notesOf(rel),
-		CurrentManifest: manifestOf(current),
+		Release: summarize(rel), Manifest: redactManifest(manifestOf(rel)), Notes: notesOf(rel),
+		CurrentManifest: redactManifest(manifestOf(current)),
 	}, nil
 }
 

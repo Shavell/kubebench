@@ -3,6 +3,7 @@ package helm
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
@@ -48,6 +49,7 @@ func newEnvironment(dir string) (*environment, error) {
 	}
 	reg, err := registry.NewClient(
 		registry.ClientOptCredentialsFile(settings.RegistryConfig),
+		registry.ClientOptHTTPClient(registryHTTPClient()),
 		registry.ClientOptWriter(io.Discard),
 		registry.ClientOptEnableCache(true),
 	)
@@ -60,4 +62,12 @@ func newEnvironment(dir string) (*environment, error) {
 		registry: reg,
 		uploads:  uploads,
 	}, nil
+}
+
+// registryHTTPClient is the OCI registry client's HTTP client: HTTPS only.
+// Helm's default transport falls back to plain HTTP once any registry
+// answers HTTPS with HTTP, and then stays on HTTP for every later request
+// of the client, which KubeBench shares between all users and clusters.
+func registryHTTPClient() *http.Client {
+	return &http.Client{Transport: registry.NewTransport(false)}
 }

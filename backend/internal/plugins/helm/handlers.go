@@ -152,7 +152,7 @@ func (p *Plugin) handleReleaseManifest(w http.ResponseWriter, r *http.Request, c
 		writeError(w, err)
 		return
 	}
-	plugin.WriteJSON(w, map[string]any{"revision": rel.Version, "manifest": manifestOf(rel)})
+	plugin.WriteJSON(w, map[string]any{"revision": rel.Version, "manifest": redactManifest(manifestOf(rel))})
 }
 
 func (p *Plugin) handleRollback(w http.ResponseWriter, r *http.Request, c *plugin.Context) {
@@ -219,15 +219,19 @@ func (p *Plugin) handleInstall(w http.ResponseWriter, r *http.Request, c *plugin
 		writeError(w, err)
 		return
 	}
-	// The router checked a dryRun=true request as a read: it must be one.
+	// Either flag asks for a dry run. Dry runs need write and are audited
+	// like the install itself: template lookups read the cluster with
+	// KubeBench's credential (§7.4).
 	in.DryRun = in.DryRun || plugin.IsDryRun(r)
 	if err := in.validate(); err != nil {
 		writeError(w, err)
 		return
 	}
-	refineAudit(c, "release/"+in.Namespace+"/"+in.Name, map[string]any{
-		"chart": describeRef(in.Chart), "createNamespace": in.CreateNamespace,
-	})
+	detail := map[string]any{"chart": describeRef(in.Chart), "createNamespace": in.CreateNamespace}
+	if in.DryRun {
+		detail["dryRun"] = true
+	}
+	refineAudit(c, "release/"+in.Namespace+"/"+in.Name, detail)
 	ch, err := p.env.loadChart(in.Chart)
 	if err != nil {
 		writeError(w, err)
@@ -259,6 +263,9 @@ func (p *Plugin) handleUpgrade(w http.ResponseWriter, r *http.Request, c *plugin
 	}
 	in.DryRun = in.DryRun || plugin.IsDryRun(r)
 	detail := map[string]any{"chart": "(current)", "reuseValues": in.ReuseValues}
+	if in.DryRun {
+		detail["dryRun"] = true
+	}
 	var ch *chart.Chart // nil: the release's current chart
 	if !in.Chart.IsZero() {
 		detail["chart"] = describeRef(in.Chart)
@@ -339,12 +346,32 @@ func (p *Plugin) handleSearchCharts(w http.ResponseWriter, r *http.Request, _ *p
 	plugin.WriteJSON(w, out)
 }
 
+// handleChartValues serves the default values of a chart from an added
+// repository or an upload. OCI references go to handleOCIChartValues,
+// which needs write: the caller names the host the server connects to.
 func (p *Plugin) handleChartValues(w http.ResponseWriter, r *http.Request, _ *plugin.Context) {
 	q := r.URL.Query()
-	ref := ChartRef{
-		Repo: q.Get("repo"), Name: q.Get("chart"), Ref: q.Get("ref"),
-		Version: q.Get("version"), UploadID: q.Get("uploadId"),
+	if q.Get("ref") != "" {
+		writeError(w, badRequest("the values of an OCI chart are read through GET /charts/oci/values"))
+		return
 	}
+	ref := ChartRef{Repo: q.Get("repo"), Name: q.Get("chart"), Version: q.Get("version"), UploadID: q.Get("uploadId")}
+	p.writeChartValues(w, ref)
+}
+
+// handleOCIChartValues serves the default values of an OCI chart.
+func (p *Plugin) handleOCIChartValues(w http.ResponseWriter, r *http.Request, c *plugin.Context) {
+	q := r.URL.Query()
+	ref := ChartRef{Ref: q.Get("ref"), Version: q.Get("version")}
+	if ref.Ref == "" {
+		writeError(w, badRequest("ref must name an OCI chart"))
+		return
+	}
+	refineAudit(c, "chart/"+ref.Ref, map[string]any{"version": ref.Version})
+	p.writeChartValues(w, ref)
+}
+
+func (p *Plugin) writeChartValues(w http.ResponseWriter, ref ChartRef) {
 	out, err := p.env.chartValues(ref)
 	if err != nil {
 		writeError(w, err)

@@ -78,9 +78,14 @@ func (p *Plugin) Detect(ctx context.Context, rt *kube.Runtime) plugin.Status {
 
 var errNotStarted = errors.New("the Helm plugin was not started")
 
-// Routes registers §7.4's endpoints. Dry runs of install and upgrade need
-// only read access (DryRunnable); repositories are added and removed by
-// admins, while updating their indexes is a write.
+// Routes registers §7.4's endpoints. Install and upgrade need write even
+// for a dry run: Helm's server-side dry run runs template lookups with
+// KubeBench's own credential. Release values often carry credentials, so
+// reading them needs exec, like revealing a Secret; manifests are served
+// at read level with Secret values redacted. Fetching from an OCI
+// registry (any host the caller names) needs write, while added
+// repositories are the admin's allow-list. Repositories are added and
+// removed by admins; updating their indexes is a write.
 func (p *Plugin) Routes(r plugin.Router) {
 	handle := func(method, path string, access plugin.Access, h plugin.HandlerFunc) {
 		r.Handle(method, path, access, func(w http.ResponseWriter, req *http.Request, c *plugin.Context) {
@@ -93,12 +98,12 @@ func (p *Plugin) Routes(r plugin.Router) {
 	}
 	handle(http.MethodGet, "/releases", plugin.AccessRead, p.handleListReleases)
 	handle(http.MethodGet, "/releases/{ns}/{name}", plugin.AccessRead, p.handleGetRelease)
-	handle(http.MethodGet, "/releases/{ns}/{name}/values", plugin.AccessRead, p.handleReleaseValues)
+	handle(http.MethodGet, "/releases/{ns}/{name}/values", plugin.AccessExec, p.handleReleaseValues)
 	handle(http.MethodGet, "/releases/{ns}/{name}/manifest", plugin.AccessRead, p.handleReleaseManifest)
 	handle(http.MethodPost, "/releases/{ns}/{name}/rollback", plugin.AccessWrite, p.handleRollback)
 	handle(http.MethodDelete, "/releases/{ns}/{name}", plugin.AccessWrite, p.handleUninstall)
-	handle(http.MethodPost, "/releases/{ns}/{name}/upgrade", plugin.AccessWrite|plugin.DryRunnable, p.handleUpgrade)
-	handle(http.MethodPost, "/install", plugin.AccessWrite|plugin.DryRunnable, p.handleInstall)
+	handle(http.MethodPost, "/releases/{ns}/{name}/upgrade", plugin.AccessWrite, p.handleUpgrade)
+	handle(http.MethodPost, "/install", plugin.AccessWrite, p.handleInstall)
 
 	handle(http.MethodGet, "/repos", plugin.AccessRead, p.handleListRepos)
 	handle(http.MethodPost, "/repos", plugin.AccessAdmin, p.handleAddRepo)
@@ -107,5 +112,6 @@ func (p *Plugin) Routes(r plugin.Router) {
 
 	handle(http.MethodGet, "/charts/search", plugin.AccessRead, p.handleSearchCharts)
 	handle(http.MethodGet, "/charts/values", plugin.AccessRead, p.handleChartValues)
+	handle(http.MethodGet, "/charts/oci/values", plugin.AccessWrite, p.handleOCIChartValues)
 	handle(http.MethodPost, "/charts/upload", plugin.AccessWrite, p.handleUploadChart)
 }

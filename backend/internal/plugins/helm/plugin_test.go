@@ -24,25 +24,28 @@ import (
 	"kubebench/internal/store"
 )
 
-// Every route has the access level §7.4 names: mutations are write (dry
-// runs relaxed to read), repositories are added and removed by admins.
+// Every route has the access level §7.4 names: mutations are write, dry
+// runs included (template lookups use KubeBench's credential); release
+// values need exec; OCI fetches need write; repositories are added and
+// removed by admins.
 func TestRouteAccess(t *testing.T) {
 	h := newHarness(t)
 	want := map[string]plugin.Access{
 		"GET /releases":                       plugin.AccessRead,
 		"GET /releases/{ns}/{name}":           plugin.AccessRead,
-		"GET /releases/{ns}/{name}/values":    plugin.AccessRead,
+		"GET /releases/{ns}/{name}/values":    plugin.AccessExec,
 		"GET /releases/{ns}/{name}/manifest":  plugin.AccessRead,
 		"POST /releases/{ns}/{name}/rollback": plugin.AccessWrite,
 		"DELETE /releases/{ns}/{name}":        plugin.AccessWrite,
-		"POST /releases/{ns}/{name}/upgrade":  plugin.AccessWrite | plugin.DryRunnable,
-		"POST /install":                       plugin.AccessWrite | plugin.DryRunnable,
+		"POST /releases/{ns}/{name}/upgrade":  plugin.AccessWrite,
+		"POST /install":                       plugin.AccessWrite,
 		"GET /repos":                          plugin.AccessRead,
 		"POST /repos":                         plugin.AccessAdmin,
 		"DELETE /repos/{name}":                plugin.AccessAdmin,
 		"POST /repos/update":                  plugin.AccessWrite,
 		"GET /charts/search":                  plugin.AccessRead,
 		"GET /charts/values":                  plugin.AccessRead,
+		"GET /charts/oci/values":              plugin.AccessWrite,
 		"POST /charts/upload":                 plugin.AccessWrite,
 	}
 	if len(h.access) != len(want) {
@@ -199,4 +202,30 @@ func TestChartRefValidation(t *testing.T) {
 			t.Errorf("%+v: %v", tc.ref, err)
 		}
 	}
+}
+
+// The registry client never downgrades to plain HTTP: Helm's default
+// transport would retry over HTTP when a host answers HTTPS with HTTP,
+// and then stay on HTTP for every registry (the client is shared).
+func TestRegistryClientStaysOnHTTPS(t *testing.T) {
+	h := newHarness(t)
+	var reached bool
+	plain := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reached = true
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer plain.Close()
+	ref := "oci://" + strings.TrimPrefix(plain.URL, "http://") + "/charts/demo"
+	for range 2 {
+		msg := fails(t, h.do(http.MethodGet, "/charts/oci/values?ref="+ref+"&version=1.0.0", nil), http.StatusBadRequest, plugin.CodeBadRequest)
+		if !strings.Contains(msg, "https://") {
+			t.Fatalf("download error %q: want an HTTPS attempt", msg)
+		}
+	}
+	if reached {
+		t.Fatal("the registry client fell back to plain HTTP")
+	}
+	// The read-level route takes no OCI reference: it would let a viewer
+	// make the server connect to any host.
+	fails(t, h.do(http.MethodGet, "/charts/values?ref="+ref+"&version=1.0.0", nil), http.StatusBadRequest, plugin.CodeBadRequest)
 }

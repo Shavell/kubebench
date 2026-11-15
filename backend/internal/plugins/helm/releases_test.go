@@ -42,8 +42,8 @@ func TestReleaseLifecycle(t *testing.T) {
 		Chart: ChartRef{UploadID: v1}, Values: "greeting: hi\n",
 	}
 
-	// A dry run (here asked for by the query, as the router relaxes it)
-	// renders the manifest and notes and stores nothing.
+	// A dry run (here asked for by the query, as the UI does) renders the
+	// manifest and notes, stores nothing and is audited as a dry run.
 	dry := ok[InstallResult](t, h.do(http.MethodPost, "/install?dryRun=true", install))
 	contains(t, "dry-run manifest", dry.Manifest, `greeting: "hi"`)
 	contains(t, "dry-run manifest", dry.Manifest, "helm.sh/hook: post-install")
@@ -51,7 +51,8 @@ func TestReleaseLifecycle(t *testing.T) {
 	if got := ok[[]Release](t, h.do(http.MethodGet, "/releases", nil)); len(got) != 0 {
 		t.Fatalf("a dry run stored releases: %+v", got)
 	}
-	if h.audit.target != "release/shop/web" || !strings.Contains(h.audit.detail, `"chart":"upload `+v1+`"`) {
+	if h.audit.target != "release/shop/web" || !strings.Contains(h.audit.detail, `"chart":"upload `+v1+`"`) ||
+		!strings.Contains(h.audit.detail, `"dryRun":true`) {
 		t.Fatalf("install audit = %+v", h.audit)
 	}
 

@@ -158,7 +158,9 @@ ignored `dryRun` would otherwise let a viewer mutate.
 One exception: a dry run that touches a core Secret (apply, edit) needs
 `write` and is audited like the change itself (detail `"dryRun":true`),
 because its result (`unchanged` or not) would let a viewer, who sees
-Secret values only redacted, confirm guessed values.
+Secret values only redacted, confirm guessed values. Helm install and
+upgrade are not dry-runnable at all (§7.4): Helm's server-side dry run
+runs template `lookup`s with KubeBench's own credential.
 
 ### 3.3 Error format
 
@@ -214,7 +216,8 @@ error text. Pruned per `KUBEBENCH_AUDIT_RETENTION_DAYS`.
   with `400 bad_request` before its handler runs, so a row always shows a
   command or any other parameter completely.
 - Request bodies are never recorded (they may carry passwords or Secret
-  data); dry runs are not audited, except those touching Secrets (§3.2).
+  data); dry runs are not audited, except those touching Secrets and
+  Helm dry runs (§3.2).
 - WebSocket rows are written when the connection is hijacked (status 101);
   extra rows written through a plugin's `Context.Audit` have status 0.
 
@@ -856,8 +859,9 @@ Detect: can list Secrets labelled `owner=helm` (run after the capability
 probe, cached like every Detect).
 
 `GET /releases?ns=`, `GET /releases/{ns}/{name}` (info, chart metadata,
-notes, hooks), `GET /releases/{ns}/{name}/values?all=&revision=`,
-`GET /releases/{ns}/{name}/manifest?revision=`,
+notes, hooks), `GET /releases/{ns}/{name}/values?all=&revision=` (exec:
+values often carry credentials, so reading them is like revealing a
+Secret and is audited), `GET /releases/{ns}/{name}/manifest?revision=`,
 `POST /releases/{ns}/{name}/rollback {revision}`,
 `DELETE /releases/{ns}/{name}?keepHistory=`,
 `POST /install {name,namespace,createNamespace,chart:{repo,name,version}|{ref,version}|{uploadId},values,dryRun}` → `{release,manifest,notes}`,
@@ -865,7 +869,10 @@ notes, hooks), `GET /releases/{ns}/{name}/values?all=&revision=`,
 `GET /repos`, `POST /repos {name,url,username?,password?}` (admin),
 `DELETE /repos/{name}` (admin), `POST /repos/update` (write),
 `GET /charts/search?q=`, `GET /charts/values?repo=&chart=&version=`,
+`GET /charts/oci/values?ref=&version=` (write),
 `POST /charts/upload` (multipart `.tgz`, write; for offline installs).
+Install and upgrade are `write` with or without `dryRun`; every other
+read is `read`.
 
 Shapes (they match `src/plugins/helm/data/types.ts`):
 
@@ -886,17 +893,33 @@ Shapes (they match `src/plugins/helm/data/types.ts`):
   replace them (Helm's `--reset-values`, so an empty text resets to the
   chart defaults). Upgrades and rollbacks keep 10 revisions; nothing waits
   for readiness (no `--wait`); hooks and deletions time out after 5 min.
-- Dry runs (`dryRun=true` in the query, which the router relaxes to read
-  access; the body flag alone also dry-runs) use Helm's server-side dry
-  run: rendered with the cluster's API versions and lookups, nothing
-  created, the namespace not created either. Upgrade dry runs return the
-  current revision's manifest as `currentManifest` for the diff.
+- Dry runs (`dryRun=true` in the query or the body flag) use Helm's
+  server-side dry run: rendered with the cluster's API versions and
+  lookups, nothing created, the namespace not created either. Because a
+  template `lookup` reads any object with KubeBench's own credential, dry
+  runs need `write` and are audited (detail `"dryRun":true`). Upgrade dry
+  runs return the current revision's manifest as `currentManifest` for
+  the diff.
+- Every manifest returned (release manifests of any revision, install and
+  upgrade answers, `currentManifest`) shows core Secrets redacted like
+  every other read path (§3.1: `data`/`stringData` values become
+  `<N bytes, redacted>`, the last-applied annotation `<redacted>`; a
+  redacted Secret is re-serialized with sorted keys, other documents are
+  verbatim). A document that may be a Secret but cannot be parsed is
+  replaced by a comment.
 - Chart references: `{repo,name}` must name an added repository and a
   chart in its cached index; `{ref}` must be `oci://` (no digest);
   `{uploadId}` an unexpired upload. Local paths and plain URLs are never
-  accepted. `GET /charts/values` takes the same three forms as query
-  parameters (`repo`+`chart`, `ref`, `uploadId`, plus `version`) →
-  `{chart,values}` (values.yaml as written).
+  accepted. `GET /charts/values` takes `repo`+`chart` or `uploadId`
+  (plus `version`) as query parameters, `GET /charts/oci/values` takes
+  `ref` (plus `version`); both → `{chart,values}` (values.yaml as
+  written). Added repositories are the admin's allow-list of chart
+  sources; an OCI reference names any host the server then connects to,
+  so every OCI fetch needs `write` (an OCI `ref` on `/charts/values` is a
+  `400`).
+- The OCI registry client is HTTPS only: Helm's default transport would
+  fall back to plain HTTP when a host answers HTTPS with HTTP, and then
+  stay on HTTP for every later pull of the shared client.
 - `GET /repos` → `[{name,url,authenticated,chartCount,updated,error?}]`:
   credentials are never returned and never audited; a URL with userinfo is
   refused (`400`). Adding downloads the index first (bad URL or
