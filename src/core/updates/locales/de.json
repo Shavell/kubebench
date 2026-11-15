@@ -1,0 +1,122 @@
+{
+  "manifest": {
+    "name": "Updates",
+    "description": "Sucht auf GitHub nach neuen KubeBench-Releases und zeigt nach einem Upgrade, was sich geändert hat."
+  },
+  "commands": {
+    "whatsNew": "Hilfe: Neuigkeiten",
+    "checkNow": "Hilfe: Nach Updates suchen"
+  },
+  "modes": {
+    "off": "Aus",
+    "stable": "Stabile Releases",
+    "prerelease": "Stabile Releases und Vorabversionen"
+  },
+  "settings": {
+    "title": "Updates",
+    "mode": {
+      "label": "Update-Prüfung",
+      "help": "Über welche GitHub-Releases KubeBench Administratoren informiert. „Aus“ kontaktiert GitHub nie; verwenden Sie dies für Installationen ohne Internetzugang.",
+      "serverDefault": "Der Standard des Servers ist „{{mode}}“ (KUBEBENCH_UPDATE_MODE).",
+      "adminOnly": "Nur Administratoren können dies ändern."
+    },
+    "current": {
+      "label": "Installierte Version",
+      "unknown": "Ein Entwicklungs-Build: Er wird nicht mit Releases verglichen."
+    },
+    "latest": {
+      "label": "Neuestes Release",
+      "none": "Noch keine Releases veröffentlicht",
+      "off": "Nicht geprüft: Die Update-Prüfung ist aus",
+      "pending": "Noch nicht geprüft",
+      "upToDate": "v{{version}}, aktuell",
+      "available": "v{{version}}, Update verfügbar",
+      "plain": "v{{version}}"
+    },
+    "checked": {
+      "label": "Zuletzt geprüft",
+      "never": "Noch nicht"
+    },
+    "error": {
+      "label": "Letzte Prüfung fehlgeschlagen"
+    },
+    "checkNow": "Jetzt prüfen",
+    "checking": "Wird geprüft…",
+    "checkOff": "Schalten Sie die Update-Prüfung ein, um jetzt zu prüfen.",
+    "showNotes": "Versionshinweise…",
+    "loadFailed": "Der Update-Status konnte nicht geladen werden"
+  },
+  "notices": {
+    "modeSaved": "Update-Prüfung: {{mode}}",
+    "upToDate": "KubeBench v{{version}} ist aktuell.",
+    "noReleases": "Es sind noch keine KubeBench-Releases veröffentlicht.",
+    "unknownCurrent": "Dies ist ein Entwicklungs-Build. Das neueste Release ist v{{version}}.",
+    "checkFailed": "Die Update-Prüfung ist fehlgeschlagen",
+    "saveFailed": "Der Update-Modus konnte nicht gespeichert werden",
+    "markSeenFailed": "Es konnte nicht gespeichert werden, dass Sie die Änderungen dieser Version gesehen haben"
+  },
+  "statusBar": {
+    "available": "Update verfügbar: v{{version}}",
+    "tooltip": "KubeBench v{{version}} ist verfügbar. Klicken Sie für die Versionshinweise und die Upgrade-Anleitung."
+  },
+  "available": {
+    "title": "Update verfügbar",
+    "summary": "KubeBench v{{latest}} ist verfügbar. Sie verwenden v{{current}}.",
+    "summaryUnknown": "KubeBench v{{latest}} ist verfügbar.",
+    "published": "Veröffentlicht am {{date}}",
+    "prerelease": "Vorabversion",
+    "notes": "Versionshinweise",
+    "noNotes": "Dieses Release hat keine Versionshinweise.",
+    "releasePage": "Release-Seite öffnen",
+    "howTo": "So führen Sie das Upgrade durch",
+    "backup": "Erstellen Sie zuerst eine Sicherung: KubeBench migriert seine Datenbank beim Start, und eine ältere Version kann sie danach nicht mehr öffnen.",
+    "guide": "Upgrade-Anleitung",
+    "copy": "Befehl kopieren",
+    "close": "Schließen"
+  },
+  "methods": {
+    "helm": {
+      "title": "Helm",
+      "hint": "Behält Ihre Chart-Werte über den Standardwerten des neuen Charts bei."
+    },
+    "manifests": {
+      "title": "Einfache Manifeste",
+      "hint": "Wendet das Manifest des neuen Release an."
+    },
+    "packages": {
+      "title": ".deb- und .rpm-Pakete",
+      "hint": "Laden Sie das neue Paket von der Release-Seite herunter; die Konfiguration in /etc/kubebench bleibt erhalten und der Dienst wird neu gestartet."
+    },
+    "installer": {
+      "title": "install.sh",
+      "hint": "Ein erneuter Aufruf des Installationsprogramms führt ein direktes Upgrade durch und behält Konfiguration und Daten bei."
+    },
+    "docker": {
+      "title": "Docker",
+      "hint": "Laden Sie das neue Image herunter und erstellen Sie den Container mit demselben Volume neu."
+    }
+  },
+  "whatsNew": {
+    "title": "Neuigkeiten in v{{version}}",
+    "intro": "Das hat sich in KubeBench v{{version}} geändert.",
+    "introSince": "KubeBench wurde von v{{from}} auf v{{version}} aktualisiert. Das hat sich geändert.",
+    "fullChangelog": "Vollständiges Änderungsprotokoll",
+    "close": "Verstanden"
+  },
+  "changelog": {
+    "tab": "Neuigkeiten",
+    "title": "Neuigkeiten in KubeBench",
+    "version": "v{{version}}",
+    "running": "Installiert",
+    "empty": "Dieser Build hat kein Änderungsprotokoll."
+  },
+  "about": {
+    "latest": "Neuestes Release",
+    "available": "v{{version}} verfügbar",
+    "upToDate": "Aktuell",
+    "off": "Die Update-Prüfung ist aus",
+    "none": "Noch keine Releases",
+    "unknown": "Nicht geprüft",
+    "whatsNew": "Neuigkeiten"
+  }
+}

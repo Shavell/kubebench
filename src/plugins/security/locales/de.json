@@ -1,0 +1,367 @@
+{
+  "manifest": {
+    "name": "Sicherheit",
+    "description": "Sicherheitslage des Clusters: Prüfungen zu Pod Security Standards, RBAC, Netzwerk und Secrets mit Bewertung, akzeptierten Risiken und Export als Markdown/CSV.",
+    "tooltip": "Sicherheit",
+    "sidebarTitle": "Sicherheit"
+  },
+  "commands": {
+    "openOverview": "Sicherheit: Übersicht der Sicherheitslage öffnen",
+    "openFindings": "Sicherheit: Befunde öffnen",
+    "scan": "Sicherheit: Cluster scannen"
+  },
+  "resourceActions": {
+    "findings": "Sicherheitsbefunde"
+  },
+  "sidebar": {
+    "overview": "Übersicht",
+    "findings": "Befunde",
+    "checks": "Prüfungen",
+    "accepted": "Akzeptierte Risiken",
+    "score": "{{score}}/100"
+  },
+  "common": {
+    "cancel": "Abbrechen",
+    "close": "Schließen"
+  },
+  "actions": {
+    "openResource": "Ressource öffnen",
+    "sameCheck": "Alle Befunde dieser Prüfung",
+    "accept": "Risiko akzeptieren",
+    "unaccept": "Akzeptanz aufheben"
+  },
+  "scan": {
+    "includeSystem": "System-Namespaces einbeziehen",
+    "includeSystemHint": "Auch kube-system, kube-public, kube-node-lease und die eigenen RBAC-Objekte des Clusters scannen",
+    "run": "Scannen",
+    "running": "Scan läuft…",
+    "done_one": "Scan abgeschlossen: Bewertung {{score}}/100, {{count}} offener Befund",
+    "done_other": "Scan abgeschlossen: Bewertung {{score}}/100, {{count}} offene Befunde",
+    "doneNoScore_one": "Scan abgeschlossen: {{count}} offener Befund",
+    "doneNoScore_other": "Scan abgeschlossen: {{count}} offene Befunde"
+  },
+  "export": {
+    "markdown": "Markdown",
+    "markdownHint": "Bericht als Markdown herunterladen",
+    "csv": "CSV",
+    "csvHint": "Befunde als CSV herunterladen"
+  },
+  "severity": {
+    "critical": "Kritisch",
+    "high": "Hoch",
+    "medium": "Mittel",
+    "low": "Niedrig"
+  },
+  "severityShort": {
+    "critical": "K",
+    "high": "H",
+    "medium": "M",
+    "low": "N"
+  },
+  "category": {
+    "pss-baseline": "PSS Baseline",
+    "pss-restricted": "PSS Restricted",
+    "hygiene": "Arbeitslast-Hygiene",
+    "rbac": "RBAC",
+    "network": "Netzwerk",
+    "secrets": "Secrets",
+    "namespaces": "Namespaces"
+  },
+  "columns": {
+    "severity": "Schweregrad",
+    "check": "Prüfung",
+    "open": "Offen",
+    "resource": "Ressource",
+    "message": "Befund",
+    "status": "Status",
+    "category": "Kategorie",
+    "frameworks": "Frameworks",
+    "target": "Gilt für",
+    "reason": "Begründung",
+    "acceptedBy": "Akzeptiert von",
+    "acceptedAt": "Akzeptiert",
+    "expires": "Läuft ab"
+  },
+  "status": {
+    "open": "Offen",
+    "accepted": "Akzeptiert"
+  },
+  "overview": {
+    "title": "Sicherheitslage",
+    "loading": "Sicherheitsbericht wird geladen…",
+    "unavailable": "Der Sicherheitsbericht ist nicht verfügbar",
+    "noReport": "Noch kein Scan",
+    "noReportHint": "Scannen Sie den Cluster, um seine Sicherheitslage zu sehen. Ein Scan liest den Cluster nur.",
+    "noScore": "k. A.",
+    "score": "Sicherheitsbewertung",
+    "generated": "{{cluster}} · gescannt {{time}}",
+    "systemIncluded": "System-Namespaces einbezogen",
+    "systemExcluded": "System-Namespaces ausgeschlossen ({{namespaces}})",
+    "openFindings_one": "{{count}} offener Befund",
+    "openFindings_other": "{{count}} offene Befunde",
+    "accepted": "Akzeptiert",
+    "acceptedDetail": "von {{total}} Befunden",
+    "byCategory": "Nach Kategorie",
+    "topChecks": "Häufigste fehlgeschlagene Prüfungen",
+    "allPassing": "Keine offenen Befunde",
+    "openCategory": "Befunde von {{category}} anzeigen",
+    "columnsLabel": "{{category}}: {{critical}} kritische, {{high}} hohe, {{medium}} mittlere, {{low}} niedrige offene Befunde",
+    "categorySkipped": "Nicht geprüft",
+    "categoryDetail": "{{failed}} offen · {{accepted}} akzeptiert · {{evaluated}} ausgewertet"
+  },
+  "notices": {
+    "skipped_one": "{{count}} Prüfung übersprungen",
+    "skipped_other": "{{count}} Prüfungen übersprungen",
+    "warnings": "Warnungen"
+  },
+  "findings": {
+    "title": "Sicherheitsbefunde",
+    "loading": "Befunde werden geladen…",
+    "unavailable": "Befunde sind nicht verfügbar",
+    "summary": "{{shown}} von {{total}}",
+    "none": "Keine Befunde",
+    "noMatch": "Keine Befunde entsprechen den Filtern",
+    "noMatchHint": "Ändern Sie die Filter oder setzen Sie sie zurück; akzeptierte Befunde erscheinen mit dem Status „Akzeptiert“ oder „Alle“."
+  },
+  "filters": {
+    "severity": "Schweregrad",
+    "category": "Kategorie",
+    "framework": "Framework",
+    "namespace": "Namespace",
+    "allSeverities": "Alle Schweregrade",
+    "allCategories": "Alle Kategorien",
+    "allFrameworks": "Alle Frameworks",
+    "allNamespaces": "Alle Namespaces",
+    "status": "Status",
+    "statuses": {
+      "open": "Offen",
+      "accepted": "Akzeptiert",
+      "all": "Alle"
+    },
+    "groupBy": "Gruppieren nach",
+    "check": "Prüfung: {{title}}",
+    "resource": "Ressource: {{resource}}",
+    "clear": "Diesen Filter entfernen",
+    "reset": "Filter zurücksetzen"
+  },
+  "groupings": {
+    "none": "Keine",
+    "check": "Prüfung",
+    "severity": "Schweregrad",
+    "category": "Kategorie",
+    "namespace": "Namespace",
+    "resource": "Ressource",
+    "clusterScoped": "Clusterweit"
+  },
+  "detail": {
+    "label": "Befunddetails",
+    "resource": "Ressource",
+    "evidence": "Nachweis",
+    "remediation": "Behebung",
+    "frameworks": "Frameworks",
+    "accepted": "Akzeptiertes Risiko",
+    "acceptedBy": "Akzeptiert von {{by}} am {{at}}, ohne Ablaufdatum.",
+    "acceptedUntil": "Akzeptiert von {{by}} am {{at}}, bis {{until}}."
+  },
+  "catalog": {
+    "title": "Sicherheitsprüfungen",
+    "loading": "Prüfungen werden geladen…",
+    "unavailable": "Der Prüfkatalog ist nicht verfügbar",
+    "empty": "Keine Prüfungen in dieser Kategorie",
+    "skipped": "Übersprungen",
+    "passing": "Bestanden"
+  },
+  "targets": {
+    "workload": "Arbeitslasten",
+    "namespace": "Namespaces",
+    "serviceaccount": "Standard-ServiceAccounts",
+    "role": "Roles",
+    "binding": "Bindings"
+  },
+  "accepted": {
+    "title": "Akzeptierte Risiken",
+    "loading": "Akzeptierte Risiken werden geladen…",
+    "unavailable": "Akzeptierte Risiken sind nicht verfügbar",
+    "empty": "Keine akzeptierten Risiken",
+    "emptyHint": "Akzeptieren Sie einen Befund in der Befundliste, um ein bekanntes, vertretbares Risiko für alle Benutzer dieses Clusters festzuhalten.",
+    "expired": "Abgelaufen",
+    "never": "Nie"
+  },
+  "accept": {
+    "title": "Risiko akzeptieren",
+    "description": "{{title}} für {{resource}} gilt dann für alle Benutzer dieses Clusters als akzeptiert und senkt die Bewertung nicht mehr.",
+    "submit": "Risiko akzeptieren",
+    "reason": "Begründung",
+    "reasonHelp": "Warum das Risiko vertretbar ist; für alle sichtbar und in Exporten enthalten.",
+    "reasonTooLong": "Höchstens {{max}} Zeichen",
+    "expiry": "Läuft ab",
+    "expiryHelp": "Danach zählt der Befund wieder.",
+    "expiryDays_one": "In {{count}} Tag",
+    "expiryDays_other": "In {{count}} Tagen",
+    "expiryNever": "Nie",
+    "done": "Risiko akzeptiert: {{title}}"
+  },
+  "unaccept": {
+    "title": "Akzeptanz des Risikos aufheben",
+    "message": "{{title}} für {{resource}} zählt dann für alle Benutzer dieses Clusters wieder als offener Befund.",
+    "confirm": "Akzeptanz aufheben",
+    "done": "Risiko nicht mehr akzeptiert: {{title}}"
+  },
+  "checks": {
+    "privileged": {
+      "title": "Privilegierte Container",
+      "message": "Container laufen privilegiert, mit vollem Zugriff auf den Node: {{evidence}}",
+      "remediation": "Entfernen Sie securityContext.privileged (und unter Windows hostProcess) aus den Containern. Gewähren Sie stattdessen die konkreten Capabilities, die die Arbeitslast benötigt."
+    },
+    "host-namespaces": {
+      "title": "Gemeinsame Host-Namespaces",
+      "message": "Der Pod teilt die Namespaces des Nodes: {{evidence}}",
+      "remediation": "Setzen Sie hostNetwork, hostPID und hostIPC auf false (oder lassen Sie sie weg). Stellen Sie Netzwerkdienste über einen Service statt über das Host-Netzwerk bereit."
+    },
+    "host-path": {
+      "title": "hostPath-Volumes",
+      "message": "Der Pod hängt Verzeichnisse des Nodes ein: {{evidence}}",
+      "remediation": "Ersetzen Sie hostPath-Volumes durch PersistentVolumeClaims, emptyDir, ConfigMaps oder Secrets. Ist Node-Zugriff unvermeidbar, hängen Sie den engsten Pfad schreibgeschützt ein."
+    },
+    "host-ports": {
+      "title": "Host-Ports",
+      "message": "Container binden Ports des Nodes: {{evidence}}",
+      "remediation": "Entfernen Sie hostPort aus den Container-Ports und veröffentlichen Sie sie über einen Service (NodePort oder LoadBalancer) oder einen Ingress."
+    },
+    "capabilities": {
+      "title": "Capabilities über die Baseline hinaus",
+      "message": "Container fügen Linux-Capabilities außerhalb der Baseline-Positivliste hinzu: {{evidence}}",
+      "remediation": "Entfernen Sie die Capabilities aus securityContext.capabilities.add; die Baseline erlaubt nur AUDIT_WRITE, CHOWN, DAC_OVERRIDE, FOWNER, FSETID, KILL, MKNOD, NET_BIND_SERVICE, SETFCAP, SETGID, SETPCAP, SETUID und SYS_CHROOT."
+    },
+    "proc-mount": {
+      "title": "Unmaskiertes /proc",
+      "message": "Container verwenden einen anderen procMount als Default: {{evidence}}",
+      "remediation": "Entfernen Sie securityContext.procMount oder setzen Sie ihn auf Default."
+    },
+    "unsafe-sysctls": {
+      "title": "Unsichere sysctls",
+      "message": "Der Pod setzt sysctls außerhalb der sicheren Menge: {{evidence}}",
+      "remediation": "Entfernen Sie die sysctls aus securityContext.sysctls oder konfigurieren Sie sie stattdessen auf dedizierten Nodes mit Taints."
+    },
+    "selinux-apparmor": {
+      "title": "SELinux- oder AppArmor-Überschreibungen",
+      "message": "Der Pod schwächt seine SELinux- oder AppArmor-Isolation: {{evidence}}",
+      "remediation": "Lassen Sie seLinuxOptions.user und role ungesetzt, verwenden Sie einen Typ der container_t-Familie und setzen Sie kein AppArmor-Profil Unconfined."
+    },
+    "seccomp-unconfined": {
+      "title": "Seccomp-Profil Unconfined",
+      "message": "Der Pod oder seine Container setzen ausdrücklich ein Seccomp-Profil Unconfined: {{evidence}}",
+      "remediation": "Entfernen Sie seccompProfile.type: Unconfined aus dem Pod und seinen Containern und setzen Sie RuntimeDefault auf dem Pod (oder Localhost mit einem geprüften Profil)."
+    },
+    "privilege-escalation": {
+      "title": "Rechteausweitung erlaubt",
+      "message": "Container setzen nicht allowPrivilegeEscalation: false: {{evidence}}",
+      "remediation": "Setzen Sie securityContext.allowPrivilegeEscalation: false für jeden Container."
+    },
+    "run-as-non-root": {
+      "title": "Container dürfen als root laufen",
+      "message": "Container müssen nicht als Nicht-root-Benutzer laufen: {{evidence}}",
+      "remediation": "Setzen Sie securityContext.runAsNonRoot: true (auf dem Pod oder jedem Container) und einen runAsUser ungleich null; bauen Sie das Image mit einem USER, der nicht root ist."
+    },
+    "seccomp": {
+      "title": "Kein Seccomp-Profil",
+      "message": "Container laufen ohne Seccomp-Profil: {{evidence}}",
+      "remediation": "Setzen Sie securityContext.seccompProfile.type: RuntimeDefault auf dem Pod (oder Localhost mit einem geprüften Profil)."
+    },
+    "drop-capabilities": {
+      "title": "Capabilities nicht entfernt",
+      "message": "Container entfernen nicht ALL Capabilities oder fügen mehr als NET_BIND_SERVICE wieder hinzu: {{evidence}}",
+      "remediation": "Setzen Sie securityContext.capabilities.drop: [\"ALL\"] und fügen Sie nur NET_BIND_SERVICE wieder hinzu, falls der Container einen niedrigen Port bindet."
+    },
+    "volume-types": {
+      "title": "Eingeschränkte Volume-Typen",
+      "message": "Der Pod verwendet Volume-Typen, die die Stufe Restricted nicht erlaubt: {{evidence}}",
+      "remediation": "Verwenden Sie nur configMap-, csi-, downwardAPI-, emptyDir-, ephemeral-, persistentVolumeClaim-, projected- und secret-Volumes; binden Sie anderen Speicher über einen PersistentVolumeClaim an."
+    },
+    "resource-requests": {
+      "title": "Fehlende Ressourcenanforderungen",
+      "message": "Container fordern keine CPU oder keinen Arbeitsspeicher an: {{evidence}}",
+      "remediation": "Setzen Sie resources.requests.cpu und resources.requests.memory, damit der Scheduler den Pod platzieren kann und Verdrängungen ihn fair behandeln."
+    },
+    "resource-limits": {
+      "title": "Fehlende Ressourcenlimits",
+      "message": "Container haben kein CPU- oder Arbeitsspeicherlimit: {{evidence}}",
+      "remediation": "Setzen Sie resources.limits.memory (und gegebenenfalls cpu) oder geben Sie dem Namespace eine LimitRange mit Standardwerten, damit keine einzelne Arbeitslast den Node erschöpfen kann."
+    },
+    "probes": {
+      "title": "Fehlende Health-Probes",
+      "message": "Container haben weder Liveness- noch Readiness-Probe: {{evidence}}",
+      "remediation": "Fügen Sie eine readinessProbe hinzu, damit Datenverkehr nur bereite Pods erreicht, und eine livenessProbe, damit ein hängender Container neu gestartet wird."
+    },
+    "image-tag": {
+      "title": "Veränderliche Image-Tags",
+      "message": "Container verwenden den Tag latest oder keinen Tag: {{evidence}}",
+      "remediation": "Legen Sie Images auf einen unveränderlichen Versions-Tag fest, besser noch auf einen Digest (image@sha256:…), damit jeder Pod das geprüfte Image ausführt."
+    },
+    "read-only-root": {
+      "title": "Beschreibbares Root-Dateisystem",
+      "message": "Container können in ihr Root-Dateisystem schreiben: {{evidence}}",
+      "remediation": "Setzen Sie securityContext.readOnlyRootFilesystem: true und hängen Sie ein emptyDir dort ein, wo die Anwendung schreiben muss."
+    },
+    "cluster-admin-binding": {
+      "title": "cluster-admin-Bindings",
+      "message": "Das Binding gewährt cluster-admin für: {{evidence}}",
+      "remediation": "Binden Sie eine Rolle mit nur den Berechtigungen, die die Subjects benötigen; behalten Sie cluster-admin für Notfallkonten vor."
+    },
+    "rbac-wildcards": {
+      "title": "Platzhalter in Rollen",
+      "message": "Die Rolle gewährt Regeln mit Platzhaltern: {{evidence}}",
+      "remediation": "Ersetzen Sie * in apiGroups, resources und verbs durch die konkreten Gruppen, Ressourcen und Verben, die die Subjects verwenden."
+    },
+    "secrets-access": {
+      "title": "Lesezugriff auf Secrets",
+      "message": "Die Rolle darf Secrets lesen: {{evidence}}",
+      "remediation": "Entfernen Sie get, list und watch auf secrets oder beschränken Sie die Regel auf die resourceNames, die die Subjects benötigen; list und watch legen die Werte jedes Secrets offen."
+    },
+    "pod-create": {
+      "title": "Pod-Erstellung und exec",
+      "message": "Die Rolle darf Pods erstellen oder per exec darauf zugreifen: {{evidence}}",
+      "remediation": "Gewähren Sie create auf pods (und pods/exec, pods/attach) nur den Controllern und Personen, die es benötigen: Ein neuer Pod kann jedes Secret und jeden ServiceAccount seines Namespaces einhängen."
+    },
+    "rbac-escalation": {
+      "title": "bind, escalate oder impersonate",
+      "message": "Die Rolle darf ihre Rechte ausweiten: {{evidence}}",
+      "remediation": "Entfernen Sie die Verben bind, escalate und impersonate; damit können sich die Subjects Berechtigungen selbst gewähren oder mit Berechtigungen handeln, die sie nicht besitzen."
+    },
+    "default-service-account": {
+      "title": "Standard-ServiceAccount in Verwendung",
+      "message": "Der Standard-ServiceAccount des Namespaces sollte wirkungslos sein: {{evidence}}",
+      "remediation": "Setzen Sie automountServiceAccountToken: false auf dem Standard-ServiceAccount, binden Sie keine Rollen daran und geben Sie jeder Arbeitslast einen eigenen ServiceAccount."
+    },
+    "service-account-token": {
+      "title": "Token des Standard-ServiceAccounts eingehängt",
+      "message": "Der Pod läuft als Standard-ServiceAccount mit eingehängtem API-Token",
+      "remediation": "Geben Sie der Arbeitslast einen eigenen ServiceAccount oder setzen Sie automountServiceAccountToken: false auf dem Pod, wenn er die Kubernetes-API nicht aufruft."
+    },
+    "network-policy": {
+      "title": "Namespaces ohne NetworkPolicy",
+      "message": "Der Namespace hat keine NetworkPolicy, daher akzeptiert jeder Pod Datenverkehr von überall",
+      "remediation": "Fügen Sie eine Default-Deny-NetworkPolicy für Ingress (und Egress) hinzu sowie Richtlinien, die den von den Arbeitslasten benötigten Datenverkehr erlauben."
+    },
+    "secret-env": {
+      "title": "Secrets in Umgebungsvariablen",
+      "message": "Container lesen Secrets in Umgebungsvariablen ein: {{evidence}}",
+      "remediation": "Hängen Sie das Secret als Volume ein und lesen Sie stattdessen die Dateien: Umgebungsvariablen gelangen in Protokolle, Crash-Dumps und Kindprozesse."
+    },
+    "hardcoded-secret": {
+      "title": "Anmeldeinformationen als Klartextwerte",
+      "message": "Umgebungsvariablen, die wie Anmeldeinformationen aussehen, haben literale Werte im Manifest: {{evidence}}",
+      "remediation": "Verschieben Sie die Werte in ein Secret (als Datei eingehängt) oder einen externen Secret-Speicher; derzeit kann sie jeder lesen, der die Arbeitslast lesen kann."
+    },
+    "psa-labels": {
+      "title": "Keine Pod-Security-Admission-Stufe",
+      "message": "Pod Security Admission erzwingt keine Stufe Baseline oder Restricted: {{evidence}}",
+      "remediation": "Versehen Sie den Namespace mit dem Label pod-security.kubernetes.io/enforce=baseline (oder restricted); testen Sie es zuerst mit den Labels warn und audit."
+    },
+    "default-namespace": {
+      "title": "Arbeitslasten im Namespace default",
+      "message": "Die Arbeitslast läuft im Namespace default",
+      "remediation": "Verschieben Sie die Arbeitslast in einen eigenen Namespace, in dem Quotas, Richtlinien und RBAC auf sie zugeschnitten werden können."
+    }
+  }
+}

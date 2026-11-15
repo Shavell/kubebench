@@ -5,6 +5,7 @@
  * lists namespaces and a command.
  */
 import type { PluginManifest } from '@kubebench/sdk'
+import de from './locales/de.json'
 import en from './locales/en.json'
 import tr from './locales/tr.json'
 import { NamespacesTab } from './NamespacesTab'
@@ -18,7 +19,7 @@ const manifest: PluginManifest = {
   version: PLUGIN_VERSION,
   description: 'manifest.description',
   category: 'tools',
-  locales: { en, tr },
+  locales: { en, tr, de },
   activityBar: { icon: 'globe', tooltip: 'manifest.tooltip', order: 50 },
   sidebar: { id: `${PLUGIN_ID}.sidebar`, title: 'manifest.name', component: Sidebar },
   tabRenderers: [{ kind: NAMESPACES_TAB, component: NamespacesTab }],

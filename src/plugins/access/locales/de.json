@@ -1,0 +1,238 @@
+{
+  "manifest": {
+    "name": "Zugriff",
+    "description": "RBAC-Explorer: wer eine Anfrage ausführen darf, die effektiven Berechtigungen jedes Subjects mit schnellem can-i, riskante Rollen und der Binding-Graph.",
+    "tooltip": "Zugriff (RBAC)",
+    "sidebarTitle": "Zugriff"
+  },
+  "commands": {
+    "whoCan": "Zugriff: Wer darf…",
+    "subjects": "Zugriff: Subjects öffnen",
+    "risky": "Zugriff: Riskante Rollen öffnen",
+    "graph": "Zugriff: Binding-Graph öffnen"
+  },
+  "resourceActions": {
+    "permissions": "Effektive Berechtigungen anzeigen"
+  },
+  "sidebar": {
+    "whoCan": "Wer darf…",
+    "subjects": "Subjects",
+    "risky": "Riskante Rollen",
+    "graph": "Binding-Graph"
+  },
+  "kinds": {
+    "User": "User",
+    "Group": "Group",
+    "ServiceAccount": "ServiceAccount"
+  },
+  "severity": {
+    "critical": "Kritisch",
+    "high": "Hoch",
+    "medium": "Mittel"
+  },
+  "columns": {
+    "subject": "Subject",
+    "kind": "Kind",
+    "grantedBy": "Gewährt durch",
+    "clusterBindings": "ClusterRoleBindings",
+    "namespaces": "RoleBindings in",
+    "roles": "Rollen",
+    "scope": "Geltungsbereich",
+    "via": "Über",
+    "verbs": "Verben",
+    "apiGroups": "API-Gruppen",
+    "resources": "Ressourcen / URLs",
+    "from": "Aus",
+    "severity": "Schweregrad",
+    "role": "Rolle",
+    "risks": "Risiken",
+    "bindings": "Bindings",
+    "subjects": "Subjects"
+  },
+  "request": {
+    "mode": "Frage zu",
+    "modeResource": "Einer Ressource",
+    "modeUrl": "Einer Nicht-Ressourcen-URL",
+    "verb": "Verb",
+    "path": "URL-Pfad",
+    "pathHelp": "Zum Beispiel /metrics oder /healthz.",
+    "group": "API-Gruppe",
+    "resource": "Ressource",
+    "subresource": "Subressource",
+    "namespace": "Namespace",
+    "clusterWide": "(clusterweit)",
+    "name": "Objektname",
+    "groupPlaceholder": "core",
+    "namePlaceholder": "beliebig",
+    "hint": "Lassen Sie die API-Gruppe für die core-Gruppe leer. Clusterweit fragt nach clusterweiten Ressourcen oder allen Namespaces, die nur ClusterRoleBindings gewähren. Auf resourceNames beschränkte Regeln greifen nur, wenn ein Objektname angegeben ist."
+  },
+  "paths": {
+    "roleMissingHint": "Diese Rolle existiert nicht, daher gewährt das Binding nichts.",
+    "open": "Öffnen",
+    "inNamespace": "in {{namespace}}",
+    "clusterWide": "clusterweit",
+    "via": "über Gruppe {{group}}"
+  },
+  "subjects": {
+    "title": "Subjects",
+    "open": "Effektive Berechtigungen anzeigen",
+    "missing": "nicht gefunden",
+    "loading": "Subjects werden geladen…",
+    "unavailable": "Subjects können nicht aufgelistet werden",
+    "empty": "Keine passenden Subjects",
+    "emptyHint": "Leeren Sie den Filter oder zeigen Sie System-Subjects an.",
+    "summary": "{{shown}} von {{total}}",
+    "allKinds": "Alle Kinds",
+    "hideSystem": "System-Subjects ausblenden"
+  },
+  "whoCan": {
+    "title": "Wer darf…",
+    "intro": "Findet alle Subjects, denen RBAC eine Anfrage erlaubt, mit dem Binding und der Rolle, die sie gewähren. Gruppen werden so aufgeführt, wie die Bindings sie benennen.",
+    "ask": "Wer darf?",
+    "presets": "Häufige Fragen",
+    "preset": {
+      "readSecrets": "Secrets lesen",
+      "execPods": "Exec in Pods",
+      "createPods": "Pods erstellen",
+      "impersonate": "Als ServiceAccounts auftreten",
+      "bindRoles": "ClusterRoles binden",
+      "deleteNamespaces": "Namespaces löschen"
+    },
+    "resultTitle": "{{verb}} {{target}} {{scope}}",
+    "count_one": "{{count}} Subject",
+    "count_other": "{{count}} Subjects",
+    "loading": "Wird ausgewertet…",
+    "unavailable": "Die Frage kann nicht beantwortet werden",
+    "nobody": "Kein Binding gewährt dies",
+    "nobodyHint": "Nur Subjects außerhalb von RBAC (zum Beispiel system:masters über einen anderen Autorisierer) könnten dies ausführen.",
+    "rule": "Regel: {{rule}}"
+  },
+  "canI": {
+    "title": "Darf es…?",
+    "intro": "Fragt den Cluster über einen SubjectAccessReview, sodass jeder Autorisierer antwortet, nicht nur RBAC. KubeBench tritt nie als das Subject auf.",
+    "ask": "Prüfen",
+    "yes": "Erlaubt",
+    "no": "Verweigert",
+    "question": "{{verb}} {{target}}",
+    "reason": "Grund: {{reason}}",
+    "evaluationError": "Auswertungsfehler: {{error}}",
+    "otherAuthorizer": "Kein RBAC-Binding gewährt dies: Ein anderer Autorisierer (Node, ein Webhook) hat es erlaubt.",
+    "deniedDespiteRbac": "RBAC-Regeln gewähren dies, dennoch hat der Cluster es verweigert (ein anderer Autorisierer oder eine veraltete Ansicht).",
+    "grantedBy": "Gewährt durch"
+  },
+  "subject": {
+    "title": "{{kind}} {{name}}",
+    "openServiceAccount": "ServiceAccount öffnen",
+    "loading": "Berechtigungen werden geladen…",
+    "unavailable": "Berechtigungen können nicht angezeigt werden",
+    "missingServiceAccount": "Dieser ServiceAccount existiert nicht; Bindings, die ihn nennen, werden wirksam, sobald er erstellt wird.",
+    "identity": "Identität",
+    "user": "Benutzername",
+    "groups": "Gruppen",
+    "bindings_one": "{{count}} Binding",
+    "bindings_other": "{{count}} Bindings",
+    "noBindings": "Kein Binding erreicht dieses Subject",
+    "noBindingsHint": "Es hat nur, was andere Autorisierer erlauben.",
+    "direct": "direkt",
+    "rules": "Effektive Regeln",
+    "noRules": "Keine Regeln",
+    "rulesIn": "Im Namespace {{namespace}}",
+    "rulesClusterWide": "Clusterweit (alle Namespaces)"
+  },
+  "rules": {
+    "coreGroup": "core"
+  },
+  "risky": {
+    "title": "Riskante Rollen",
+    "intro": "Rollen, deren Regeln Rechteausweitung, das Lesen von Secrets oder das Ausführen von Code erlauben. Zeigen Sie auf ein Risiko, um Details zu sehen.",
+    "aggregated": "aggregiert",
+    "rolesDetail": "Rollen",
+    "loading": "Rollen werden geprüft…",
+    "unavailable": "Rollen können nicht geprüft werden",
+    "empty": "Keine passenden riskanten Rollen",
+    "emptyHint": "Leeren Sie den Filter oder zeigen Sie Systemrollen an.",
+    "summary": "{{shown}} von {{total}}",
+    "allSeverities": "Alle Schweregrade",
+    "hideSystem": "Systemrollen ausblenden",
+    "boundOnly": "Nur gebundene Rollen"
+  },
+  "risks": {
+    "full-access": {
+      "title": "Vollzugriff",
+      "description": "Jedes Verb auf jeder Ressource in jeder API-Gruppe, wie cluster-admin."
+    },
+    "escalate-bind": {
+      "title": "Rollen ausweiten oder binden",
+      "description": "Kann Rollen mit Berechtigungen erstellen oder binden, die es selbst nicht besitzt."
+    },
+    "impersonate": {
+      "title": "Identitätswechsel",
+      "description": "Kann als andere Benutzer, Gruppen oder ServiceAccounts auftreten."
+    },
+    "wildcard-verbs": {
+      "title": "Platzhalter-Verben",
+      "description": "Gewährt jedes Verb (*), auch solche, die in künftigen Versionen hinzukommen."
+    },
+    "wildcard-resources": {
+      "title": "Platzhalter-Ressourcen",
+      "description": "Gewährt Zugriff auf jede Ressource (*) seiner API-Gruppen, einschließlich Secrets und Subressourcen."
+    },
+    "secrets-read": {
+      "title": "Liest Secrets",
+      "description": "Kann Secrets abrufen (get, list, watch), die Anmeldeinformationen und Tokens enthalten."
+    },
+    "pod-exec": {
+      "title": "Exec in Pods",
+      "description": "Kann Befehle in laufenden Containern ausführen oder sich an sie anhängen."
+    },
+    "token-create": {
+      "title": "Erstellt ServiceAccount-Tokens",
+      "description": "Kann Tokens für ServiceAccounts ausstellen und deren Berechtigungen nutzen."
+    },
+    "rbac-write": {
+      "title": "Ändert RBAC",
+      "description": "Kann Rollen und Bindings erstellen oder ändern."
+    },
+    "node-proxy": {
+      "title": "Node-Proxy",
+      "description": "Kann die Kubelet-API über nodes/proxy erreichen und dabei Admission und Audit umgehen."
+    },
+    "webhook-write": {
+      "title": "Ändert Admission-Webhooks",
+      "description": "Kann jede vom API-Server zugelassene Anfrage abfangen oder ändern."
+    },
+    "csr-approve": {
+      "title": "Genehmigt Zertifikate",
+      "description": "Kann CertificateSigningRequests genehmigen und damit Client-Zertifikate ausstellen."
+    },
+    "workload-create": {
+      "title": "Erstellt Arbeitslasten",
+      "description": "Kann Pods oder Controller erstellen und sie als beliebigen ServiceAccount des Namespaces ausführen."
+    },
+    "persistentvolume-create": {
+      "title": "Erstellt PersistentVolumes",
+      "description": "Kann Volumes wie hostPath erstellen, die Dateien des Nodes offenlegen."
+    }
+  },
+  "graph": {
+    "title": "Binding-Graph",
+    "namespace": "Namespace",
+    "allNamespaces": "Alle Namespaces",
+    "includeSystem": "System-Bindings anzeigen",
+    "columns": {
+      "subjects": "Subjects",
+      "bindings": "Bindings",
+      "roles": "Rollen"
+    },
+    "aria": "Binding-Graph: {{subjects}} Subjects, {{bindings}} Bindings, {{roles}} Rollen",
+    "introNamespace": "RoleBindings in {{namespace}} und die ClusterRoleBindings seiner ServiceAccounts. Zeigen Sie auf einen Knoten, um ihm zu folgen; klicken Sie, um ihn zu öffnen.",
+    "introCluster": "Alle Bindings des Clusters. Zeigen Sie auf einen Knoten, um ihm zu folgen; klicken Sie, um ihn zu öffnen.",
+    "truncated": "Nur die ersten {{count}} Bindings werden angezeigt; wählen Sie einen Namespace.",
+    "missingSubject": "existiert nicht",
+    "missingRole": "existiert nicht, gewährt nichts",
+    "loading": "Bindings werden geladen…",
+    "unavailable": "Der Binding-Graph kann nicht angezeigt werden",
+    "empty": "Keine Bindings",
+    "emptyHint": "Wählen Sie einen anderen Namespace oder zeigen Sie System-Bindings an."
+  }
+}

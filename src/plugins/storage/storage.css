@@ -126,7 +126,36 @@
 .storage-wizard__row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  grid-template-rows: repeat(4, auto);
+  column-gap: 12px;
+}
+
+/* The fields of a row share label, help, control and error tracks, so the
+   controls line up even when one help text wraps to more lines (or is absent). */
+.storage-wizard__row > .kb-field {
+  grid-row: span 4;
+  display: grid;
+  grid-template-rows: subgrid;
+  gap: 0;
+}
+
+.storage-wizard__row > .kb-field > .kb-field__label {
+  grid-row: 1;
+}
+
+.storage-wizard__row > .kb-field > .kb-field__help {
+  grid-row: 2;
+  margin-top: 4px;
+}
+
+.storage-wizard__row > .kb-field > :not(.kb-field__label, .kb-field__help, .kb-field__error) {
+  grid-row: 3;
+  margin-top: 4px;
+}
+
+.storage-wizard__row > .kb-field > .kb-field__error {
+  grid-row: 4;
+  margin-top: 4px;
 }
 
 .storage-size {

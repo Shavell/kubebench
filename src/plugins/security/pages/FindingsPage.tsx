@@ -58,7 +58,7 @@ export function FindingsPage() {
         key: 'check',
         header: t('columns.check'),
         sortValue: (f) => texts.title(f.checkId, f.title),
-        render: (f) => texts.title(f.checkId, f.title),
+        render: (f) => <span className="security-wrap">{texts.title(f.checkId, f.title)}</span>,
       },
       {
         key: 'resource',
@@ -69,7 +69,7 @@ export function FindingsPage() {
       {
         key: 'message',
         header: t('columns.message'),
-        render: (f) => <span className="security-message">{texts.message(f)}</span>,
+        render: (f) => <span className="security-wrap">{texts.message(f)}</span>,
       },
       {
         key: 'status',
@@ -87,7 +87,8 @@ export function FindingsPage() {
       {
         key: 'actions',
         header: '',
-        width: '120px',
+        // Shrinks to the button, whose label length depends on the language.
+        width: '1px',
         render: (f) =>
           f.accepted ? (
             <WriteButton label={t('actions.unaccept')} onClick={() => setUnaccepting(riskTarget(f, texts))} />

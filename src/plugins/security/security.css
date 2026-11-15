@@ -270,7 +270,8 @@
   text-decoration: underline;
 }
 
-.security-message {
+/* Long texts wrap inside the (nowrap) table cells instead of widening the table. */
+.security-wrap {
   white-space: normal;
 }
 

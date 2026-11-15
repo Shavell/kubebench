@@ -1,0 +1,30 @@
+{
+  "manifest": {
+    "name": "Hello Cluster",
+    "description": "Beispiel für ein externes Plugin: listet die Namespaces des aktiven Clusters auf.",
+    "tooltip": "Hello Cluster"
+  },
+  "commands": {
+    "showNamespaces": "Hello Cluster: Namespaces anzeigen"
+  },
+  "sidebar": {
+    "intro": "Ein Beispiel für ein externes Plugin. Es liest den aktiven Cluster über die schreibgeschützte Kubernetes-API von KubeBench.",
+    "open": "Namespaces anzeigen"
+  },
+  "tab": {
+    "title": "Namespaces"
+  },
+  "namespaces": {
+    "title_one": "{{count}} Namespace",
+    "title_other": "{{count}} Namespaces",
+    "loading": "Namespaces werden geladen…",
+    "failed": "Die Namespaces konnten nicht geladen werden",
+    "refresh": "Aktualisieren"
+  },
+  "columns": {
+    "name": "Name",
+    "status": "Status",
+    "labels": "Labels",
+    "created": "Erstellt"
+  }
+}

@@ -115,7 +115,8 @@
 
 .argocd-source {
   display: inline-block;
-  max-width: 320px;
+  /* Shrinks on narrow editors so the status columns keep their room. */
+  max-width: clamp(160px, 16vw, 320px);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

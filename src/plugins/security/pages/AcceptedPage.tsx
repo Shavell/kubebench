@@ -33,7 +33,7 @@ export function AcceptedPage() {
         render: (r) => texts.title(r.checkId, r.checkId),
       },
       { key: 'resource', header: t('columns.resource'), render: (r) => <ResourceLink resource={r.resource} /> },
-      { key: 'reason', header: t('columns.reason'), render: (r) => <span className="security-message">{r.reason}</span> },
+      { key: 'reason', header: t('columns.reason'), render: (r) => <span className="security-wrap">{r.reason}</span> },
       { key: 'by', header: t('columns.acceptedBy'), sortValue: (r) => r.by, render: (r) => r.by },
       { key: 'at', header: t('columns.acceptedAt'), sortValue: (r) => r.at, render: (r) => formatDateTime(r.at) },
       {
@@ -52,7 +52,8 @@ export function AcceptedPage() {
       {
         key: 'actions',
         header: '',
-        width: '120px',
+        // Shrinks to the button, whose label length depends on the language.
+        width: '1px',
         render: (r) => (
           <WriteButton
             label={t('actions.unaccept')}

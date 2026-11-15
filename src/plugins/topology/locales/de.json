@@ -1,0 +1,101 @@
+{
+  "manifest": {
+    "name": "Topologie",
+    "description": "Ein Namespace als Graph: Ingresses, Services, Arbeitslasten, Pods, Volumes sowie die verwendeten ConfigMaps und Secrets, nach Status eingefärbt.",
+    "tooltip": "Topologie",
+    "sidebarTitle": "Topologie"
+  },
+  "commands": {
+    "open": "Topologie: Öffnen"
+  },
+  "resourceActions": {
+    "show": "Topologie anzeigen"
+  },
+  "tab": {
+    "namespace": "Topologie · {{namespace}}",
+    "focused": "{{name}} · Topologie"
+  },
+  "sidebar": {
+    "namespaces": "Namespaces"
+  },
+  "page": {
+    "title": "Topologie",
+    "namespace": "Namespace",
+    "showConfig": "ConfigMaps & Secrets",
+    "showInactive": "Inaktive ReplicaSets",
+    "refresh": "Aktualisieren",
+    "loading": "Topologie von {{namespace}} wird geladen…",
+    "pending": "Listen werden geladen: noch {{pending}}",
+    "listFailed": "{{list}} konnte nicht gelesen werden: {{error}}",
+    "unavailable": "Die Topologie kann nicht angezeigt werden",
+    "empty": "In {{namespace}} gibt es nichts anzuzeigen",
+    "emptyHint": "Dieser Namespace hat keine Arbeitslasten, Pods, Services, Ingresses oder PersistentVolumeClaims."
+  },
+  "focus": {
+    "label": "Fokus auf {{kind}} {{name}}",
+    "clear": "Gesamten Namespace anzeigen",
+    "missing": "{{kind}} {{name}} wurde nicht gefunden",
+    "missingHint": "Es wurde möglicherweise gelöscht oder umbenannt.",
+    "unavailable": "{{kind}} {{name}} kann nicht angezeigt werden"
+  },
+  "lists": {
+    "pods": "Pods",
+    "deployments": "Deployments",
+    "replicaSets": "ReplicaSets",
+    "statefulSets": "StatefulSets",
+    "daemonSets": "DaemonSets",
+    "services": "Services",
+    "ingresses": "Ingresses",
+    "pvcs": "PersistentVolumeClaims",
+    "pvs": "PersistentVolumes",
+    "configMaps": "ConfigMaps",
+    "secrets": "Secrets"
+  },
+  "kinds": {
+    "short": {
+      "Ingress": "ing",
+      "Service": "svc",
+      "Deployment": "deploy",
+      "ReplicaSet": "rs",
+      "StatefulSet": "sts",
+      "DaemonSet": "ds",
+      "Pod": "pod",
+      "PersistentVolumeClaim": "pvc",
+      "PersistentVolume": "pv",
+      "ConfigMap": "cm",
+      "Secret": "secret"
+    }
+  },
+  "status": {
+    "unknown": "Unbekannt",
+    "missing": "Nicht gefunden",
+    "terminating": "Wird beendet",
+    "waiting": "{{reason}}",
+    "phase": "{{phase}}",
+    "ready": "{{ready}}/{{total}} bereit",
+    "replicas": "{{ready}}/{{desired}} bereit",
+    "scaledToZero": "Auf 0 skaliert",
+    "externalName": "→ {{target}}",
+    "noSelector": "Kein Selektor",
+    "noPods": "Keine Pods ausgewählt",
+    "endpoints": "{{ready}}/{{total}} Pods bereit",
+    "noBackends": "Keine Backends",
+    "missingBackends": "{{missing}}/{{total}} Backends fehlen",
+    "backends": "Backends: {{total}}",
+    "keys": "Schlüssel: {{total}}"
+  },
+  "node": {
+    "label": "{{kind}} {{name}}: {{status}}"
+  },
+  "menu": {
+    "open": "Details öffnen",
+    "yaml": "YAML öffnen",
+    "focus": "Topologie anzeigen"
+  },
+  "canvas": {
+    "label": "Topologie von {{namespace}}",
+    "zoomIn": "Vergrößern",
+    "zoomOut": "Verkleinern",
+    "fit": "An Ansicht anpassen"
+  }
+}
