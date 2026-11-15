@@ -19,15 +19,25 @@ carries all of these artifacts with a `checksums.txt` (SHA-256); see
 [releasing.md](releasing.md#what-a-release-contains).
 
 **First sign-in.** The `admin` user is created on the very first start with
-`KUBEBENCH_ADMIN_PASSWORD`. Without it the password is `admin` and KubeBench
-forces a change at the first sign-in, so sign in right after installing.
-The Helm chart and `install.sh` generate a random password instead.
+`KUBEBENCH_ADMIN_PASSWORD`. Without it the password is `admin`, so sign in
+right after installing. The Helm chart and `install.sh` generate a random
+password instead. Either way KubeBench asks for a new password at the first
+sign-in: the bootstrap one stays readable where it was configured (the
+chart's Secret, the env file).
 
 ## Kubernetes
 
 Inside a cluster, KubeBench registers that cluster as `in-cluster` through
 its ServiceAccount, so the ServiceAccount's RBAC decides what it can do
 there. Add more clusters in the Clusters view.
+
+Assign the `operator` role on `in-cluster` only to people you would make
+KubeBench administrators. With the default `cluster-admin` preset, an
+operator there can change KubeBench's own namespace like any other: run a
+debug container next to KubeBench and read its database (sessions and the
+credentials of every registered cluster), or create workloads that do.
+Narrow the ServiceAccount's RBAC (`rbac.preset`) if operators must not
+reach that namespace.
 
 ### Helm
 
@@ -210,7 +220,7 @@ refuses to start with an invalid value (every problem is reported at once).
 | `KUBEBENCH_DB` | `kubebench.db` | SQLite file |
 | `KUBEBENCH_DATA_DIR` | directory of `KUBEBENCH_DB` | Writable state: Helm repository cache, uploads, plugins |
 | `KUBEBENCH_PLUGINS_DIR` | `$KUBEBENCH_DATA_DIR/plugins` | External (frontend) plugins |
-| `KUBEBENCH_ADMIN_PASSWORD` | `admin` | Bootstrap admin password (first start only, 8 characters to 72 bytes); the default must be changed at the first sign-in |
+| `KUBEBENCH_ADMIN_PASSWORD` | `admin` | Bootstrap admin password (first start only, 8 characters to 72 bytes); it must be changed at the first sign-in |
 | `KUBEBENCH_SECURE_COOKIES` | `auto` | `auto` (Secure on TLS or a trusted `X-Forwarded-Proto: https`), `true`, `false` |
 | `KUBEBENCH_TRUST_PROXY` | `false` | Honour `X-Forwarded-Proto/For` (behind an ingress or reverse proxy) |
 | `KUBEBENCH_TLS_CERT` / `KUBEBENCH_TLS_KEY` | (unset) | Serve HTTPS directly |

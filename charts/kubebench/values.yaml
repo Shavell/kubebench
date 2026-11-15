@@ -14,8 +14,8 @@ image:
 
 imagePullSecrets: []
 
-# The bootstrap admin is created on the first start only; the database owns
-# the password afterwards (change it in the UI). The password comes from, in
+# The bootstrap admin is created on the first start only and must choose a
+# new password at the first sign-in; the database owns it afterwards. The password comes from, in
 # order: auth.existingSecret, auth.adminPassword, or a random value that the
 # chart generates once and keeps across upgrades.
 auth:

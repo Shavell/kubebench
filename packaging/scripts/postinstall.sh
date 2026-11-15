@@ -82,8 +82,8 @@ cat <<EOF
 $status
   Configuration: $env_file
   Data:          $data_dir
-Sign in as "admin" with KUBEBENCH_ADMIN_PASSWORD from the configuration; if
-it was not set before the first start, the password is "admin" and must be
+Sign in as "admin" with KUBEBENCH_ADMIN_PASSWORD from the configuration, or
+"admin" if it was not set before the first start; either way it must be
 changed at the first sign-in.
 
 EOF

@@ -24,8 +24,8 @@ KubeBench {{ include "kubebench.version" . }} is installed as release "{{ .Relea
    history; prefer auth.existingSecret for production.
 {{- end }}
 {{- end }}
-   The password bootstraps the database on the first start only; change it
-   in the UI afterwards.
+   The password bootstraps the database on the first start only; KubeBench
+   asks for a new one at the first sign-in.
 {{- else }}
    The password is "admin" and must be changed at the first sign-in. Do that
    right away: until then anyone who can reach the UI can claim the account.

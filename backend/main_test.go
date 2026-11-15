@@ -55,8 +55,10 @@ func TestBootstrapForcesChangingTheDefaultPassword(t *testing.T) {
 	if err := bootstrap(custom, st); err != nil {
 		t.Fatal(err)
 	}
-	if admin, err := st.Authenticate("admin", "chosen-by-the-operator"); err != nil || admin.MustChangePassword {
-		t.Fatalf("a configured password needs no change: %+v (err %v)", admin, err)
+	// A configured password is stored where others may read it (an env
+	// file, the chart's Secret), so it must be replaced too.
+	if admin, err := st.Authenticate("admin", "chosen-by-the-operator"); err != nil || !admin.MustChangePassword {
+		t.Fatalf("a configured password must be changed at first sign-in: %+v (err %v)", admin, err)
 	}
 }
 

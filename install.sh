@@ -644,7 +644,7 @@ EOF
     cat <<EOF
 
 Sign in as "admin" with this generated password (shown only once; it stays
-in $ENV_FILE until you remove it):
+in $ENV_FILE until you remove it), then choose a new one:
 
   $generated_password
 

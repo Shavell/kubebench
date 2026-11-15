@@ -35,8 +35,10 @@ kubectl -n kubebench port-forward svc/kubebench 8080:80     # http://localhost:8
 
 ## Admin password
 
-The bootstrap `admin` user is created on the first start only; afterwards
-the password lives in the database and is changed in the UI.
+The bootstrap `admin` user is created on the first start only, and
+KubeBench asks for a new password at the first sign-in: the bootstrap one
+stays in the Secret, which others may be able to read. Afterwards the
+password lives in the database.
 
 | Values | Result |
 |---|---|

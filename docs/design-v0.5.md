@@ -83,7 +83,7 @@ cluster-to-cluster compare, port-forward, light/dark per-plugin theming.
 | `KUBEBENCH_DB` | `kubebench.db` | SQLite file |
 | `KUBEBENCH_DATA_DIR` | dir of `KUBEBENCH_DB` | Writable state: helm repo cache, uploads, plugins |
 | `KUBEBENCH_PLUGINS_DIR` | `$KUBEBENCH_DATA_DIR/plugins` | External (frontend) plugins |
-| `KUBEBENCH_ADMIN_PASSWORD` | `admin` | Bootstrap admin password (first run only). When the default is used, the admin must change it at first login |
+| `KUBEBENCH_ADMIN_PASSWORD` | `admin` | Bootstrap admin password (first run only). The admin must change it at first login, the default and a configured one alike |
 | `KUBEBENCH_SECURE_COOKIES` | `auto` | `auto` (Secure when request is TLS or trusted `X-Forwarded-Proto: https`), `true`, `false` |
 | `KUBEBENCH_TRUST_PROXY` | `false` | Honour `X-Forwarded-Proto/For` (behind ingress/reverse proxy) |
 | `KUBEBENCH_TLS_CERT` / `KUBEBENCH_TLS_KEY` | — | Serve HTTPS natively (VM installs without a proxy) |
@@ -239,9 +239,11 @@ error text. Pruned per `KUBEBENCH_AUDIT_RETENTION_DAYS`.
   `X-Forwarded-Host` is only compared when `KUBEBENCH_TRUST_PROXY` is set.
 - Session cookie `kubebench_session`: HttpOnly, SameSite=Lax, Secure per
   `KUBEBENCH_SECURE_COOKIES`. Expired sessions pruned hourly.
-- `users.must_change_password`: set when the bootstrap admin uses the
-  default password, for users an admin creates, and when an admin resets a
-  password — every password an admin knows. While set, every
+- `users.must_change_password`: set for the bootstrap admin (the default
+  password is well known; a configured one stays in the environment, an
+  env file or the chart's Secret, readable by whoever may read that
+  Secret, through KubeBench too), for users an admin creates, and when an
+  admin resets a password — every password someone else knows. While set, every
   `read`/`write`/`exec`/`admin` route returns `403 {"code":"password_change_required"}`;
   the `authed` routes (`/api/auth/*`, `/api/info`, …) keep working.
 - Passwords are 8 characters to 72 bytes (the bcrypt limit).

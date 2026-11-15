@@ -41,7 +41,7 @@ type Config struct {
 
 	AdminPassword string
 	// AdminPasswordIsDefault reports that the bootstrap password is the
-	// well-known default, so the bootstrap admin must change it.
+	// well-known default (which is not checked against the password policy).
 	AdminPasswordIsDefault bool
 
 	SecureCookies CookieMode

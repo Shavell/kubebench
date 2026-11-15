@@ -55,14 +55,18 @@ func bootstrap(cfg *config.Config, st *store.Store) error {
 			return &configError{key: "KUBEBENCH_ADMIN_PASSWORD", msg: err.Error()}
 		}
 	}
-	// The well-known default password must be replaced at first sign-in.
-	if _, err := st.CreateUser("admin", cfg.AdminPassword, store.RoleAdmin, cfg.AdminPasswordIsDefault); err != nil {
+	// The password must be replaced at the first sign-in, also when it was
+	// configured: the default is well known, and a configured one stays in
+	// the environment, an env file or a Kubernetes Secret (the chart's),
+	// readable by others, e.g. by anyone who may read that Secret through
+	// KubeBench itself (§3.5: every password someone else knows).
+	if _, err := st.CreateUser("admin", cfg.AdminPassword, store.RoleAdmin, true); err != nil {
 		return fmt.Errorf("create the initial admin: %w", err)
 	}
 	if cfg.AdminPasswordIsDefault {
 		log.Printf(`[auth] created user "admin" with the default password; it must be changed at first sign-in`)
 	} else {
-		log.Printf(`[auth] created user "admin" with KUBEBENCH_ADMIN_PASSWORD`)
+		log.Printf(`[auth] created user "admin" with KUBEBENCH_ADMIN_PASSWORD; it must be changed at first sign-in`)
 	}
 
 	if cfg.InCluster {
