@@ -10,7 +10,7 @@ function fakeEnv(overrides: Partial<KubectlEnv> = {}) {
     kind: k,
     names,
     namespaced,
-    openList: (ns) => calls.push(`list ${k} ${ns ?? '*'}`),
+    openList: (ns) => calls.push(`list ${k} ${ns === null ? 'all' : (ns ?? 'global')}`),
     openDetail: (o) => calls.push(`detail ${k} ${o.namespace ?? '-'}/${o.name}`),
   })
   const target = (t: PodTarget) => `${t.namespace}/${t.pod}/${t.container}`
@@ -54,7 +54,7 @@ describe('get', () => {
     assert.deepEqual(kinds.map((r) => r.label), ['get deployments'])
     assert.equal(kinds[0].complete, 'get deployments ')
     kinds[0].run!()
-    assert.deepEqual(calls, ['list Deployment *'])
+    assert.deepEqual(calls, ['list Deployment global'])
   })
 
   it('opens a namespaced list with -n', () => {
@@ -63,6 +63,13 @@ describe('get', () => {
     assert.equal(open.id, 'open-list')
     open.run!()
     assert.deepEqual(calls, ['list Pod shop'])
+  })
+
+  it('opens a list of all namespaces with -A, whatever the global filter', () => {
+    const { rows, calls } = fakeEnv({ currentNamespace: 'shop' })
+    rows('get pods -A')[0].run!()
+    rows('get nodes -A')[0].run!()
+    assert.deepEqual(calls, ['list Pod all', 'list Node global'])
   })
 
   it('completes namespace values', () => {

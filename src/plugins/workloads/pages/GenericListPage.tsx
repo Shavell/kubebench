@@ -1,12 +1,11 @@
 import { useState } from 'react'
 import { useLayoutStore } from '@/core/store/layoutStore'
-import { ALL_NAMESPACES, useContextStore } from '@/core/store/contextStore'
+import { useContextStore } from '@/core/store/contextStore'
 import { useProviderQuery, useProviders } from '@/data/DataContext'
 import type { TabDescriptor } from '@/core/plugin/types'
 import type { KubeObject } from '@/data/types'
 import { formatNumber } from '@/i18n/format'
 import { ListFilterBar } from '@/shared/ListFilterBar'
-import { NamespaceOptions } from '@/shared/NamespaceOptions'
 import { Table } from '@/shared/Table'
 import { Toolbar } from '@/shared/Toolbar'
 import { EmptyState } from '@/shared/EmptyState'
@@ -18,6 +17,8 @@ import { NewResourceButton } from '../editing/ResourceEditButtons'
 import { genericMenu } from '../rowActions'
 import { WorkloadOpsDialogs } from '../ops/WorkloadOpsDialogs'
 import { EventsListPage } from './EventsListPage'
+import { initialLocalNamespace, listNamespace } from './namespaceFilter'
+import { NamespaceFilterSelect } from './NamespaceFilterSelect'
 import '@/shared/tabPage.css'
 
 /** A catalog resource list; Events have their own view (warning filter, grouping). */
@@ -32,12 +33,10 @@ function CatalogListPage({ tab }: { tab: TabDescriptor }) {
   const descriptor = catalogByKey.get(key)
   const globalNamespace = useContextStore((s) => s.namespace)
   const [search, setSearch] = useState('')
-  /** Page-local namespace filter (palette `-n` presets it); empty = the global filter. */
-  const [localNs, setLocalNs] = useState((tab.props?.namespace as string | undefined) ?? '')
+  /** Page-local namespace filter (namespaceFilter.ts); palette `-n` / `-A` preset it. */
+  const [localNs, setLocalNs] = useState(() => initialLocalNamespace(tab.props))
 
-  const nsFilter = descriptor?.namespaced
-    ? localNs || (globalNamespace === ALL_NAMESPACES ? undefined : globalNamespace)
-    : undefined
+  const nsFilter = descriptor?.namespaced ? listNamespace(localNs, globalNamespace) : undefined
 
   const { data: namespaces } = useProviderQuery((p) => p.cluster.listNamespaces(), [], { topics: ['namespaces'] })
   const query = useProviderQuery(
@@ -119,14 +118,12 @@ function CatalogListPage({ tab }: { tab: TabDescriptor }) {
           summary={t('list.summary', { shown: formatNumber(rows.length), total: formatNumber(all.length) })}
         >
           {descriptor.namespaced && (
-            <select title={t('filters.namespaceTitle')} value={localNs} onChange={(e) => setLocalNs(e.target.value)}>
-              <option value="">
-                {globalNamespace === ALL_NAMESPACES
-                  ? t('filters.namespaceAll')
-                  : t('filters.namespaceGlobal', { namespace: globalNamespace })}
-              </option>
-              <NamespaceOptions names={(namespaces ?? []).map((ns) => ns.name)} selected={localNs} />
-            </select>
+            <NamespaceFilterSelect
+              value={localNs}
+              onChange={setLocalNs}
+              globalNamespace={globalNamespace}
+              namespaces={(namespaces ?? []).map((ns) => ns.name)}
+            />
           )}
         </ListFilterBar>
         <NewResourceButton kind={descriptor.kind} namespace={nsFilter} />

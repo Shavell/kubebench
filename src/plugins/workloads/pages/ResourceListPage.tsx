@@ -1,13 +1,12 @@
 import { useState } from 'react'
 import { useLayoutStore } from '@/core/store/layoutStore'
-import { ALL_NAMESPACES, useContextStore } from '@/core/store/contextStore'
+import { useContextStore } from '@/core/store/contextStore'
 import { useProviderQuery, useProviders } from '@/data/DataContext'
 import type { TabDescriptor } from '@/core/plugin/types'
 import type { Deployment, K8sNode, Namespace, Pod, Service } from '@/data/types'
 import { formatNumber } from '@/i18n/format'
 import { Badge } from '@/shared/Badge'
 import { ListFilterBar } from '@/shared/ListFilterBar'
-import { NamespaceOptions } from '@/shared/NamespaceOptions'
 import { Table } from '@/shared/Table'
 import { Toolbar } from '@/shared/Toolbar'
 import { EmptyState } from '@/shared/EmptyState'
@@ -22,6 +21,8 @@ import { ListOpsActions } from '../ops/ListOpsActions'
 import { NodeStatus } from '../ops/NodeScheduling'
 import { usePodSelection } from '../ops/usePodSelection'
 import { WorkloadOpsDialogs } from '../ops/WorkloadOpsDialogs'
+import { initialLocalNamespace, listNamespace } from './namespaceFilter'
+import { NamespaceFilterSelect } from './NamespaceFilterSelect'
 import '@/shared/tabPage.css'
 
 function openDetail(kind: string, namespace: string | null, name: string, icon: string) {
@@ -124,14 +125,14 @@ export function ResourceListPage({ tab }: { tab: TabDescriptor }) {
   const providers = useProviders()
   const globalNamespace = useContextStore((s) => s.namespace)
   const [search, setSearch] = useState('')
-  /** Page-local namespace filter; empty = follow the global status bar filter. Palette `-n` presets it. */
-  const [localNs, setLocalNs] = useState((tab.props?.namespace as string | undefined) ?? '')
+  /** Page-local namespace filter (namespaceFilter.ts); palette `-n` / `-A` preset it. */
+  const [localNs, setLocalNs] = useState(() => initialLocalNamespace(tab.props))
   const [statusFilter, setStatusFilter] = useState('')
   const [deleting, setDeleting] = useState<Pod | null>(null)
   const podSelection = usePodSelection()
 
   const isNamespaced = NAMESPACED.includes(resource)
-  const nsFilter = localNs || (globalNamespace === ALL_NAMESPACES ? undefined : globalNamespace)
+  const nsFilter = listNamespace(localNs, globalNamespace)
   const label = richLabel(resource)
 
   const { data: namespaces } = useProviderQuery((p) => p.cluster.listNamespaces(), [], { topics: ['namespaces'] })
@@ -180,18 +181,12 @@ export function ResourceListPage({ tab }: { tab: TabDescriptor }) {
       summary={t('list.summary', { shown: formatNumber(rows.length), total: formatNumber(all.length) })}
     >
       {isNamespaced && (
-        <select
-          title={t('filters.namespaceTitle')}
+        <NamespaceFilterSelect
           value={localNs}
-          onChange={(e) => setLocalNs(e.target.value)}
-        >
-          <option value="">
-            {globalNamespace === ALL_NAMESPACES
-              ? t('filters.namespaceAll')
-              : t('filters.namespaceGlobal', { namespace: globalNamespace })}
-          </option>
-          <NamespaceOptions names={(namespaces ?? []).map((ns) => ns.name)} selected={localNs} />
-        </select>
+          onChange={setLocalNs}
+          globalNamespace={globalNamespace}
+          namespaces={(namespaces ?? []).map((ns) => ns.name)}
+        />
       )}
       {resource === 'Pods' && (
         <select

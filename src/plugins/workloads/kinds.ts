@@ -2,6 +2,7 @@ import type { ResourceKindContribution, ResourceKindObject, TabDescriptor } from
 import { useLayoutStore } from '@/core/store/layoutStore'
 import type { DataProviders } from '@/data/providers'
 import { WORKLOADS_NS } from './i18n'
+import { LOCAL_ALL_NAMESPACES } from './pages/namespaceFilter'
 import { objName, objNamespace, RESOURCE_CATALOG, resourceLabel, richLabel } from './resourceCatalog'
 
 /** kubectl's short names (`kubectl api-resources`) of the kinds this plugin lists. */
@@ -52,6 +53,14 @@ const RICH: { resource: string; kind: string; icon: string; namespaced: boolean;
 const objects = (items: { name: string; namespace?: string }[]): ResourceKindObject[] =>
   items.map((o) => ({ name: o.name, namespace: o.namespace || undefined }))
 
+/** The tab id suffix of a list opened in `namespace` (see `openList`): its own tab per scope. */
+const listIdSuffix = (namespace: string | null | undefined) =>
+  namespace === null ? `:${LOCAL_ALL_NAMESPACES}` : namespace ? `:${namespace}` : ''
+
+/** A list tab's props: `namespace` presets its local filter, `null` to all namespaces. */
+const listProps = (namespace: string | null | undefined, props: Record<string, unknown>) =>
+  namespace === null ? { ...props, allNamespaces: true } : { ...props, namespace }
+
 /** The rich lists (Pods, Deployments, …) of the `workloads-list` / `workloads-detail` tab kinds. */
 const richKinds: ResourceKindContribution[] = RICH.map((r) => ({
   kind: r.kind,
@@ -60,12 +69,12 @@ const richKinds: ResourceKindContribution[] = RICH.map((r) => ({
   icon: r.icon,
   openList: (namespace) =>
     openTab({
-      id: namespace ? `list:${r.resource}:${namespace}` : `list:${r.resource}`,
+      id: `list:${r.resource}${listIdSuffix(namespace)}`,
       title: namespace ? `${richLabel(r.resource)} · ${namespace}` : richLabel(r.resource),
       ...(namespace ? {} : { titleKey: `resources.${r.resource.toLowerCase()}`, titleNs: WORKLOADS_NS }),
       icon: r.icon,
       kind: 'workloads-list',
-      props: { resource: r.resource, namespace },
+      props: listProps(namespace, { resource: r.resource }),
     }),
   openDetail: ({ namespace, name }) =>
     openTab({
@@ -86,12 +95,12 @@ const catalogKinds: ResourceKindContribution[] = RESOURCE_CATALOG.map((d) => ({
   icon: d.icon,
   openList: (namespace) =>
     openTab({
-      id: namespace ? `reslist:${d.key}:${namespace}` : `reslist:${d.key}`,
+      id: `reslist:${d.key}${listIdSuffix(namespace)}`,
       title: namespace ? `${resourceLabel(d.key)} · ${namespace}` : resourceLabel(d.key),
       ...(namespace ? {} : { titleKey: `resources.${d.key}`, titleNs: WORKLOADS_NS }),
       icon: d.icon,
       kind: 'generic-list',
-      props: { resourceKey: d.key, namespace },
+      props: listProps(namespace, { resourceKey: d.key }),
     }),
   openDetail: ({ namespace, name }) =>
     openTab({

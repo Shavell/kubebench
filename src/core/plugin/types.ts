@@ -135,8 +135,12 @@ export interface ResourceKindContribution {
   names: string[]
   namespaced: boolean
   icon?: string
-  /** Opens the list; `namespace` scopes a namespaced list (otherwise the global filter applies). */
-  openList: (namespace?: string) => void
+  /**
+   * Opens the list; `namespace` scopes a namespaced list, `null` lists all
+   * namespaces whatever the global filter (palette `-A`), and without it
+   * the global filter applies.
+   */
+  openList: (namespace?: string | null) => void
   openDetail: (object: ResourceKindObject) => void
   /** Objects for name completion, in `namespace` or in all namespaces. */
   listObjects: (providers: DataProviders, namespace?: string) => Promise<ResourceKindObject[]>

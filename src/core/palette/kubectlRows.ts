@@ -26,7 +26,7 @@ export interface KindInfo {
   names: string[]
   namespaced: boolean
   icon?: string
-  openList: (namespace?: string) => void
+  openList: (namespace?: string | null) => void
   openDetail: (object: { namespace?: string; name: string }) => void
 }
 
@@ -93,6 +93,12 @@ export function findKind<K extends KindInfo>(kinds: readonly K[], name: string):
 function scopeOf(command: KubectlCommand, env: Pick<KubectlEnv, 'currentNamespace'>): string {
   if (command.allNamespaces) return ''
   return command.namespace ?? env.currentNamespace
+}
+
+/** What `openList` gets: `-n`, `null` for `-A` (all namespaces), else nothing (the global filter). */
+function listScope(command: KubectlCommand, kind: KindInfo): string | null | undefined {
+  if (!kind.namespaced) return undefined
+  return command.allNamespaces ? null : command.namespace
 }
 
 /** The argument being typed, if the input does not end with a space. */
@@ -215,7 +221,7 @@ function getRows(command: KubectlCommand, input: string, env: KubectlEnv): Palet
         detail: [k.kind, ...k.names.slice(1)].join(', '),
         icon: k.icon ?? 'symbol-class',
         complete: isDescribe ? `${command.verb} ${k.names[0]}/` : `${command.verb} ${k.names[0]} `,
-        run: isDescribe ? undefined : () => k.openList(k.namespaced && command.namespace ? command.namespace : undefined),
+        run: isDescribe ? undefined : () => k.openList(listScope(command, k)),
       }))
   }
 
@@ -236,7 +242,7 @@ function getRows(command: KubectlCommand, input: string, env: KubectlEnv): Palet
         ? env.t('palette.kubectl.openListIn', { kind: kind.names[0], namespace: where })
         : env.t('palette.kubectl.openList', { kind: kind.names[0] }),
       icon: kind.icon ?? 'list-flat',
-      run: () => kind.openList(kind.namespaced && command.namespace ? command.namespace : undefined),
+      run: () => kind.openList(listScope(command, kind)),
     })
     if (!command.trailingSpace) return rows
   }

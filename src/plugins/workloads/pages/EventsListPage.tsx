@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useLayoutStore } from '@/core/store/layoutStore'
-import { ALL_NAMESPACES, useContextStore } from '@/core/store/contextStore'
+import { useContextStore } from '@/core/store/contextStore'
 import { useProviderQuery, useProviders } from '@/data/DataContext'
 import type { TabDescriptor } from '@/core/plugin/types'
 import { formatNumber } from '@/i18n/format'
@@ -8,7 +8,6 @@ import { EmptyState } from '@/shared/EmptyState'
 import { byLastSeen, isWarning, toEventRow, type EventRow } from '@/shared/eventModel'
 import { Checkbox } from '@/shared/form'
 import { ListFilterBar } from '@/shared/ListFilterBar'
-import { NamespaceOptions } from '@/shared/NamespaceOptions'
 import { Table } from '@/shared/Table'
 import { Toolbar } from '@/shared/Toolbar'
 import { Unavailable } from '@/shared/Unavailable'
@@ -19,6 +18,8 @@ import { genericMenu } from '../rowActions'
 import { WorkloadOpsDialogs } from '../ops/WorkloadOpsDialogs'
 import { EventGroups } from './events/EventGroups'
 import { eventColumns } from './events/eventColumns'
+import { initialLocalNamespace, listNamespace } from './namespaceFilter'
+import { NamespaceFilterSelect } from './NamespaceFilterSelect'
 import '@/shared/tabPage.css'
 import './events/events.css'
 
@@ -40,12 +41,12 @@ export function EventsListPage({ tab }: { tab: TabDescriptor }) {
   const descriptor = catalogByKey.get(KEY)!
   const globalNamespace = useContextStore((s) => s.namespace)
   const [search, setSearch] = useState('')
-  /** Page-local namespace filter (palette `-n` presets it); empty = the global filter. */
-  const [localNs, setLocalNs] = useState((tab.props?.namespace as string | undefined) ?? '')
+  /** Page-local namespace filter (namespaceFilter.ts); palette `-n` / `-A` preset it. */
+  const [localNs, setLocalNs] = useState(() => initialLocalNamespace(tab.props))
   const [warningsOnly, setWarningsOnly] = useState(tab.props?.warningsOnly === true)
   const [grouped, setGrouped] = useState(false)
 
-  const nsFilter = localNs || (globalNamespace === ALL_NAMESPACES ? undefined : globalNamespace)
+  const nsFilter = listNamespace(localNs, globalNamespace)
   const { data: namespaces } = useProviderQuery((p) => p.cluster.listNamespaces(), [], { topics: ['namespaces'] })
   const query = useProviderQuery((p) => p.cluster.listResource(KEY, nsFilter), [nsFilter], {
     topics: [KEY],
@@ -124,14 +125,12 @@ export function EventsListPage({ tab }: { tab: TabDescriptor }) {
           filtersActive={Boolean(localNs)}
           summary={t('list.summary', { shown: formatNumber(rows.length), total: formatNumber(all.length) })}
         >
-          <select title={t('filters.namespaceTitle')} value={localNs} onChange={(e) => setLocalNs(e.target.value)}>
-            <option value="">
-              {globalNamespace === ALL_NAMESPACES
-                ? t('filters.namespaceAll')
-                : t('filters.namespaceGlobal', { namespace: globalNamespace })}
-            </option>
-            <NamespaceOptions names={(namespaces ?? []).map((ns) => ns.name)} selected={localNs} />
-          </select>
+          <NamespaceFilterSelect
+            value={localNs}
+            onChange={setLocalNs}
+            globalNamespace={globalNamespace}
+            namespaces={(namespaces ?? []).map((ns) => ns.name)}
+          />
         </ListFilterBar>
         <Checkbox
           className="events-toolbar__toggle"
