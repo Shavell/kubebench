@@ -54,6 +54,9 @@ type Config struct {
 
 	AllowPathKubeconfig bool
 	// Kubeconfig is the KUBECONFIG path used to seed the inventory on first run.
+	// AllowKubeconfigExec lets pasted kubeconfigs run exec credential
+	// plugins and auth providers and read files on the server.
+	AllowKubeconfigExec bool
 	Kubeconfig string
 	InCluster  bool
 }
@@ -112,6 +115,10 @@ func FromEnv(lookup func(string) (string, bool), inCluster bool) (*Config, error
 		p.fail("KUBEBENCH_AUDIT_RETENTION_DAYS", "must be 0 (keep forever) or a positive number of days")
 	}
 
+	// A pasted kubeconfig is whatever an admin's browser sent: running its
+	// commands or reading the files it names would give every admin the
+	// server's account, so that is off unless the operator opts in.
+	c.AllowKubeconfigExec = p.boolean("KUBEBENCH_ALLOW_KUBECONFIG_EXEC", false)
 	// Reading kubeconfigs from server-side paths only makes sense when the
 	// server runs on the operator's machine, not inside a pod.
 	c.AllowPathKubeconfig = p.boolean("KUBEBENCH_ALLOW_PATH_KUBECONFIG", !inCluster)

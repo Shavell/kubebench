@@ -130,7 +130,7 @@ func (s *Server) handleAddCluster(w http.ResponseWriter, r *http.Request, c *cal
 	c.setAudit("", auditJSON(map[string]string{"source": cluster.Source}))
 
 	if cluster.Source == store.SourceKubeconfig {
-		if err := s.checkKubeconfig(cluster.Kubeconfig, cluster.Context); err != nil {
+		if err := s.checkKubeconfig(cluster.Kubeconfig, cluster.Context, body.Content != ""); err != nil {
 			writeErr(w, err)
 			return
 		}
@@ -144,10 +144,13 @@ func (s *Server) handleAddCluster(w http.ResponseWriter, r *http.Request, c *cal
 }
 
 // checkKubeconfig validates kubeconfig content for the given context ("" =
-// current). Unless server-side files are allowed, the credentials must be
-// self-contained: a pasted kubeconfig must not make KubeBench read local
-// files (such as its own service-account token) or run commands.
-func (s *Server) checkKubeconfig(content, contextName string) error {
+// current). Pasted content is whatever the admin's browser sent: unless
+// KUBEBENCH_ALLOW_KUBECONFIG_EXEC is set, its credentials must be
+// self-contained, so that it cannot make KubeBench run commands or read
+// local files (such as its own service-account token or database) as the
+// server's account. A kubeconfig added by path is one of the server's own
+// files, which the path setting already trusts.
+func (s *Server) checkKubeconfig(content, contextName string, pasted bool) error {
 	kc, err := clientcmd.Load([]byte(content))
 	if err != nil {
 		return badRequest("invalid kubeconfig: %v", err)
@@ -159,12 +162,12 @@ func (s *Server) checkKubeconfig(content, contextName string) error {
 	if !ok {
 		return badRequest("context %q is not in the kubeconfig", contextName)
 	}
-	if s.cfg.AllowPathKubeconfig {
+	if !pasted || s.cfg.AllowKubeconfigExec {
 		return nil
 	}
 	if refs := serverSideReferences(kc.Clusters[ctx.Cluster], kc.AuthInfos[ctx.AuthInfo]); len(refs) > 0 {
 		return errorf(http.StatusForbidden, plugin.CodeForbidden,
-			"the kubeconfig uses %s, which this server does not allow (KUBEBENCH_ALLOW_PATH_KUBECONFIG); embed the credentials as *-data fields or a token",
+			"the kubeconfig uses %s, which this server does not allow in pasted kubeconfigs (KUBEBENCH_ALLOW_KUBECONFIG_EXEC); embed the credentials as *-data fields or a token",
 			strings.Join(refs, ", "))
 	}
 	return nil

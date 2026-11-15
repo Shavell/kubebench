@@ -73,6 +73,10 @@ func kubeconfigWithExec() string {
 		"    exec:\n      apiVersion: client.authentication.k8s.io/v1\n      command: /bin/sh\n", 1)
 }
 
+func kubeconfigWithTokenFile() string {
+	return strings.Replace(testKubeconfig, "    token: not-a-real-token\n", "    tokenFile: /etc/kubebench/kubebench.env\n", 1)
+}
+
 func TestAddClusterGatesServerSideFiles(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "config")
@@ -95,12 +99,27 @@ func TestAddClusterGatesServerSideFiles(t *testing.T) {
 		t.Fatal("features.pathKubeconfig must follow the configuration")
 	}
 
+	// Outside a cluster paths are allowed, but pasted content still may not
+	// run commands or read the server's files: that needs its own opt-in.
 	open := newTestEnv(t, nil)
 	if code := add(open, map[string]string{"name": "from-path", "path": path}); code != http.StatusOK {
 		t.Fatalf("path kubeconfig: %d", code)
 	}
-	if code := add(open, map[string]string{"name": "exec", "content": kubeconfigWithExec()}); code != http.StatusOK {
-		t.Fatalf("exec plugins are allowed where server-side files are: %d", code)
+	for name, content := range map[string]string{"exec": kubeconfigWithExec(), "token-file": kubeconfigWithTokenFile()} {
+		expect(t, open.do(http.MethodPost, "/api/clusters", "admin", map[string]string{"name": name, "content": content}),
+			http.StatusForbidden, plugin.CodeForbidden)
+	}
+	// A kubeconfig file on the server is the server's own configuration.
+	execPath := filepath.Join(dir, "exec-config")
+	if err := os.WriteFile(execPath, []byte(kubeconfigWithExec()), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if code := add(open, map[string]string{"name": "exec-path", "path": execPath}); code != http.StatusOK {
+		t.Fatalf("an exec plugin in a kubeconfig added by path: %d", code)
+	}
+	trusting := newTestEnv(t, map[string]string{"KUBEBENCH_ALLOW_KUBECONFIG_EXEC": "true"})
+	if code := add(trusting, map[string]string{"name": "exec", "content": kubeconfigWithExec()}); code != http.StatusOK {
+		t.Fatalf("KUBEBENCH_ALLOW_KUBECONFIG_EXEC must allow pasted exec plugins: %d", code)
 	}
 	expect(t, open.do(http.MethodPost, "/api/clusters", "admin", map[string]string{"name": "bad", "content": "{nope"}),
 		http.StatusBadRequest, plugin.CodeBadRequest)

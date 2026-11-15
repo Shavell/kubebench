@@ -91,6 +91,21 @@ func TestPortDerivesListenAddr(t *testing.T) {
 	}
 }
 
+// Pasted kubeconfigs may not run commands or read server files unless the
+// operator opts in, inside and outside a cluster.
+func TestKubeconfigExecIsOptIn(t *testing.T) {
+	for _, inCluster := range []bool{false, true} {
+		c, err := FromEnv(env(nil), inCluster)
+		if err != nil || c.AllowKubeconfigExec {
+			t.Fatalf("inCluster=%v: AllowKubeconfigExec = %v (err %v)", inCluster, c.AllowKubeconfigExec, err)
+		}
+	}
+	c, err := FromEnv(env(map[string]string{"KUBEBENCH_ALLOW_KUBECONFIG_EXEC": "true"}), false)
+	if err != nil || !c.AllowKubeconfigExec {
+		t.Fatalf("explicit opt-in ignored: %v", err)
+	}
+}
+
 func TestValidationReportsEveryProblem(t *testing.T) {
 	_, err := FromEnv(env(map[string]string{
 		"PORT":                           "http",
