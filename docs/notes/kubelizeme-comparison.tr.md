@@ -15,6 +15,10 @@ yaptığımızı ve neyin açık kaldığını anlatır.
 > KubeBench'te KubelizeMe'ye ait hiçbir kod, görsel ya da metin
 > kullanılmamıştır.
 
+> **Durum.** Aşağıdaki v0.5 sütunu 0.5.0'da gerçekten çıkanlarla
+> karşılaştırılarak güncellendi (kod üzerinde 2026-11-15'te denetlendi).
+> Hâlâ eksik olanlar §4'te listelenir.
+
 ## 1. Konumlandırma
 
 | | KubelizeMe | KubeBench |
@@ -24,9 +28,9 @@ yaptığımızı ve neyin açık kaldığını anlatır.
 | Kullanıcılar | Tek kullanıcı | Çok kullanıcılı: oturumlar, global roller, cluster bazında roller (izleyici/operatör), salt okunur cluster'lar, denetim kaydı *(v0.5)* |
 | Aynı anda açık cluster | Birden çok context, renk grupları | Kullanıcı başına bir aktif cluster; geçişte arayüz yeniden yüklenir |
 | Yerel araçlar | `helm`/`kubectl` çağırır; araç denetimi ve binary yolu ayarları var | Yalnızca yerel SDK'lar (client-go, Helm v3 SDK); sunucuda ek bir araç gerekmez |
-| Dağıtım | Masaüstü kurulum paketleri + otomatik güncelleyici | Container imajı, Helm chart'ı, düz manifest'ler, `.deb`/`.rpm`, tarball'lar, `curl \| bash` kurulumu, offline paket *(v0.5)* |
+| Dağıtım | Masaüstü kurulum paketleri + otomatik güncelleyici | Container imajı, Helm chart'ı, düz manifest'ler, `.deb`/`.rpm`, tarball'lar, `curl \| bash` kurulumu, offline paket; yeni sürümleri ve yükseltme adımlarını gösteren ama hiçbir şey kurmayan güncelleme denetimi *(v0.5)* |
 | Genişletilebilirlik | Kapalı uygulama; AI tarafını MCP sunucularıyla genişletir | Eklenti platformu: yerleşik backend+frontend eklentileri, yönetici tarafından açma/kapama, çalışma anında yüklenen harici arayüz eklentileri *(v0.5)* |
-| Diller | İngilizce | İngilizce + Türkçe, eklenti bazında çeviri namespace'leri *(v0.5)* |
+| Diller | İngilizce | İngilizce, Türkçe ve Almanca, eklenti bazında çeviri namespace'leri; yeni diller yalnızca veri ile eklenir *(v0.5)* |
 
 ## 2. Özellik karşılaştırması
 
@@ -111,16 +115,20 @@ Gösterim: ✓ var · ◐ kısmen · — yok · **v0.5** bu sürümde eklendi.
 | Request/limit ile ayrılabilir kapasite karşılaştırması, overcommit işareti | — | ✓ | ✓ |
 | Topoloji grafiği (Ingress → Service → iş yükü → Pod) | ✓ (dagre) | — | **v0.5** (Topology eklentisi) |
 | Watch ile canlı güncelleme | ✓ (watch önbelleği) | — (elle ya da aralıklı yenileme) | **v0.5** (paylaşılan informer'lar + SSE) |
-| Son uyarıları gösteren cluster panosu | ✓ | ◐ (metrik genel bakışı) | ◐ |
+| Son uyarıları gösteren cluster panosu | ✓ | ◐ (metrik genel bakışı) | **v0.5** (son uyarılar kartı; Warning filtresi ve nedene göre gruplamalı Olaylar görünümü) |
 
 ### Çalışma alanı ve kullanım kolaylığı
 
 | Alan | KubelizeMe | KubeBench ≤0.4 | KubeBench v0.5 |
 |---|---|---|---|
-| Komut paleti | ✓ (+ `get`/`describe`, takma adlar) | ✓ | ✓ |
+| Komut paleti | ✓ (+ `get`/`describe`, takma adlar) | ✓ | **v0.5** tamamlamalı ve takma adlı kubectl tarzı `get`/`describe`/`logs`/`exec`/`ns`/`ctx` |
+| Klavye kısayolları ve tablolarda klavyeyle gezinme | ✓ | ◐ (yalnızca palet) | **v0.5** (ayarlanabilir, `?` kısayol listesi) |
 | Namespace sabitleme/gizleme | ✓ | — | **v0.5** |
-| Açık/koyu tema, yazı tipleri, arayüz ölçeği | ✓ | yalnızca koyu | **v0.5** açık/koyu/sistem |
-| Çok dilli arayüz | — | — | **v0.5** (en, tr) |
+| Açık/koyu tema, yazı tipleri, arayüz ölçeği | ✓ | yalnızca koyu | ◐ **v0.5** açık/koyu/sistem ve terminal yazı boyutu; arayüz ölçeği yok |
+| Çok dilli arayüz | — | — | **v0.5** (en, tr, de) |
+| Bulut sağlayıcısı tespiti ve Kubernetes sürüm desteği (EKS, AKS, GKE, …) | ✓ | — | **v0.5** (sağlayıcı rozetleri, destek sonu uyarısı) |
+| Bulut CLI'ları olmadan EKS/GKE/AKS oturum açma | — (görülmedi) | — | **v0.5** (süreç içinde, CLI gerekmez; cluster başına kimlik bilgileri ya da sunucunun kimliği) |
+| Uygulama içi güncelleme | ✓ (otomatik güncelleyici) | — | **v0.5** güncelleme denetimi + Yenilikler (tasarım gereği hiçbir şey kurmaz) |
 | AI asistanı (çoklu sağlayıcı, araç çağrıları, MCP, playbook'lar) | ✓ | — | — (yol haritası) |
 | Manifest Composer (form sihirbazları, şablonlar, çoklu cluster'a uygulama) | ✓ | — | ◐ (Storage sihirbazları + YAML şablonları) |
 | Cluster'lar arası karşılaştırma | ✓ | — | — (yol haritası) |
@@ -147,12 +155,15 @@ Gösterim: ✓ var · ◐ kısmen · — yok · **v0.5** bu sürümde eklendi.
 - **Dürüst veri.** Canlı mod hiçbir zaman örnek veriye düşmez. Eksik bir
   yetenek, nedeniyle birlikte "kullanılamıyor" olarak gösterilir.
 
-## 4. Açık maddeler (yol haritası)
+## 4. v0.5'ten sonra hâlâ eksik olanlar (yol haritası)
 
 1. AI asistanı: sunucu tarafında çalışır, araçları varsayılan olarak salt okunurdur, her işlem denetim kaydına yazılır.
-2. Backend HTTP proxy'si üzerinden port-forward karşılığı.
+2. Manifest Composer: depolama dışındaki kaynaklar için de çoklu kaynak form sihirbazları ve çoklu cluster'a uygulama.
 3. Cluster karşılaştırma (neat ile A/B anlık görüntü diff'i).
-4. Depolama dışındaki kaynaklar için de Composer benzeri çoklu kaynak sihirbazları ve çoklu cluster'a uygulama.
+4. Backend HTTP proxy'si üzerinden port-forward karşılığı.
 5. Kullanıcı başına birden çok aktif cluster (yan yana görünümler).
-6. İsteğe bağlı OIDC/SSO girişi ve kullanıcı bazında Kubernetes impersonation.
-7. VM güncellemeleri için APT/YUM deposu.
+6. Webhook listelerinin ötesinde admission policy görünümleri (ValidatingAdmissionPolicy, Kyverno, Gatekeeper).
+7. Güvenlik raporları için NSA/CISA eşlemesi ve PDF dışa aktarma.
+8. Arayüz ölçeği ve yazı tipi ayarları.
+9. İsteğe bağlı OIDC/SSO girişi ve kullanıcı bazında Kubernetes impersonation.
+10. VM güncellemeleri için APT/YUM deposu.

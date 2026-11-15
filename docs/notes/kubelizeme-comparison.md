@@ -14,6 +14,10 @@ what is still open.
 > details are therefore inferred. No code, assets or text from KubelizeMe
 > are reused in KubeBench.
 
+> **Status.** The v0.5 column below was reconciled with what shipped in
+> 0.5.0 (checked against the code on 2026-11-15). What is still missing is
+> listed in §4.
+
 ## 1. Positioning
 
 | | KubelizeMe | KubeBench |
@@ -23,9 +27,9 @@ what is still open.
 | Users | Single user | Multi-user: sessions, global roles, per-cluster roles (viewer/operator), read-only clusters, audit log *(v0.5)* |
 | Clusters at once | Several contexts open simultaneously, colour groups | One active cluster per user; switching reloads the UI |
 | Local tooling | Shells out to `helm`/`kubectl`, has a toolchain probe and binary path overrides | Native SDKs only (client-go, Helm v3 SDK); nothing needed on the host |
-| Distribution | Desktop installers + auto-updater | Container image, Helm chart, plain manifests, `.deb`/`.rpm`, tarballs, `curl \| bash` installer, offline bundle *(v0.5)* |
+| Distribution | Desktop installers + auto-updater | Container image, Helm chart, plain manifests, `.deb`/`.rpm`, tarballs, `curl \| bash` installer, offline bundle; an update check that shows new releases and their upgrade steps but installs nothing *(v0.5)* |
 | Extensibility | Closed app; extends the AI side through MCP servers | Plugin platform: built-in backend+frontend plugins, admin enable/disable, runtime-loaded external UI plugins *(v0.5)* |
-| Languages | English | English + Turkish, per-plugin translation namespaces *(v0.5)* |
+| Languages | English | English, Turkish and German, per-plugin translation namespaces; more languages are data only *(v0.5)* |
 
 ## 2. Feature comparison
 
@@ -110,16 +114,20 @@ Legend: ✓ available · ◐ partial · — missing · **v0.5** added in this re
 | Requests/limits vs allocatable, overcommit marker | — | ✓ | ✓ |
 | Topology graph (Ingress → Service → workload → Pod) | ✓ (dagre) | — | **v0.5** (Topology plugin) |
 | Live updates via watches | ✓ (watch cache) | — (manual or interval refresh) | **v0.5** (shared informers + SSE) |
-| Cluster dashboard with recent warnings | ✓ | ◐ (metrics overview) | ◐ |
+| Cluster dashboard with recent warnings | ✓ | ◐ (metrics overview) | **v0.5** (recent warnings card, Events view with Warning filter and grouping by reason) |
 
 ### Workspace & UX
 
 | Area | KubelizeMe | KubeBench ≤0.4 | KubeBench v0.5 |
 |---|---|---|---|
-| Command palette | ✓ (+ `get`/`describe`, aliases) | ✓ | ✓ |
+| Command palette | ✓ (+ `get`/`describe`, aliases) | ✓ | **v0.5** kubectl-style `get`/`describe`/`logs`/`exec`/`ns`/`ctx` with completion and aliases |
+| Keyboard shortcuts and table keyboard navigation | ✓ | ◐ (palette only) | **v0.5** (configurable, `?` cheat sheet) |
 | Namespace pin/hide | ✓ | — | **v0.5** |
-| Light/dark themes, fonts, interface scale | ✓ | dark only | **v0.5** light/dark/system |
-| Multi-language UI | — | — | **v0.5** (en, tr) |
+| Light/dark themes, fonts, interface scale | ✓ | dark only | ◐ **v0.5** light/dark/system and terminal font size; no interface scale |
+| Multi-language UI | — | — | **v0.5** (en, tr, de) |
+| Cloud provider detection and Kubernetes version support (EKS, AKS, GKE, …) | ✓ | — | **v0.5** (provider badges, end-of-life notice) |
+| EKS/GKE/AKS sign-in without the clouds' CLIs | — (not seen) | — | **v0.5** (in process, no CLIs; per-cluster credentials or the server's identity) |
+| In-app updates | ✓ (auto-updater) | — | **v0.5** update check + What's new (installs nothing, by design) |
 | AI assistant (multi-provider, tool calls, MCP, playbooks) | ✓ | — | — (roadmap) |
 | Manifest Composer (form wizards, templates, multi-cluster apply) | ✓ | — | ◐ (Storage wizards + YAML templates) |
 | Cluster-to-cluster compare | ✓ | — | — (roadmap) |
@@ -144,12 +152,17 @@ Legend: ✓ available · ◐ partial · — missing · **v0.5** added in this re
 - **Honest data.** Live mode never falls back to sample data. A missing
   capability is shown as unavailable together with the reason.
 
-## 4. Open items (roadmap)
+## 4. Still missing after v0.5 (roadmap)
 
 1. AI assistant: server-side, read-only tools by default, every action audited.
-2. Port-forward equivalent through a backend HTTP proxy.
+2. Manifest Composer: multi-resource form wizards beyond storage, with
+   multi-cluster apply.
 3. Cluster compare (A/B snapshot diff with neat).
-4. Composer-style multi-resource wizards beyond storage, with multi-cluster apply.
+4. Port-forward equivalent through a backend HTTP proxy.
 5. Several active clusters per user (side-by-side views).
-6. Optional OIDC/SSO login and Kubernetes impersonation per user.
-7. An APT/YUM repository for VM upgrades.
+6. Admission policy views (ValidatingAdmissionPolicy, Kyverno, Gatekeeper)
+   beyond the webhook lists.
+7. NSA/CISA mapping and PDF export for security reports.
+8. Interface scale and font settings.
+9. Optional OIDC/SSO login and Kubernetes impersonation per user.
+10. An APT/YUM repository for VM upgrades.
