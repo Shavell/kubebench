@@ -38,7 +38,9 @@ those commits.
 - Real terminal sessions (WebSocket, xterm.js), streaming logs with follow,
   previous container and multi-pod selection.
 - YAML editing with diff, server-side dry run and apply; resource creation
-  from templates; generic delete; label and annotation editing.
+  from templates; generic delete; label and annotation editing; Secret
+  values revealed on demand (shell permission, audited). Tabs with unsaved
+  changes ask before they close.
 - Node cordon, drain and taints; Deployment rollout history, rollback and
   pause; restart and scale for StatefulSets, DaemonSets and ReplicaSets;
   debug containers; CronJob trigger and suspend; namespace create and delete.
@@ -89,6 +91,8 @@ those commits.
 - Login rate limiting, an Origin check on state-changing requests, `Secure`
   session cookies behind TLS, and `KUBEBENCH_ALLOW_PATH_KUBECONFIG` (off in
   clusters) for adding clusters by server-side path.
+- Secret views also redact kubectl's `last-applied-configuration`
+  annotation, which repeats the values.
 
 ## [0.4.0] - 2026-08-14
 

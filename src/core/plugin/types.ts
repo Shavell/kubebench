@@ -139,7 +139,7 @@ export interface PluginManifest {
   category?: PluginCategory
   /**
    * Part of the workbench itself (workloads, clusters, settings, terminal,
-   * extensions, users, audit): always enabled, cannot be disabled.
+   * editor, extensions, users, audit): always enabled, cannot be disabled.
    */
   core?: boolean
   /**

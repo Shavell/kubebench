@@ -55,7 +55,7 @@ from `KUBECONFIG`.
 |---|---|
 | `GET /api/nodes` · `/api/namespaces` | cluster-scoped lists |
 | `GET /api/pods` · `/api/deployments` · `/api/services` (`?ns=`) | namespaced lists; `ns` omitted = all namespaces |
-| `GET /api/yaml?kind=&ns=&name=` | object as YAML, `managedFields` stripped |
+| `GET /api/yaml?apiVersion=&kind=&ns=&name=&neat=true` | object as YAML, `managedFields` stripped; `apiVersion` reaches any served kind, `neat` drops what the cluster maintains (design §7.2); Secret values redacted |
 | `GET /api/events?ns=&name=` | events for one object (`involvedObject.name` fieldSelector) |
 | `GET /api/logs?ns=&pod=&container=` | last 300 lines, timestamps normalized to `HH:MM:SS.mmm` |
 
@@ -66,6 +66,10 @@ from `KUBECONFIG`.
 | `DELETE /api/pods?ns=&name=` | `delete pods` |
 | `POST /api/deployments/scale?ns=&name=&replicas=` | `patch deployments/scale` |
 | `POST /api/deployments/restart?ns=&name=` | `patch deployments` (sets `kubectl.kubernetes.io/restartedAt`) |
+| `POST /api/resource/apply?ns=&dryRun=&force=` | server-side apply of YAML/JSON manifests (field manager `kubebench`): `get` + `patch` (and `create`) on each kind; `dryRun=true` needs only KubeBench read access |
+| `DELETE /api/resource?apiVersion=&kind=&ns=&name=&propagation=` | `delete` on the kind |
+| `PATCH /api/resource/metadata?apiVersion=&kind=&ns=&name=` | `patch` on the kind (labels and annotations) |
+| `POST /api/secrets/reveal?ns=&name=` | `get secrets`; KubeBench exec access, audited |
 
 Kubernetes error messages pass through verbatim with their status codes; the
 UI shows them as inline banners.

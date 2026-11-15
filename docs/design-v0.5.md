@@ -466,7 +466,7 @@ All providers use it; no hand-built query strings.
 version?: string            // shown in Extensions view
 description?: string        // i18n key
 category?: 'core' | 'workloads' | 'gitops' | 'storage' | 'security' | 'observability' | 'tools'
-core?: boolean              // cannot be disabled (workloads, clusters, settings, terminal, extensions, users, audit)
+core?: boolean              // cannot be disabled (workloads, clusters, settings, terminal, editor, extensions, users, audit)
 backendPlugin?: string      // backend plugin id this plugin needs; unavailable → greyed with reason
 locales?: Record<string, object>
 resourceActions?: ResourceActionContribution[]
@@ -578,8 +578,9 @@ Light+ palettes). Monaco follows (`vs-dark` / `vs`).
 ## 7. Feature specifications
 
 Tab kind contract that stays stable: `pod-exec` and `pod-logs` with props
-`{namespace, pod, container}`; `yaml` with `{text, readOnly}` (extended,
-see 7.2); `workloads-detail`, `generic-detail`, `crd-instances`.
+`{namespace, pod, container}`; `yaml` with `{text, readOnly}` or `{ref}`
+and `new-resource` with `{namespace?, kind?}` (see 7.2);
+`workloads-detail`, `generic-detail`, `crd-instances`.
 
 ### 7.1 Terminal & logs (terminal plugin)
 
@@ -601,25 +602,78 @@ see 7.2); `workloads-detail`, `generic-detail`, `crd-instances`.
   wrap, filter, level colouring, download, 10 000-line ring buffer.
   Mock mode: simulated terminal + deterministic simulated stream.
 
-### 7.2 Resource editing (core + workloads/terminal plugins)
+### 7.2 Resource editing (core + editor/workloads plugins)
 
-- `POST /api/resource/apply?dryRun=&force=&ns=` (write; `dryRun=true` →
-  read) body: YAML/JSON, multi-document. Server-side apply
-  (`fieldManager=kubebench`), mapping via RESTMapper, namespace defaulting.
-  → `{"results":[{"apiVersion","kind","namespace","name","action":"created|configured|unchanged","error"?}]}`.
-  Rejects Secret documents containing redaction markers (`redacted_secret`).
-- `GET /api/yaml?kind=&apiVersion=&ns=&name=&neat=true` (neat strips status,
-  managedFields, uid, resourceVersion, generation, creationTimestamp,
-  selfLink, `kubectl.kubernetes.io/last-applied-configuration`).
-- `DELETE /api/resource?apiVersion=&kind=&ns=&name=&propagation=Background|Foreground|Orphan&gracePeriod=` (write).
-- `PATCH /api/resource/metadata?apiVersion=&kind=&ns=&name=` body
-  `{"labels":{…},"annotations":{…}}` (null value removes) (write).
-- `GET /api/resource/get?key=secrets&…&reveal=true` (exec, audited) returns
-  real values.
-- UI: YAML tab gains Edit → Review diff (DiffEditor) → Dry run → Apply,
-  conflict → "Force apply"; Neat toggle; "New resource" (templates +
-  import file/drag-drop, multi-doc); generic Delete (propagation choice,
-  ConfirmDialog); labels/annotations editor; secret reveal (exec).
+- `POST /api/resource/apply?dryRun=&force=&ns=` (write; exactly
+  `dryRun=true` → read and not audited, a real server-side dry run). Body:
+  YAML or JSON, any number of documents (`---`-separated YAML or
+  concatenated JSON; `kind: List` is flattened, empty documents skipped),
+  at most 4 MiB (`413`). Server-side apply with `fieldManager=kubebench`,
+  mapping through the RESTMapper (`ResolveKind`). Namespaced objects that
+  name no namespace go to `ns`, else `default`; the namespace of a
+  cluster-scoped object is ignored with a warning. `dryRun` and `force`
+  accept only `true`/`false`.
+  - The whole request is refused (`400`) before anything is applied when a
+    document is not valid YAML/JSON or lacks apiVersion, kind or
+    metadata.name (`bad_request`, the message names the document), or is a
+    Secret whose data/stringData values or last-applied annotation are
+    redaction placeholders (`redacted_secret`).
+  - Otherwise every object is attempted in order and the answer is `200`:
+    `{"results":[{"apiVersion","kind","namespace"?,"name","action"?:"created|configured|unchanged","error"?,"code"?,"warnings"?}]}`.
+    A failed object carries `error` and `code` instead of `action`:
+    `conflict` for a server-side apply conflict with another field manager
+    (applying again with `force=true` takes the fields over), `not_found`
+    for a kind the cluster does not serve, `kubernetes` otherwise.
+    `unchanged`: the object's content without managedFields,
+    resourceVersion and status is the same after the apply.
+  - Audit target: the first object, `<kind>/<ns>/<name>` with
+    ` (+N more)`; detail: the outcome counts, e.g.
+    `{"configured":1,"failed":1}`, and `"force":true`.
+- `GET /api/yaml?apiVersion=&kind=&ns=&name=&neat=true` (read). With
+  `apiVersion`, any kind the cluster serves (RESTMapper; a namespaced kind
+  needs `ns`); without it, the kinds v0.4 knew by name (`kind`, `name`
+  required). managedFields are always stripped; `neat=true` also strips
+  status, uid, resourceVersion, generation, creationTimestamp (and the null
+  creationTimestamp of templates), selfLink and the
+  `kubectl.kubernetes.io/last-applied-configuration` and
+  `deployment.kubernetes.io/revision` annotations, dropping annotations
+  left empty. Secret values are redacted here as on every read but the
+  reveal, and so is the last-applied annotation of Secrets, which repeats
+  them.
+- `DELETE /api/resource?apiVersion=&kind=` or `?key=` (a generic catalog
+  key) `&ns=&name=&propagation=Background|Foreground|Orphan&gracePeriod=`
+  (write). Namespaces are refused (`400`): they are deleted with
+  `DELETE /api/namespaces` (§7.3) and its protections. Audit target
+  `<kind>/<ns>/<name>`.
+- `PATCH /api/resource/metadata?apiVersion=&kind=` or `?key=` `&ns=&name=`
+  (write), body `{"labels":{…},"annotations":{…}}`: a JSON merge patch, a
+  null value removes the key. The audit detail lists the changed keys,
+  never values. A Secret's labels or annotations cannot be set to a
+  redaction placeholder (`redacted_secret`).
+- `POST /api/secrets/reveal?ns=&name=` (exec) → the Secret with its values
+  (`data`, base64; managedFields stripped), `Cache-Control: no-store`. It
+  has its own route because the access level belongs to the route: a
+  query flag on `GET /api/resource/get` could not raise it. It changes
+  nothing but is audited like every exec request (action
+  `POST /api/secrets/reveal`, target `secret/<ns>/<name>`), refused attempts
+  included.
+- UI, editor plugin (core): the `yaml` tab kind with `{ref: {apiVersion,
+  kind, namespace, name}}` shows the object full or neat, copies and
+  downloads it, and edits it: Edit → Review changes (DiffEditor, live neat
+  ↔ edited) → Dry run → Apply, with per-object results; a conflict offers
+  "Force apply" (ConfirmDialog). Without `ref` it keeps the v0.4
+  `{text, readOnly}` behaviour. The `new-resource` tab kind
+  (`{namespace?, kind?}`): templates for the namespace, import of files
+  (picker or drag & drop, any number of documents), dry run, apply.
+  Plugins open both through `core/plugin/editorTabs` (`openYamlTab`,
+  `openNewResourceTab`). Unapplied edits survive tab switches and mark the
+  tab dirty (`TabDescriptor.dirty`, `layoutStore.setTabDirty`); closing a
+  dirty tab asks first, and so does leaving the page.
+- UI, workloads plugin: rows and detail pages get YAML, a generic Delete
+  (propagation choice with the cascade explained, ConfirmDialog;
+  cluster-scoped objects always ask for the name), a labels/annotations
+  editor (KeyValueEditor) and, for Secrets, "Reveal values" (exec, a
+  warning first; the values live in the dialog only).
 
 ### 7.3 Workload & node operations (core + workloads plugin)
 
