@@ -166,6 +166,8 @@ resource names, the forced password change, the moved Helm routes).
 
 ### Security
 
+- Signing in with the default password `admin` now forces a password
+  change, also for accounts upgraded from 0.4.
 - Login rate limiting, an Origin check on state-changing requests and
   WebSocket upgrades, `Secure` session cookies behind TLS, and
   `KUBEBENCH_ALLOW_PATH_KUBECONFIG` (off in clusters) for adding clusters by

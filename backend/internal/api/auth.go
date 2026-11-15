@@ -59,6 +59,16 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request, _ *call) {
 		return
 	}
 	s.limiter.reset(key)
+	// A user still signing in with the well-known bootstrap password (for
+	// example an install upgraded from v0.4, which had no forced change)
+	// must pick a new one before doing anything else (§3.5).
+	if body.Password == config.DefaultAdminPassword && !user.MustChangePassword {
+		if err := s.store.SetMustChangePassword(user.ID, true); err != nil {
+			writeErr(w, err)
+			return
+		}
+		user.MustChangePassword = true
+	}
 	token, err := s.store.CreateSession(user.ID, s.cfg.SessionTTL)
 	if err != nil {
 		writeErr(w, err)

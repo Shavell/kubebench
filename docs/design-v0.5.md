@@ -255,6 +255,9 @@ error text. Pruned per `KUBEBENCH_AUDIT_RETENTION_DAYS`.
   cookie accompanies) → `403 forbidden` too.
 - Session cookie `kubebench_session`: HttpOnly, SameSite=Lax, Secure per
   `KUBEBENCH_SECURE_COOKIES`. Expired sessions pruned hourly.
+- A successful sign-in with the well-known default password `admin` sets
+  `must_change_password` too, so accounts carried over from v0.4 (which had
+  no forced change) cannot keep it.
 - `users.must_change_password`: set for the bootstrap admin (the default
   password is well known; a configured one stays in the environment, an
   env file or the chart's Secret, readable by whoever may read that

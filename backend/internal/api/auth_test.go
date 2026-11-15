@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"kubebench/internal/config"
 	"kubebench/internal/plugin"
 )
 
@@ -187,6 +188,26 @@ func TestLoginAfterAdminResetMustChangePassword(t *testing.T) {
 	expect(t, rec, http.StatusOK, "")
 	if !decode[meView](t, rec).MustChangePassword {
 		t.Fatal("a reset password must be changed at the next sign-in")
+	}
+	e.tokens["alice"] = sessionCookieOf(t, rec).Value
+	expect(t, e.do(http.MethodGet, "/api/pods", "alice", nil), http.StatusForbidden, plugin.CodePasswordChangeRequired)
+}
+
+// An account that still uses the default password without the flag (as
+// after an upgrade from v0.4) is forced to change it at its next sign-in.
+func TestLoginWithDefaultPasswordForcesChange(t *testing.T) {
+	e := newTestEnv(t, nil)
+	alice, err := e.store.Authenticate("alice", testPassword)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := e.store.SetPassword(alice.ID, config.DefaultAdminPassword, false, ""); err != nil {
+		t.Fatal(err)
+	}
+	rec := e.serve(loginRequest("alice", config.DefaultAdminPassword))
+	expect(t, rec, http.StatusOK, "")
+	if !decode[meView](t, rec).MustChangePassword {
+		t.Fatal("the default password must be changed at sign-in")
 	}
 	e.tokens["alice"] = sessionCookieOf(t, rec).Value
 	expect(t, e.do(http.MethodGet, "/api/pods", "alice", nil), http.StatusForbidden, plugin.CodePasswordChangeRequired)
