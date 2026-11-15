@@ -47,6 +47,7 @@ type Runtime struct {
 	discovery discovery.CachedDiscoveryInterface
 	mapper    *restmapper.DeferredDiscoveryRESTMapper
 	probed    chan struct{} // closed once the capability probe finished
+	promDone  chan struct{} // closed once Prometheus discovery finished
 	closeOnce sync.Once
 
 	rawOnce   sync.Once // builds rawClient for RawGet on first use
@@ -104,13 +105,40 @@ func clientsFor(config *rest.Config) (kubernetes.Interface, dynamic.Interface, m
 
 // NewRuntimeForTest builds a Runtime around injected (usually fake)
 // clients. It starts no background work: the capability probe counts as
-// finished with no capabilities, the sampler stays empty, Metrics and Helm
-// are nil, and Config points at an unreachable host. Tests that need
-// metrics or RawGet set Metrics or Config before using the runtime.
+// finished with no capabilities, Prometheus discovery as finished without
+// one, the sampler stays empty, Metrics and Helm are nil, and Config points
+// at an unreachable host. Tests that need metrics or RawGet set Metrics or
+// Config before using the runtime.
 func NewRuntimeForTest(cluster store.Cluster, cs kubernetes.Interface, dyn dynamic.Interface) *Runtime {
 	rt := assemble(cluster, &rest.Config{Host: "https://kubebench.invalid"}, cs, dyn, nil)
 	close(rt.probed)
+	close(rt.promDone)
 	return rt
+}
+
+// ProbeForTest makes the capability probe of a runtime from
+// NewRuntimeForTest pending again, as on a freshly built runtime, and
+// returns the function that finishes it with caps. Call it before the
+// runtime is used.
+func (r *Runtime) ProbeForTest() (finish func(Capabilities)) {
+	r.mu.Lock()
+	r.caps = Capabilities{}
+	r.mu.Unlock()
+	r.probed = make(chan struct{})
+	return func(caps Capabilities) {
+		r.mu.Lock()
+		r.caps = caps
+		r.mu.Unlock()
+		close(r.probed)
+	}
+}
+
+// SetPromForTest makes Prom() return a Prometheus at the given Service,
+// queried through the clientset's service proxy, as discovery would.
+func (r *Runtime) SetPromForTest(namespace, service, port string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.prom = &PromSource{rt: r, Namespace: namespace, Service: service, Port: port}
 }
 
 func assemble(cluster store.Cluster, config *rest.Config, cs kubernetes.Interface,
@@ -125,6 +153,7 @@ func assemble(cluster store.Cluster, config *rest.Config, cs kubernetes.Interfac
 		discovery: cached,
 		mapper:    restmapper.NewDeferredDiscoveryRESTMapper(cached),
 		probed:    make(chan struct{}),
+		promDone:  make(chan struct{}),
 	}
 	rt.Sampler = newSampler(rt)
 	return rt
@@ -134,6 +163,8 @@ func assemble(cluster store.Cluster, config *rest.Config, cs kubernetes.Interfac
 // once; the clients keep working for requests still holding the runtime.
 func (r *Runtime) Close() { r.closeOnce.Do(r.Sampler.Stop) }
 
+// Prom returns the Prometheus discovery found, or nil; see
+// WaitPromDiscovered.
 func (r *Runtime) Prom() *PromSource {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -149,9 +180,15 @@ func (r *Runtime) Caps() Capabilities {
 
 // WaitProbed blocks until the capability probe finished, or returns ctx's
 // error when ctx ends first.
-func (r *Runtime) WaitProbed(ctx context.Context) error {
+func (r *Runtime) WaitProbed(ctx context.Context) error { return wait(ctx, r.probed) }
+
+// WaitPromDiscovered blocks until Prometheus discovery finished, so that
+// Prom() is final, or returns ctx's error when ctx ends first.
+func (r *Runtime) WaitPromDiscovered(ctx context.Context) error { return wait(ctx, r.promDone) }
+
+func wait(ctx context.Context, done <-chan struct{}) error {
 	select {
-	case <-r.probed:
+	case <-done:
 		return nil
 	case <-ctx.Done():
 		return ctx.Err()

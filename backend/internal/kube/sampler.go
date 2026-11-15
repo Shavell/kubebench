@@ -2,8 +2,11 @@ package kube
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"maps"
 	"math"
+	"slices"
 	"sync"
 	"time"
 
@@ -146,37 +149,59 @@ func (s *Sampler) series(minutes int, pick func(sample) float64) []MetricPoint {
 	return points
 }
 
-func (s *Sampler) ClusterSeries(metric string, minutes int) []MetricPoint {
-	return s.series(minutes, func(sm sample) float64 {
-		if metric == "cpu" {
-			return pct(sm.cluster.cpu, s.caps.cpuCores)
-		}
-		return pct(sm.cluster.memMi, s.caps.memMi)
-	})
+// percentOf is u's metric ("cpu" or "memory") as a percentage of capacity.
+func (u usage) percentOf(metric string, capacity usage) float64 {
+	if metric == "cpu" {
+		return pct(u.cpu, capacity.cpu)
+	}
+	return pct(u.memMi, capacity.memMi)
 }
 
-func (s *Sampler) NodeSeries(node, metric string, minutes int) []MetricPoint {
-	return s.series(minutes, func(sm sample) float64 {
-		u, cap := sm.nodes[node], s.caps.perNode[node]
-		if metric == "cpu" {
-			return pct(u.cpu, cap.cpu)
-		}
-		return pct(u.memMi, cap.memMi)
-	})
+// sampled refuses the metrics the sampler does not keep: metrics.k8s.io
+// reports CPU and memory only.
+func sampled(metric string) error {
+	if metric != "cpu" && metric != "memory" {
+		return fmt.Errorf("metrics-server has no %s data; it needs Prometheus", metric)
+	}
+	return nil
 }
 
-func (s *Sampler) PodSeries(namespace, pod, metric string, minutes int) []MetricPoint {
+// ClusterSeries is the cluster's CPU or memory use in percent.
+func (s *Sampler) ClusterSeries(metric string, minutes int) ([]MetricPoint, error) {
+	if err := sampled(metric); err != nil {
+		return nil, err
+	}
 	return s.series(minutes, func(sm sample) float64 {
-		u := sm.pods[namespace+"/"+pod]
-		// Pod % is relative to one node's capacity, like Lens.
-		for _, cap := range s.caps.perNode {
-			if metric == "cpu" {
-				return pct(u.cpu, cap.cpu)
-			}
-			return pct(u.memMi, cap.memMi)
-		}
-		return 0
-	})
+		return sm.cluster.percentOf(metric, usage{cpu: s.caps.cpuCores, memMi: s.caps.memMi})
+	}), nil
+}
+
+// NodeSeries is a node's CPU or memory use in percent of its capacity.
+func (s *Sampler) NodeSeries(node, metric string, minutes int) ([]MetricPoint, error) {
+	if err := sampled(metric); err != nil {
+		return nil, err
+	}
+	return s.series(minutes, func(sm sample) float64 {
+		return sm.nodes[node].percentOf(metric, s.caps.perNode[node])
+	}), nil
+}
+
+// PodSeries is a pod's CPU or memory use in percent of one node's capacity,
+// like Lens: that of the first node by name, so every point refers to the
+// same node.
+func (s *Sampler) PodSeries(namespace, pod, metric string, minutes int) ([]MetricPoint, error) {
+	if err := sampled(metric); err != nil {
+		return nil, err
+	}
+	s.mu.RLock()
+	var capacity usage
+	if names := slices.Sorted(maps.Keys(s.caps.perNode)); len(names) > 0 {
+		capacity = s.caps.perNode[names[0]]
+	}
+	s.mu.RUnlock()
+	return s.series(minutes, func(sm sample) float64 {
+		return sm.pods[namespace+"/"+pod].percentOf(metric, capacity)
+	}), nil
 }
 
 type ClusterUsage struct {

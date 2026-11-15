@@ -72,12 +72,18 @@ func (s *Server) handleInfo(w http.ResponseWriter, r *http.Request, c *call) {
 		plugin.WriteJSON(w, info)
 		return
 	}
-	ctx, cancel := context.WithTimeout(r.Context(), probeWait)
-	defer cancel()
-	_ = rt.WaitProbed(ctx) // after the wait, an unfinished probe reports no capabilities
 	info.Server = rt.Config.Host
-	info.Capabilities = rt.Caps()
+	info.Capabilities = probedCaps(r.Context(), rt)
 	plugin.WriteJSON(w, info)
+}
+
+// probedCaps returns rt's capabilities once its probe finished, waiting at
+// most probeWait; a probe still unfinished after that reports none.
+func probedCaps(ctx context.Context, rt *kube.Runtime) kube.Capabilities {
+	ctx, cancel := context.WithTimeout(ctx, probeWait)
+	defer cancel()
+	_ = rt.WaitProbed(ctx)
+	return rt.Caps()
 }
 
 func (s *Server) handleVersion(w http.ResponseWriter, _ *http.Request, _ *call) {

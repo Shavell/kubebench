@@ -19,16 +19,18 @@ func (s *Server) handleCrdInstances(w http.ResponseWriter, r *http.Request, c *c
 }
 
 // requireHelm refuses Helm calls on clusters where the probe found no
-// access to the release secrets.
-func requireHelm(rt *kube.Runtime) error {
-	if !rt.Caps().Helm {
+// access to the release secrets. Like /api/info it waits for the probe of
+// a fresh runtime (after a restart or a cluster edit), so Helm is not
+// refused merely because the probe is still running.
+func requireHelm(r *http.Request, rt *kube.Runtime) error {
+	if !probedCaps(r.Context(), rt).Helm {
 		return unavailable("Helm is not available on this cluster (no access to release secrets)")
 	}
 	return nil
 }
 
-func (s *Server) handleHelmReleases(w http.ResponseWriter, _ *http.Request, c *call) {
-	if err := requireHelm(c.rt); err != nil {
+func (s *Server) handleHelmReleases(w http.ResponseWriter, r *http.Request, c *call) {
+	if err := requireHelm(r, c.rt); err != nil {
 		writeErr(w, err)
 		return
 	}
@@ -36,8 +38,8 @@ func (s *Server) handleHelmReleases(w http.ResponseWriter, _ *http.Request, c *c
 	writeResult(w, out, err)
 }
 
-func (s *Server) handleHelmRepos(w http.ResponseWriter, _ *http.Request, c *call) {
-	if err := requireHelm(c.rt); err != nil {
+func (s *Server) handleHelmRepos(w http.ResponseWriter, r *http.Request, c *call) {
+	if err := requireHelm(r, c.rt); err != nil {
 		writeErr(w, err)
 		return
 	}
@@ -46,7 +48,7 @@ func (s *Server) handleHelmRepos(w http.ResponseWriter, _ *http.Request, c *call
 }
 
 func (s *Server) handleHelmValues(w http.ResponseWriter, r *http.Request, c *call) {
-	if err := requireHelm(c.rt); err != nil {
+	if err := requireHelm(r, c.rt); err != nil {
 		writeErr(w, err)
 		return
 	}
@@ -66,7 +68,7 @@ func (s *Server) handleHelmRollback(w http.ResponseWriter, r *http.Request, c *c
 		writeErr(w, err)
 		return
 	}
-	if err := requireHelm(c.rt); err != nil {
+	if err := requireHelm(r, c.rt); err != nil {
 		writeErr(w, err)
 		return
 	}
@@ -84,7 +86,7 @@ func (s *Server) handleHelmUninstall(w http.ResponseWriter, r *http.Request, c *
 		writeErr(w, err)
 		return
 	}
-	if err := requireHelm(c.rt); err != nil {
+	if err := requireHelm(r, c.rt); err != nil {
 		writeErr(w, err)
 		return
 	}

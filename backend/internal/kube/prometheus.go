@@ -32,6 +32,7 @@ var promCandidates = []string{
 }
 
 func (r *Runtime) discoverProm() {
+	defer close(r.promDone)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	services, err := r.CS.CoreV1().Services("").List(ctx, metav1.ListOptions{})

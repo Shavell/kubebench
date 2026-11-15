@@ -1,8 +1,12 @@
 package api
 
 import (
+	"context"
+	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
+	"strings"
 
 	"kubebench/internal/kube"
 	"kubebench/internal/plugin"
@@ -17,25 +21,61 @@ func minutesParam(r *http.Request) int {
 }
 
 // resolveSource implements source=auto|prometheus|metrics-server: auto
-// prefers Prometheus. metrics-server has no network/fs history, so those
-// metrics are unavailable without Prometheus.
+// prefers Prometheus when one was found, metrics-server never uses it.
+// Runtime discovery is waited for (≤ probeWait), so a fresh runtime does not
+// report "no Prometheus" merely because it is still looking.
 func resolveSource(r *http.Request, rt *kube.Runtime) (*kube.PromSource, error) {
 	wanted := r.URL.Query().Get("source")
-	metric := r.URL.Query().Get("metric")
-	prom := rt.Prom()
-	switch wanted {
-	case "prometheus":
-		if prom == nil {
-			return nil, unavailable("no Prometheus was found on this cluster")
-		}
-		return prom, nil
-	case "metrics-server":
-		prom = nil
+	if wanted == "metrics-server" {
+		return nil, nil
 	}
-	if prom == nil && (metric == "network" || metric == "fs") {
-		return nil, unavailable("metrics-server has no %s data; it needs Prometheus", metric)
+	ctx, cancel := context.WithTimeout(r.Context(), probeWait)
+	defer cancel()
+	_ = rt.WaitPromDiscovered(ctx)
+	prom := rt.Prom()
+	if prom == nil && wanted == "prometheus" {
+		return nil, unavailable("no Prometheus was found on this cluster")
 	}
 	return prom, nil
+}
+
+// writeSeries answers a series request for one of metrics from Prometheus
+// or the metrics-server sampler (see resolveSource). A Prometheus query
+// that fails is reported, never replaced with other data: only
+// source=auto falls back to the sampler, which keeps CPU and memory only.
+func writeSeries(w http.ResponseWriter, r *http.Request, rt *kube.Runtime, metrics []string,
+	fromProm func(*kube.PromSource) ([]kube.MetricPoint, error), fromSampler func() ([]kube.MetricPoint, error)) {
+	if metric := r.URL.Query().Get("metric"); !slices.Contains(metrics, metric) {
+		writeErr(w, badRequest("metric must be one of %s", strings.Join(metrics, ", ")))
+		return
+	}
+	prom, err := resolveSource(r, rt)
+	if err != nil {
+		writeErr(w, err)
+		return
+	}
+	var promErr error
+	if prom != nil {
+		points, err := fromProm(prom)
+		if err == nil {
+			plugin.WriteJSON(w, points)
+			return
+		}
+		promErr = fmt.Errorf("the query to Prometheus %s failed: %w", prom.Location(), err)
+		if r.URL.Query().Get("source") == "prometheus" {
+			writeErr(w, unavailable("%v", promErr))
+			return
+		}
+	}
+	points, err := fromSampler()
+	if err != nil {
+		if promErr != nil {
+			err = promErr // what went wrong, rather than what the fallback lacks
+		}
+		writeErr(w, unavailable("%v", err))
+		return
+	}
+	plugin.WriteJSON(w, points)
 }
 
 // unavailable is the error for a capability the active cluster lacks.
@@ -43,7 +83,10 @@ func unavailable(format string, args ...any) *apiError {
 	return errorf(http.StatusServiceUnavailable, plugin.CodeCapabilityUnavailable, format, args...)
 }
 
-func (s *Server) handleMetricSources(w http.ResponseWriter, _ *http.Request, c *call) {
+func (s *Server) handleMetricSources(w http.ResponseWriter, r *http.Request, c *call) {
+	ctx, cancel := context.WithTimeout(r.Context(), probeWait)
+	defer cancel()
+	_ = c.rt.WaitPromDiscovered(ctx)
 	prom := c.rt.Prom()
 	out := map[string]any{
 		"metricsServer": map[string]any{"available": true},
@@ -65,55 +108,37 @@ func (s *Server) handleAllocation(w http.ResponseWriter, r *http.Request, c *cal
 	writeResult(w, out, err)
 }
 
+// Metrics of each series endpoint (src/data/types.ts MetricKind).
+var (
+	clusterMetrics = []string{"cpu", "memory", "network", "fs"}
+	podMetrics     = []string{"cpu", "memory", "network"}
+)
+
 func (s *Server) handleClusterSeries(w http.ResponseWriter, r *http.Request, c *call) {
-	prom, err := resolveSource(r, c.rt)
-	if err != nil {
-		writeErr(w, err)
-		return
-	}
-	metric := r.URL.Query().Get("metric")
-	minutes := minutesParam(r)
-	if prom != nil {
-		if points, err := prom.ClusterSeries(r.Context(), metric, minutes); err == nil {
-			plugin.WriteJSON(w, points)
-			return
-		}
-	}
-	plugin.WriteJSON(w, c.rt.Sampler.ClusterSeries(metric, minutes))
+	metric, minutes := r.URL.Query().Get("metric"), minutesParam(r)
+	writeSeries(w, r, c.rt, clusterMetrics,
+		func(prom *kube.PromSource) ([]kube.MetricPoint, error) {
+			return prom.ClusterSeries(r.Context(), metric, minutes)
+		},
+		func() ([]kube.MetricPoint, error) { return c.rt.Sampler.ClusterSeries(metric, minutes) })
 }
 
 func (s *Server) handleNodeSeries(w http.ResponseWriter, r *http.Request, c *call) {
-	prom, err := resolveSource(r, c.rt)
-	if err != nil {
-		writeErr(w, err)
-		return
-	}
 	q := r.URL.Query()
-	metric, node := q.Get("metric"), q.Get("node")
-	minutes := minutesParam(r)
-	if prom != nil {
-		if points, err := prom.NodeSeries(r.Context(), node, metric, minutes); err == nil {
-			plugin.WriteJSON(w, points)
-			return
-		}
-	}
-	plugin.WriteJSON(w, c.rt.Sampler.NodeSeries(node, metric, minutes))
+	metric, node, minutes := q.Get("metric"), q.Get("node"), minutesParam(r)
+	writeSeries(w, r, c.rt, clusterMetrics,
+		func(prom *kube.PromSource) ([]kube.MetricPoint, error) {
+			return prom.NodeSeries(r.Context(), node, metric, minutes)
+		},
+		func() ([]kube.MetricPoint, error) { return c.rt.Sampler.NodeSeries(node, metric, minutes) })
 }
 
 func (s *Server) handlePodSeries(w http.ResponseWriter, r *http.Request, c *call) {
-	prom, err := resolveSource(r, c.rt)
-	if err != nil {
-		writeErr(w, err)
-		return
-	}
 	q := r.URL.Query()
-	metric, ns, pod := q.Get("metric"), q.Get("ns"), q.Get("pod")
-	minutes := minutesParam(r)
-	if prom != nil {
-		if points, err := prom.PodSeries(r.Context(), ns, pod, metric, minutes); err == nil {
-			plugin.WriteJSON(w, points)
-			return
-		}
-	}
-	plugin.WriteJSON(w, c.rt.Sampler.PodSeries(ns, pod, metric, minutes))
+	metric, ns, pod, minutes := q.Get("metric"), q.Get("ns"), q.Get("pod"), minutesParam(r)
+	writeSeries(w, r, c.rt, podMetrics,
+		func(prom *kube.PromSource) ([]kube.MetricPoint, error) {
+			return prom.PodSeries(r.Context(), ns, pod, metric, minutes)
+		},
+		func() ([]kube.MetricPoint, error) { return c.rt.Sampler.PodSeries(ns, pod, metric, minutes) })
 }

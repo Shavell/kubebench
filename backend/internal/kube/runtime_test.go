@@ -103,6 +103,23 @@ func TestWaitProbed(t *testing.T) {
 	}
 }
 
+func TestWaitPromDiscovered(t *testing.T) {
+	rt, _ := testRuntime(t)
+	if err := rt.WaitPromDiscovered(context.Background()); err != nil || rt.Prom() != nil {
+		t.Fatalf("a test runtime counts as discovered without Prometheus: %v", err)
+	}
+	pending := &Runtime{promDone: make(chan struct{})}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	defer cancel()
+	if err := pending.WaitPromDiscovered(ctx); !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("pending discovery: %v", err)
+	}
+	close(pending.promDone)
+	if err := pending.WaitPromDiscovered(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestRawGet(t *testing.T) {
 	var gotPath, gotQuery string
 	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
