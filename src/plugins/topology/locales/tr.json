@@ -47,7 +47,7 @@
     "services": "Service'ler",
     "ingresses": "Ingress'ler",
     "pvcs": "PersistentVolumeClaim'ler",
-    "pvs": "PersistentVolume'ler",
+    "pvs": "PersistentVolume'lar",
     "configMaps": "ConfigMap'ler",
     "secrets": "Secret'lar"
   },

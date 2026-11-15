@@ -122,7 +122,7 @@
   },
   "subject": {
     "title": "{{kind}} {{name}}",
-    "openServiceAccount": "ServiceAccount'ı aç",
+    "openServiceAccount": "ServiceAccount'u aç",
     "loading": "Yetkiler yükleniyor…",
     "unavailable": "Yetkiler gösterilemiyor",
     "missingServiceAccount": "Bu ServiceAccount mevcut değil; onu adlandıran binding'ler ServiceAccount oluşturulduğunda geçerli olur.",
