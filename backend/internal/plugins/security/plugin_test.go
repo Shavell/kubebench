@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -371,4 +372,50 @@ type routerFunc func(method, path string, a plugin.Access, h plugin.HandlerFunc)
 
 func (f routerFunc) Handle(method, path string, a plugin.Access, h plugin.HandlerFunc) {
 	f(method, path, a, h)
+}
+
+// Bindings to everyone (anonymous, every user, every ServiceAccount) and
+// to ServiceAccounts of user namespaces named as users or groups are in a
+// default scan, with the ClusterRoles only they use; the bootstrap
+// bindings that grant discovery to everyone stay out.
+func TestDefaultScanKeepsBindingsToEveryone(t *testing.T) {
+	bootstrap := map[string]string{"kubernetes.io/bootstrapping": "rbac-defaults"}
+	all := rbacv1.PolicyRule{APIGroups: []string{"*"}, Resources: []string{"*"}, Verbs: []string{"*"}}
+	group := func(name string) rbacv1.Subject { return rbacv1.Subject{Kind: rbacv1.GroupKind, Name: name} }
+	user := func(name string) rbacv1.Subject { return rbacv1.Subject{Kind: rbacv1.UserKind, Name: name} }
+	e := newEnv(t,
+		clusterRole("cluster-admin", bootstrap, all),
+		clusterRole("everything", nil, all),
+		clusterRole("system:discovery", bootstrap, rbacv1.PolicyRule{NonResourceURLs: []string{"/api"}, Verbs: []string{"get"}}),
+		clusterRoleBinding("anon-admin", "cluster-admin", nil, group("system:unauthenticated")),
+		clusterRoleBinding("system:everyone-admin", "cluster-admin", nil, group("system:authenticated")),
+		clusterRoleBinding("anonymous-admin", "cluster-admin", nil, user("system:anonymous")),
+		clusterRoleBinding("ci-user-admin", "cluster-admin", nil, user("system:serviceaccount:shop:ci")),
+		clusterRoleBinding("kube-system-sas-admin", "cluster-admin", nil, group("system:serviceaccounts:kube-system")),
+		clusterRoleBinding("all-sas", "everything", nil, group("system:serviceaccounts")),
+		clusterRoleBinding("system:discovery", "system:discovery", bootstrap, group("system:authenticated")),
+		&rbacv1.RoleBinding{
+			ObjectMeta: meta("kube-system", "anon-admin"),
+			RoleRef:    rbacv1.RoleRef{Kind: "ClusterRole", Name: "cluster-admin"},
+			Subjects:   []rbacv1.Subject{group("system:unauthenticated")},
+		},
+	)
+	got := findingsOf(e.scan(false))
+	for _, key := range []string{
+		"cluster-admin-binding:ClusterRoleBinding::anon-admin",
+		"cluster-admin-binding:ClusterRoleBinding::system:everyone-admin",
+		"cluster-admin-binding:ClusterRoleBinding::anonymous-admin",
+		"cluster-admin-binding:ClusterRoleBinding::ci-user-admin",
+		"cluster-admin-binding:RoleBinding:kube-system:anon-admin",
+		"rbac-wildcards:ClusterRole::everything",
+	} {
+		if _, ok := got[key]; !ok {
+			t.Errorf("default scan misses %s", key)
+		}
+	}
+	for key := range got {
+		if strings.Contains(key, "kube-system-sas-admin") || strings.Contains(key, "system:discovery") {
+			t.Errorf("system binding scanned by default: %s", key)
+		}
+	}
 }

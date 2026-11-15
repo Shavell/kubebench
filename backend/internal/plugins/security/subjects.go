@@ -128,33 +128,82 @@ func workloads(inv *inventory, inScope func(ns string) bool) []*workload {
 // systemRBAC reports whether an RBAC object belongs to the cluster itself:
 // the bootstrap roles and bindings (system:* names, the rbac-defaults label).
 func systemRBAC(meta metav1.ObjectMeta) bool {
-	return strings.HasPrefix(meta.Name, "system:") || meta.Labels["kubernetes.io/bootstrapping"] == "rbac-defaults"
+	return strings.HasPrefix(meta.Name, "system:") || bootstrapped(meta)
+}
+
+// bootstrapped reports whether the API server created the object from its
+// bootstrap policy.
+func bootstrapped(meta metav1.ObjectMeta) bool {
+	return meta.Labels["kubernetes.io/bootstrapping"] == "rbac-defaults"
+}
+
+// systemBinding reports whether a binding (in namespace ns, "" for a
+// ClusterRoleBinding) is the cluster's own: bootstrapped, or not granting
+// to everyone and in a system namespace, system:-named or bound to system
+// subjects only. A binding to everyone is otherwise always in scope.
+func systemBinding(meta metav1.ObjectMeta, subjects []rbacv1.Subject, ns string) bool {
+	if bootstrapped(meta) {
+		return true
+	}
+	if grantsEveryone(subjects) {
+		return false
+	}
+	return isSystemNamespace(ns) || systemRBAC(meta) || systemSubjects(subjects, ns)
 }
 
 // systemSubjects reports whether every subject belongs to the cluster: a
-// system: user or group, or a ServiceAccount of a system namespace. Such
-// bindings are add-ons' own (e.g. k3s's helm-kube-system-* bindings).
+// system: user or group, or a ServiceAccount of a system namespace (also
+// when named as a system:serviceaccount(s): user or group). Such bindings
+// are add-ons' own (e.g. k3s's helm-kube-system-* bindings).
 func systemSubjects(subjects []rbacv1.Subject, bindingNS string) bool {
-	if len(subjects) == 0 {
-		return false
-	}
-	for _, s := range subjects {
-		switch s.Kind {
-		case rbacv1.ServiceAccountKind:
-			ns := s.Namespace
-			if ns == "" {
-				ns = bindingNS
-			}
-			if !isSystemNamespace(ns) {
-				return false
-			}
-		default:
-			if !strings.HasPrefix(s.Name, "system:") {
-				return false
-			}
+	return len(subjects) > 0 && !slices.ContainsFunc(subjects, func(s rbacv1.Subject) bool { return !systemSubject(s, bindingNS) })
+}
+
+func systemSubject(s rbacv1.Subject, bindingNS string) bool {
+	if s.Kind == rbacv1.ServiceAccountKind {
+		ns := s.Namespace
+		if ns == "" {
+			ns = bindingNS
 		}
+		return isSystemNamespace(ns)
 	}
-	return true
+	if ns, ok := serviceAccountNamespace(s); ok {
+		return isSystemNamespace(ns)
+	}
+	return strings.HasPrefix(s.Name, "system:")
+}
+
+// everyoneSubjects are the system: user and groups that stand for
+// requesters at large: anonymous requests, every authenticated user,
+// every ServiceAccount.
+var everyoneSubjects = []string{
+	"system:anonymous",
+	"system:unauthenticated",
+	"system:authenticated",
+	"system:serviceaccounts",
+}
+
+// grantsEveryone reports whether a subject is one of everyoneSubjects.
+func grantsEveryone(subjects []rbacv1.Subject) bool {
+	return slices.ContainsFunc(subjects, func(s rbacv1.Subject) bool {
+		return s.Kind != rbacv1.ServiceAccountKind && slices.Contains(everyoneSubjects, s.Name)
+	})
+}
+
+// serviceAccountNamespace is the namespace of a user or group that names
+// ServiceAccounts: "system:serviceaccount:<ns>:<name>" (a user) or
+// "system:serviceaccounts:<ns>" (a group).
+func serviceAccountNamespace(s rbacv1.Subject) (string, bool) {
+	prefix := "system:serviceaccounts:"
+	if s.Kind == rbacv1.UserKind {
+		prefix = "system:serviceaccount:"
+	}
+	rest, ok := strings.CutPrefix(s.Name, prefix)
+	if !ok {
+		return "", false
+	}
+	ns, _, _ := strings.Cut(rest, ":")
+	return ns, true
 }
 
 // bindings builds every binding of inv, marking the cluster's own.
@@ -165,7 +214,7 @@ func bindings(inv *inventory) []*bindingInfo {
 		out = append(out, &bindingInfo{
 			Resource: Resource{APIVersion: rbacAPIVersion, Kind: "RoleBinding", Namespace: b.Namespace, Name: b.Name},
 			roleRef:  b.RoleRef, subjects: b.Subjects,
-			system: isSystemNamespace(b.Namespace) || systemRBAC(b.ObjectMeta) || systemSubjects(b.Subjects, b.Namespace),
+			system: systemBinding(b.ObjectMeta, b.Subjects, b.Namespace),
 		})
 	}
 	for i := range inv.clusterRoleBindings {
@@ -173,7 +222,7 @@ func bindings(inv *inventory) []*bindingInfo {
 		out = append(out, &bindingInfo{
 			Resource: Resource{APIVersion: rbacAPIVersion, Kind: "ClusterRoleBinding", Name: b.Name},
 			roleRef:  b.RoleRef, subjects: b.Subjects,
-			system: systemRBAC(b.ObjectMeta) || systemSubjects(b.Subjects, ""),
+			system: systemBinding(b.ObjectMeta, b.Subjects, ""),
 		})
 	}
 	return out

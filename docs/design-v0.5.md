@@ -1061,10 +1061,15 @@ Details settled by the implementation (shapes match
 
 - `POST /scan` takes an optional body `{"includeSystem": bool}` (unknown
   fields `400`). System objects are the namespaces `kube-system`,
-  `kube-public`, `kube-node-lease` and the cluster's own RBAC: `system:*`
-  names, the `kubernetes.io/bootstrapping=rbac-defaults` label, bindings
-  whose subjects are all `system:` users/groups or ServiceAccounts of a
-  system namespace, and ClusterRoles only such bindings use.
+  `kube-public`, `kube-node-lease` and the cluster's own RBAC: the
+  `kubernetes.io/bootstrapping=rbac-defaults` label, `system:*` names,
+  bindings whose subjects are all `system:` users/groups or ServiceAccounts
+  of a system namespace (also as `system:serviceaccount:<ns>:<name>` users
+  and `system:serviceaccounts:<ns>` groups), and ClusterRoles only such
+  bindings use. A binding without the bootstrap label that names
+  `system:anonymous`, `system:unauthenticated`, `system:authenticated` or
+  `system:serviceaccounts` is never a system object: it grants to
+  everyone.
 - Cost: every kind is listed once, cluster-wide, in pages of 500 and at
   most 5 000 objects per kind; a report holds at most 20 000 findings.
   Cut lists and kinds that cannot be listed become `warnings`; checks
