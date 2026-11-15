@@ -632,9 +632,12 @@ and `new-resource` with `{namespace?, kind?}` (see 7.2);
   `remotecommand` (WebSocket executor with SPDY fallback) and a
   `TerminalSizeQueue`. Origin checked; 30 s ping; idle timeout 30 min.
 - `GET /api/logs/stream?ns=&pod=&container=&tail=&previous=&timestamps=&sinceSeconds=`
-  (read) — Server-Sent Events: `data:` one log line per event, `event: error`,
-  `event: end`. Also `?selector=<labelSelector>` (≤10 pods, lines prefixed
-  `[pod/container]`).
+  (read) — Server-Sent Events: first `event: pods` with
+  `{"pods":["<pod>/<container>"],"total":N}` (followed containers, matching
+  pods), then `data:` one log line per event, `event: error`, `event: end`,
+  `: ping` every 15 s. Also `?selector=<labelSelector>` (≤10 pods, lines
+  prefixed `[pod/container]`). Failures before the stream starts are JSON
+  errors (§3.3).
 - UI: xterm.js terminal (`@xterm/xterm` + fit addon), multiple sessions as
   sub-tabs in the bottom Terminal panel, container picker, reconnect;
   logs viewer with follow/pause, tail size, previous container, timestamps,

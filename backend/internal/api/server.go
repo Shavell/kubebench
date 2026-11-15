@@ -35,6 +35,7 @@ type Server struct {
 	mux     *http.ServeMux
 	limiter *loginLimiter
 	detect  *detectCache
+	streams streamSettings // log streams and terminals
 }
 
 // New wires every route. plugins are the built-in backend plugins to mount
@@ -49,6 +50,7 @@ func New(cfg *config.Config, st *store.Store, manager *kube.Manager, build Build
 		mux:     http.NewServeMux(),
 		limiter: newLoginLimiter(time.Now),
 		detect:  newDetectCache(time.Now),
+		streams: defaultStreamSettings(),
 	}
 	slices.SortFunc(s.plugins, func(a, b plugin.Plugin) int {
 		return strings.Compare(a.Manifest().ID, b.Manifest().ID)

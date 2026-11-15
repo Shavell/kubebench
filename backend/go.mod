@@ -3,6 +3,7 @@ module kubebench
 go 1.26.5
 
 require (
+	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674
 	golang.org/x/crypto v0.55.0
 	helm.sh/helm/v3 v3.21.4
 	k8s.io/api v0.36.3
@@ -11,6 +12,7 @@ require (
 	k8s.io/client-go v0.36.3
 	k8s.io/kubectl v0.36.3
 	k8s.io/metrics v0.36.3
+	k8s.io/streaming v0.36.3
 	modernc.org/sqlite v1.56.0
 	sigs.k8s.io/yaml v1.6.0
 )
@@ -47,7 +49,6 @@ require (
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/gnostic-models v0.7.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674 // indirect
 	github.com/gosuri/uitable v0.0.4 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
@@ -107,7 +108,6 @@ require (
 	k8s.io/component-base v0.36.3 // indirect
 	k8s.io/klog/v2 v2.140.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20260317180543-43fb72c5454a // indirect
-	k8s.io/streaming v0.36.3 // indirect
 	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2 // indirect
 	modernc.org/libc v1.74.4 // indirect
 	modernc.org/mathutil v1.7.1 // indirect

@@ -7,12 +7,16 @@ import { LogsPanel } from './panels/LogsPanel'
 import { ProblemsPanel } from './panels/ProblemsPanel'
 import { PodLogsTab } from './PodLogsTab'
 import { PodExecTab } from './PodExecTab'
+import { WorkloadLogsTab } from './WorkloadLogsTab'
+import { workloadLogsAction } from './workloadLogs'
 
 /**
- * Contributes the bottom panel tabs and the pod logs and shell tabs (the
- * "yaml" tab is the editor plugin's). Has no activity bar entry of its own.
- * Part of the workbench itself, so it cannot be disabled. Display strings
- * are i18n keys in the plugin's namespace (locales/*.json).
+ * Contributes the bottom panel tabs (problems, live logs, terminal
+ * sessions), the log and shell tabs and the "Logs (all pods)" action of
+ * workloads (the "yaml" tab is the editor plugin's). Has no activity bar
+ * entry of its own. Part of the workbench itself, so it cannot be
+ * disabled. Display strings are i18n keys in the plugin's namespace
+ * (locales/*.json).
  */
 export const terminalPlugin: PluginManifest = {
   id: NS,
@@ -30,5 +34,8 @@ export const terminalPlugin: PluginManifest = {
   tabRenderers: [
     { kind: 'pod-logs', component: PodLogsTab },
     { kind: 'pod-exec', component: PodExecTab },
+    // {namespace, selector, title}: the logs of every pod a label selector matches.
+    { kind: 'workload-logs', component: WorkloadLogsTab },
   ],
+  resourceActions: [workloadLogsAction],
 }

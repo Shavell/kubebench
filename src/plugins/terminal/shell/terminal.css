@@ -1,0 +1,83 @@
+.kb-terminal {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+}
+
+.kb-terminal__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  padding: 2px 0 2px 2px;
+  flex-shrink: 0;
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
+}
+
+.kb-terminal__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.kb-terminal__status--ok .codicon {
+  color: var(--status-running);
+}
+.kb-terminal__status--busy .codicon {
+  color: var(--vscode-descriptionForeground);
+}
+.kb-terminal__status--ended .codicon {
+  color: var(--status-unknown);
+}
+.kb-terminal__status--bad {
+  color: var(--vscode-errorForeground);
+}
+
+.kb-terminal__mock {
+  display: inline-flex;
+}
+
+.kb-terminal__actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.kb-terminal__container {
+  /* .kb-select fills its field; in the toolbar it is as wide as its options. */
+  width: auto;
+  max-width: 180px;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+.kb-terminal__body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  background: var(--vscode-terminal-background);
+}
+.kb-terminal__body--hidden {
+  display: none;
+}
+
+/* The element xterm.js renders into (TerminalSession.host). */
+.kb-terminal__screen {
+  position: absolute;
+  inset: 4px 0 0 8px;
+}
+.kb-terminal__screen .xterm {
+  height: 100%;
+}
+/* xterm.css paints the scroll container black; the rows below the last
+   full one would show it. */
+.kb-terminal__screen .xterm .xterm-viewport {
+  background-color: var(--vscode-terminal-background);
+}

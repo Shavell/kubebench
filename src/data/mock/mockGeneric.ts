@@ -39,19 +39,19 @@ export const genericMock: Record<string, KubeObject[]> = {
     obj('Secret', 'grafana-admin', 'monitoring', '61d', { type: 'Opaque', data: { 'admin-user': '<5 bytes, redacted>', 'admin-password': '<16 bytes, redacted>' } }),
   ],
   statefulsets: [
-    obj('StatefulSet', 'shop-postgres', 'shop', '45d', { status: { readyReplicas: 1 }, spec: { replicas: 1 } }),
-    obj('StatefulSet', 'prometheus-server', 'monitoring', '61d', { status: { readyReplicas: 1 }, spec: { replicas: 1 } }),
+    obj('StatefulSet', 'shop-postgres', 'shop', '45d', { status: { readyReplicas: 1 }, spec: { replicas: 1, selector: { matchLabels: { app: 'postgres' } } } }),
+    obj('StatefulSet', 'prometheus-server', 'monitoring', '61d', { status: { readyReplicas: 1 }, spec: { replicas: 1, selector: { matchLabels: { app: 'prometheus' } } } }),
   ],
   daemonsets: [
-    obj('DaemonSet', 'prometheus-node-exporter', 'monitoring', '61d', { status: { numberReady: 3, desiredNumberScheduled: 3 } }),
-    obj('DaemonSet', 'kube-proxy', 'kube-system', '92d', { status: { numberReady: 3, desiredNumberScheduled: 3 } }),
+    obj('DaemonSet', 'prometheus-node-exporter', 'monitoring', '61d', { status: { numberReady: 3, desiredNumberScheduled: 3 }, spec: { selector: { matchLabels: { app: 'node-exporter' } } } }),
+    obj('DaemonSet', 'kube-proxy', 'kube-system', '92d', { status: { numberReady: 3, desiredNumberScheduled: 3 }, spec: { selector: { matchLabels: { app: 'kube-proxy' } } } }),
   ],
   replicasets: [
-    obj('ReplicaSet', 'shop-frontend-745bd7c77b', 'shop', '3d', { status: { readyReplicas: 2, replicas: 3 } }),
-    obj('ReplicaSet', 'cert-manager-5c9d8879fd', 'cert-manager', '77d', { status: { readyReplicas: 1, replicas: 1 } }),
+    obj('ReplicaSet', 'shop-frontend-745bd7c77b', 'shop', '3d', { status: { readyReplicas: 2, replicas: 3 }, spec: { selector: { matchLabels: { app: 'shop-frontend' } } } }),
+    obj('ReplicaSet', 'cert-manager-5c9d8879fd', 'cert-manager', '77d', { status: { readyReplicas: 1, replicas: 1 }, spec: { selector: { matchLabels: { app: 'cert-manager' } } } }),
   ],
   jobs: [
-    obj('Job', 'db-migrate-28934', 'shop', '2h', { status: { succeeded: 1 }, spec: { completions: 1 } }),
+    obj('Job', 'db-migrate-28934', 'shop', '2h', { status: { succeeded: 1 }, spec: { completions: 1, selector: { matchLabels: { 'job-name': 'db-migrate-28934' } } } }),
   ],
   cronjobs: [
     obj('CronJob', 'shop-nightly-report', 'shop', '45d', { spec: { schedule: '0 2 * * *', suspend: false } }),

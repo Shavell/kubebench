@@ -39,6 +39,7 @@ func (s *Server) routes() {
 	s.handle("GET /api/yaml", accessRead, s.handleYAML)
 	s.handle("GET /api/events", accessRead, s.handleEvents)
 	s.handle("GET /api/logs", accessRead, s.handleLogs)
+	s.handle("GET /api/logs/stream", accessRead, s.handleLogStream)
 	s.handle("GET /api/resource", accessRead, s.handleResourceList)
 	s.handle("GET /api/resource/get", accessRead, s.handleResourceGet)
 	s.handle("GET /api/k8s/{path...}", accessRead, s.handlePassthrough)
@@ -59,6 +60,7 @@ func (s *Server) routes() {
 	s.handle("POST /api/deployments/scale", accessWrite, s.handleScale)
 	s.handle("POST /api/deployments/restart", accessWrite, s.handleRestart)
 	s.handle("POST /api/exec", accessExec, s.handleExec)
+	s.handle("GET /api/exec/ws", accessExec, s.handleTerminal)
 	s.handle("POST /api/helm/rollback", accessWrite, s.handleHelmRollback)
 	s.handle("POST /api/helm/uninstall", accessWrite, s.handleHelmUninstall)
 	s.handle("POST /api/resource/apply", accessWrite|allowDryRun, s.handleApply)
@@ -95,4 +97,12 @@ var auditKinds = map[string]string{
 	"POST /api/exec":           "pod",
 	"POST /api/helm/rollback":  "release",
 	"POST /api/helm/uninstall": "release",
+	"GET /api/exec/ws":         "pod",
+}
+
+// auditActions names the audit action of routes that record a named action
+// instead of "<METHOD> <route pattern>" (§3.4), e.g. a WebSocket session,
+// whose row is written once, when the connection is upgraded.
+var auditActions = map[string]string{
+	"GET /api/exec/ws": "exec.session",
 }

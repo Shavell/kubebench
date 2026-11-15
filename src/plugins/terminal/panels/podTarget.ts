@@ -1,15 +1,14 @@
-import type { PanelRequest } from '@/core/plugin/panelRequests'
-
-/** The container a `pod-logs` or `pod-exec` panel request points at. */
+/** The container a `pod-logs` or `pod-exec` request or tab points at. */
 export interface PodTarget {
   namespace: string
   pod: string
   container: string
 }
 
-/** The request's target, or null without a (well-formed) request. */
-export function podTarget(request: PanelRequest | undefined): PodTarget | null {
-  const { namespace, pod, container } = request?.props ?? {}
+/** The target in `props` (`{namespace, pod, container}`), or null when they do not name one. */
+export function podTarget(props: Record<string, unknown> | undefined): PodTarget | null {
+  const { namespace, pod, container } = props ?? {}
   if (typeof namespace !== 'string' || typeof pod !== 'string' || typeof container !== 'string') return null
+  if (!namespace || !pod || !container) return null
   return { namespace, pod, container }
 }

@@ -80,6 +80,10 @@ func (s *Server) register(pattern string, a access, p plugin.Plugin, h handlerFu
 	if kind, ok := auditKinds[pattern]; ok {
 		target.kind = kind
 	}
+	action := pattern
+	if name, ok := auditActions[pattern]; ok {
+		action = name
+	}
 
 	s.mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
 		c := &call{}
@@ -96,7 +100,7 @@ func (s *Server) register(pattern string, a access, p plugin.Plugin, h handlerFu
 			effective = accessRead
 		}
 		if audited(effective, method) {
-			aw := s.newAuditWriter(w, r, c, pattern, target)
+			aw := s.newAuditWriter(w, r, c, action, target)
 			w, c.audit = aw, aw
 			defer func() {
 				if v := recover(); v != nil {
