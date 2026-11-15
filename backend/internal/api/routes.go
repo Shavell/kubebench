@@ -39,6 +39,7 @@ func (s *Server) routes() {
 	s.handle("GET /api/yaml", accessRead, s.handleYAML)
 	s.handle("GET /api/events", accessRead, s.handleEvents)
 	s.handle("GET /api/logs", accessRead, s.handleLogs)
+	s.handle("GET /api/logs/stream", accessRead, s.handleLogStream)
 	s.handle("GET /api/resource", accessRead, s.handleResourceList)
 	s.handle("GET /api/resource/get", accessRead, s.handleResourceGet)
 	s.handle("GET /api/k8s/{path...}", accessRead, s.handlePassthrough)
