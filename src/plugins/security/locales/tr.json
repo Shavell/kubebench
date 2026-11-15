@@ -1,0 +1,362 @@
+{
+  "manifest": {
+    "name": "Güvenlik",
+    "description": "Cluster'ın güvenlik durumu: puanlı Pod Security Standards, RBAC, ağ ve Secret kontrolleri, kabul edilen riskler ve Markdown/CSV dışa aktarma.",
+    "tooltip": "Güvenlik",
+    "sidebarTitle": "Güvenlik"
+  },
+  "commands": {
+    "openOverview": "Güvenlik: Genel durumu aç",
+    "openFindings": "Güvenlik: Bulguları aç",
+    "scan": "Güvenlik: Cluster'ı tara"
+  },
+  "resourceActions": {
+    "findings": "Güvenlik bulguları"
+  },
+  "sidebar": {
+    "overview": "Genel bakış",
+    "findings": "Bulgular",
+    "checks": "Kontroller",
+    "accepted": "Kabul edilen riskler",
+    "score": "{{score}}/100"
+  },
+  "common": {
+    "cancel": "İptal",
+    "close": "Kapat"
+  },
+  "actions": {
+    "openResource": "Kaynağı aç",
+    "sameCheck": "Bu kontrolün tüm bulguları",
+    "accept": "Riski kabul et",
+    "unaccept": "Kabulü kaldır"
+  },
+  "scan": {
+    "includeSystem": "Sistem namespace'lerini dahil et",
+    "includeSystemHint": "kube-system, kube-public, kube-node-lease ve cluster'ın kendi RBAC nesnelerini de tarar",
+    "run": "Tara",
+    "running": "Taranıyor…",
+    "done_one": "Tarama tamamlandı: puan {{score}}/100, {{count}} açık bulgu",
+    "done_other": "Tarama tamamlandı: puan {{score}}/100, {{count}} açık bulgu",
+    "doneNoScore_one": "Tarama tamamlandı: {{count}} açık bulgu",
+    "doneNoScore_other": "Tarama tamamlandı: {{count}} açık bulgu"
+  },
+  "export": {
+    "markdown": "Markdown",
+    "markdownHint": "Raporu Markdown olarak indirin",
+    "csv": "CSV",
+    "csvHint": "Bulguları CSV olarak indirin"
+  },
+  "severity": {
+    "critical": "Kritik",
+    "high": "Yüksek",
+    "medium": "Orta",
+    "low": "Düşük"
+  },
+  "severityShort": {
+    "critical": "K",
+    "high": "Y",
+    "medium": "O",
+    "low": "D"
+  },
+  "category": {
+    "pss-baseline": "PSS baseline",
+    "pss-restricted": "PSS restricted",
+    "hygiene": "İş yükü hijyeni",
+    "rbac": "RBAC",
+    "network": "Ağ",
+    "secrets": "Secret'lar",
+    "namespaces": "Namespace'ler"
+  },
+  "columns": {
+    "severity": "Önem",
+    "check": "Kontrol",
+    "open": "Açık",
+    "resource": "Kaynak",
+    "message": "Bulgu",
+    "status": "Durum",
+    "category": "Kategori",
+    "frameworks": "Çerçeveler",
+    "target": "Kapsam",
+    "reason": "Gerekçe",
+    "acceptedBy": "Kabul eden",
+    "acceptedAt": "Kabul tarihi",
+    "expires": "Bitiş"
+  },
+  "status": {
+    "open": "Açık",
+    "accepted": "Kabul edildi"
+  },
+  "overview": {
+    "title": "Güvenlik durumu",
+    "loading": "Güvenlik raporu yükleniyor…",
+    "unavailable": "Güvenlik raporu kullanılamıyor",
+    "noReport": "Henüz tarama yok",
+    "noReportHint": "Güvenlik durumunu görmek için cluster'ı tarayın. Tarama cluster'da yalnızca okuma yapar.",
+    "noScore": "yok",
+    "score": "Güvenlik puanı",
+    "generated": "{{cluster}} · {{time}} tarihinde tarandı",
+    "systemIncluded": "Sistem namespace'leri dahil",
+    "systemExcluded": "Sistem namespace'leri hariç ({{namespaces}})",
+    "openFindings_one": "{{count}} açık bulgu",
+    "openFindings_other": "{{count}} açık bulgu",
+    "accepted": "Kabul edildi",
+    "acceptedDetail": "toplam {{total}} bulgudan",
+    "byCategory": "Kategoriye göre",
+    "topChecks": "En çok başarısız olan kontroller",
+    "allPassing": "Açık bulgu yok",
+    "openCategory": "{{category}} bulgularını gösterin",
+    "columnsLabel": "{{category}}: {{critical}} kritik, {{high}} yüksek, {{medium}} orta, {{low}} düşük açık bulgu",
+    "categorySkipped": "Kontrol edilmedi",
+    "categoryDetail": "{{failed}} açık · {{accepted}} kabul edildi · {{evaluated}} değerlendirildi"
+  },
+  "notices": {
+    "skipped_one": "{{count}} kontrol atlandı",
+    "skipped_other": "{{count}} kontrol atlandı",
+    "warnings": "Uyarılar"
+  },
+  "findings": {
+    "title": "Güvenlik bulguları",
+    "loading": "Bulgular yükleniyor…",
+    "unavailable": "Bulgular kullanılamıyor",
+    "summary": "{{shown}} / {{total}}",
+    "none": "Bulgu yok",
+    "noMatch": "Filtrelerle eşleşen bulgu yok",
+    "noMatchHint": "Filtreleri değiştirin veya sıfırlayın; kabul edilen bulgular Kabul edildi veya Tümü durumunda görünür."
+  },
+  "filters": {
+    "severity": "Önem",
+    "category": "Kategori",
+    "framework": "Çerçeve",
+    "namespace": "Namespace",
+    "allSeverities": "Tüm önem dereceleri",
+    "allCategories": "Tüm kategoriler",
+    "allFrameworks": "Tüm çerçeveler",
+    "allNamespaces": "Tüm namespace'ler",
+    "status": "Durum",
+    "statuses": {
+      "open": "Açık",
+      "accepted": "Kabul edildi",
+      "all": "Tümü"
+    },
+    "groupBy": "Grupla",
+    "check": "Kontrol: {{title}}",
+    "resource": "Kaynak: {{resource}}",
+    "clear": "Bu filtreyi kaldırın",
+    "reset": "Filtreleri sıfırla"
+  },
+  "groupings": {
+    "none": "Yok",
+    "check": "Kontrol",
+    "severity": "Önem",
+    "category": "Kategori",
+    "namespace": "Namespace",
+    "resource": "Kaynak",
+    "clusterScoped": "Cluster genelinde"
+  },
+  "detail": {
+    "label": "Bulgu ayrıntıları",
+    "resource": "Kaynak",
+    "evidence": "Kanıt",
+    "remediation": "Düzeltme",
+    "frameworks": "Çerçeveler",
+    "accepted": "Kabul edilen risk",
+    "acceptedBy": "{{by}} tarafından {{at}} tarihinde, süresiz kabul edildi.",
+    "acceptedUntil": "{{by}} tarafından {{at}} tarihinde, {{until}} tarihine kadar kabul edildi."
+  },
+  "catalog": {
+    "title": "Güvenlik kontrolleri",
+    "loading": "Kontroller yükleniyor…",
+    "unavailable": "Kontrol kataloğu kullanılamıyor",
+    "empty": "Bu kategoride kontrol yok",
+    "skipped": "Atlandı",
+    "passing": "Başarılı"
+  },
+  "targets": {
+    "workload": "İş yükleri",
+    "namespace": "Namespace'ler",
+    "serviceaccount": "Varsayılan ServiceAccount'lar",
+    "role": "Role'ler",
+    "binding": "Binding'ler"
+  },
+  "accepted": {
+    "title": "Kabul edilen riskler",
+    "loading": "Kabul edilen riskler yükleniyor…",
+    "unavailable": "Kabul edilen riskler kullanılamıyor",
+    "empty": "Kabul edilen risk yok",
+    "emptyHint": "Bu cluster'daki herkes için bilinen, kabul edilebilir bir riski kaydetmek üzere bulgular listesinden bir bulguyu kabul edin.",
+    "expired": "Süresi doldu",
+    "never": "Hiçbir zaman"
+  },
+  "accept": {
+    "title": "Riski kabul et",
+    "description": "{{resource}} üzerindeki {{title}} bulgusu bu cluster'ın tüm kullanıcıları için kabul edilmiş sayılacak ve puanı artık düşürmeyecek.",
+    "submit": "Riski kabul et",
+    "reason": "Gerekçe",
+    "reasonHelp": "Riskin neden kabul edilebilir olduğu; herkese ve dışa aktarımlarda gösterilir.",
+    "reasonTooLong": "En fazla {{max}} karakter",
+    "expiry": "Bitiş",
+    "expiryHelp": "Bu tarihten sonra bulgu yeniden sayılır.",
+    "expiryDays_one": "{{count}} gün sonra",
+    "expiryDays_other": "{{count}} gün sonra",
+    "expiryNever": "Hiçbir zaman",
+    "done": "Risk kabul edildi: {{title}}"
+  },
+  "unaccept": {
+    "title": "Risk kabulünü kaldır",
+    "message": "{{resource}} üzerindeki {{title}} bulgusu, bu cluster'ın tüm kullanıcıları için yeniden açık bulgu sayılacak.",
+    "confirm": "Kabulü kaldır",
+    "done": "Risk artık kabul edilmiyor: {{title}}"
+  },
+  "checks": {
+    "privileged": {
+      "title": "Ayrıcalıklı container'lar",
+      "message": "Container'lar node'a tam erişimle ayrıcalıklı çalışıyor: {{evidence}}",
+      "remediation": "Container'lardan securityContext.privileged (ve Windows hostProcess) ayarını kaldırın. Bunun yerine iş yükünün ihtiyaç duyduğu capability'leri tek tek verin."
+    },
+    "host-namespaces": {
+      "title": "Host namespace'leri paylaşılıyor",
+      "message": "Pod, node'un namespace'lerini paylaşıyor: {{evidence}}",
+      "remediation": "hostNetwork, hostPID ve hostIPC değerlerini false yapın (veya hiç belirtmeyin). Ağ servislerini host ağı yerine bir Service üzerinden sunun."
+    },
+    "host-path": {
+      "title": "hostPath volume'ları",
+      "message": "Pod, node'un dizinlerini bağlıyor: {{evidence}}",
+      "remediation": "hostPath volume'larını PersistentVolumeClaim, emptyDir, ConfigMap veya Secret ile değiştirin. Node erişimi kaçınılmazsa mümkün olan en dar yolu salt okunur bağlayın."
+    },
+    "host-ports": {
+      "title": "Host port'ları",
+      "message": "Container'lar node'un port'larını kullanıyor: {{evidence}}",
+      "remediation": "Container port'larından hostPort'u kaldırın ve port'ları bir Service (NodePort veya LoadBalancer) ya da Ingress ile yayınlayın."
+    },
+    "capabilities": {
+      "title": "Baseline dışı capability'ler",
+      "message": "Container'lar baseline izin listesi dışında Linux capability'leri ekliyor: {{evidence}}",
+      "remediation": "Capability'leri securityContext.capabilities.add listesinden kaldırın; baseline yalnızca AUDIT_WRITE, CHOWN, DAC_OVERRIDE, FOWNER, FSETID, KILL, MKNOD, NET_BIND_SERVICE, SETFCAP, SETGID, SETPCAP, SETUID ve SYS_CHROOT'a izin verir."
+    },
+    "proc-mount": {
+      "title": "Maskelenmemiş /proc",
+      "message": "Container'lar Default dışında bir procMount kullanıyor: {{evidence}}",
+      "remediation": "securityContext.procMount ayarını kaldırın veya Default yapın."
+    },
+    "unsafe-sysctls": {
+      "title": "Güvenli olmayan sysctl'ler",
+      "message": "Pod, güvenli küme dışında sysctl'ler ayarlıyor: {{evidence}}",
+      "remediation": "sysctl'leri securityContext.sysctls listesinden kaldırın veya bunları ayrılmış, taint'li node'larda yapılandırın."
+    },
+    "selinux-apparmor": {
+      "title": "SELinux veya AppArmor geçersiz kılmaları",
+      "message": "Pod, SELinux veya AppArmor kısıtlamasını zayıflatıyor: {{evidence}}",
+      "remediation": "seLinuxOptions.user ve role değerlerini boş bırakın, container_t ailesinden bir tür kullanın ve Unconfined bir AppArmor profili ayarlamayın."
+    },
+    "privilege-escalation": {
+      "title": "Ayrıcalık yükseltmeye izin veriliyor",
+      "message": "Container'lar allowPrivilegeEscalation: false ayarlamıyor: {{evidence}}",
+      "remediation": "Her container'da securityContext.allowPrivilegeEscalation: false ayarlayın."
+    },
+    "run-as-non-root": {
+      "title": "Container'lar root olarak çalışabilir",
+      "message": "Container'ların root olmayan bir kullanıcıyla çalışması zorunlu değil: {{evidence}}",
+      "remediation": "securityContext.runAsNonRoot: true (pod'da veya her container'da) ve sıfırdan farklı bir runAsUser ayarlayın; image'ı root olmayan bir USER ile oluşturun."
+    },
+    "seccomp": {
+      "title": "seccomp profili yok",
+      "message": "Container'lar RuntimeDefault veya Localhost seccomp profili olmadan çalışıyor: {{evidence}}",
+      "remediation": "Pod'da securityContext.seccompProfile.type: RuntimeDefault ayarlayın (veya incelenmiş bir profille Localhost)."
+    },
+    "drop-capabilities": {
+      "title": "Capability'ler bırakılmıyor",
+      "message": "Container'lar ALL capability'lerini bırakmıyor: {{evidence}}",
+      "remediation": "securityContext.capabilities.drop: [\"ALL\"] ayarlayın; container düşük numaralı bir port kullanıyorsa yalnızca NET_BIND_SERVICE'i geri ekleyin."
+    },
+    "volume-types": {
+      "title": "Kısıtlı volume türleri",
+      "message": "Pod, restricted seviyenin izin vermediği volume türleri kullanıyor: {{evidence}}",
+      "remediation": "Yalnızca configMap, csi, downwardAPI, emptyDir, ephemeral, persistentVolumeClaim, projected ve secret volume'ları kullanın; diğer depolamaya bir PersistentVolumeClaim üzerinden erişin."
+    },
+    "resource-requests": {
+      "title": "Eksik kaynak istekleri",
+      "message": "Container'lar CPU veya bellek istemiyor: {{evidence}}",
+      "remediation": "Zamanlayıcının pod'u yerleştirebilmesi ve tahliyelerin adil olması için resources.requests.cpu ve resources.requests.memory ayarlayın."
+    },
+    "resource-limits": {
+      "title": "Eksik kaynak limitleri",
+      "message": "Container'ların CPU veya bellek limiti yok: {{evidence}}",
+      "remediation": "Tek bir iş yükünün node'u tüketememesi için resources.limits.memory (ve uygunsa cpu) ayarlayın ya da namespace'e varsayılanları olan bir LimitRange ekleyin."
+    },
+    "probes": {
+      "title": "Eksik sağlık probe'ları",
+      "message": "Container'ların liveness veya readiness probe'u yok: {{evidence}}",
+      "remediation": "Trafiğin yalnızca hazır pod'lara gitmesi için bir readinessProbe, takılan bir container'ın yeniden başlatılması için bir livenessProbe ekleyin."
+    },
+    "image-tag": {
+      "title": "Değişebilen image etiketleri",
+      "message": "Container'lar latest etiketini kullanıyor veya etiket kullanmıyor: {{evidence}}",
+      "remediation": "Her pod'un incelenmiş image'ı çalıştırması için image'ları değişmez bir sürüm etiketine, daha iyisi bir digest'e (image@sha256:…) sabitleyin."
+    },
+    "read-only-root": {
+      "title": "Yazılabilir kök dosya sistemi",
+      "message": "Container'lar kök dosya sistemlerine yazabiliyor: {{evidence}}",
+      "remediation": "securityContext.readOnlyRootFilesystem: true ayarlayın ve uygulamanın yazması gereken yere bir emptyDir bağlayın."
+    },
+    "cluster-admin-binding": {
+      "title": "cluster-admin binding'leri",
+      "message": "Binding şunlara cluster-admin yetkisi veriyor: {{evidence}}",
+      "remediation": "Yalnızca subject'lerin ihtiyaç duyduğu izinleri içeren bir role bağlayın; cluster-admin'i acil durum hesaplarına ayırın."
+    },
+    "rbac-wildcards": {
+      "title": "Role'lerde joker karakterler",
+      "message": "Role, joker karakterli kurallar veriyor: {{evidence}}",
+      "remediation": "apiGroups, resources ve verbs içindeki * değerlerini subject'lerin kullandığı açık gruplar, kaynaklar ve fiillerle değiştirin."
+    },
+    "secrets-access": {
+      "title": "Secret'lara okuma erişimi",
+      "message": "Role, Secret'ları okuyabiliyor: {{evidence}}",
+      "remediation": "secrets üzerindeki get, list ve watch izinlerini kaldırın veya kuralı subject'lerin ihtiyaç duyduğu resourceNames ile sınırlayın; list ve watch her Secret'ın değerlerini açığa çıkarır."
+    },
+    "pod-create": {
+      "title": "Pod oluşturma ve exec",
+      "message": "Role, pod oluşturabiliyor veya pod'lara exec yapabiliyor: {{evidence}}",
+      "remediation": "Pod'lar (ve pods/exec, pods/attach) üzerinde create iznini yalnızca buna ihtiyaç duyan controller'lara ve kişilere verin: yeni bir pod, namespace'indeki her Secret'ı ve ServiceAccount'u bağlayabilir."
+    },
+    "rbac-escalation": {
+      "title": "bind, escalate veya impersonate",
+      "message": "Role, kendi ayrıcalıklarını yükseltebiliyor: {{evidence}}",
+      "remediation": "bind, escalate ve impersonate fiillerini kaldırın; bunlar subject'lerin sahip olmadıkları izinleri kendilerine vermesini veya bu izinlerle işlem yapmasını sağlar."
+    },
+    "default-service-account": {
+      "title": "Varsayılan ServiceAccount kullanımda",
+      "message": "Namespace'in varsayılan ServiceAccount'u etkisiz olmalı: {{evidence}}",
+      "remediation": "Varsayılan ServiceAccount'ta automountServiceAccountToken: false ayarlayın, ona role bağlamayın ve her iş yüküne kendi ServiceAccount'unu verin."
+    },
+    "service-account-token": {
+      "title": "Varsayılan ServiceAccount token'ı bağlı",
+      "message": "Pod, API token'ı bağlı olarak varsayılan ServiceAccount ile çalışıyor",
+      "remediation": "İş yüküne kendi ServiceAccount'unu verin veya Kubernetes API'sini çağırmıyorsa pod'da automountServiceAccountToken: false ayarlayın."
+    },
+    "network-policy": {
+      "title": "NetworkPolicy'si olmayan namespace'ler",
+      "message": "Namespace'in NetworkPolicy'si yok, bu yüzden her pod her yerden gelen trafiği kabul ediyor",
+      "remediation": "Ingress (ve egress) için varsayılan olarak her şeyi reddeden bir NetworkPolicy ve iş yüklerinin ihtiyaç duyduğu trafiğe izin veren policy'ler ekleyin."
+    },
+    "secret-env": {
+      "title": "Ortam değişkenlerinde Secret'lar",
+      "message": "Container'lar Secret'ları ortam değişkenlerine okuyor: {{evidence}}",
+      "remediation": "Secret'ı volume olarak bağlayın ve dosyaları okuyun: ortam değişkenleri log'lara, çökme dökümlerine ve alt süreçlere sızar."
+    },
+    "hardcoded-secret": {
+      "title": "Düz ortam değerlerinde kimlik bilgileri",
+      "message": "Kimlik bilgisine benzeyen ortam değişkenlerinin manifest'te açık değerleri var: {{evidence}}",
+      "remediation": "Değerleri bir Secret'a (dosya olarak bağlanan) veya harici bir secret deposuna taşıyın; şu anda iş yükünü okuyabilen herkes bunları okuyabilir."
+    },
+    "psa-labels": {
+      "title": "Pod Security admission seviyesi yok",
+      "message": "Pod Security admission, baseline veya restricted bir seviye uygulamıyor: {{evidence}}",
+      "remediation": "Namespace'i pod-security.kubernetes.io/enforce=baseline (veya restricted) ile etiketleyin; önce warn ve audit etiketleriyle deneyin."
+    },
+    "default-namespace": {
+      "title": "default namespace'indeki iş yükleri",
+      "message": "İş yükü default namespace'inde çalışıyor",
+      "remediation": "İş yükünü, kotaların, policy'lerin ve RBAC'ın ona göre kapsamlanabileceği kendi namespace'ine taşıyın."
+    }
+  }
+}

@@ -1,0 +1,367 @@
+/* Security plugin pages. Colors only through --vscode-* tokens. */
+
+.security-page {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.security-section-title {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--vscode-descriptionForeground);
+}
+
+.security-muted {
+  color: var(--vscode-descriptionForeground);
+}
+
+.security-small {
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.security-mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.security-pass {
+  color: var(--vscode-charts-green);
+}
+
+/* --- overview ---------------------------------------------------------------- */
+
+.security-hero {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.security-hero__score {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.security-hero__value {
+  font-size: 48px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.security-hero__unit {
+  font-size: 16px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.security-hero__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.security-hero__label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.security-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.security-tile-button {
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.security-tile-button:hover .kb-stat,
+.security-multiple:hover {
+  border-color: var(--vscode-focusBorder);
+}
+
+.security-tile-button:focus-visible,
+.security-multiple:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+
+.security-multiples {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 12px;
+}
+
+.security-multiple {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--vscode-editorWidget-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.security-multiple__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.security-multiple__name {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.security-multiple__score {
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.security-multiple__foot {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.security-scorebar {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--vscode-charts-gridLines);
+  overflow: hidden;
+}
+
+.security-scorebar__fill {
+  height: 100%;
+}
+
+.security-columns {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  height: 64px;
+  border-bottom: 1px solid var(--vscode-charts-gridLines);
+}
+
+.security-columns__col {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 2px;
+  min-height: 0;
+  position: relative;
+  padding-bottom: 14px;
+}
+
+.security-columns__bar {
+  width: 100%;
+  max-width: 22px;
+  min-height: 0;
+  border-radius: 2px 2px 0 0;
+}
+
+.security-columns__value {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+  font-variant-numeric: tabular-nums;
+}
+
+.security-columns__label {
+  position: absolute;
+  bottom: 0;
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.security-notices ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* --- findings ---------------------------------------------------------------- */
+
+.security-split {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.security-findings {
+  flex: 1;
+  min-width: 0;
+}
+
+.security-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 8px 12px;
+}
+
+.security-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  white-space: nowrap;
+}
+
+.security-group__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 12px;
+  border: none;
+  border-top: 1px solid var(--vscode-panel-border);
+  background: var(--vscode-sideBarSectionHeader-background, transparent);
+  color: var(--vscode-foreground);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.security-group__count {
+  margin-left: auto;
+  padding: 0 6px;
+  border-radius: 8px;
+  background: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+  font-size: 11px;
+  font-weight: normal;
+}
+
+.security-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--vscode-textLink-foreground);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.security-link:hover {
+  text-decoration: underline;
+}
+
+.security-message {
+  white-space: normal;
+}
+
+.security-accepted {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--vscode-charts-green);
+}
+
+.security-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.security-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  border: 1px solid var(--vscode-panel-border);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.security-chip--filter button {
+  display: inline-flex;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.security-detail {
+  width: 360px;
+  flex-shrink: 0;
+  overflow: auto;
+  padding: 12px 14px;
+  border-left: 1px solid var(--vscode-panel-border);
+  background: var(--vscode-sideBar-background);
+}
+
+.security-detail p {
+  margin: 0 0 12px;
+}
+
+.security-detail__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.security-detail__head h3 {
+  flex: 1;
+  margin: 0;
+  font-size: 13px;
+}
+
+.security-detail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.security-icon-button {
+  display: inline-flex;
+  padding: 2px;
+  border: none;
+  background: none;
+  color: var(--vscode-foreground);
+  cursor: pointer;
+}
+
+.security-evidence {
+  margin: 0 0 12px;
+  padding-left: 18px;
+}
+
+.security-reason {
+  margin: 0 0 12px;
+  padding: 4px 10px;
+  border-left: 2px solid var(--vscode-panel-border);
+  color: var(--vscode-descriptionForeground);
+  white-space: pre-wrap;
+}
+
+.security-findings .kb-table .kb-button {
+  padding: 1px 8px;
+}
