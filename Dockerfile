@@ -12,7 +12,7 @@
 # `make image` does the same for the local platform.
 
 # 1. Frontend (Vite) -> /src/dist
-FROM --platform=$BUILDPLATFORM node:24-trixie-slim AS frontend
+FROM --platform=$BUILDPLATFORM node:26-trixie-slim AS frontend
 WORKDIR /src
 COPY package.json package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm \
