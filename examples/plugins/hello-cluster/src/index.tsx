@@ -5,12 +5,17 @@
  * lists namespaces and a command.
  */
 import type { PluginManifest } from '@kubebench/sdk'
-import de from './locales/de.json'
-import en from './locales/en.json'
-import tr from './locales/tr.json'
 import { NamespacesTab } from './NamespacesTab'
 import { NAMESPACES_TAB, openNamespacesTab, PLUGIN_ID, PLUGIN_VERSION } from './plugin'
 import { Sidebar } from './Sidebar'
+
+// Every locales/<code>.json is one language, so adding a language needs no
+// code change (bundled at build time).
+const locales: Record<string, object> = Object.fromEntries(
+  Object.entries(import.meta.glob<object>('./locales/*.json', { eager: true, import: 'default' })).map(
+    ([path, bundle]) => [path.replace(/^.*\/(.+)\.json$/, '$1'), bundle],
+  ),
+)
 
 // Display strings are keys in the plugin's namespace (its id), from `locales`.
 const manifest: PluginManifest = {
@@ -19,7 +24,7 @@ const manifest: PluginManifest = {
   version: PLUGIN_VERSION,
   description: 'manifest.description',
   category: 'tools',
-  locales: { en, tr, de },
+  locales,
   activityBar: { icon: 'globe', tooltip: 'manifest.tooltip', order: 50 },
   sidebar: { id: `${PLUGIN_ID}.sidebar`, title: 'manifest.name', component: Sidebar },
   tabRenderers: [{ kind: NAMESPACES_TAB, component: NamespacesTab }],

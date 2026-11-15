@@ -302,10 +302,10 @@
   },
   "namespaces": {
     "pinnedGroup": "Sabitlenenler",
-    "othersGroup": "Diğer namespace'ler",
+    "othersGroup": "Diğer Namespace'ler",
     "search": "Namespace'leri filtrele",
     "loading": "Namespace'ler yükleniyor…",
-    "noMatch": "Eşleşen namespace yok",
+    "noMatch": "Eşleşen Namespace yok",
     "pin": "En üste sabitle",
     "unpin": "Sabitlemeyi kaldır",
     "hide": "Listede gizle",
@@ -326,17 +326,17 @@
         "ctx": "ctx <cluster>"
       },
       "help": {
-        "get": "Bir kaynak listesini veya nesneyi açın",
-        "describe": "Bir nesnenin ayrıntılarını açın",
-        "logs": "Bir container'ın loglarını panelde gösterin",
-        "exec": "Bir container'da shell açın",
-        "ns": "Namespace filtresini ayarlayın",
-        "ctx": "Başka bir cluster'a geçin"
+        "get": "Bir kaynak listesini veya nesneyi aç",
+        "describe": "Bir nesnenin ayrıntılarını aç",
+        "logs": "Bir container'ın loglarını panelde göster",
+        "exec": "Bir container'da shell aç",
+        "ns": "Namespace filtresini ayarla",
+        "ctx": "Başka bir cluster'a geç"
       },
       "alias": "Takma ad",
       "loading": "Yükleniyor…",
       "loadFailed": "Öneriler yüklenemedi: {{error}}",
-      "namespaceDetail": "namespace",
+      "namespaceDetail": "Namespace",
       "openList": "{{kind}} listesini aç",
       "openListIn": "{{namespace}} içindeki {{kind}} listesini aç",
       "inNamespace": "{{namespace}} içinde",
@@ -345,7 +345,7 @@
       "podFirst": "Önce Pod'u, ardından container'ını yazın",
       "containerDetail": "container: {{container}}",
       "noPods": "Eşleşen Pod yok",
-      "allNamespaces": "Tüm namespace'ler",
+      "allNamespaces": "Tüm Namespace'ler",
       "current": "geçerli",
       "noClusters": "Eşleşen cluster yok",
       "noPanel": "Terminal paneli kullanılamıyor (Terminal eklentisi devre dışı)."
@@ -373,7 +373,7 @@
     "entries": {
       "openPalette": "Komut paletini göster",
       "lists": {
-        "moveRow": "Satırlar arasında gezin",
+        "moveRow": "Satırlar arasında gez",
         "firstLast": "İlk veya son satır",
         "page": "Bir sayfa yukarı veya aşağı",
         "openRow": "Satırı aç",
@@ -381,7 +381,7 @@
         "rowMenu": "Satır işlemleri menüsü"
       },
       "palette": {
-        "choose": "Bir öneri seçin",
+        "choose": "Bir öneri seç",
         "complete": "Komutu tamamla",
         "run": "Çalıştır",
         "close": "Kapat"

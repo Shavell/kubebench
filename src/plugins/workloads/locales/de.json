@@ -48,15 +48,15 @@
     "endpointslices": "EndpointSlices",
     "endpoints": "Endpoints",
     "networkpolicies": "NetworkPolicies",
-    "persistentvolumeclaims": "PVCs",
-    "persistentvolumes": "PVs",
+    "persistentvolumeclaims": "PersistentVolumeClaims",
+    "persistentvolumes": "PersistentVolumes",
     "storageclasses": "StorageClasses",
     "serviceaccounts": "ServiceAccounts",
     "roles": "Roles",
     "rolebindings": "RoleBindings",
     "clusterroles": "ClusterRoles",
     "clusterrolebindings": "ClusterRoleBindings",
-    "events": "Ereignisse"
+    "events": "Events"
   },
   "columns": {
     "name": "Name",
@@ -103,7 +103,7 @@
     "capacity": "Kapazität",
     "storageClass": "StorageClass",
     "provisioner": "Provisioner",
-    "reclaim": "Reclaim",
+    "reclaim": "Reclaim-Richtlinie",
     "binding": "Bindung",
     "role": "Rolle",
     "reason": "Grund",

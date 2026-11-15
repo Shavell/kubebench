@@ -31,7 +31,7 @@
     "unaccept": "Kabulü kaldır"
   },
   "scan": {
-    "includeSystem": "Sistem namespace'lerini dahil et",
+    "includeSystem": "Sistem Namespace'lerini dahil et",
     "includeSystemHint": "kube-system, kube-public, kube-node-lease ve cluster'ın kendi RBAC nesnelerini de tarar",
     "run": "Tara",
     "running": "Taranıyor…",
@@ -95,8 +95,8 @@
     "noScore": "yok",
     "score": "Güvenlik puanı",
     "generated": "{{cluster}} · {{time}} tarihinde tarandı",
-    "systemIncluded": "Sistem namespace'leri dahil",
-    "systemExcluded": "Sistem namespace'leri hariç ({{namespaces}})",
+    "systemIncluded": "Sistem Namespace'leri dahil",
+    "systemExcluded": "Sistem Namespace'leri hariç ({{namespaces}})",
     "openFindings_one": "{{count}} açık bulgu",
     "openFindings_other": "{{count}} açık bulgu",
     "accepted": "Kabul edildi",
@@ -131,7 +131,7 @@
     "allSeverities": "Tüm önem dereceleri",
     "allCategories": "Tüm kategoriler",
     "allFrameworks": "Tüm çerçeveler",
-    "allNamespaces": "Tüm namespace'ler",
+    "allNamespaces": "Tüm Namespace'ler",
     "status": "Durum",
     "statuses": {
       "open": "Açık",
@@ -286,7 +286,7 @@
     "resource-limits": {
       "title": "Eksik kaynak limitleri",
       "message": "Container'ların CPU veya bellek limiti yok: {{evidence}}",
-      "remediation": "Tek bir iş yükünün node'u tüketememesi için resources.limits.memory (ve uygunsa cpu) ayarlayın ya da namespace'e varsayılanları olan bir LimitRange ekleyin."
+      "remediation": "Tek bir iş yükünün node'u tüketememesi için resources.limits.memory (ve uygunsa cpu) ayarlayın ya da Namespace'e varsayılanları olan bir LimitRange ekleyin."
     },
     "probes": {
       "title": "Eksik sağlık probe'ları",
@@ -321,7 +321,7 @@
     "pod-create": {
       "title": "Pod oluşturma ve exec",
       "message": "Role, pod oluşturabiliyor veya pod'lara exec yapabiliyor: {{evidence}}",
-      "remediation": "Pod'lar (ve pods/exec, pods/attach) üzerinde create iznini yalnızca buna ihtiyaç duyan controller'lara ve kişilere verin: yeni bir pod, namespace'indeki her Secret'ı ve ServiceAccount'u bağlayabilir."
+      "remediation": "Pod'lar (ve pods/exec, pods/attach) üzerinde create iznini yalnızca buna ihtiyaç duyan controller'lara ve kişilere verin: yeni bir Pod, Namespace'indeki her Secret'ı ve ServiceAccount'u bağlayabilir."
     },
     "rbac-escalation": {
       "title": "bind, escalate veya impersonate",
@@ -339,7 +339,7 @@
       "remediation": "İş yüküne kendi ServiceAccount'unu verin veya Kubernetes API'sini çağırmıyorsa pod'da automountServiceAccountToken: false ayarlayın."
     },
     "network-policy": {
-      "title": "NetworkPolicy'si olmayan namespace'ler",
+      "title": "NetworkPolicy'si olmayan Namespace'ler",
       "message": "Namespace'in NetworkPolicy'si yok, bu yüzden her pod her yerden gelen trafiği kabul ediyor",
       "remediation": "Ingress (ve egress) için varsayılan olarak her şeyi reddeden bir NetworkPolicy ve iş yüklerinin ihtiyaç duyduğu trafiğe izin veren policy'ler ekleyin."
     },
@@ -359,9 +359,9 @@
       "remediation": "Namespace'i pod-security.kubernetes.io/enforce=baseline (veya restricted) ile etiketleyin; önce warn ve audit etiketleriyle deneyin."
     },
     "default-namespace": {
-      "title": "default namespace'indeki iş yükleri",
-      "message": "İş yükü default namespace'inde çalışıyor",
-      "remediation": "İş yükünü, kotaların, policy'lerin ve RBAC'ın ona göre kapsamlanabileceği kendi namespace'ine taşıyın."
+      "title": "default Namespace'indeki iş yükleri",
+      "message": "İş yükü default Namespace'inde çalışıyor",
+      "remediation": "İş yükünü, kotaların, policy'lerin ve RBAC'ın ona göre kapsamlanabileceği kendi Namespace'ine taşıyın."
     }
   }
 }

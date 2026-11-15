@@ -16,7 +16,7 @@
     "node": "{{node}} · Metriken"
   },
   "statusBar": {
-    "usage": "CPU {{cpu}} · Speicher {{memory}}",
+    "usage": "CPU {{cpu}} · RAM {{memory}}",
     "tooltip": "Ressourcennutzung des Clusters (metrics-server)"
   },
   "overview": {

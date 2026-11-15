@@ -103,7 +103,7 @@
     "capacity": "Capacity",
     "storageClass": "Storage Class",
     "provisioner": "Provisioner",
-    "reclaim": "Reclaim",
+    "reclaim": "Reclaim policy",
     "binding": "Binding",
     "role": "Role",
     "reason": "Reason",

@@ -11,7 +11,7 @@
     "verbatimModuleSyntax": true,
     "noUnusedLocals": true,
     "skipLibCheck": true,
-    "types": [],
+    "types": ["vite/client"],
     "paths": {
       // The SDK declarations. Outside this repository, copy kubebench.d.ts
       // into the project and point this entry at the copy.

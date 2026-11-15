@@ -132,7 +132,7 @@
       "aws-keys": "AWS erişim anahtarı",
       "aws-profile": "AWS profili",
       "gcp": "GCP service account anahtarı",
-      "azure": "Azure service principal"
+      "azure": "Azure hizmet sorumlusu"
     },
     "help": {
       "keep": "Kayıtlı {{provider}} kimlik bilgileri olduğu gibi kalır. Bir daha gösterilmezler.",
@@ -142,7 +142,7 @@
       "aws-profile": "KubeBench sunucusunun AWS yapılandırma dosyalarındaki bir profil.",
       "aws-profileOff": "AWS profilleri KubeBench sunucusunun kendi dosyalarından okunur ve bu sunucu bunu eklenen cluster'lar için kabul etmez (KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY). Bunun yerine bir erişim anahtarı kullanın.",
       "gcp": "gke-gcloud-auth-plugin kullanan bir kubeconfig için service account anahtar dosyası (JSON). Cluster'la birlikte saklanır ve bir daha gösterilmez.",
-      "azure": "kubelogin kullanan bir kubeconfig için client secret'lı bir service principal. Cluster'la birlikte saklanır ve bir daha gösterilmez."
+      "azure": "kubelogin kullanan bir kubeconfig için client secret'lı bir hizmet sorumlusu (service principal). Cluster'la birlikte saklanır ve bir daha gösterilmez."
     },
     "providers": {
       "aws": "AWS",

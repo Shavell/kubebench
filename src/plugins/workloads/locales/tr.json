@@ -48,15 +48,15 @@
     "endpointslices": "EndpointSlice'lar",
     "endpoints": "Endpoints",
     "networkpolicies": "NetworkPolicy'ler",
-    "persistentvolumeclaims": "PVC'ler",
-    "persistentvolumes": "PV'ler",
+    "persistentvolumeclaims": "PersistentVolumeClaim'ler",
+    "persistentvolumes": "PersistentVolume'ler",
     "storageclasses": "StorageClass'lar",
     "serviceaccounts": "ServiceAccount'lar",
     "roles": "Role'ler",
     "rolebindings": "RoleBinding'ler",
     "clusterroles": "ClusterRole'ler",
     "clusterrolebindings": "ClusterRoleBinding'ler",
-    "events": "Olaylar"
+    "events": "Event'ler"
   },
   "columns": {
     "name": "Ad",
@@ -103,7 +103,7 @@
     "capacity": "Kapasite",
     "storageClass": "StorageClass",
     "provisioner": "Sağlayıcı",
-    "reclaim": "Geri kazanım",
+    "reclaim": "Geri kazanım politikası",
     "binding": "Bağlama",
     "role": "Rol",
     "reason": "Neden",
@@ -193,7 +193,7 @@
     },
     "delete": {
       "title": "{{name}} adlı {{kind}} silinsin mi?",
-      "message": "{{name}} adlı {{kind}}, {{namespace}} namespace'inden silinir.",
+      "message": "{{name}} adlı {{kind}}, {{namespace}} Namespace'inden silinir.",
       "messageCluster": "{{name}} adlı {{kind}} cluster'dan silinir. Cluster kapsamlı bir nesne olduğu için adının yazılması gerekir.",
       "propagation": "Sahip olduğu nesneler",
       "policy": {

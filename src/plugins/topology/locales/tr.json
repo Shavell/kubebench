@@ -1,7 +1,7 @@
 {
   "manifest": {
     "name": "Topoloji",
-    "description": "Bir namespace'in grafiği: Ingress'ler, Service'ler, workload'lar, Pod'lar, volume'lar ve kullandıkları ConfigMap ile Secret'lar, duruma göre renklendirilmiş olarak.",
+    "description": "Bir Namespace'in grafiği: Ingress'ler, Service'ler, workload'lar, Pod'lar, volume'lar ve kullandıkları ConfigMap ile Secret'lar, duruma göre renklendirilmiş olarak.",
     "tooltip": "Topoloji",
     "sidebarTitle": "Topoloji"
   },
@@ -29,11 +29,11 @@
     "listFailed": "{{list}} okunamadı: {{error}}",
     "unavailable": "Topoloji gösterilemiyor",
     "empty": "{{namespace}} içinde gösterilecek bir şey yok",
-    "emptyHint": "Bu namespace'te workload, Pod, Service, Ingress veya PersistentVolumeClaim bulunmuyor."
+    "emptyHint": "Bu Namespace'te workload, Pod, Service, Ingress veya PersistentVolumeClaim bulunmuyor."
   },
   "focus": {
     "label": "Odak: {{kind}} {{name}}",
-    "clear": "Tüm namespace'i göster",
+    "clear": "Tüm Namespace'i göster",
     "missing": "{{kind}} {{name}} bulunamadı",
     "missingHint": "Silinmiş ya da yeniden adlandırılmış olabilir.",
     "unavailable": "{{kind}} {{name}} gösterilemiyor"

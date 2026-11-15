@@ -64,7 +64,7 @@
     "name": "Nesne adı",
     "groupPlaceholder": "core",
     "namePlaceholder": "herhangi biri",
-    "hint": "Core grup için API grubunu boş bırakın. Cluster geneli, yalnızca ClusterRoleBinding'lerin verebildiği cluster kapsamlı kaynakları veya tüm namespace'leri sorar. resourceNames ile sınırlı kurallar yalnızca bir nesne adı verildiğinde eşleşir."
+    "hint": "Core grup için API grubunu boş bırakın. Cluster geneli, yalnızca ClusterRoleBinding'lerin verebildiği cluster kapsamlı kaynakları veya tüm Namespace'leri sorar. resourceNames ile sınırlı kurallar yalnızca bir nesne adı verildiğinde eşleşir."
   },
   "paths": {
     "roleMissingHint": "Bu rol mevcut değil; bu yüzden binding hiçbir yetki vermez.",
@@ -136,8 +136,8 @@
     "direct": "doğrudan",
     "rules": "Geçerli kurallar",
     "noRules": "Kural yok",
-    "rulesIn": "{{namespace}} namespace'inde",
-    "rulesClusterWide": "Cluster geneli (tüm namespace'ler)"
+    "rulesIn": "{{namespace}} Namespace'inde",
+    "rulesClusterWide": "Cluster geneli (tüm Namespace'ler)"
   },
   "rules": {
     "coreGroup": "core"
@@ -207,7 +207,7 @@
     },
     "workload-create": {
       "title": "Workload oluşturur",
-      "description": "Pod veya controller oluşturup bunları namespace'teki herhangi bir ServiceAccount ile çalıştırabilir."
+      "description": "Pod veya controller oluşturup bunları Namespace'teki herhangi bir ServiceAccount ile çalıştırabilir."
     },
     "persistentvolume-create": {
       "title": "PersistentVolume oluşturur",
@@ -217,7 +217,7 @@
   "graph": {
     "title": "Binding grafiği",
     "namespace": "Namespace",
-    "allNamespaces": "Tüm namespace'ler",
+    "allNamespaces": "Tüm Namespace'ler",
     "includeSystem": "Sistem binding'lerini göster",
     "columns": {
       "subjects": "Subject'ler",
@@ -227,12 +227,12 @@
     "aria": "Binding grafiği: {{subjects}} subject, {{bindings}} binding, {{roles}} rol",
     "introNamespace": "{{namespace}} içindeki RoleBinding'ler ve ServiceAccount'larının ClusterRoleBinding'leri. İzlemek için bir düğümün üzerine gelin; açmak için tıklayın.",
     "introCluster": "Cluster'ın tüm binding'leri. İzlemek için bir düğümün üzerine gelin; açmak için tıklayın.",
-    "truncated": "Yalnızca ilk {{count}} binding gösteriliyor; bir namespace seçin.",
+    "truncated": "Yalnızca ilk {{count}} binding gösteriliyor; bir Namespace seçin.",
     "missingSubject": "mevcut değil",
     "missingRole": "mevcut değil, yetki vermez",
     "loading": "Binding'ler yükleniyor…",
     "unavailable": "Binding grafiği gösterilemiyor",
     "empty": "Binding yok",
-    "emptyHint": "Başka bir namespace seçin veya sistem binding'lerini gösterin."
+    "emptyHint": "Başka bir Namespace seçin veya sistem binding'lerini gösterin."
   }
 }
