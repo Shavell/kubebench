@@ -45,7 +45,7 @@ func TestRouteAccess(t *testing.T) {
 		"POST /repos/update":                  plugin.AccessWrite,
 		"GET /charts/search":                  plugin.AccessRead,
 		"GET /charts/values":                  plugin.AccessRead,
-		"GET /charts/oci/values":              plugin.AccessWrite,
+		"POST /charts/oci/values":             plugin.AccessWrite,
 		"POST /charts/upload":                 plugin.AccessWrite,
 	}
 	if len(h.access) != len(want) {
@@ -217,7 +217,7 @@ func TestRegistryClientStaysOnHTTPS(t *testing.T) {
 	defer plain.Close()
 	ref := "oci://" + strings.TrimPrefix(plain.URL, "http://") + "/charts/demo"
 	for range 2 {
-		msg := fails(t, h.do(http.MethodGet, "/charts/oci/values?ref="+ref+"&version=1.0.0", nil), http.StatusBadRequest, plugin.CodeBadRequest)
+		msg := fails(t, h.do(http.MethodPost, "/charts/oci/values", map[string]string{"ref": ref, "version": "1.0.0"}), http.StatusBadRequest, plugin.CodeBadRequest)
 		if !strings.Contains(msg, "https://") {
 			t.Fatalf("download error %q: want an HTTPS attempt", msg)
 		}

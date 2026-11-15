@@ -309,7 +309,8 @@ func (s *Server) handlePatchMetadata(w http.ResponseWriter, r *http.Request, c *
 		return
 	}
 	// Values are not recorded: annotations may hold anything.
-	c.setAudit(obj.Target(), auditJSON(changedKeys(patch)))
+	c.setAudit(obj.Target(), "")
+	c.setAuditItems(map[string]any{}, "keys", changedKeys(patch))
 	if obj.Resource.GroupResource() == secretsResource && holdsRedacted(patch) {
 		writeErr(w, errorf(http.StatusBadRequest, plugin.CodeRedactedSecret,
 			"a value is a redaction placeholder; it would replace the real value of the Secret's annotation"))
@@ -335,14 +336,14 @@ func holdsRedacted(patch kube.MetadataPatch) bool {
 }
 
 // changedKeys lists the label and annotation keys a patch sets or removes.
-func changedKeys(patch kube.MetadataPatch) map[string][]string {
-	out := map[string][]string{}
-	for field, values := range map[string]map[string]*string{"labels": patch.Labels, "annotations": patch.Annotations} {
+func changedKeys(patch kube.MetadataPatch) []string {
+	var out []string
+	for field, values := range map[string]map[string]*string{"label": patch.Labels, "annotation": patch.Annotations} {
 		for key := range values {
-			out[field] = append(out[field], key)
+			out = append(out, field+":"+key)
 		}
-		slices.Sort(out[field])
 	}
+	slices.Sort(out)
 	return out
 }
 

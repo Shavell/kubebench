@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"slices"
 )
 
 // handleCreateNamespace: POST /api/namespaces with {"name","labels"?}.
@@ -14,11 +15,15 @@ func (s *Server) handleCreateNamespace(w http.ResponseWriter, r *http.Request, c
 		writeErr(w, err)
 		return
 	}
-	detail := ""
+	c.setAudit(joinTarget("namespace", body.Name), "")
 	if len(body.Labels) > 0 {
-		detail = auditJSON(map[string]map[string]string{"labels": body.Labels})
+		labels := make([]string, 0, len(body.Labels))
+		for key, value := range body.Labels {
+			labels = append(labels, key+"="+value)
+		}
+		slices.Sort(labels)
+		c.setAuditItems(map[string]any{}, "labels", labels)
 	}
-	c.setAudit(joinTarget("namespace", body.Name), detail)
 	respondOp(w, c.rt.CreateNamespace(r.Context(), body.Name, body.Labels))
 }
 

@@ -34,7 +34,7 @@ func TestHelmPluginGates(t *testing.T) {
 		{http.MethodPost, "/api/plugins/helm/install?dryRun=true", install, "release"},
 		{http.MethodPost, "/api/plugins/helm/releases/shop/web/upgrade?dryRun=true", map[string]any{}, "release/shop/web"},
 		{http.MethodGet, "/api/plugins/helm/releases/shop/web/values", nil, "release/shop/web"},
-		{http.MethodGet, "/api/plugins/helm/charts/oci/values?ref=oci://10.0.0.5:5000/x&version=1", nil, "chart"},
+		{http.MethodPost, "/api/plugins/helm/charts/oci/values", map[string]string{"ref": "oci://10.0.0.5:5000/x", "version": "1"}, "chart"},
 		{http.MethodPost, "/api/plugins/helm/releases/shop/web/upgrade", map[string]any{}, "release/shop/web"},
 		{http.MethodPost, "/api/plugins/helm/releases/shop/web/rollback", map[string]int{"revision": 1}, "release/shop/web"},
 		{http.MethodDelete, "/api/plugins/helm/releases/shop/web?keepHistory=true", nil, "release/shop/web"},

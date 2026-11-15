@@ -1,10 +1,13 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"testing"
+	"unicode/utf8"
 
 	"kubebench/internal/plugin"
 	"kubebench/internal/store"
@@ -122,5 +125,51 @@ func TestSetAssignments(t *testing.T) {
 	expect(t, e.do(http.MethodPut, target, "admin", map[string]any{"assignments": []any{}}), http.StatusOK, "")
 	if got := findUser(t, e, "bob").Assignments; len(got) != 0 {
 		t.Fatalf("an empty list must clear the assignments: %+v", got)
+	}
+	if row := e.audit()[0]; row.Detail != `{"assignments":[]}` {
+		t.Fatalf("audit row of the cleared list = %+v", row)
+	}
+}
+
+// A long list of assignments is recorded across several rows, every grant
+// included, rather than cut off at the size of one row.
+func TestSetAssignmentsAuditsEveryGrant(t *testing.T) {
+	e := newTestEnv(t, nil)
+	assignments := []map[string]any{}
+	var want []string
+	for i := range 120 {
+		id, err := e.store.AddCluster(store.Cluster{Name: fmt.Sprintf("cluster-%03d", i), Source: store.SourceKubeconfig, Kubeconfig: testKubeconfig})
+		if err != nil {
+			t.Fatal(err)
+		}
+		assignments = append(assignments, map[string]any{"clusterId": id, "role": "operator"})
+		want = append(want, fmt.Sprintf("%d:operator", id))
+	}
+	assignments = append(assignments, map[string]any{"clusterId": e.cluster, "role": "viewer"})
+	want = append(want, fmt.Sprintf("%d:viewer", e.cluster))
+	expect(t, e.do(http.MethodPut, fmt.Sprintf("/api/users/%d/clusters", e.users["bob"]), "admin",
+		map[string]any{"assignments": assignments}), http.StatusOK, "")
+
+	var got []string
+	rows := e.audit()
+	for i := len(rows) - 1; i >= 0; i-- { // newest first
+		row := rows[i]
+		if row.Action != "PUT /api/users/{id}/clusters" {
+			continue
+		}
+		if row.Target != "user/bob" || utf8.RuneCountInString(row.Detail) > maxAuditDetail {
+			t.Fatalf("row = %+v", row)
+		}
+		var detail struct {
+			Assignments []string `json:"assignments"`
+			Part        string   `json:"part"`
+		}
+		if err := json.Unmarshal([]byte(row.Detail), &detail); err != nil || detail.Part == "" {
+			t.Fatalf("row %q: %v (part %q)", row.Detail, err, detail.Part)
+		}
+		got = append(got, detail.Assignments...)
+	}
+	if !slices.Equal(got, want) {
+		t.Fatalf("recorded grants = %v, want %v", got, want)
 	}
 }

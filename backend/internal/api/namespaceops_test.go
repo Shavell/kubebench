@@ -26,7 +26,7 @@ func TestNamespacesThroughTheAPI(t *testing.T) {
 	if !exists("team-a") {
 		t.Fatal("namespace not created")
 	}
-	expectAudit(t, e, "POST /api/namespaces", "namespace/team-a", http.StatusOK, `{"labels":{"team":"a"}}`)
+	expectAudit(t, e, "POST /api/namespaces", "namespace/team-a", http.StatusOK, `{"labels":["team=a"]}`)
 	expect(t, e.do(http.MethodPost, "/api/namespaces", "alice", map[string]any{"name": "team-a"}), http.StatusConflict, plugin.CodeKubernetes)
 	for _, bad := range []any{map[string]any{"name": "Team A"}, map[string]any{}, map[string]any{"name": "ok", "labels": map[string]string{"bad key": "x"}}} {
 		expect(t, e.do(http.MethodPost, "/api/namespaces", "alice", bad), http.StatusBadRequest, plugin.CodeBadRequest)

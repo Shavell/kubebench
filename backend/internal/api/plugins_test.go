@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -160,4 +161,42 @@ func TestDetectSurvivesASlowProbe(t *testing.T) {
 	if n := p.detects.Load(); n != 3 {
 		t.Fatalf("after the probe the status must be cached (Detect ran %d times)", n)
 	}
+}
+
+// The router and the handler must read the same dryRun flag: a spelling
+// the handler does not take for a dry run would make a real change that
+// the caller meant as a preview.
+func TestPluginDryRunFlagIsValidated(t *testing.T) {
+	e := newTestEnv(t, nil, newFakePlugin("fake"))
+	for _, spelling := range []string{"1", "True", "yes", "TRUE", "0"} {
+		expect(t, e.do(http.MethodPost, "/api/plugins/fake/items/a?dryRun="+spelling, "alice", nil),
+			http.StatusBadRequest, plugin.CodeBadRequest)
+	}
+	if items := decode[map[string]string](t, e.do(http.MethodGet, "/api/plugins/fake/items/stored", "bob", nil)); len(items) != 0 {
+		t.Fatalf("a misspelt dry run made a change: %v", items)
+	}
+	expect(t, e.do(http.MethodPost, "/api/plugins/fake/items/a?dryRun=true", "bob", nil), http.StatusOK, "")
+	expect(t, e.do(http.MethodPost, "/api/plugins/fake/items/a?dryRun=false", "alice", nil), http.StatusOK, "")
+}
+
+// A page of another site can navigate an operator's browser to a GET of a
+// write or exec route, cookie included; such requests are refused.
+func TestCrossSiteGetOfWriteRoutesIsRefused(t *testing.T) {
+	e := newTestEnv(t, nil, newFakePlugin("fake"))
+	e.srv.register("GET /api/plugins/fake/probe", accessWrite, nil, func(w http.ResponseWriter, _ *http.Request, _ *call) { writeOK(w) })
+	get := func(path, site string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodGet, path, nil)
+		req.AddCookie(&http.Cookie{Name: sessionCookie, Value: e.tokens["alice"]})
+		if site != "" {
+			req.Header.Set("Sec-Fetch-Site", site)
+			req.Header.Set("Sec-Fetch-Mode", "navigate")
+		}
+		return e.serve(req)
+	}
+	expect(t, get("/api/plugins/fake/probe", "cross-site"), http.StatusForbidden, plugin.CodeForbidden)
+	for _, site := range []string{"", "same-origin", "none"} {
+		expect(t, get("/api/plugins/fake/probe", site), http.StatusOK, "")
+	}
+	// Read routes stay reachable by links from elsewhere.
+	expect(t, get("/api/plugins/fake/items", "cross-site"), http.StatusOK, "")
 }

@@ -352,7 +352,7 @@ func (p *Plugin) handleSearchCharts(w http.ResponseWriter, r *http.Request, _ *p
 func (p *Plugin) handleChartValues(w http.ResponseWriter, r *http.Request, _ *plugin.Context) {
 	q := r.URL.Query()
 	if q.Get("ref") != "" {
-		writeError(w, badRequest("the values of an OCI chart are read through GET /charts/oci/values"))
+		writeError(w, badRequest("the values of an OCI chart are read through POST /charts/oci/values"))
 		return
 	}
 	ref := ChartRef{Repo: q.Get("repo"), Name: q.Get("chart"), Version: q.Get("version"), UploadID: q.Get("uploadId")}
@@ -361,8 +361,15 @@ func (p *Plugin) handleChartValues(w http.ResponseWriter, r *http.Request, _ *pl
 
 // handleOCIChartValues serves the default values of an OCI chart.
 func (p *Plugin) handleOCIChartValues(w http.ResponseWriter, r *http.Request, c *plugin.Context) {
-	q := r.URL.Query()
-	ref := ChartRef{Ref: q.Get("ref"), Version: q.Get("version")}
+	var body struct {
+		Ref     string `json:"ref"`
+		Version string `json:"version"`
+	}
+	if err := decodeJSON(w, r, &body); err != nil {
+		writeError(w, err)
+		return
+	}
+	ref := ChartRef{Ref: body.Ref, Version: body.Version}
 	if ref.Ref == "" {
 		writeError(w, badRequest("ref must name an OCI chart"))
 		return

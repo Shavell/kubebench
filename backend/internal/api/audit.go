@@ -166,7 +166,7 @@ func auditParts(fields map[string]any, key string, items []string) []string {
 		return auditJSON(row)
 	}
 	var shares [][]string
-	var current []string
+	current := []string{} // no items: an empty list, not null
 	for _, item := range items {
 		next := append(slices.Clip(current), item)
 		// Sized with the widest part label a bulk request can need.

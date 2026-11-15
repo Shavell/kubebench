@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -207,11 +208,12 @@ func (s *Server) handleSetAssignments(w http.ResponseWriter, r *http.Request, c 
 		writeErr(w, badRequest("send assignments (or the v0.4 clusterIds)"))
 		return
 	}
-	granted := make([]map[string]any, 0, len(list))
+	granted := make([]string, 0, len(list))
 	for _, a := range list {
-		granted = append(granted, map[string]any{"clusterId": a.ClusterID, "role": a.Role})
+		granted = append(granted, fmt.Sprintf("%d:%s", a.ClusterID, a.Role))
 	}
-	c.setAudit("user/"+user.Username, auditJSON(granted))
+	c.setAudit("user/"+user.Username, "")
+	c.setAuditItems(map[string]any{}, "assignments", granted)
 	for _, a := range list {
 		if !store.ValidClusterRole(a.Role) {
 			writeErr(w, badRequest("invalid cluster role %q: use viewer or operator", a.Role))

@@ -6,13 +6,13 @@ const path = (namespace: string, name: string, suffix = '') =>
   `/releases/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}${suffix}`
 
 /**
- * The default-values route and query of a chart reference: OCI charts
- * have their own route, which needs write (the caller names the host).
+ * The default-values query of a repository or uploaded chart. OCI charts
+ * have their own route (a POST, see chartValues below), which needs write:
+ * the caller names the host.
  */
-function chartValuesQuery(chart: HelmChartRef): [string, Record<string, string | undefined>] {
-  if ('uploadId' in chart) return ['/charts/values', { uploadId: chart.uploadId }]
-  if ('ref' in chart) return ['/charts/oci/values', { ref: chart.ref, version: chart.version }]
-  return ['/charts/values', { repo: chart.repo, chart: chart.name, version: chart.version }]
+function chartValuesQuery(chart: Exclude<HelmChartRef, { ref: string }>): Record<string, string | undefined> {
+  if ('uploadId' in chart) return { uploadId: chart.uploadId }
+  return { repo: chart.repo, chart: chart.name, version: chart.version }
 }
 
 /** The Helm plugin's backend routes (`/api/plugins/helm`). */
@@ -48,7 +48,10 @@ export function createLiveHelm(api: PluginApi): HelmData {
     updateRepos: async () => (await api.post<{ repos: HelmRepoUpdate[] }>('/repos/update')).repos,
 
     searchCharts: (query) => api.get('/charts/search', { q: query }),
-    chartValues: (chart) => api.get(...chartValuesQuery(chart)),
+    chartValues: (chart) =>
+      'ref' in chart
+        ? api.post('/charts/oci/values', { ref: chart.ref, version: chart.version })
+        : api.get('/charts/values', chartValuesQuery(chart)),
     uploadChart: (file) => {
       const form = new FormData()
       form.append('chart', file, file.name)

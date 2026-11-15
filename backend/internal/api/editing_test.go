@@ -362,7 +362,7 @@ func TestPatchMetadataEndpoint(t *testing.T) {
 		t.Fatalf("metadata = %v %v", labels, got.GetAnnotations())
 	}
 	// The audit row names the keys, never the values.
-	if row := e.audit()[0]; row.Target != "configmap/shop/app" || row.Detail != `{"annotations":["note"],"labels":["release","tier"]}` {
+	if row := e.audit()[0]; row.Target != "configmap/shop/app" || row.Detail != `{"keys":["annotation:note","label:release","label:tier"]}` {
 		t.Fatalf("audit row = %+v", row)
 	}
 

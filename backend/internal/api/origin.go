@@ -46,6 +46,27 @@ func (s *Server) originError(r *http.Request) error {
 	return nil
 }
 
+var errCrossSite = errorf(http.StatusForbidden, plugin.CodeForbidden, "cross-site request rejected")
+
+// crossSiteError refuses a GET or HEAD of a write or exec route that a page
+// of another site made the browser send: the SameSite=Lax cookie goes
+// along with top-level navigations, and such requests (an OCI fetch from a
+// host of the page's choosing, revealing Helm release values) would run,
+// and be audited, as the victim's deliberate action. Fetch Metadata
+// headers cannot be set by page scripts; clients without them pass.
+func crossSiteError(r *http.Request, level access) error {
+	if level != accessWrite && level != accessExec {
+		return nil
+	}
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		return nil // covered by the Origin check
+	}
+	if r.Header.Get("Sec-Fetch-Site") == "cross-site" {
+		return errCrossSite
+	}
+	return nil
+}
+
 func fromBrowser(r *http.Request) bool {
 	return r.Header.Get("Sec-Fetch-Mode") != "" || r.Header.Get("Sec-Fetch-Site") != ""
 }

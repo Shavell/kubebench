@@ -112,6 +112,8 @@ func (p *Plugin) Routes(r plugin.Router) {
 
 	handle(http.MethodGet, "/charts/search", plugin.AccessRead, p.handleSearchCharts)
 	handle(http.MethodGet, "/charts/values", plugin.AccessRead, p.handleChartValues)
-	handle(http.MethodGet, "/charts/oci/values", plugin.AccessWrite, p.handleOCIChartValues)
+	// A POST, so that the origin check covers it: a cross-site navigation
+	// must not make an operator's session fetch from a host of its choosing.
+	handle(http.MethodPost, "/charts/oci/values", plugin.AccessWrite, p.handleOCIChartValues)
 	handle(http.MethodPost, "/charts/upload", plugin.AccessWrite, p.handleUploadChart)
 }

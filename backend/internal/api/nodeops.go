@@ -119,6 +119,6 @@ func (s *Server) handleSetTaints(w http.ResponseWriter, r *http.Request, c *call
 	for _, t := range taints {
 		listed = append(listed, t.String())
 	}
-	c.setAudit("", auditJSON(map[string][]string{"taints": listed}))
+	c.setAuditItems(map[string]any{}, "taints", listed)
 	plugin.WriteJSON(w, map[string][]kube.Taint{"taints": taints})
 }

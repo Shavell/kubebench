@@ -67,6 +67,13 @@ func (c *call) setAuditParts(details []string) {
 	c.audit.detail, c.audit.more = details[0], details[1:]
 }
 
+// setAuditItems records fields plus the list items under key, across as
+// many rows as the items need (see auditParts), so that a long list (one
+// entry per cluster, label or taint) is never cut off.
+func (c *call) setAuditItems(fields map[string]any, key string, items []string) {
+	c.setAuditParts(auditParts(fields, key, items))
+}
+
 // handle registers a core route.
 func (s *Server) handle(pattern string, a access, h handlerFunc) { s.register(pattern, a, nil, h) }
 
@@ -101,13 +108,25 @@ func (s *Server) register(pattern string, a access, p plugin.Plugin, h handlerFu
 			h(w, r, c)
 			return
 		}
+		if err := crossSiteError(r, level); err != nil {
+			writeErr(w, err)
+			return
+		}
 		if err := s.authenticate(r, c); err != nil {
 			writeErr(w, err)
 			return
 		}
 		effective := level
-		if dryRunnable && plugin.IsDryRun(r) {
-			effective = accessRead
+		// The router and the handler must agree on what a dry run is: a
+		// misspelt flag would otherwise make a real change. It is refused
+		// once the caller passed the gate of a real change.
+		var dryRunErr error
+		if dryRunnable {
+			var dryRun bool
+			dryRun, dryRunErr = flagParam(r.URL.Query(), "dryRun")
+			if dryRun {
+				effective = accessRead
+			}
 		}
 		if audited(effective, method) {
 			aw := s.newAuditWriter(w, r, c, action, target)
@@ -123,6 +142,10 @@ func (s *Server) register(pattern string, a access, p plugin.Plugin, h handlerFu
 		}
 		if err := s.authorize(c, effective, p); err != nil {
 			writeErr(w, err)
+			return
+		}
+		if dryRunErr != nil {
+			writeErr(w, dryRunErr)
 			return
 		}
 		if err := c.audit.recordable(); err != nil {
