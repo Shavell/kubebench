@@ -582,7 +582,7 @@ interface SettingsSectionContribution { id: string; title: string; component: Co
     in the shortcuts list (`?`, Settings); never inside terminals, plain
     keys never while typing, and none when Settings turns shortcuts off.
   - `PluginManifest.resourceKinds` (`ResourceKindContribution`: kind,
-    kubectl names, `openList(ns?)`, `openDetail`, `listObjects`) feeds the
+    kubectl names, `openList(ns?)` — `null` lists all namespaces for `-A` —, `openDetail`, `listObjects`) feeds the
     palette's kubectl-style commands `get`/`describe`; `logs`, `exec`, `ns`
     and `ctx` are core and respect the read/exec permissions. Aliases are
     kept per user in the browser. Built-in tab pages are loaded lazily with
