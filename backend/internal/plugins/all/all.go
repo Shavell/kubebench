@@ -16,6 +16,7 @@
 package all
 
 import (
+	_ "kubebench/internal/plugins/access"  // RBAC explorer (§7.8)
 	_ "kubebench/internal/plugins/argocd"  // Argo CD applications (§7.5)
 	_ "kubebench/internal/plugins/helm"    // Helm releases, repositories and charts (§7.4)
 	_ "kubebench/internal/plugins/storage" // PV, PVC and StorageClass creation (§7.6)

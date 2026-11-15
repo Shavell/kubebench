@@ -1063,6 +1063,49 @@ rules with the binding path), `GET /who-can?verb=&group=&resource=&subresource=&
 `POST /review` (SubjectAccessReview → `{allowed, reason}`), `GET /graph?namespace=`.
 UI: Who can…, subjects + effective permissions, risky roles, binding graph.
 
+- Detect: always available (RBAC is core); every route is `read` and
+  lists Roles, ClusterRoles, both kinds of bindings and ServiceAccounts
+  cluster-wide per request (a credential without that access gets the
+  API server's `403 kubernetes`).
+- Evaluation follows the Kubernetes RBAC authorizer: `*` in verbs, API
+  groups and resources (a plain resource never covers its subresources;
+  `*/scale` covers every resource's `scale`), resourceNames (no wildcard;
+  a rule with them never matches a request without a name), non-resource
+  URLs (`*`, exact, trailing `*` prefix; granted only by
+  ClusterRoleBindings), RoleBindings grant in their namespace only (so a
+  request without a namespace sees ClusterRoleBindings only), a
+  ServiceAccount subject without a namespace defaults to the binding's.
+  Aggregated ClusterRoles are used with the rules the controller filled in.
+- `who-can` takes `path=` instead of the resource fields for a
+  non-resource URL and answers `{request, subjects: [{kind, name,
+  namespace?, grants: [{binding, role, scope, rule}]}]}`; subjects are
+  listed as the bindings name them (groups stay groups). A subject's
+  detail answers `{subject, user, groups, missing?, bindings: [path],
+  rules: [{namespace, rules: [rule + path]}]}` (`namespace` `""` =
+  cluster-wide), where the identity includes the implicit groups
+  (`system:serviceaccounts`, `system:serviceaccounts:<ns>`,
+  `system:authenticated`) and a path's `via` names the group it reaches
+  the subject through; `roleMissing` marks a binding to a missing role.
+- `GET /risky` (read): roles with at least one risk (`full-access`,
+  `escalate-bind`, `impersonate`, `wildcard-verbs`, `wildcard-resources`,
+  `secrets-read`, `pod-exec`, `token-create`, `rbac-write`, `node-proxy`,
+  `webhook-write`, `csr-approve`, `workload-create`,
+  `persistentvolume-create`; severities `critical` | `high` | `medium`),
+  with their bindings and the number of subjects, most severe first.
+- `GET /graph?namespace=&system=true`: `{subjects, bindings, roles, edges,
+  truncated}`; with a namespace its RoleBindings plus the
+  ClusterRoleBindings naming one of its ServiceAccounts; `system:…`
+  bindings only with `system=true`; at most 300 bindings.
+- `POST /review` body `{subject: {kind, name, namespace?}, verb, group,
+  resource, subresource, namespace, name}` or `{subject, verb, path}`;
+  answers `{allowed, denied?, reason?, evaluationError?, user, groups,
+  grants}` (`grants`: KubeBench's own evaluation). It is `read` although
+  it creates a SubjectAccessReview (which changes nothing), sends the
+  subject's user and groups in the review spec and never impersonates;
+  without `create` on `subjectaccessreviews` it fails with `403 kubernetes`
+  naming that permission. Rate limit: 30 reviews per user per minute,
+  then `429 rate_limited` with `Retry-After`.
+
 ### 7.9 Topology plugin (frontend-only, new)
 
 Builds a graph from core providers + generic lists: Ingress → Service →

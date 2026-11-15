@@ -1,0 +1,294 @@
+/* Access plugin pages. Colors only through --vscode-* tokens. */
+
+.access-page {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.access-page > p {
+  margin: 0;
+}
+
+.access-section-title {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--vscode-descriptionForeground);
+}
+
+.access-mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.access-muted {
+  color: var(--vscode-descriptionForeground);
+}
+
+.access-missing {
+  color: var(--vscode-editorWarning-foreground);
+}
+
+.access-note {
+  padding: 6px 10px;
+  border-left: 3px solid var(--vscode-editorWarning-foreground);
+  background: var(--vscode-editorWidget-background);
+}
+
+.access-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--vscode-textLink-foreground);
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.access-link:hover {
+  text-decoration: underline;
+}
+
+.access-link:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+}
+
+.access-subject-cell,
+.access-path {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.access-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* --- request form ------------------------------------------------------------- */
+
+.access-request-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px 12px;
+  align-items: end;
+  max-width: 1100px;
+}
+
+.access-request-form__submit {
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 2px;
+}
+
+.access-request-form__hint {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 12px;
+}
+
+.access-grant {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.access-rule {
+  max-width: 560px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.access-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* --- can-i -------------------------------------------------------------------------- */
+
+.access-cani {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.access-cani__answer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  background: var(--vscode-editorWidget-background);
+}
+
+.access-cani__verdict {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* --- subject ---------------------------------------------------------------------- */
+
+.access-identity {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 16px;
+  margin: 0;
+}
+
+.access-identity dt {
+  color: var(--vscode-descriptionForeground);
+}
+
+.access-identity dd {
+  margin: 0;
+}
+
+.access-scope + .access-scope {
+  margin-top: 12px;
+}
+
+.access-scope__title {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* --- risky roles ------------------------------------------------------------------- */
+
+.access-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.access-risks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.access-risk {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.access-risk::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.access-risk--critical::before {
+  background: var(--vscode-errorForeground);
+}
+
+.access-risk--high::before {
+  background: var(--vscode-editorWarning-foreground);
+}
+
+.access-risk--medium::before {
+  background: var(--vscode-editorInfo-foreground);
+}
+
+.access-toolbar-check {
+  white-space: nowrap;
+}
+
+/* --- binding graph ------------------------------------------------------------------- */
+
+.access-graph-wrap {
+  overflow: auto;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  background: var(--vscode-editor-background);
+}
+
+.access-graph {
+  display: block;
+}
+
+.access-graph__header {
+  fill: var(--vscode-descriptionForeground);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.access-graph__edge {
+  fill: none;
+  stroke: var(--vscode-editorWidget-border);
+  stroke-width: 1.2;
+  transition: opacity 0.1s;
+}
+
+.access-graph__edge.is-lit {
+  stroke: var(--vscode-focusBorder);
+  stroke-width: 2;
+}
+
+.access-graph__edge.is-dim,
+.access-graph__node.is-dim {
+  opacity: 0.25;
+}
+
+.access-graph__node {
+  cursor: pointer;
+  outline: none;
+}
+
+.access-graph__node rect {
+  fill: var(--vscode-editorWidget-background);
+  stroke: var(--vscode-editorWidget-border);
+}
+
+.access-graph__node--c0 .access-graph__kind {
+  fill: var(--vscode-charts-blue);
+}
+
+.access-graph__node--c1 .access-graph__kind {
+  fill: var(--vscode-charts-purple);
+}
+
+.access-graph__node--c2 .access-graph__kind {
+  fill: var(--vscode-charts-green);
+}
+
+.access-graph__node.is-lit rect,
+.access-graph__node:focus-visible rect {
+  stroke: var(--vscode-focusBorder);
+}
+
+.access-graph__node.is-missing rect {
+  stroke: var(--vscode-editorWarning-foreground);
+  stroke-dasharray: 4 3;
+}
+
+.access-graph__kind {
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.access-graph__label {
+  fill: var(--vscode-foreground);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
