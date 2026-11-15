@@ -122,12 +122,22 @@ pod while the Deployment is scaled to zero; see
 
 ## Upgrading
 
-`helm upgrade kubebench oci://ghcr.io/shavell/charts/kubebench --version <new> -n kubebench --reuse-values`
+```bash
+helm upgrade kubebench oci://ghcr.io/shavell/charts/kubebench --version <new> -n kubebench \
+  --reset-then-reuse-values
+```
+
 replaces the pod (`Recreate`); the database is migrated on start.
+`--reset-then-reuse-values` (Helm 3.14+) applies the values you set before on
+top of the new chart's defaults. Plain `--reuse-values` keeps the old chart's
+defaults as well, so it misses settings that a newer chart adds or changes.
 
 **From chart 0.1.0**: resource names now follow the usual Helm convention
 (release `kubebench` creates `kubebench`, not `kubebench-kubebench`). Keep the
-existing database by pointing the new release at the old claim:
+existing database by pointing the new release at the old claim. Pass your
+own settings again (`-f my-values.yaml`) instead of reusing the old values:
+the 0.1.0 keys `replicaCount` and `rbac.clusterRole` are gone, and the
+chart's schema rejects them.
 
 ```bash
 helm upgrade kubebench charts/kubebench -n kubebench \
@@ -140,7 +150,7 @@ helm upgrade kubebench charts/kubebench -n kubebench \
 ```bash
 helm uninstall kubebench -n kubebench
 # the PVC and the password Secret are kept; delete them to remove all data:
-kubectl -n kubebench delete pvc kubebench-data secret kubebench-auth
+kubectl -n kubebench delete pvc/kubebench-data secret/kubebench-auth
 ```
 
 ## Values

@@ -293,7 +293,7 @@ downgrade without restoring that backup.
 
 | Install | Upgrade |
 |---|---|
-| Helm | `helm upgrade kubebench oci://ghcr.io/shavell/charts/kubebench --version <new> -n kubebench --reuse-values` |
+| Helm | `helm upgrade kubebench oci://ghcr.io/shavell/charts/kubebench --version <new> -n kubebench --reset-then-reuse-values` |
 | Manifests | `kubectl apply -f` the new release's `kubebench.yaml` |
 | Installer | run `install.sh` again (`--version vX.Y.Z` or latest) |
 | Packages | `sudo apt install ./kubebench_<new>_amd64.deb` / `sudo dnf upgrade ./kubebench-<new>.rpm` |
@@ -301,8 +301,10 @@ downgrade without restoring that backup.
 
 The chart and manifests use the `Recreate` strategy, so the old pod stops
 before the new one opens the database. Package upgrades keep a modified
-`/etc/kubebench/kubebench.env` and restart a running service. Upgrading the
-Helm chart from 0.1.0 renames its resources; see the
+`/etc/kubebench/kubebench.env` and restart a running service.
+`--reset-then-reuse-values` (Helm 3.14+) keeps your chart values on top of the
+new chart's defaults; `--reuse-values` would keep the old defaults too.
+Upgrading the Helm chart from 0.1.0 renames its resources; see the
 [chart README](../charts/kubebench/README.md#upgrading).
 
 ## Backup and restore
@@ -370,14 +372,16 @@ kubectl -n kubebench delete pod kubebench-backup
 kubectl -n kubebench scale deploy/kubebench --replicas 1
 ```
 
-The PVC name is `<release>-data` for the Helm chart (`kubebench-data` for
-the release `kubebench` and for the plain manifests).
+The Helm chart names the PVC `<fullname>-data`, where the fullname is the
+release name, followed by `-kubebench` unless it already contains
+`kubebench`: `kubebench-data` for the release `kubebench` (and for the plain
+manifests), `kb-kubebench-data` for a release `kb`.
 
 ## Uninstall
 
 | Install | Remove | Also delete the data |
 |---|---|---|
-| Helm | `helm uninstall kubebench -n kubebench` | `kubectl -n kubebench delete pvc kubebench-data secret kubebench-auth` (kept by the chart) |
+| Helm | `helm uninstall kubebench -n kubebench` | `kubectl -n kubebench delete pvc/kubebench-data secret/kubebench-auth` (kept by the chart) |
 | Manifests | see [deploy/kubernetes/README.md](../deploy/kubernetes/README.md#uninstall) | `kubectl delete -f kubebench.yaml` removes the PVC as well |
 | Installer | `sudo bash install.sh --uninstall` | `sudo bash install.sh --uninstall --purge` |
 | `.deb` | `sudo apt remove kubebench` | `sudo apt purge kubebench` (data, configuration, user) |
