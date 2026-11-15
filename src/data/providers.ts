@@ -6,6 +6,8 @@ import type {
   TerminalConnection,
   TerminalHandlers,
   TerminalTarget,
+  WatchHandlers,
+  WatchStream,
 } from './streams'
 import type {
   AppUser,
@@ -178,6 +180,7 @@ export interface DataProviders {
   audit: AuditProvider
   plugins: PluginsProvider
   workloadOps: WorkloadOpsProvider
+  live: LiveProvider
 }
 
 /**
@@ -216,4 +219,10 @@ export interface WorkloadOpsProvider {
    * `forbidden` unless `force` is set.
    */
   deleteNamespace(name: string, force: boolean): Promise<void>
+}
+
+/** Live updates (design §7.10): which resources of the active cluster change. */
+export interface LiveProvider {
+  /** Follows changes of `topics` (1 to 32 resources) until closed. */
+  watch(topics: readonly string[], handlers: WatchHandlers): WatchStream
 }

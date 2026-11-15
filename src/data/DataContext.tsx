@@ -1,32 +1,20 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  useSyncExternalStore,
-  type DependencyList,
-} from 'react'
+import { createContext, useContext, useEffect, useState, type DependencyList } from 'react'
 import { errorMessage, isApiError } from './apiClient'
 import type { DataProviders } from './providers'
+import * as invalidation from './invalidation'
+import type { QueryScope } from './invalidation'
+import type { WatchChange } from './types'
 
-// Simple invalidation bus: mutations call refreshData() and every query
-// hook (core providers and plugin data alike) re-runs.
-let dataVersion = 0
-const versionListeners = new Set<() => void>()
+export type { QueryScope } from './invalidation'
 
+/** Re-runs every mounted query, e.g. after a change the UI made. */
 export function refreshData(): void {
-  dataVersion++
-  versionListeners.forEach((listener) => listener())
+  invalidation.refreshData()
 }
 
-function useDataVersion(): number {
-  return useSyncExternalStore(
-    (onChange) => {
-      versionListeners.add(onChange)
-      return () => versionListeners.delete(onChange)
-    },
-    () => dataVersion,
-  )
+/** Re-runs the queries that read the changed topics (see ./invalidation). */
+export function refreshTopics(changes: readonly WatchChange[]): void {
+  invalidation.refreshTopics(changes)
 }
 
 export const DataContext = createContext<DataProviders | null>(null)
@@ -53,13 +41,32 @@ function sameDeps(a: DependencyList, b: DependencyList): boolean {
 }
 
 /**
- * Runs an async query, re-running it when `deps` change or when
- * refreshData() is called. A refresh keeps the previous data while
- * reloading; new `deps` never show the data of the old ones (a page reused
- * for another resource must not render the old rows with its new columns).
+ * Re-renders with a new version whenever the invalidation bus refreshes a
+ * query of `scope` (see ./invalidation).
  */
-export function useQuery<T>(query: () => Promise<T>, deps: DependencyList): QueryState<T> {
-  const version = useDataVersion()
+function useRefreshVersion(scope: QueryScope | undefined): number {
+  const [version, setVersion] = useState(0)
+  const topics = scope?.topics?.join(',') ?? ''
+  const namespace = scope?.namespace
+  useEffect(() => {
+    const refresh = () => setVersion((v) => v + 1)
+    return invalidation.registerQuery({ topics: topics ? topics.split(',') : undefined, namespace }, refresh)
+  }, [topics, namespace])
+  return version
+}
+
+/**
+ * Runs an async query, re-running it when `deps` change or when
+ * refreshData() is called. `scope` names the resources the query reads
+ * (topics like `pods`, optionally one namespace), so that live updates
+ * (refreshTopics) re-run only the queries a change concerns; queries
+ * without topics re-run on refreshData() and auto-refresh only. A refresh
+ * keeps the previous data while reloading; new `deps` never show the data
+ * of the old ones (a page reused for another resource must not render the
+ * old rows with its new columns).
+ */
+export function useQuery<T>(query: () => Promise<T>, deps: DependencyList, scope?: QueryScope): QueryState<T> {
+  const version = useRefreshVersion(scope)
   // `deps` names the inputs the state was loaded for.
   const [state, setState] = useState<{ deps: DependencyList; value: QueryState<T> }>({ deps, value: LOADING })
 
@@ -99,7 +106,8 @@ export function useQuery<T>(query: () => Promise<T>, deps: DependencyList): Quer
 export function useProviderQuery<T>(
   query: (providers: DataProviders) => Promise<T>,
   deps: DependencyList,
+  scope?: QueryScope,
 ): QueryState<T> {
   const providers = useProviders()
-  return useQuery(() => query(providers), [providers, ...deps])
+  return useQuery(() => query(providers), [providers, ...deps], scope)
 }

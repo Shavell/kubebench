@@ -121,6 +121,14 @@ export interface QueryState<T> {
   errorCode: string | null
 }
 
+/** What a query reads, so that live updates refresh it when that changes. */
+export interface QueryScope {
+  /** Resources as watch topics: `pods`, `deployments`, `applications.argoproj.io`, … */
+  topics?: readonly string[]
+  /** The one namespace read; absent = all namespaces (or cluster-scoped). */
+  namespace?: string
+}
+
 export type QueryValue = string | number | boolean | null | undefined
 /** Query parameters; every value is URL-encoded, undefined/null/'' are left out. */
 export type QueryParams = Record<string, QueryValue>
@@ -285,10 +293,15 @@ export interface KubeBenchSdk {
     k8sGet<T = unknown>(path: string, params?: QueryParams): Promise<T>
   }
   readonly data: {
-    /** Runs `fn` again when `deps` change or after `refreshData()`. */
-    usePluginQuery<T>(fn: () => Promise<T>, deps: DependencyList): QueryState<T>
+    /**
+     * Runs `fn` again when `deps` change or after `refreshData()`; with
+     * `scope.topics`, also when live updates report a change of them.
+     */
+    usePluginQuery<T>(fn: () => Promise<T>, deps: DependencyList, scope?: QueryScope): QueryState<T>
     /** Reloads every query, e.g. after a change. */
     refreshData(): void
+    /** Reloads the queries of changed topics (namespace '' = all of the topic's queries). */
+    refreshTopics(changes: readonly { topic: string; namespace: string }[]): void
   }
   readonly layout: {
     openTab(tab: TabDescriptor): void

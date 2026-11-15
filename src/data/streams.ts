@@ -1,4 +1,5 @@
 import type { ApiError } from './apiClient'
+import type { WatchChange, WatchTopicStatus } from './types'
 
 /**
  * Contracts of the long-lived data capabilities (design §7.1): following
@@ -72,5 +73,24 @@ export interface TerminalConnection {
   /** Keystrokes or pasted text. */
   input(data: string): void
   resize(cols: number, rows: number): void
+  close(): void
+}
+
+/** Change notifications of the active cluster (design §7.10, GET /api/watch). */
+export interface WatchHandlers {
+  /** A topic's mode; the first ones arrive when the stream opens. */
+  onStatus(status: WatchTopicStatus): void
+  /** Objects of a topic changed (debounced by the server). */
+  onChange(change: WatchChange): void
+  /** The server ended the stream (its reason); it is closed and may be reopened. */
+  onEnd(reason: string): void
+  /**
+   * The stream was refused or cut off; it is closed. A refusal carries the
+   * server's status and code, a broken connection status 0 (code `network`).
+   */
+  onFailure(error: ApiError): void
+}
+
+export interface WatchStream {
   close(): void
 }
