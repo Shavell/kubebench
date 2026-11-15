@@ -23,7 +23,7 @@ interface AccessRequestFormProps {
 export function AccessRequestForm({ draft, onChange, onSubmit, submitLabel, busy }: AccessRequestFormProps) {
   const { t } = useTranslation(NS)
   const listId = useId()
-  const namespaces = useProviderQuery((p) => p.cluster.listNamespaces(), [])
+  const namespaces = useProviderQuery((p) => p.cluster.listNamespaces(), [], { topics: ['namespaces'] })
   const set = <K extends keyof RequestDraft>(key: K, value: RequestDraft[K]) => onChange({ ...draft, [key]: value })
   const url = draft.mode === 'url'
   const incomplete = !draft.verb.trim() || (url ? !draft.path.trim().startsWith('/') : !draft.resource.trim())

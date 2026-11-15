@@ -9,6 +9,7 @@ import { Table, type Column } from '@/shared/Table'
 import { Toolbar } from '@/shared/Toolbar'
 import { Unavailable } from '@/shared/Unavailable'
 import { accessData } from '../data'
+import { RBAC_SCOPE } from '../data/topics'
 import type { GrantPath, ScopedRule, Subject, SubjectKind } from '../data/types'
 import { NS } from '../i18n'
 import { ruleGroups, ruleTargets, subjectName } from '../model/format'
@@ -28,7 +29,7 @@ export function SubjectPage({ tab }: { tab: TabDescriptor }) {
   const name = props.name ?? ''
   const namespace = props.namespace
   const subject = useMemo<Subject>(() => ({ kind, name, namespace }), [kind, name, namespace])
-  const query = usePluginQuery(() => accessData().getSubject(subject), [subject])
+  const query = usePluginQuery(() => accessData().getSubject(subject), [subject], RBAC_SCOPE)
 
   const bindingColumns = useMemo<Column<GrantPath>[]>(
     () => [

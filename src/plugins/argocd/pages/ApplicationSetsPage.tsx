@@ -24,7 +24,9 @@ function headline(set: ArgoApplicationSet) {
 /** ApplicationSets with their generators and the applications they generated. */
 export function ApplicationSetsPage() {
   const { t } = useTranslation(NS)
-  const query = usePluginQuery(() => argoCd().listApplicationSets(), [])
+  const query = usePluginQuery(() => argoCd().listApplicationSets(), [], {
+    topics: ['applicationsets.argoproj.io'],
+  })
 
   const columns = useMemo<Column<ArgoApplicationSet>[]>(
     () => [

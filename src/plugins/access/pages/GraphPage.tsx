@@ -8,6 +8,7 @@ import { Checkbox, Select } from '@/shared/form'
 import { Toolbar } from '@/shared/Toolbar'
 import { Unavailable } from '@/shared/Unavailable'
 import { accessData } from '../data'
+import { RBAC_SCOPE } from '../data/topics'
 import { NS } from '../i18n'
 import { BindingGraphView } from './BindingGraphView'
 import '@/shared/tabPage.css'
@@ -19,8 +20,8 @@ export function GraphPage() {
   const globalNamespace = useContextStore((s) => s.namespace)
   const [namespace, setNamespace] = useState(globalNamespace === ALL_NAMESPACES ? '' : globalNamespace)
   const [includeSystem, setIncludeSystem] = useState(false)
-  const namespaces = useProviderQuery((p) => p.cluster.listNamespaces(), [])
-  const query = usePluginQuery(() => accessData().graph(namespace, includeSystem), [namespace, includeSystem])
+  const namespaces = useProviderQuery((p) => p.cluster.listNamespaces(), [], { topics: ['namespaces'] })
+  const query = usePluginQuery(() => accessData().graph(namespace, includeSystem), [namespace, includeSystem], RBAC_SCOPE)
   const graph = query.data
 
   const body = () => {

@@ -10,6 +10,7 @@ import { Table, type Column } from '@/shared/Table'
 import { Toolbar } from '@/shared/Toolbar'
 import { Unavailable } from '@/shared/Unavailable'
 import { accessData } from '../data'
+import { RBAC_SCOPE } from '../data/topics'
 import type { RiskyRole, Severity } from '../data/types'
 import { NS } from '../i18n'
 import { isSystemName, refText, ruleSummary } from '../model/format'
@@ -29,7 +30,7 @@ const roleKey = (r: RiskyRole) => `${r.role.kind}/${r.role.namespace ?? ''}/${r.
 /** Roles that grant dangerous permissions, most severe first. */
 export function RiskyRolesPage() {
   const { t } = useTranslation(NS)
-  const query = usePluginQuery(() => accessData().listRiskyRoles(), [])
+  const query = usePluginQuery(() => accessData().listRiskyRoles(), [], RBAC_SCOPE)
   const [search, setSearch] = useState('')
   const [severity, setSeverity] = useState<Severity | 'all'>('all')
   const [hideSystem, setHideSystem] = useState(true)

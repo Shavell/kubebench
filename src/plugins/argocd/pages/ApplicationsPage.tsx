@@ -23,7 +23,7 @@ import '../argocd.css'
 export function ApplicationsPage() {
   const { t } = useTranslation(NS)
   const [search, setSearch] = useState('')
-  const query = usePluginQuery(() => argoCd().listApplications(), [])
+  const query = usePluginQuery(() => argoCd().listApplications(), [], { topics: ['applications.argoproj.io'] })
 
   const columns = useMemo<Column<ArgoApplicationSummary>[]>(
     () => [

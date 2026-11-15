@@ -16,9 +16,11 @@ export function EventsTable({ kind, namespace, name }: EventsTableProps) {
   const { data, loading, error } = useProviderQuery(
     (p) => p.cluster.listEvents(kind, namespace, name),
     [kind, namespace, name],
+    { topics: ['events'], namespace: namespace ?? undefined },
   )
 
-  if (loading) return <div className="kb-events__empty">{t('events.loading')}</div>
+  // A refresh keeps the rows (live updates refresh events often).
+  if (loading && !data) return <div className="kb-events__empty">{t('events.loading')}</div>
   // A failed request must not pass for "no events".
   if (error) return <div className="kb-events__empty">{t('events.loadFailed', { error })}</div>
   const events = data ?? []

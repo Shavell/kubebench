@@ -20,7 +20,7 @@ const CREATE_NODES: Record<string, () => void> = {
 export function StorageSidebar() {
   const { t } = useTranslation(NS)
   const activeTabId = useLayoutStore((s) => s.activeTabId)
-  const overview = usePluginQuery(() => storageData().overview(), [])
+  const overview = usePluginQuery(() => storageData().overview(), [], { topics: ['persistentvolumeclaims', 'persistentvolumes', 'storageclasses'] })
   const data = overview.data
 
   const list = (id: ListNode, icon: string, count?: number): TreeNode => ({

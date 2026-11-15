@@ -23,7 +23,10 @@ export function SnapshotListPage() {
   const { t } = useTranslation(NS)
   const namespace = useContextStore((s) => s.namespace)
   const ns = namespace === ALL_NAMESPACES ? undefined : namespace
-  const query = usePluginQuery(() => storageData().listSnapshots(ns), [ns])
+  const query = usePluginQuery(() => storageData().listSnapshots(ns), [ns], {
+    topics: ['volumesnapshots.snapshot.storage.k8s.io'],
+    namespace: ns,
+  })
 
   const columns = useMemo<Column<VolumeSnapshot>[]>(
     () => [

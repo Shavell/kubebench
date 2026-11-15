@@ -9,7 +9,7 @@ function NamespaceSelect() {
   const { t } = useTranslation(PLATFORM_NS)
   const namespace = useContextStore((s) => s.namespace)
   const setNamespace = useContextStore((s) => s.setNamespace)
-  const { data } = useProviderQuery((p) => p.cluster.listNamespaces(), [])
+  const { data } = useProviderQuery((p) => p.cluster.listNamespaces(), [], { topics: ['namespaces'] })
 
   return (
     <label className="status-bar__item status-bar__item--select" title={t('statusBar.namespace.tooltip')}>

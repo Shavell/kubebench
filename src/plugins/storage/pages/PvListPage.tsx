@@ -17,7 +17,7 @@ import '../storage.css'
 /** PersistentVolumes with their source and claim; Available ones can be claimed directly. */
 export function PvListPage() {
   const { t } = useTranslation(NS)
-  const query = usePluginQuery(() => storageData().listPvs(), [])
+  const query = usePluginQuery(() => storageData().listPvs(), [], { topics: ['persistentvolumes'] })
 
   const columns = useMemo<Column<PvSummary>[]>(
     () => [

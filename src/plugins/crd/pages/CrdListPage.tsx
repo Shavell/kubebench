@@ -12,7 +12,7 @@ import '@/shared/tabPage.css'
 
 export function CrdListPage() {
   const { t } = useTranslation(NS)
-  const { data, loading, error } = useProviderQuery((p) => p.crd.listCrds(), [])
+  const { data, loading, error } = useProviderQuery((p) => p.crd.listCrds(), [], { topics: ['customresourcedefinitions.apiextensions.k8s.io'] })
 
   const columns = useMemo<Column<CrdDefinition>[]>(
     () => [

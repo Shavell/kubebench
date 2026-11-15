@@ -31,10 +31,12 @@ export function GenericListPage({ tab }: { tab: TabDescriptor }) {
     ? localNs || (globalNamespace === ALL_NAMESPACES ? undefined : globalNamespace)
     : undefined
 
-  const { data: namespaces } = useProviderQuery((p) => p.cluster.listNamespaces(), [])
+  const { data: namespaces } = useProviderQuery((p) => p.cluster.listNamespaces(), [], { topics: ['namespaces'] })
   const query = useProviderQuery(
     (p) => (descriptor ? p.cluster.listResource(key, nsFilter) : Promise.resolve([])),
     [key, nsFilter],
+    // Catalog keys are resource names, i.e. watch topics.
+    { topics: [key], namespace: nsFilter },
   )
 
   if (!descriptor) return <div className="page-loading">{t('list.unknownResource', { key })}</div>
