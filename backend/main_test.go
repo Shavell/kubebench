@@ -104,6 +104,48 @@ users:
 	}
 }
 
+// A KUBECONFIG path list is merged the way kubectl merges it: the first
+// file that sets the current context wins, and missing files are skipped.
+func TestBootstrapSeedsAKubeconfigList(t *testing.T) {
+	dir := t.TempDir()
+	kubeconfig := func(name string, current bool) string {
+		path := filepath.Join(dir, name)
+		content := `apiVersion: v1
+kind: Config
+clusters:
+- name: ` + name + `
+  cluster: {server: "https://` + name + `:6443"}
+contexts:
+- name: ` + name + `
+  context: {cluster: ` + name + `, user: ` + name + `}
+users:
+- name: ` + name + `
+  user: {token: abc}
+`
+		if current {
+			content += "current-context: " + name + "\n"
+		}
+		writeTestFile(t, path, content)
+		return path
+	}
+	list := strings.Join([]string{
+		filepath.Join(dir, "missing"), kubeconfig("dev", false), kubeconfig("prod", true),
+	}, string(filepath.ListSeparator))
+	cfg := testConfig(t, map[string]string{"KUBECONFIG": list})
+	st := openStore(t, cfg)
+	if err := bootstrap(cfg, st); err != nil {
+		t.Fatal(err)
+	}
+	cluster, err := st.ClusterByName("prod")
+	if err != nil {
+		t.Fatalf("the list was not seeded: %v", err)
+	}
+	kc, err := clientcmd.Load([]byte(cluster.Kubeconfig))
+	if err != nil || kc.CurrentContext != "prod" || len(kc.Contexts) != 2 {
+		t.Fatalf("stored kubeconfig = %s (err %v)", cluster.Kubeconfig, err)
+	}
+}
+
 // KUBEBENCH_ADMIN_PASSWORD is used, and so checked, for a new database
 // only: a value that breaks the policy stops the first start as a
 // configuration error and creates no admin.

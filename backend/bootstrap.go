@@ -74,19 +74,20 @@ func bootstrap(cfg *config.Config, st *store.Store) error {
 	return nil
 }
 
-// seedKubeconfig registers the KUBECONFIG file, named after its current
-// context. Problems are logged: the inventory can still be filled in the UI.
-func seedKubeconfig(st *store.Store, path string) {
-	content, err := kube.ReadKubeconfig(path)
+// seedKubeconfig registers the KUBECONFIG files, merged as kubectl merges
+// them and named after the current context. Problems are logged: the
+// inventory can still be filled in the UI.
+func seedKubeconfig(st *store.Store, pathList string) {
+	content, err := kube.MergeKubeconfigs(filepath.SplitList(pathList))
 	if err != nil {
-		log.Printf("[inventory] KUBECONFIG %s: %v", path, err)
+		log.Printf("[inventory] KUBECONFIG %s: %v", pathList, err)
 		return
 	}
 	name := "kubeconfig"
 	if kc, err := clientcmd.Load(content); err == nil && kc.CurrentContext != "" {
 		name = kc.CurrentContext
 	}
-	seedCluster(st, store.Cluster{Name: name, Source: store.SourceKubeconfig, Kubeconfig: string(content)}, path)
+	seedCluster(st, store.Cluster{Name: name, Source: store.SourceKubeconfig, Kubeconfig: string(content)}, pathList)
 }
 
 func seedCluster(st *store.Store, c store.Cluster, from string) {

@@ -53,10 +53,10 @@ type Config struct {
 	AuditRetentionDays int
 
 	AllowPathKubeconfig bool
-	// Kubeconfig is the KUBECONFIG path used to seed the inventory on first run.
 	// AllowKubeconfigExec lets pasted kubeconfigs run exec credential
 	// plugins and auth providers and read files on the server.
 	AllowKubeconfigExec bool
+	// Kubeconfig is the KUBECONFIG path list used to seed the inventory on first run.
 	Kubeconfig string
 	InCluster  bool
 }
