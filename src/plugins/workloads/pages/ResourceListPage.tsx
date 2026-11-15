@@ -15,6 +15,10 @@ import { tw, useWorkloadsTranslation } from '../i18n'
 import { richLabel, withHeaders, type ColumnSpec } from '../resourceCatalog'
 import { DeletePodDialog } from '../DeletePodDialog'
 import { deploymentMenu, genericMenu, podMenu } from '../rowActions'
+import { ListOpsActions } from '../ops/ListOpsActions'
+import { NodeStatus } from '../ops/NodeScheduling'
+import { usePodSelection } from '../ops/usePodSelection'
+import { WorkloadOpsDialogs } from '../ops/WorkloadOpsDialogs'
 import '@/shared/tabPage.css'
 
 function openDetail(kind: string, namespace: string | null, name: string, icon: string) {
@@ -56,7 +60,7 @@ const podColumns: ColumnSpec<Pod>[] = [
 
 const nodeColumns: ColumnSpec<K8sNode>[] = [
   { key: 'name', render: (n) => n.name, sortValue: (n) => n.name },
-  { key: 'status', render: (n) => <Badge>{n.status}</Badge>, sortValue: (n) => n.status },
+  { key: 'status', render: (n) => <NodeStatus node={n} />, sortValue: (n) => n.status },
   { key: 'roles', render: (n) => n.roles.join(', ') },
   { key: 'version', render: (n) => n.version },
   {
@@ -118,6 +122,7 @@ export function ResourceListPage({ tab }: { tab: TabDescriptor }) {
   const [localNs, setLocalNs] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [deleting, setDeleting] = useState<Pod | null>(null)
+  const podSelection = usePodSelection()
 
   const isNamespaced = NAMESPACED.includes(resource)
   const nsFilter = localNs || (globalNamespace === ALL_NAMESPACES ? undefined : globalNamespace)
@@ -230,6 +235,7 @@ export function ResourceListPage({ tab }: { tab: TabDescriptor }) {
             rowKey={(p) => `${p.namespace}/${p.name}`}
             onRowClick={(p) => openDetail('Pod', p.namespace, p.name, 'package')}
             onRowContextMenu={(p, e) => podMenu(e, p, providers, setDeleting)}
+            selection={podSelection.table}
           />
         )}
         {resource === 'Nodes' && (
@@ -238,7 +244,7 @@ export function ResourceListPage({ tab }: { tab: TabDescriptor }) {
             rows={rows as K8sNode[]}
             rowKey={(n) => n.name}
             onRowClick={(n) => openDetail('Node', null, n.name, 'server')}
-            onRowContextMenu={(n, e) => genericMenu(e, { kind: 'Node', apiVersion: 'v1', name: n.name }, providers)}
+            onRowContextMenu={(n, e) => genericMenu(e, { kind: 'Node', apiVersion: 'v1', name: n.name }, providers, n)}
           />
         )}
         {resource === 'Namespaces' && (
@@ -247,7 +253,7 @@ export function ResourceListPage({ tab }: { tab: TabDescriptor }) {
             rows={rows as Namespace[]}
             rowKey={(ns) => ns.name}
             onRowContextMenu={(ns, e) =>
-              genericMenu(e, { kind: 'Namespace', apiVersion: 'v1', name: ns.name }, providers)
+              genericMenu(e, { kind: 'Namespace', apiVersion: 'v1', name: ns.name }, providers, ns)
             }
           />
         )}
@@ -277,9 +283,13 @@ export function ResourceListPage({ tab }: { tab: TabDescriptor }) {
 
   return (
     <div className="page">
-      <Toolbar title={scopedTitle}>{filterBar}</Toolbar>
+      <Toolbar title={scopedTitle}>
+        {filterBar}
+        <ListOpsActions resource={resource} rows={rows} selection={podSelection} />
+      </Toolbar>
       {body()}
       <DeletePodDialog pod={deleting} onClose={() => setDeleting(null)} />
+      <WorkloadOpsDialogs />
     </div>
   )
 }

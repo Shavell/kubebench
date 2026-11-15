@@ -13,6 +13,7 @@ import { Unavailable } from '@/shared/Unavailable'
 import { useWorkloadsTranslation } from '../i18n'
 import { catalogByKey, objName, objNamespace, resourceLabel, withHeaders } from '../resourceCatalog'
 import { genericMenu } from '../rowActions'
+import { WorkloadOpsDialogs } from '../ops/WorkloadOpsDialogs'
 import '@/shared/tabPage.css'
 
 export function GenericListPage({ tab }: { tab: TabDescriptor }) {
@@ -88,6 +89,7 @@ export function GenericListPage({ tab }: { tab: TabDescriptor }) {
               e,
               { kind: descriptor.kind, apiVersion: o.apiVersion, namespace: objNamespace(o) || undefined, name: objName(o) },
               providers,
+              o,
             )
           }
         />
@@ -121,6 +123,7 @@ export function GenericListPage({ tab }: { tab: TabDescriptor }) {
         </ListFilterBar>
       </Toolbar>
       {body()}
+      <WorkloadOpsDialogs />
     </div>
   )
 }

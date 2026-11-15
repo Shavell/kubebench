@@ -12,6 +12,9 @@ import { Toolbar } from '@/shared/Toolbar'
 import { TimeSeriesChart } from '@/shared/charts/TimeSeriesChart'
 import { chartColor } from '@/shared/charts/chartTheme'
 import { useWorkloadsTranslation } from '../../i18n'
+import { NodeOpsActions } from '../../ops/NodeOpsActions'
+import { NodeScheduling } from '../../ops/NodeScheduling'
+import { WorkloadOpsDialogs } from '../../ops/WorkloadOpsDialogs'
 import { DetailRow, DetailSection } from './DetailBits'
 import '@/shared/tabPage.css'
 
@@ -52,11 +55,13 @@ export function NodeDetail({ node }: { node: K8sNode }) {
   return (
     <div className="page">
       <Toolbar title={node.name}>
+        <NodeOpsActions node={node} />
         <button className="kb-button kb-button--secondary" onClick={viewYaml}>
           <Icon name="file-code" size={14} /> {t('actions.yaml')}
         </button>
         <ResourceActionButtons resource={{ kind: 'Node', apiVersion: 'v1', name: node.name }} />
       </Toolbar>
+      <WorkloadOpsDialogs />
       <div className="detail">
         <div className="detail__grid">
           <DetailRow label={t('columns.status')} value={<Badge>{node.status}</Badge>} />
@@ -73,6 +78,8 @@ export function NodeDetail({ node }: { node: K8sNode }) {
           <DetailRow label={t('columns.internalIP')} value={node.internalIP} />
           <DetailRow label={t('columns.age')} value={node.age} />
         </div>
+
+        <NodeScheduling node={node} />
 
         <DetailSection title={t('common.labels')} />
         {Object.entries(node.labels).map(([k, v]) => (

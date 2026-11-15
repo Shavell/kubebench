@@ -10,6 +10,8 @@ import { Toolbar } from '@/shared/Toolbar'
 import { Unavailable } from '@/shared/Unavailable'
 import { useWorkloadsTranslation } from '../i18n'
 import { catalogByKey } from '../resourceCatalog'
+import { ObjectOpsActions } from '../ops/ObjectOpsActions'
+import { WorkloadOpsDialogs } from '../ops/WorkloadOpsDialogs'
 import { DetailRow, DetailSection } from './detail/DetailBits'
 import '@/shared/tabPage.css'
 
@@ -66,10 +68,12 @@ export function GenericDetailPage({ tab }: { tab: TabDescriptor }) {
         <button className="kb-button kb-button--secondary" onClick={viewYaml}>
           <Icon name="file-code" size={14} /> {t('actions.yaml')}
         </button>
+        <ObjectOpsActions kind={descriptor.kind} obj={obj} />
         <ResourceActionButtons
           resource={{ kind: descriptor.kind, apiVersion: obj.apiVersion, namespace: namespace ?? undefined, name }}
         />
       </Toolbar>
+      <WorkloadOpsDialogs />
       <div className="detail">
         <div className="detail__grid">
           <DetailRow label={t('common.kind')} value={descriptor.kind} />

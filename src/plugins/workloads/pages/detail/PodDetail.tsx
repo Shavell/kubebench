@@ -15,6 +15,8 @@ import { TimeSeriesChart } from '@/shared/charts/TimeSeriesChart'
 import { chartColor } from '@/shared/charts/chartTheme'
 import { DeletePodDialog } from '../../DeletePodDialog'
 import { useWorkloadsTranslation, WORKLOADS_NS } from '../../i18n'
+import { PodOpsActions } from '../../ops/PodOpsActions'
+import { WorkloadOpsDialogs } from '../../ops/WorkloadOpsDialogs'
 import { DetailRow, DetailSection } from './DetailBits'
 import '@/shared/tabPage.css'
 
@@ -107,6 +109,7 @@ export function PodDetail({ pod, tabId }: { pod: Pod; tabId: string }) {
         >
           {t('common.delete')}
         </Button>
+        <PodOpsActions pod={pod} onDeleted={() => closeTab(tabId)} />
         <ResourceActionButtons resource={{ kind: 'Pod', apiVersion: 'v1', namespace: pod.namespace, name: pod.name }} />
       </Toolbar>
       <DeletePodDialog
@@ -114,6 +117,7 @@ export function PodDetail({ pod, tabId }: { pod: Pod; tabId: string }) {
         onClose={() => setDeleting(false)}
         onDeleted={() => closeTab(tabId)}
       />
+      <WorkloadOpsDialogs />
       <div className="detail">
         <div className="detail__grid">
           <DetailRow label={t('columns.status')} value={<Badge>{pod.status}</Badge>} />

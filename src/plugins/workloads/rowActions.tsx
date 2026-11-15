@@ -9,6 +9,7 @@ import type { Deployment, Pod } from '@/data/types'
 import { showContextMenu, type ContextMenuItem } from '@/shared/contextMenu'
 import { notify } from '@/shared/notify'
 import { tw } from './i18n'
+import { deploymentOpsItems, objectOpsItems, podOpsItems } from './ops/menuItems'
 
 const ICONS: Record<string, string> = {
   Pod: 'package',
@@ -100,6 +101,7 @@ export function podMenu(
       SEPARATOR,
       { label: tw('actions.viewYaml'), icon: 'file-code', onClick: () => openYaml(providers, 'Pod', pod.namespace, pod.name) },
       can('write') && { label: tw('common.delete'), icon: 'trash', danger: true, onClick: () => onDelete(pod) },
+      ...podOpsItems(pod),
       ...contributed({ kind: 'Pod', apiVersion: 'v1', namespace: pod.namespace, name: pod.name }),
     ]),
   )
@@ -123,6 +125,7 @@ export function deploymentMenu(e: React.MouseEvent, d: Deployment, providers: Da
         icon: 'add',
         onClick: () => mutate(() => providers.cluster.scaleDeployment(d.namespace, d.name, d.replicas + 1)),
       },
+      ...deploymentOpsItems(d, providers),
       SEPARATOR,
       { label: tw('actions.viewYaml'), icon: 'file-code', onClick: () => openYaml(providers, 'Deployment', d.namespace, d.name) },
       ...contributed({ kind: 'Deployment', apiVersion: 'apps/v1', namespace: d.namespace, name: d.name }),
@@ -130,8 +133,11 @@ export function deploymentMenu(e: React.MouseEvent, d: Deployment, providers: Da
   )
 }
 
-/** Menu for a row of any other kind: YAML plus contributed actions. */
-export function genericMenu(e: React.MouseEvent, ref: ResourceRef, providers: DataProviders) {
+/**
+ * Menu for a row of any other kind: YAML, the kind's operations (`row` is
+ * the row's object: node, namespace or generic object) and contributed actions.
+ */
+export function genericMenu(e: React.MouseEvent, ref: ResourceRef, providers: DataProviders, row?: unknown) {
   showContextMenu(
     e,
     menu([
@@ -140,6 +146,7 @@ export function genericMenu(e: React.MouseEvent, ref: ResourceRef, providers: Da
         icon: 'file-code',
         onClick: () => openYaml(providers, ref.kind, ref.namespace ?? null, ref.name),
       },
+      ...objectOpsItems(ref, row, providers),
       ...contributed(ref),
     ]),
   )

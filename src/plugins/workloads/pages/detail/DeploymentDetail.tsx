@@ -10,6 +10,9 @@ import { Icon } from '@/shared/Icon'
 import { notify } from '@/shared/notify'
 import { Toolbar } from '@/shared/Toolbar'
 import { useWorkloadsTranslation } from '../../i18n'
+import { DeploymentOpsActions } from '../../ops/DeploymentOpsActions'
+import { RolloutHistory } from '../../ops/RolloutHistory'
+import { WorkloadOpsDialogs } from '../../ops/WorkloadOpsDialogs'
 import { DetailRow, DetailSection } from './DetailBits'
 import '@/shared/tabPage.css'
 import './DeploymentDetail.css'
@@ -98,11 +101,13 @@ export function DeploymentDetail({ deployment: d }: { deployment: Deployment }) 
         >
           <Icon name="sync" size={14} /> {t('common.restart')}
         </button>
+        <DeploymentOpsActions deployment={d} />
         <button className="kb-button kb-button--secondary" onClick={viewYaml}>
           <Icon name="file-code" size={14} /> {t('actions.yaml')}
         </button>
         <ResourceActionButtons resource={{ kind: 'Deployment', apiVersion: 'apps/v1', namespace: d.namespace, name: d.name }} />
       </Toolbar>
+      <WorkloadOpsDialogs />
       <div className="detail">
         {opError && (
           <div className="detail__error">
@@ -155,6 +160,9 @@ export function DeploymentDetail({ deployment: d }: { deployment: Deployment }) 
             ))}
           </tbody>
         </table>
+
+        <DetailSection title={t('workloadOps.rollout.history')} />
+        <RolloutHistory deployment={d} />
 
         <DetailSection title={t('common.events')} />
         <EventsTable kind="Deployment" namespace={d.namespace} name={d.name} />
