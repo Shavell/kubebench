@@ -121,6 +121,10 @@ spec:
       app.kubernetes.io/instance: kubebench
   template:
     metadata:
+      annotations:
+        # KubeBench probes once per pod what its ServiceAccount may do (Helm,
+        # shells), so a new RBAC preset or rule set restarts the pod.
+        checksum/rbac: b3c1dc40c20162a155ad6d71adcd2d2b53ae236d4eeaad005cb8aecf65a5984d
       labels:
         helm.sh/chart: kubebench-0.5.0
         app.kubernetes.io/name: kubebench

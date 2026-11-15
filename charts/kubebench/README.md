@@ -65,6 +65,12 @@ Make more CRD groups readable with the read-only preset through
 `rbac.readOnly.extraApiGroups`, e.g. `--set rbac.readOnly.extraApiGroups='{cert-manager.io,traefik.io}'`.
 `rbac.create=false` leaves RBAC to you.
 
+The `cluster-admin` binding is named `<fullname>`; the other presets create a
+ClusterRole and a ClusterRoleBinding named `<fullname>-read-only` or
+`<fullname>-custom`. A binding cannot change its role, so switching presets
+with `helm upgrade --reset-then-reuse-values --set rbac.preset=...` replaces
+the binding, and restarts the pod so that KubeBench sees its new permissions.
+
 ## Ingress and TLS
 
 ```yaml

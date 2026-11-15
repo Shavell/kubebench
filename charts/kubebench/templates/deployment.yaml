@@ -17,10 +17,13 @@ spec:
       {{- include "kubebench.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
       annotations:
+        # KubeBench probes once per pod what its ServiceAccount may do (Helm,
+        # shells), so a new RBAC preset or rule set restarts the pod.
+        checksum/rbac: {{ include (print $.Template.BasePath "/rbac.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- end }}
       labels:
         {{- include "kubebench.labels" . | nindent 8 }}
         {{- with .Values.podLabels }}

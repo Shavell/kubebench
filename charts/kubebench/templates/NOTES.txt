@@ -36,7 +36,7 @@ KubeBench {{ include "kubebench.version" . }} is installed as release "{{ .Relea
 {{- if not .Values.rbac.create }} (RBAC not managed by this chart).
 {{- else if eq .Values.rbac.preset "cluster-admin" }} (bound to cluster-admin).
 {{- else if eq .Values.rbac.preset "read-only" }} (read-only, no Secrets).
-{{- else }} (custom ClusterRole "{{ $fullname }}").
+{{- else }} (custom ClusterRole "{{ include "kubebench.rbacName" . }}").
 {{- end }}
    Add more clusters in the Clusters view and grant them to users in Users.
 {{- if not .Values.persistence.enabled }}

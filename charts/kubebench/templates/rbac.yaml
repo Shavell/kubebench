@@ -1,11 +1,11 @@
 {{- if .Values.rbac.create }}
-{{- $fullname := include "kubebench.fullname" . }}
+{{- $name := include "kubebench.rbacName" . }}
 {{- $preset := .Values.rbac.preset }}
 {{- if ne $preset "cluster-admin" }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ $fullname }}
+  name: {{ $name }}
   labels:
     {{- include "kubebench.labels" . | nindent 4 }}
 rules:
@@ -74,13 +74,13 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ $fullname }}
+  name: {{ $name }}
   labels:
     {{- include "kubebench.labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ eq $preset "cluster-admin" | ternary "cluster-admin" $fullname }}
+  name: {{ eq $preset "cluster-admin" | ternary "cluster-admin" $name }}
 subjects:
   - kind: ServiceAccount
     name: {{ include "kubebench.serviceAccountName" . }}

@@ -46,6 +46,21 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end -}}
 {{- end -}}
 
+{{/*
+Name of the ClusterRoleBinding, and of the chart's ClusterRole for the
+read-only and custom presets. A binding's roleRef cannot be changed, so
+every preset binds under its own name: switching presets with `helm upgrade`
+replaces the binding instead of failing to patch it.
+*/}}
+{{- define "kubebench.rbacName" -}}
+{{- $fullname := include "kubebench.fullname" . -}}
+{{- if eq .Values.rbac.preset "cluster-admin" -}}
+{{- $fullname -}}
+{{- else -}}
+{{- printf "%s-%s" $fullname .Values.rbac.preset -}}
+{{- end -}}
+{{- end -}}
+
 {{/* repository@digest when a digest is set, else repository:tag. */}}
 {{- define "kubebench.image" -}}
 {{- if .Values.image.digest -}}
