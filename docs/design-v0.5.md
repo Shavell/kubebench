@@ -1160,6 +1160,33 @@ optional ConfigMap/Secret references. Layered SVG layout, pan/zoom, click
 opens the resource. Resource action "Show topology" on Deployment,
 StatefulSet, DaemonSet, Service, Ingress.
 
+Implementation (`src/plugins/topology`, no backend routes):
+
+- Data, per namespace, each list loaded on its own so the graph fills in
+  as they arrive and an unreadable list (e.g. Secrets) leaves the rest:
+  Pods, Deployments and Services through the `/api/k8s` passthrough
+  (owner references, selectors and volumes intact); ReplicaSets,
+  StatefulSets, DaemonSets, Ingresses, PVCs, PVs (cluster-wide, only those
+  bound to the namespace's claims are shown), ConfigMaps and Secrets
+  through the generic lists. Every list fails all → Unavailable.
+- Edges: Ingress → Service (rule paths and default backend), Service →
+  Pod (equality selector), controller ownerReference → ReplicaSet/Pod,
+  Pod → PVC (also generic ephemeral volumes), PVC → PV (`volumeName`),
+  Pod → ConfigMap/Secret (volumes incl. projected, `envFrom`, `env`
+  `valueFrom`; not the `kube-api-access-*` token volume) and Ingress →
+  TLS Secret. A reference whose list loaded without it is drawn as a
+  missing node; optional references only when present.
+- Layout: five columns (Deployment | ReplicaSet/StatefulSet/DaemonSet |
+  Pod | Service/PVC/ConfigMap/Secret | Ingress/PV), Pods stacked in owner
+  groups, every other node level with its placed neighbours; deterministic,
+  so refreshes keep positions. Inactive ReplicaSets and config references
+  are display options.
+- Focus: the object, everything it leads to, and everything leading to it
+  or its Pods (shared ConfigMaps do not pull in other workloads). Tabs:
+  kind `topology`, props `{namespace, focus: {kind, name} | null}`, one per
+  namespace and per focused object; objects open in `workloads-detail`
+  (Pod, Deployment, Service), `generic-detail` or `yaml`.
+
 ### 7.10 Live updates (core)
 
 `GET /api/watch?topics=pods,deployments,…` (read) — SSE stream of

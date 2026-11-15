@@ -14,6 +14,7 @@ import { argocdPlugin } from './argocd/manifest'
 import { storagePlugin } from './storage/manifest'
 import { accessPlugin } from './access/manifest'
 import { securityPlugin } from './security/manifest'
+import { topologyPlugin } from './topology/manifest'
 
 /**
  * The single place built-in modules are wired in. Comment one out and its
@@ -34,6 +35,7 @@ export const allPlugins: PluginManifest[] = [
   storagePlugin,
   accessPlugin,
   securityPlugin,
+  topologyPlugin,
 ]
 
 /** Registered at boot only when the signed-in user is a global admin. */

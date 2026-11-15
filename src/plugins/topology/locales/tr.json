@@ -1,0 +1,100 @@
+{
+  "manifest": {
+    "name": "Topoloji",
+    "description": "Bir namespace'in grafiği: Ingress'ler, Service'ler, workload'lar, Pod'lar, volume'lar ve kullandıkları ConfigMap ile Secret'lar, duruma göre renklendirilmiş olarak.",
+    "tooltip": "Topoloji",
+    "sidebarTitle": "Topoloji"
+  },
+  "commands": {
+    "open": "Topoloji: Aç"
+  },
+  "resourceActions": {
+    "show": "Topolojiyi göster"
+  },
+  "tab": {
+    "namespace": "Topoloji · {{namespace}}",
+    "focused": "{{name}} · topoloji"
+  },
+  "sidebar": {
+    "namespaces": "Namespace'ler"
+  },
+  "page": {
+    "title": "Topoloji",
+    "namespace": "Namespace",
+    "showConfig": "ConfigMap'ler ve Secret'lar",
+    "showInactive": "Etkin olmayan ReplicaSet'ler",
+    "refresh": "Yenile",
+    "loading": "{{namespace}} topolojisi yükleniyor…",
+    "pending": "Listeler yükleniyor: {{pending}} kaldı",
+    "listFailed": "{{list}} okunamadı: {{error}}",
+    "unavailable": "Topoloji gösterilemiyor",
+    "empty": "{{namespace}} içinde gösterilecek bir şey yok",
+    "emptyHint": "Bu namespace'te workload, Pod, Service, Ingress veya PersistentVolumeClaim bulunmuyor."
+  },
+  "focus": {
+    "label": "Odak: {{kind}} {{name}}",
+    "clear": "Tüm namespace'i göster",
+    "missing": "{{kind}} {{name}} bulunamadı",
+    "missingHint": "Silinmiş ya da yeniden adlandırılmış olabilir."
+  },
+  "lists": {
+    "pods": "Pod'lar",
+    "deployments": "Deployment'lar",
+    "replicaSets": "ReplicaSet'ler",
+    "statefulSets": "StatefulSet'ler",
+    "daemonSets": "DaemonSet'ler",
+    "services": "Service'ler",
+    "ingresses": "Ingress'ler",
+    "pvcs": "PersistentVolumeClaim'ler",
+    "pvs": "PersistentVolume'ler",
+    "configMaps": "ConfigMap'ler",
+    "secrets": "Secret'lar"
+  },
+  "kinds": {
+    "short": {
+      "Ingress": "ing",
+      "Service": "svc",
+      "Deployment": "deploy",
+      "ReplicaSet": "rs",
+      "StatefulSet": "sts",
+      "DaemonSet": "ds",
+      "Pod": "pod",
+      "PersistentVolumeClaim": "pvc",
+      "PersistentVolume": "pv",
+      "ConfigMap": "cm",
+      "Secret": "secret"
+    }
+  },
+  "status": {
+    "unknown": "Bilinmiyor",
+    "missing": "Bulunamadı",
+    "terminating": "Sonlandırılıyor",
+    "waiting": "{{reason}}",
+    "phase": "{{phase}}",
+    "ready": "{{ready}}/{{total}} hazır",
+    "replicas": "{{ready}}/{{desired}} hazır",
+    "scaledToZero": "0'a ölçeklendi",
+    "externalName": "→ {{target}}",
+    "noSelector": "Selector yok",
+    "noPods": "Seçilen Pod yok",
+    "endpoints": "{{ready}}/{{total}} Pod hazır",
+    "noBackends": "Backend yok",
+    "missingBackends": "{{missing}}/{{total}} backend eksik",
+    "backends": "Backend: {{total}}",
+    "keys": "Anahtar: {{total}}"
+  },
+  "node": {
+    "label": "{{kind}} {{name}}: {{status}}"
+  },
+  "menu": {
+    "open": "Ayrıntıları aç",
+    "yaml": "YAML'ı aç",
+    "focus": "Topolojiyi göster"
+  },
+  "canvas": {
+    "label": "{{namespace}} topolojisi",
+    "zoomIn": "Yakınlaştır",
+    "zoomOut": "Uzaklaştır",
+    "fit": "Görünüme sığdır"
+  }
+}

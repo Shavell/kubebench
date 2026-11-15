@@ -3,6 +3,7 @@ import type { KubeObject } from '../types'
 import { delay, delayReject } from './delay'
 import { deployments, namespaces, nodes, pods, services } from './mockCluster'
 import { genericMock } from './mockGeneric'
+import { deploymentObject, podObject, serviceObject } from './mockK8sObjects'
 
 /**
  * Mock for the read-only Kubernetes passthrough (GET /api/k8s/<path>).
@@ -48,26 +49,13 @@ const RESOURCES: Record<string, ListShape> = {
     kind: 'PodList',
     apiVersion: 'v1',
     namespaced: true,
-    items: () =>
-      pods.map((p) => ({
-        kind: 'Pod',
-        metadata: meta(p.name, p.namespace, p.labels),
-        spec: { nodeName: p.node },
-        status: { phase: p.status, podIP: p.podIP },
-        age: p.age,
-      })),
+    items: () => pods.map(podObject),
   },
   'v1/services': {
     kind: 'ServiceList',
     apiVersion: 'v1',
     namespaced: true,
-    items: () =>
-      services.map((s) => ({
-        kind: 'Service',
-        metadata: meta(s.name, s.namespace),
-        spec: { type: s.type, clusterIP: s.clusterIP },
-        age: s.age,
-      })),
+    items: () => services.map(serviceObject),
   },
   'v1/configmaps': {
     kind: 'ConfigMapList',
@@ -79,14 +67,7 @@ const RESOURCES: Record<string, ListShape> = {
     kind: 'DeploymentList',
     apiVersion: 'apps/v1',
     namespaced: true,
-    items: () =>
-      deployments.map((d) => ({
-        kind: 'Deployment',
-        metadata: meta(d.name, d.namespace, d.labels),
-        spec: { replicas: d.replicas },
-        status: { readyReplicas: d.readyReplicas, availableReplicas: d.available },
-        age: d.age,
-      })),
+    items: () => deployments.map((d) => deploymentObject(d, pods)),
   },
 }
 
