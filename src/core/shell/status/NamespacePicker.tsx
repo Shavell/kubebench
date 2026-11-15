@@ -37,7 +37,7 @@ export function NamespacePicker({ anchor, onClose }: NamespacePickerProps) {
   const namespace = useContextStore((s) => s.namespace)
   const setNamespace = useContextStore((s) => s.setNamespace)
   const prefs = useNamespacePrefs()
-  const { data, loading, error } = useProviderQuery((p) => p.cluster.listNamespaces(), [])
+  const { data, loading, error } = useProviderQuery((p) => p.cluster.listNamespaces(), [], { topics: ['namespaces'] })
   const [query, setQuery] = useState('')
   const [showHidden, setShowHidden] = useState(false)
   const [active, setActive] = useState(0)

@@ -46,8 +46,11 @@ export function EventsListPage({ tab }: { tab: TabDescriptor }) {
   const [grouped, setGrouped] = useState(false)
 
   const nsFilter = localNs || (globalNamespace === ALL_NAMESPACES ? undefined : globalNamespace)
-  const { data: namespaces } = useProviderQuery((p) => p.cluster.listNamespaces(), [])
-  const query = useProviderQuery((p) => p.cluster.listResource(KEY, nsFilter), [nsFilter])
+  const { data: namespaces } = useProviderQuery((p) => p.cluster.listNamespaces(), [], { topics: ['namespaces'] })
+  const query = useProviderQuery((p) => p.cluster.listResource(KEY, nsFilter), [nsFilter], {
+    topics: [KEY],
+    namespace: nsFilter,
+  })
 
   // Ages are relative to when the list was read.
   const all = useMemo(() => {

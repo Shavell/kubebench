@@ -29,7 +29,7 @@ function openWarnings(): void {
 /** Overview card: the cluster's most recent Warning events, newest first. */
 export function RecentWarnings() {
   const { t } = useTranslation(NS)
-  const query = useProviderQuery((p) => p.cluster.listResource('events'), [])
+  const query = useProviderQuery((p) => p.cluster.listResource('events'), [], { topics: ['events'] })
 
   const { shown, total } = useMemo(() => {
     const now = Date.now()
