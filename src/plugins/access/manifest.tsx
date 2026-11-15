@@ -18,7 +18,7 @@ export const accessPlugin: PluginManifest = {
   category: 'security',
   backendPlugin: NS,
   locales: { en, tr },
-  activityBar: { icon: 'shield', tooltip: 'manifest.tooltip' },
+  activityBar: { icon: 'key', tooltip: 'manifest.tooltip' },
   sidebar: { id: 'access-explorer', title: 'manifest.sidebarTitle', component: AccessSidebar },
   tabRenderers: [
     { kind: TAB_KINDS.whoCan, component: WhoCanPage },
@@ -37,7 +37,7 @@ export const accessPlugin: PluginManifest = {
     {
       id: 'access.serviceAccountPermissions',
       title: 'resourceActions.permissions',
-      icon: 'shield',
+      icon: 'key',
       kinds: ['ServiceAccount'],
       permission: 'read',
       run: (ref) => openSubject({ kind: 'ServiceAccount', namespace: ref.namespace, name: ref.name }),
