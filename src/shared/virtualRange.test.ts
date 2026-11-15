@@ -44,4 +44,10 @@ describe('moveIndex', () => {
     assert.equal(moveIndex(1, -10, 5), 0)
     assert.equal(moveIndex(0, 1, 0), -1)
   })
+
+  it('jumps to an end on Home/End, also without an active row', () => {
+    assert.equal(moveIndex(-1, -5, 5), 0)
+    assert.equal(moveIndex(-1, 5, 5), 4)
+    assert.equal(moveIndex(3, -5, 5), 0)
+  })
 })

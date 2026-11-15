@@ -55,9 +55,13 @@ export function scrollTopFor(
   return null
 }
 
-/** Index after moving `delta` rows from `current` (-1: none yet), kept inside [0, count). */
+/**
+ * Index after moving `delta` rows from `current` (-1: none yet), kept inside [0, count).
+ * A move of at least `count` rows (Home/End) goes to that end, also from no row.
+ */
 export function moveIndex(current: number, delta: number, count: number): number {
   if (count === 0) return -1
+  if (Math.abs(delta) >= count) return delta < 0 ? 0 : count - 1
   if (current < 0) return delta < 0 ? count - 1 : 0
   return clamp(current + delta, 0, count - 1)
 }
