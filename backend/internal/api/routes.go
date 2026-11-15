@@ -62,6 +62,22 @@ func (s *Server) routes() {
 	s.handle("POST /api/helm/rollback", accessWrite, s.handleHelmRollback)
 	s.handle("POST /api/helm/uninstall", accessWrite, s.handleHelmUninstall)
 
+	// Workload and node operations (§7.3); every change is audited.
+	s.handle("GET /api/deployments/history", accessRead, s.handleDeploymentHistory)
+	s.handle("POST /api/deployments/rollback", accessWrite, s.handleRollback)
+	s.handle("POST /api/deployments/pause", accessWrite, s.handlePause)
+	s.handle("POST /api/workloads/restart", accessWrite, s.handleRestartWorkload)
+	s.handle("POST /api/workloads/scale", accessWrite, s.handleScaleWorkload)
+	s.handle("POST /api/nodes/cordon", accessWrite, s.handleCordon)
+	s.handle("POST /api/nodes/drain", accessWrite, s.handleDrain)
+	s.handle("PUT /api/nodes/taints", accessWrite, s.handleSetTaints)
+	s.handle("POST /api/pods/bulk-delete", accessWrite, s.handleBulkDeletePods)
+	s.handle("POST /api/pods/debug", accessExec, s.handleDebugPod)
+	s.handle("POST /api/cronjobs/trigger", accessWrite, s.handleTriggerCronJob)
+	s.handle("POST /api/cronjobs/suspend", accessWrite, s.handleSuspendCronJob)
+	s.handle("POST /api/namespaces", accessWrite, s.handleCreateNamespace)
+	s.handle("DELETE /api/namespaces", accessWrite, s.handleDeleteNamespace)
+
 	s.mountPlugins()
 	s.mux.HandleFunc("/api/", s.handleUnknownAPI)
 }

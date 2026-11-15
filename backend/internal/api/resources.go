@@ -98,12 +98,19 @@ func logOptions(q url.Values) (kube.LogOptions, error) {
 }
 
 func (s *Server) handleDeletePod(w http.ResponseWriter, r *http.Request, c *call) {
-	ns, name, err := objectParams(r.URL.Query())
+	q := r.URL.Query()
+	ns, name, err := objectParams(q)
 	if err != nil {
 		writeErr(w, err)
 		return
 	}
-	respondOK(w, c.rt.DeletePod(r.Context(), ns, name))
+	// force=true deletes at once, with grace period 0 (§7.3).
+	force, err := boolFlag(q, "force", false)
+	if err != nil {
+		writeErr(w, err)
+		return
+	}
+	respondOK(w, c.rt.DeletePod(r.Context(), ns, name, force))
 }
 
 func (s *Server) handleScale(w http.ResponseWriter, r *http.Request, c *call) {
@@ -127,7 +134,7 @@ func (s *Server) handleRestart(w http.ResponseWriter, r *http.Request, c *call) 
 		writeErr(w, err)
 		return
 	}
-	respondOK(w, c.rt.RestartDeployment(r.Context(), ns, name))
+	respondOK(w, c.rt.RestartWorkload(r.Context(), "Deployment", ns, name))
 }
 
 func (s *Server) handleExec(w http.ResponseWriter, r *http.Request, c *call) {

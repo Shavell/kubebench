@@ -118,3 +118,14 @@ func TestSessionTTLMinimum(t *testing.T) {
 		t.Fatal("a 30s session TTL must be rejected")
 	}
 }
+
+func TestNamespace(t *testing.T) {
+	c, err := FromEnv(env(nil), false)
+	if err != nil || c.Namespace != "" {
+		t.Fatalf("without KUBEBENCH_NAMESPACE the namespace is unknown: %q, %v", c.Namespace, err)
+	}
+	c, err = FromEnv(env(map[string]string{"KUBEBENCH_NAMESPACE": " tools "}), true)
+	if err != nil || c.Namespace != "tools" {
+		t.Fatalf("Namespace = %q, %v", c.Namespace, err)
+	}
+}

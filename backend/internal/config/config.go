@@ -56,15 +56,29 @@ type Config struct {
 	// Kubeconfig is the KUBECONFIG path used to seed the inventory on first run.
 	Kubeconfig string
 	InCluster  bool
+	// Namespace is the namespace KubeBench runs in (KUBEBENCH_NAMESPACE; in
+	// a pod, by default the pod's own). Deleting it is refused unless
+	// forced. Empty when unknown.
+	Namespace string
 }
 
 // TLS reports whether the server terminates TLS itself.
 func (c *Config) TLS() bool { return c.TLSCert != "" }
 
-// Load reads the process environment.
+// podNamespaceFile holds the namespace of the pod a process runs in.
+const podNamespaceFile = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
+
+// Load reads the process environment. In a pod, Namespace defaults to the
+// pod's namespace.
 func Load() (*Config, error) {
-	_, err := rest.InClusterConfig()
-	return FromEnv(os.LookupEnv, err == nil)
+	_, inClusterErr := rest.InClusterConfig()
+	c, err := FromEnv(os.LookupEnv, inClusterErr == nil)
+	if err == nil && c.InCluster && c.Namespace == "" {
+		if ns, readErr := os.ReadFile(podNamespaceFile); readErr == nil {
+			c.Namespace = strings.TrimSpace(string(ns))
+		}
+	}
+	return c, err
 }
 
 // FromEnv builds a Config from an environment lookup function; inCluster
@@ -116,6 +130,7 @@ func FromEnv(lookup func(string) (string, bool), inCluster bool) (*Config, error
 	// server runs on the operator's machine, not inside a pod.
 	c.AllowPathKubeconfig = p.boolean("KUBEBENCH_ALLOW_PATH_KUBECONFIG", !inCluster)
 	c.Kubeconfig = p.str("KUBECONFIG", "")
+	c.Namespace = p.str("KUBEBENCH_NAMESPACE", "")
 
 	if len(p.errs) > 0 {
 		return nil, errors.Join(p.errs...)
