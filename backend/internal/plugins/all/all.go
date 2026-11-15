@@ -14,3 +14,7 @@
 //
 // Its routes are served under /api/plugins/<id>/.
 package all
+
+import (
+	_ "kubebench/internal/plugins/storage"
+)
