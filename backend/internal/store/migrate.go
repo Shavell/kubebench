@@ -13,6 +13,7 @@ var migrations = []func(tx *sql.Tx) error{
 	migrateV1,
 	migrateV2,
 	migrateV3,
+	migrateV4,
 }
 
 func (s *Store) migrate() error {
@@ -139,6 +140,13 @@ CREATE TABLE app_settings (
   updated_at TIMESTAMP NOT NULL
 );
 ALTER TABLE users ADD COLUMN last_seen_version TEXT NOT NULL DEFAULT '';`)
+	return err
+}
+
+// migrateV4 adds per-cluster cloud credentials (docs/design-v0.5.md
+// §7.12), stored like the kubeconfig: JSON, never returned by the API.
+func migrateV4(tx *sql.Tx) error {
+	_, err := tx.Exec(`ALTER TABLE clusters ADD COLUMN credentials TEXT NOT NULL DEFAULT '';`)
 	return err
 }
 

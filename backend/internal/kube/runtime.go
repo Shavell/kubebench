@@ -20,8 +20,11 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	metricsv "k8s.io/metrics/pkg/client/clientset/versioned"
 
+	"kubebench/internal/cloud"
+	"kubebench/internal/cloudauth"
 	"kubebench/internal/store"
 	"kubebench/internal/watch"
 )
@@ -55,9 +58,10 @@ type Runtime struct {
 	rawClient *http.Client
 	rawErr    error
 
-	mu   sync.RWMutex
-	prom *PromSource
-	caps Capabilities
+	mu       sync.RWMutex
+	prom     *PromSource
+	caps     Capabilities
+	platform cloudState // see Cloud
 }
 
 // newRuntime connects to cluster and starts its background work: the
@@ -81,6 +85,7 @@ func newRuntime(cluster store.Cluster) (*Runtime, error) {
 	rt.Sampler.start()
 	go rt.discoverProm()
 	go rt.probeCapabilities()
+	go rt.detectCloudOnce()
 	return rt, nil
 }
 
@@ -109,15 +114,22 @@ func clientsFor(config *rest.Config) (kubernetes.Interface, dynamic.Interface, m
 // NewRuntimeForTest builds a Runtime around injected (usually fake)
 // clients. It starts no background work: the capability probe counts as
 // finished with no capabilities, Prometheus discovery as finished without
-// one, the sampler stays empty, Metrics is nil, and Config points
+// one, cloud detection as finished with nothing recognised (see
+// DetectCloudForTest), the sampler stays empty, Metrics is nil, and Config points
 // at an unreachable host. Tests that need metrics or RawGet set Metrics or
 // Config before using the runtime.
 func NewRuntimeForTest(cluster store.Cluster, cs kubernetes.Interface, dyn dynamic.Interface) *Runtime {
 	rt := assemble(cluster, &rest.Config{Host: "https://kubebench.invalid"}, cs, dyn, nil)
 	close(rt.probed)
 	close(rt.promDone)
+	rt.platform.detection, rt.platform.at = cloud.Detection{Provider: cloud.ProviderKubernetes}, time.Now()
+	close(rt.platform.done)
 	return rt
 }
+
+// DetectCloudForTest runs cloud detection against the runtime's clients
+// now, as a fresh runtime does in the background.
+func (r *Runtime) DetectCloudForTest() { r.refreshCloud() }
 
 // ProbeForTest makes the capability probe of a runtime from
 // NewRuntimeForTest pending again, as on a freshly built runtime, and
@@ -157,6 +169,7 @@ func assemble(cluster store.Cluster, config *rest.Config, cs kubernetes.Interfac
 		mapper:    restmapper.NewDeferredDiscoveryRESTMapper(cached),
 		probed:    make(chan struct{}),
 		promDone:  make(chan struct{}),
+		platform:  cloudState{done: make(chan struct{})},
 	}
 	rt.Sampler = newSampler(rt)
 	rt.watch = watch.NewHub(dyn, rt.resolveTopic, watch.Options{Cluster: cluster.Name})
@@ -217,9 +230,36 @@ func restConfigFor(cluster *store.Cluster) (*rest.Config, error) {
 	if contextName == "" {
 		contextName = apiConfig.CurrentContext
 	}
-	return clientcmd.NewNonInteractiveClientConfig(
+	wrap, err := cloudAuth(apiConfig, contextName, cluster.Credentials)
+	if err != nil {
+		return nil, err
+	}
+	config, err := clientcmd.NewNonInteractiveClientConfig(
 		*apiConfig, contextName, &clientcmd.ConfigOverrides{}, nil,
 	).ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	if wrap != nil {
+		config.Wrap(wrap)
+	}
+	return config, nil
+}
+
+// cloudAuth replaces the EKS, GKE and AKS exec plugins of the context's
+// user with in-process token providers (§7.12): it removes the recognised
+// stanza from apiConfig and returns the transport wrapper that adds the
+// tokens, or nil when the user needs none.
+func cloudAuth(apiConfig *clientcmdapi.Config, contextName, storedCredentials string) (func(http.RoundTripper) http.RoundTripper, error) {
+	creds, err := cloudauth.ParseCredentials(storedCredentials)
+	if err != nil {
+		return nil, err
+	}
+	var user *clientcmdapi.AuthInfo
+	if ctx, ok := apiConfig.Contexts[contextName]; ok {
+		user = apiConfig.AuthInfos[ctx.AuthInfo]
+	}
+	return cloudauth.Default.Apply(user, creds)
 }
 
 func (r *Runtime) probeCapabilities() {

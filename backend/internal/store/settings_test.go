@@ -40,8 +40,8 @@ func TestUpgradeFromV2AddsSettings(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer s.Close()
-	if v := schemaVersion(t, s); v != 3 {
-		t.Fatalf("user_version = %d, want 3", v)
+	if v := schemaVersion(t, s); v != len(migrations) {
+		t.Fatalf("user_version = %d, want %d", v, len(migrations))
 	}
 	if seen, err := s.LastSeenVersion(1); err != nil || seen != "" {
 		t.Fatalf("LastSeenVersion = %q, %v; want empty", seen, err)
