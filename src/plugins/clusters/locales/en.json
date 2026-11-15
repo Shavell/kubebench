@@ -24,7 +24,8 @@
     "role": "Your role",
     "server": "API server",
     "status": "Status",
-    "actions": "Actions"
+    "actions": "Actions",
+    "platform": "Platform"
   },
   "table": {
     "loading": "Loading clusters…",
@@ -108,7 +109,7 @@
       "address": "API address only (bookmark)"
     },
     "sourceHelp": {
-      "content": "The server stores the kubeconfig. Embed certificates and tokens in it: references to files or credential plugins may not be allowed.",
+      "content": "The server stores the kubeconfig. Embed certificates and tokens in it: references to files or credential plugins may not be allowed. The EKS, GKE and AKS plugins are: KubeBench signs in to them itself.",
       "path": "The server reads the file once and stores its contents.",
       "address": "Only remembers the address; KubeBench cannot connect to a bookmark."
     },
@@ -118,5 +119,50 @@
     "address": "API server address",
     "context": "Context",
     "contextHelp": "Leave empty to use the kubeconfig's current context."
+  },
+  "platform": {
+    "unknownHint": "Detected once someone connects to the cluster."
+  },
+  "credentials": {
+    "label": "Cloud sign-in",
+    "modes": {
+      "keep": "Keep the stored credentials",
+      "keepStored": "Keep the stored {{provider}} credentials",
+      "server": "Server's cloud identity",
+      "aws-keys": "AWS access key",
+      "aws-profile": "AWS profile",
+      "gcp": "GCP service-account key",
+      "azure": "Azure service principal"
+    },
+    "help": {
+      "keep": "The stored {{provider}} credentials stay as they are. They are never shown again.",
+      "server": "EKS, GKE and AKS kubeconfigs sign in with the KubeBench server's own cloud identity (pod or VM identity, environment). Other kubeconfigs use their own credentials.",
+      "aws-keys": "An IAM access key, for a kubeconfig that runs aws eks get-token or aws-iam-authenticator. Stored with the cluster and never shown again.",
+      "aws-profile": "A profile from the AWS configuration files of the KubeBench server.",
+      "gcp": "A service-account key file (JSON), for a kubeconfig that uses gke-gcloud-auth-plugin. Stored with the cluster and never shown again.",
+      "azure": "A service principal with a client secret, for a kubeconfig that uses kubelogin. Stored with the cluster and never shown again."
+    },
+    "providers": {
+      "aws": "AWS",
+      "gcp": "GCP",
+      "azure": "Azure"
+    },
+    "accessKeyId": "Access key ID",
+    "secretAccessKey": "Secret access key",
+    "sessionToken": "Session token",
+    "sessionTokenHelp": "Only for temporary credentials.",
+    "profile": "Profile name",
+    "serviceAccountJson": "Service-account key (JSON)",
+    "loadKey": "Load key file…",
+    "tenantId": "Tenant ID",
+    "clientId": "Client ID",
+    "clientSecret": "Client secret",
+    "errors": {
+      "required": "This field is required.",
+      "profile": "Enter a profile name (letters, digits and _.+=,@-).",
+      "serviceAccount": "Paste a service-account key: JSON with \"type\": \"service_account\".",
+      "guid": "Enter a GUID such as 00000000-0000-0000-0000-000000000000.",
+      "fileTooLarge": "{{name}} is too large to be a service-account key."
+    }
   }
 }

@@ -8,6 +8,7 @@ import type {
   GlobalRole,
   ServerInfo,
 } from '../types'
+import { parsePlatform } from './platform'
 
 /**
  * The backend can take up to 3 s to answer /api/info while it waits for a
@@ -36,6 +37,7 @@ function cluster(value: unknown): ActiveCluster | null {
     name: str(value.name),
     environment: environment(value.environment),
     readOnly: bool(value.readOnly),
+    platform: parsePlatform(value.platform),
   }
 }
 

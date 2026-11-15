@@ -211,6 +211,74 @@ sha256sum -c SHA256SUMS
 Build a bundle yourself from a GoReleaser output with
 `make snapshot offline-bundle IMAGE_TARS="a.tar b.tar"`.
 
+## Cloud clusters (EKS, AKS, GKE)
+
+Kubeconfigs from `aws eks update-kubeconfig`, `gcloud container clusters
+get-credentials` and `az aks get-credentials` (also after `kubelogin
+convert-kubeconfig`) sign in through exec plugins: `aws eks get-token`,
+`aws-iam-authenticator`, `gke-gcloud-auth-plugin` and `kubelogin`.
+KubeBench does not run them (they are not in the image): it recognises
+these stanzas and gets the tokens itself, so such a kubeconfig can be
+pasted without `KUBEBENCH_ALLOW_KUBECONFIG_EXEC`. Any other exec command
+still needs that setting. The Clusters view shows the detected provider
+(EKS, AKS, GKE, k3s, …) and warns when the Kubernetes version leaves the
+provider's standard support. Details:
+[design §7.12](design-v0.5.md#712-cloud-providers-core).
+
+Which identity signs in, per cluster:
+
+- **Per-cluster credentials**, entered by an administrator in the Add or
+  Edit cluster dialog: an AWS access key (with an optional session token)
+  or an AWS profile, a GCP service-account key (JSON), or an Azure service
+  principal (tenant id, client id, client secret). They are stored in the
+  database next to the kubeconfig and never shown again.
+- Otherwise **the server's own cloud identity**:
+  - AWS: the SDK's default chain (`AWS_*` variables, `~/.aws` files of the
+    server's user and the profile the kubeconfig names, IRSA web identity,
+    EKS Pod Identity, ECS, EC2 instance profile). A `--role-arn` in the
+    kubeconfig is assumed on top.
+  - GCP: Application Default Credentials (`GOOGLE_APPLICATION_CREDENTIALS`,
+    gcloud's ADC file, GKE Workload Identity or the VM's service account).
+  - Azure: `kubelogin --login spn` uses the `AZURE_*` variables, `msi` the
+    managed identity, `workloadidentity` Azure Workload Identity; the
+    interactive modes (`devicecode`, `azurecli`, …) fall back to those
+    three in that order. The Azure CLI is never run.
+
+**Security: an administrator can make KubeBench use the server's ambient
+cloud identity for any cluster they add**, simply by pasting a kubeconfig
+with one of these stanzas. Give that identity only the cloud access
+KubeBench should have (for EKS, also an access entry or `aws-auth` mapping
+with the Kubernetes permissions you intend), or leave it without one and
+use per-cluster credentials.
+
+In Kubernetes, bind the chart's ServiceAccount to a cloud identity with
+`serviceAccount.annotations` (and `podLabels` for Azure):
+
+```yaml
+# EKS: IAM roles for service accounts (IRSA)
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/kubebench
+# (EKS Pod Identity needs no annotation: create a pod identity association
+#  for the ServiceAccount instead.)
+
+# GKE: Workload Identity
+serviceAccount:
+  annotations:
+    iam.gke.io/gcp-service-account: kubebench@my-project.iam.gserviceaccount.com
+
+# AKS: Azure Workload Identity
+serviceAccount:
+  annotations:
+    azure.workload.identity/client-id: 00000000-0000-0000-0000-000000000000
+podLabels:
+  azure.workload.identity/use: "true"
+```
+
+On a VM, the instance profile, the VM's service account or its managed
+identity serve the same purpose; environment variables go into
+`/etc/kubebench/kubebench.env`.
+
 ## Configuration
 
 KubeBench reads its configuration from the environment once at startup and
@@ -230,7 +298,7 @@ refuses to start with an invalid value (every problem is reported at once).
 | `KUBEBENCH_SESSION_TTL` | `168h` | Session lifetime (Go duration) |
 | `KUBEBENCH_AUDIT_RETENTION_DAYS` | `90` | Audit rows older than this are pruned daily (`0` = keep forever) |
 | `KUBEBENCH_ALLOW_PATH_KUBECONFIG` | `true` outside a cluster, `false` inside | Allow adding clusters by a path on the server |
-| `KUBEBENCH_ALLOW_KUBECONFIG_EXEC` | `false` | Let pasted kubeconfigs run exec credential plugins (`aws eks get-token`, `kubelogin`, …) and auth providers and read files on the server. **Every admin can then run commands as the server's user**; add such clusters by path instead where possible |
+| `KUBEBENCH_ALLOW_KUBECONFIG_EXEC` | `false` | Let pasted kubeconfigs run exec credential plugins and auth providers and read files on the server (the EKS, GKE and AKS plugins need no opt-in: see [Cloud clusters](#cloud-clusters-eks-aks-gke)). **Every admin can then run commands as the server's user**; add such clusters by path instead where possible |
 | `KUBECONFIG` | (unset) | Seeds the cluster inventory on the first start; a list (`a:b`) is merged like kubectl does |
 | `KUBEBENCH_NAMESPACE` | in a pod: its namespace | The namespace KubeBench runs in; deleting a namespace of that name from KubeBench is refused unless forced |
 | `KUBEBENCH_UPDATE_MODE` | `stable` | Update check against GitHub releases: `stable`, `prerelease` (also prereleases) or `off` (no requests; use it for air-gapped installs). Administrators can change it in Settings > Updates; see [Update checks](#update-checks) |

@@ -10,6 +10,8 @@ import { Dialog } from '@/shared/Dialog'
 import { ErrorNotice } from '@/shared/ErrorNotice'
 import { Checkbox, Field, Select, TextInput } from '@/shared/form'
 import { notify } from '@/shared/notify'
+import { CloudCredentialsFields } from './CloudCredentialsFields'
+import { credentialProblems, emptyDraft, modesFor, toCredentials } from './cloudCredentials'
 import { CLUSTERS_NS } from './namespace'
 
 const ENVIRONMENTS: readonly ClusterEnvironment[] = ['', 'development', 'staging', 'production']
@@ -26,6 +28,11 @@ export function EditClusterDialog({ cluster, onClose }: { cluster: ClusterEntry 
   const [name, setName] = useState(cluster.name)
   const [environment, setEnvironment] = useState<ClusterEnvironment>(cluster.environment ?? '')
   const [readOnly, setReadOnly] = useState(Boolean(cluster.readOnly))
+  // Cloud credentials (design §7.12) apply to kubeconfigs that sign in to EKS, GKE or AKS.
+  const stored = cluster.cloudCredentials
+  const cloudSignIn = Boolean(cluster.cloudAuth || stored)
+  const [credentials, setCredentials] = useState(() => emptyDraft(stored ? 'keep' : 'server'))
+  const [attempted, setAttempted] = useState(false)
   const [nameTaken, setNameTaken] = useState(false)
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState<unknown>(null)
@@ -37,13 +44,18 @@ export function EditClusterDialog({ cluster, onClose }: { cluster: ClusterEntry 
       : nameTaken
         ? t('form.errors.nameTaken')
         : null
+  const credentialIssues = credentialProblems(t, credentials)
 
   const submit = async () => {
-    if (nameError) return
+    setAttempted(true)
+    if (nameError || Object.keys(credentialIssues).length > 0) return
     const update: ClusterUpdate = {}
     if (trimmed !== cluster.name) update.name = trimmed
     if (environment !== (cluster.environment ?? '')) update.environment = environment
     if (readOnly !== Boolean(cluster.readOnly)) update.readOnly = readOnly
+    const nextCredentials = toCredentials(credentials)
+    // "Server identity" only changes something when credentials are stored.
+    if (nextCredentials || (nextCredentials === null && stored)) update.credentials = nextCredentials
     if (Object.keys(update).length === 0) {
       onClose()
       return
@@ -112,6 +124,16 @@ export function EditClusterDialog({ cluster, onClose }: { cluster: ClusterEntry 
         label={t('form.readOnly')}
         description={t('form.readOnlyHelp')}
       />
+      {cloudSignIn && (
+        <CloudCredentialsFields
+          draft={credentials}
+          onChange={setCredentials}
+          modes={modesFor(cluster.cloudAuth, stored ? ['keep', 'server'] : ['server'])}
+          problems={attempted ? credentialIssues : {}}
+          disabled={busy}
+          stored={stored}
+        />
+      )}
       <ErrorNotice error={failure} />
     </Dialog>
   )

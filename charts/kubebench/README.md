@@ -202,7 +202,7 @@ kubectl -n kubebench delete pvc/kubebench-data secret/kubebench-auth
 | `extraEnvFrom` | `[]` | Extra `envFrom` sources. |
 | `serviceAccount.create` | `true` | Create the ServiceAccount. |
 | `serviceAccount.name` | `""` | Name; defaults to the fullname (or `default` when not created). |
-| `serviceAccount.annotations` | `{}` | Annotations, e.g. for workload identity. |
+| `serviceAccount.annotations` | `{}` | Annotations, e.g. for workload identity: the cloud identity KubeBench signs in to EKS, GKE and AKS clusters with ([Cloud clusters](../../docs/deployment.md#cloud-clusters-eks-aks-gke)). |
 | `serviceAccount.automount` | `true` | Mount the token; KubeBench needs it to manage this cluster. |
 | `rbac.create` | `true` | Create the ClusterRoleBinding (and ClusterRole for `read-only`/`custom`). |
 | `rbac.preset` | `cluster-admin` | `cluster-admin`, `read-only` or `custom` (see [RBAC presets](#rbac-presets)). |

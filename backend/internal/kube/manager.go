@@ -54,3 +54,15 @@ func (m *Manager) Drop(clusterID int64) {
 		delete(m.runtimes, clusterID)
 	}
 }
+
+// Peek returns the cached runtime of cluster when one is built for its
+// current record, without building one (e.g. to show what is known about
+// clusters nobody uses right now).
+func (m *Manager) Peek(cluster *store.Cluster) *Runtime {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if rt, ok := m.runtimes[cluster.ID]; ok && rt.Cluster == *cluster {
+		return rt
+	}
+	return nil
+}

@@ -24,7 +24,8 @@
     "role": "Rolünüz",
     "server": "API sunucusu",
     "status": "Durum",
-    "actions": "Eylemler"
+    "actions": "Eylemler",
+    "platform": "Platform"
   },
   "table": {
     "loading": "Cluster'lar yükleniyor…",
@@ -108,7 +109,7 @@
       "address": "Yalnızca API adresi (yer imi)"
     },
     "sourceHelp": {
-      "content": "Sunucu kubeconfig'i saklar. Sertifikaları ve token'ları içine gömün: dosyalara veya kimlik bilgisi eklentilerine yapılan başvurulara izin verilmeyebilir.",
+      "content": "Sunucu kubeconfig'i saklar. Sertifikaları ve token'ları içine gömün: dosyalara veya kimlik bilgisi eklentilerine yapılan başvurulara izin verilmeyebilir. EKS, GKE ve AKS eklentilerine izin verilir: KubeBench bunlara kendisi oturum açar.",
       "path": "Sunucu dosyayı bir kez okur ve içeriğini saklar.",
       "address": "Yalnızca adresi hatırlar; KubeBench bir yer imine bağlanamaz."
     },
@@ -118,5 +119,50 @@
     "address": "API sunucusu adresi",
     "context": "Context",
     "contextHelp": "Kubeconfig'in geçerli context'ini kullanmak için boş bırakın."
+  },
+  "platform": {
+    "unknownHint": "Biri cluster'a bağlandığında algılanır."
+  },
+  "credentials": {
+    "label": "Bulut oturumu",
+    "modes": {
+      "keep": "Kayıtlı kimlik bilgilerini koru",
+      "keepStored": "Kayıtlı {{provider}} kimlik bilgilerini koru",
+      "server": "Sunucunun bulut kimliği",
+      "aws-keys": "AWS erişim anahtarı",
+      "aws-profile": "AWS profili",
+      "gcp": "GCP service account anahtarı",
+      "azure": "Azure service principal"
+    },
+    "help": {
+      "keep": "Kayıtlı {{provider}} kimlik bilgileri olduğu gibi kalır. Bir daha gösterilmezler.",
+      "server": "EKS, GKE ve AKS kubeconfig'leri KubeBench sunucusunun kendi bulut kimliğiyle (pod ya da VM kimliği, ortam değişkenleri) oturum açar. Diğer kubeconfig'ler kendi kimlik bilgilerini kullanır.",
+      "aws-keys": "aws eks get-token ya da aws-iam-authenticator çalıştıran bir kubeconfig için IAM erişim anahtarı. Cluster'la birlikte saklanır ve bir daha gösterilmez.",
+      "aws-profile": "KubeBench sunucusunun AWS yapılandırma dosyalarındaki bir profil.",
+      "gcp": "gke-gcloud-auth-plugin kullanan bir kubeconfig için service account anahtar dosyası (JSON). Cluster'la birlikte saklanır ve bir daha gösterilmez.",
+      "azure": "kubelogin kullanan bir kubeconfig için client secret'lı bir service principal. Cluster'la birlikte saklanır ve bir daha gösterilmez."
+    },
+    "providers": {
+      "aws": "AWS",
+      "gcp": "GCP",
+      "azure": "Azure"
+    },
+    "accessKeyId": "Erişim anahtarı kimliği",
+    "secretAccessKey": "Gizli erişim anahtarı",
+    "sessionToken": "Oturum token'ı",
+    "sessionTokenHelp": "Yalnızca geçici kimlik bilgileri için.",
+    "profile": "Profil adı",
+    "serviceAccountJson": "Service account anahtarı (JSON)",
+    "loadKey": "Anahtar dosyası yükle…",
+    "tenantId": "Tenant kimliği",
+    "clientId": "Client kimliği",
+    "clientSecret": "Client secret",
+    "errors": {
+      "required": "Bu alan zorunludur.",
+      "profile": "Bir profil adı girin (harfler, rakamlar ve _.+=,@-).",
+      "serviceAccount": "Bir service account anahtarı yapıştırın: \"type\": \"service_account\" içeren JSON.",
+      "guid": "00000000-0000-0000-0000-000000000000 gibi bir GUID girin.",
+      "fileTooLarge": "{{name}} bir service account anahtarı olamayacak kadar büyük."
+    }
   }
 }

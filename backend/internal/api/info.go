@@ -20,6 +20,8 @@ type clusterSummary struct {
 	Name        string `json:"name"`
 	Environment string `json:"environment"`
 	ReadOnly    bool   `json:"readOnly"`
+	// Platform is null until the cluster's runtime is built (§7.12).
+	Platform *platformView `json:"platform"`
 }
 
 type features struct {
@@ -73,7 +75,11 @@ func (s *Server) handleInfo(w http.ResponseWriter, r *http.Request, c *call) {
 		return
 	}
 	info.Server = rt.Config.Host
-	info.Capabilities = probedCaps(r.Context(), rt)
+	// The probe and cloud detection run side by side: one deadline for both.
+	wait, cancel := context.WithTimeout(r.Context(), probeWait)
+	defer cancel()
+	info.Capabilities = probedCaps(wait, rt)
+	info.Cluster.Platform = activePlatform(wait, rt)
 	plugin.WriteJSON(w, info)
 }
 

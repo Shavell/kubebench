@@ -266,7 +266,9 @@ error text. Pruned per `KUBEBENCH_AUDIT_RETENTION_DAYS`.
   "user": "alice", "role": "admin",
   "mustChangePassword": false,
   "context": "k3s-homelab", "server": "https://10.0.0.1:6443",
-  "cluster": {"id": 1, "name": "k3s-homelab", "environment": "production", "readOnly": false},
+  "cluster": {"id": 1, "name": "k3s-homelab", "environment": "production", "readOnly": false,
+              "platform": {"provider": "k3s", "cloud": "", "version": "v1.35.5+k3s1",
+                           "support": {"status": "supported", "endDate": "2027-02-28", "basis": "kubernetes"}, "detected": true}},
   "permissions": {"role": "admin", "canRead": true, "canWrite": true, "canExec": true, "isAdmin": true, "readOnly": false},
   "capabilities": {"crds": true, "helm": true, "exec": true},
   "features": {"pathKubeconfig": true, "externalPlugins": true},
@@ -309,9 +311,10 @@ route answers `409 no_cluster` instead. Without any usable cluster,
 ### 4.3 Clusters
 
 - `GET /api/clusters` entries gain `"readOnly"`, `"environment"`, `"role"`
-  (the caller's effective role on it).
-- `PATCH /api/clusters/{id}` (admin) `{"name"?, "readOnly"?, "environment"?}`.
-- `POST /api/clusters` (admin) `{"name", "content"? | "path"? | "address"?, "context"?}`
+  (the caller's effective role on it) and `"platform"` (§7.12; admins also
+  `"cloudAuth"`, `"cloudCredentials"`).
+- `PATCH /api/clusters/{id}` (admin) `{"name"?, "readOnly"?, "environment"?, "credentials"?}` (§7.12).
+- `POST /api/clusters` (admin) `{"name", "content"? | "path"? | "address"?, "context"?, "credentials"?}`
   → `{"ok": true, "id"}`. With `path` it is rejected with `403 forbidden`
   unless `features.pathKubeconfig`. Unless `KUBEBENCH_ALLOW_KUBECONFIG_EXEC`
   is set, pasted kubeconfigs whose selected context reads server-side files
@@ -319,7 +322,11 @@ route answers `409 no_cluster` instead. Without any usable cluster,
   plugins or auth providers are rejected the same way: pasted content is
   untrusted, and would otherwise run commands or read files as the server's
   account. A kubeconfig added by path is one of the server's own files and
-  may use them. Kubeconfigs added by path are stored flattened (referenced
+  may use them. The EKS, GKE and AKS exec plugins (`aws eks get-token`,
+  `aws-iam-authenticator`, `gke-gcloud-auth-plugin`, `kubelogin get-token`)
+  are exempt: they are never run but replaced in process (§7.12), with the
+  server's ambient cloud identity or per-cluster `"credentials"`.
+  Kubeconfigs added by path are stored flattened (referenced
   certificate files embedded).
 
 ### 4.4 Resources (fixes)
@@ -1360,6 +1367,161 @@ like the workbench plugin, strings in its own `updates` namespace):
 - Air-gapped installs use `off`: `install.sh --offline` writes
   `KUBEBENCH_UPDATE_MODE=off`, the offline bundle README says so, and the
   chart has `config.updateMode` (default `stable`).
+
+### 7.12 Cloud providers (core)
+
+KubeBench recognises where a cluster runs, warns when its Kubernetes
+version leaves the provider's support window, and signs in to EKS, GKE and
+AKS in process instead of running the clouds' exec credential plugins.
+
+**Detection** (`backend/internal/cloud`, read):
+
+- Signals: the API server URL, the server's `gitVersion` (`/version`) and
+  up to 20 nodes (`spec.providerID`, labels). A signal the credential may
+  not read (nodes) is skipped.
+- `provider`, strongest signal first: OpenShift (node label
+  `node.openshift.io/os_id`; OpenShift keeps its own lifecycle on a cloud,
+  e.g. ROSA/ARO) → a managed service's API host (`*.eks.amazonaws.com[.cn]`
+  → `eks`, `*.azmk8s.io` → `aks`, `*.gke.goog` / `container.googleapis.com`
+  → `gke`, `*.k8s.ondigitalocean.com` → `doks`, `*.linodelke.net` → `lke`,
+  `*.ovh.net` / `*.ovh.cloud` → `ovh`), `gitVersion` suffix (`-eks-`,
+  `-gke.`) or node label (`eks.amazonaws.com/nodegroup`,
+  `eks.amazonaws.com/compute-type`, `alpha.eksctl.io/cluster-name`,
+  `kubernetes.azure.com/cluster`, `kubernetes.azure.com/agentpool`,
+  `cloud.google.com/gke-nodepool`, `cloud.google.com/gke-os-distribution`,
+  `doks.digitalocean.com/node-pool`, `lke.linode.com/pool-id`) →
+  `digitalocean://` / `linode://` providerIDs → k3s / RKE2 (`+k3s` /
+  `+rke2` in `gitVersion`, `k3s://` / `rke2://` providerIDs, instance type
+  `k3s`) → `kubernetes`.
+- `cloud`: the infrastructure from a providerID (`aws://` → `aws`,
+  `azure://` → `azure`, `gce://` → `gcp`, `digitalocean`, `linode`) or the
+  managed service (`ovh`). A providerID alone never makes a cluster EKS,
+  AKS or GKE: self-managed clusters (kops, kubeadm) use them too and do not
+  follow the managed services' support windows; the UI shows the cloud
+  instead.
+- Cached per runtime: detected in the background when the runtime is
+  built (next to the capability probe), refreshed in the background when
+  read more than 1 h later (upgrades), and anew whenever the runtime is
+  rebuilt.
+
+**Version support**: a bundled, dated table (`cloud/versions.go`, with its
+source URLs and "as of" date in a comment) of the date standard support of
+each minor (1.29–1.37 as of 2026-11-15) ends: upstream (end of patch
+support), EKS (end of standard support), AKS (end of life, no LTS), GKE
+(end of standard support). Extended/LTS support is not assumed (it costs
+extra or must be opted into). `eks`/`aks`/`gke` use their table, OpenShift
+none, everything else (k3s, RKE2, DOKS, LKE, OVH, kubernetes) upstream's.
+`status`: `end-of-life` after the end date (or for a minor older than
+the table), `ending-soon` within 90 days of it, `supported` before, else
+`unknown` (no table, a minor newer than the table, unparseable version).
+`basis` names the table used.
+
+**API**:
+
+- `GET /api/clusters` entries gain `"platform": {"provider","cloud",
+  "version","support":{"status","endDate","basis"},"detected"}`. Listing
+  never connects to a cluster: a cluster whose runtime is not built (or
+  not yet detected) is described from its URL alone (`detected: false`,
+  `version: ""`, status `unknown`). Admins also get `"cloudAuth"`
+  (`aws`|`gcp`|`azure` when the kubeconfig user's exec stanza is handled
+  in process) and `"cloudCredentials"` (the provider of stored per-cluster
+  credentials; absent = the server's own identity). Credentials are never
+  returned.
+- `/api/info` `cluster` gains the same `"platform"`; `/api/info` waits
+  (≤3 s, the same deadline as the capability probe) for the first
+  detection.
+- `POST /api/clusters` accepts `"credentials"` (below); `PATCH
+  /api/clusters/{id}` accepts `"credentials"`: an object replaces them,
+  `null` removes them, absent keeps them. Both answer `400 bad_request`
+  when they are incomplete, for another cloud than the kubeconfig's
+  recognised stanza, or for a cluster that is not a kubeconfig. Audit
+  details carry the provider only: `{"source":"kubeconfig","credentials":"aws"}`,
+  `{"credentials":"aws"|null|"invalid"}`.
+
+**In-process credentials** (`backend/internal/cloudauth`). Recognised exec
+stanzas (by the command's base name; anything else stays an exec plugin
+gated by `KUBEBENCH_ALLOW_KUBECONFIG_EXEC`, §4.3):
+
+| Stanza | Read from it |
+|---|---|
+| `aws [global options] eks get-token --cluster-name N` (or `--cluster-id`) | `--region`, `--profile`, `--role-arn`; env `AWS_REGION`, `AWS_DEFAULT_REGION`, `AWS_PROFILE` |
+| `aws-iam-authenticator token -i N` | `-r/--role`, `--region`; the same env |
+| `gke-gcloud-auth-plugin` | nothing |
+| `kubelogin get-token` (`--login` other than `ropc`) | `--server-id` (default `6dae42f8-4368-4678-94ff-3960e28e3630`), `--login`, `--client-id`, `--tenant-id`, `--environment` |
+
+No other environment variable or file path of a stanza is used. The
+stanza is removed from the rest config (client-go never runs it) and a
+transport wrapper adds `Authorization: Bearer` from a token source cached
+until 1 min before expiry (a `401` drops the cached token). Identities
+are resolved on the first request, never while the runtime is built.
+
+- **EKS**: AWS SDK v2 credentials — per-cluster access key (+ session
+  token) or profile, else the stanza's profile, else the default chain
+  (environment, shared files, web identity/IRSA, EKS Pod Identity/ECS,
+  EC2 instance metadata); a stanza role is assumed on top through STS.
+  Token: SigV4-presigned `GET https://sts.<region>.amazonaws.com/?Action=GetCallerIdentity&Version=2011-06-15`
+  with `X-Amz-Expires=60` and the signed header `x-k8s-aws-id: <cluster>`
+  (global `sts.amazonaws.com`/`us-east-1` without a region; `.com.cn` for
+  `cn-` regions), as `k8s-aws-v1.` + base64url (unpadded) of the URL —
+  aws-iam-authenticator's algorithm; valid 15 min.
+- **GKE**: `golang.org/x/oauth2/google`, scope `cloud-platform` — a
+  per-cluster service-account key (type `service_account` only: external
+  account and impersonation files can read files, call URLs or run
+  commands), else Application Default Credentials
+  (`GOOGLE_APPLICATION_CREDENTIALS`, gcloud's ADC file, the metadata
+  server: GKE Workload Identity or the VM's account).
+- **AKS**: `azidentity`, scope `<server-id>/.default`, authority from
+  `--environment` (public, China, US Government) — per-cluster service
+  principal (tenant id, client id, client secret), else `--login spn` →
+  `EnvironmentCredential` (`AZURE_*`), `msi` → managed identity (the
+  stanza's `--client-id` selects a user-assigned one), `workloadidentity`
+  → Azure Workload Identity; `devicecode`, `interactive`, `azurecli`,
+  `azd` (and no `--login`) → the ambient chain environment → workload
+  identity → managed identity. The Azure CLI is never run (it is not in
+  the image).
+- **Per-cluster credentials**: `{"provider":"aws","accessKeyId","secretAccessKey","sessionToken"?}`
+  or `{"provider":"aws","profile"}`, `{"provider":"gcp","serviceAccountJson"}`,
+  `{"provider":"azure","tenantId","clientId","clientSecret"}`. Stored with
+  the cluster record (`clusters.credentials`, store migration v4) like
+  the kubeconfig (the database is `0600`), write-only, changing them
+  rebuilds the runtime.
+- **Security**: only admins add and edit clusters (unchanged). **An admin
+  can make the server sign in with its ambient cloud identity** (the
+  pod's IRSA role, GKE or Azure workload identity, the VM's instance
+  profile/managed identity, the server's environment and `~/.aws`/gcloud
+  files, including the AWS profile named in a stanza) for any cluster
+  they add, by pasting a kubeconfig with a matching stanza. Grant that
+  identity only the cloud permissions KubeBench should have, or give
+  clusters per-cluster credentials. Documented in `docs/deployment.md`
+  (Cloud clusters) with the chart's `serviceAccount.annotations` /
+  `podLabels` for IRSA (`eks.amazonaws.com/role-arn`), GKE Workload
+  Identity (`iam.gke.io/gcp-service-account`) and Azure Workload Identity
+  (`azure.workload.identity/client-id` + pod label
+  `azure.workload.identity/use: "true"`).
+
+**Frontend**:
+
+- Types `ClusterPlatform`, `VersionSupport`, `CloudCredentials`;
+  `ClusterEntry.platform/cloudAuth/cloudCredentials`,
+  `ActiveCluster.platform`; `addCluster({…, credentials})`,
+  `ClusterUpdate.credentials` (object or `null`).
+- Shared `src/shared/cloud`: `ProviderBadge` (a text badge — "EKS",
+  "AKS", "GKE", "DOKS", "LKE", "OVH", "OpenShift", "RKE2", "k3s", or the
+  cloud — "AWS", "Azure", "GCP", … — for a generic cluster on one; none
+  for plain Kubernetes; no brand logos) with the version and support in
+  its tooltip, and `VersionSupportNotice`. Strings in the platform
+  namespace (`cloud.*`).
+- Badges: Clusters view (column "Platform" with the version), the cluster
+  switcher entries and the status-bar cluster item.
+- Cluster overview: a warning for `end-of-life` and a notice for
+  `ending-soon` (end date, provider table), nothing otherwise.
+- Add cluster dialog (kubeconfig sources): "Cloud credentials" — server
+  identity (default) / AWS access key / AWS profile / GCP service-account
+  key (paste or load a file) / Azure service principal; Edit dialog: the
+  sign-in in use (`cloudAuth`), the stored kind, replace or remove (secret
+  fields are never pre-filled).
+- Mock: deterministic platforms per mock cluster (k3s supported, AKS
+  ending soon, EKS end of life), no clock in the data.
 
 ## 8. Distribution
 

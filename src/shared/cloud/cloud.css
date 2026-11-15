@@ -1,0 +1,66 @@
+/* Provider badge: an outlined text tag (no brand logos). */
+.kb-provider {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 6px;
+  border: 1px solid color-mix(in srgb, var(--vscode-descriptionForeground) 55%, transparent);
+  border-radius: 3px;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--vscode-foreground);
+}
+.kb-provider__version {
+  font-weight: 400;
+  font-family: var(--font-mono);
+  color: var(--vscode-descriptionForeground);
+}
+.kb-provider--warning {
+  border-color: var(--status-pending);
+}
+.kb-provider--error {
+  border-color: var(--status-failed);
+}
+/* In the status bar the badge follows the bar's (environment) colours. */
+.kb-provider--compact,
+.kb-provider--compact.kb-provider--warning,
+.kb-provider--compact.kb-provider--error {
+  padding: 0 4px;
+  line-height: 14px;
+  border-color: currentColor;
+  color: inherit;
+}
+
+/* Version support notice on the cluster overview. */
+.kb-support-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid;
+  border-radius: 3px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.kb-support-notice--warning {
+  border-color: var(--status-pending);
+  background: color-mix(in srgb, var(--status-pending) 12%, transparent);
+}
+.kb-support-notice--warning .codicon {
+  color: var(--status-pending);
+}
+.kb-support-notice--error {
+  border-color: var(--status-failed);
+  background: color-mix(in srgb, var(--status-failed) 12%, transparent);
+}
+.kb-support-notice--error .codicon {
+  color: var(--status-failed);
+}
+.kb-support-notice__title {
+  font-weight: 600;
+}
+.kb-support-notice__hint {
+  color: var(--vscode-descriptionForeground);
+}

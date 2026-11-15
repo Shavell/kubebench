@@ -6,8 +6,9 @@ import type {
   SessionProvider,
   UsersProvider,
 } from '../providers'
-import type { AppUser, AuditPage, PluginCatalog } from '../types'
+import type { AppUser, AuditPage, ClusterEntry, PluginCatalog } from '../types'
 import { fetchServerInfo } from './info'
+import { parsePlatform } from './platform'
 
 /**
  * Inventory, users, session, audit and plugin management. Go encodes empty
@@ -16,9 +17,10 @@ import { fetchServerInfo } from './info'
 
 export function createApiInventory(): InventoryProvider {
   return {
-    listClusters: () => apiGet('/clusters'),
-    addCluster: async ({ name, kubeconfigPath, content, address, context }) => {
-      await apiPost('/clusters', { name, path: kubeconfigPath, content, address, context })
+    listClusters: async () =>
+      (await apiGet<ClusterEntry[]>('/clusters')).map((c) => ({ ...c, platform: parsePlatform(c.platform) })),
+    addCluster: async ({ name, kubeconfigPath, content, address, context, credentials }) => {
+      await apiPost('/clusters', { name, path: kubeconfigPath, content, address, context, credentials })
     },
     removeCluster: async (name) => {
       await apiDelete('/clusters', { name })

@@ -5,6 +5,7 @@ import { refreshData, useProviderQuery, useProviders } from '@/data/DataContext'
 import { useDataMode } from '@/data/mode'
 import type { ClusterEntry } from '@/data/types'
 import { Badge } from '@/shared/Badge'
+import { ProviderBadge } from '@/shared/cloud/ProviderBadge'
 import { Button } from '@/shared/Button'
 import { ConfirmDialog } from '@/shared/ConfirmDialog'
 import { EmptyState } from '@/shared/EmptyState'
@@ -101,6 +102,19 @@ export function ClustersPage() {
       render: (c) => (c.readOnly ? <ReadOnlyBadge /> : <span className="clusters__muted">{t('readOnly.writable')}</span>),
     },
     { key: 'role', header: t('columns.role'), render: (c) => <RoleBadge role={c.role} /> },
+    {
+      key: 'platform',
+      header: t('columns.platform'),
+      sortValue: (c) => c.platform?.provider ?? '',
+      render: (c) =>
+        c.platform && (c.platform.provider !== 'kubernetes' || c.platform.cloud) ? (
+          <ProviderBadge platform={c.platform} showVersion />
+        ) : (
+          <span className="clusters__muted" title={c.platform?.version ? undefined : t('platform.unknownHint')}>
+            {c.platform?.version || '—'}
+          </span>
+        ),
+    },
     {
       key: 'server',
       header: t('columns.server'),

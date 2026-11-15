@@ -55,6 +55,9 @@ serviceAccount:
   create: true
   # Defaults to the release fullname (or "default" when create is false).
   name: ""
+  # Annotations, e.g. a cloud identity KubeBench signs in to EKS/GKE/AKS
+  # clusters with (eks.amazonaws.com/role-arn, iam.gke.io/gcp-service-account,
+  # azure.workload.identity/client-id); see docs/deployment.md#cloud-clusters-eks-aks-gke.
   annotations: {}
   # The in-cluster ServiceAccount token is how KubeBench manages this cluster.
   automount: true

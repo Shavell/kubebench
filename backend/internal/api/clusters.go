@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"sort"
@@ -10,6 +11,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
+	"kubebench/internal/cloudauth"
 	"kubebench/internal/kube"
 	"kubebench/internal/plugin"
 	"kubebench/internal/store"
@@ -30,6 +32,14 @@ type clusterView struct {
 	Role        string `json:"role"` // the caller's effective role on the cluster
 	// KubeconfigPath labels where the credentials come from (v0.4 field).
 	KubeconfigPath string `json:"kubeconfigPath,omitempty"`
+	// Platform is the detected provider and version support (§7.12).
+	Platform *platformView `json:"platform"`
+	// Admins only: the cloud whose identity signs in to the cluster in
+	// process (aws, gcp, azure; "" for other credentials) and the provider
+	// of its stored per-cluster credentials ("" = the server's own
+	// identity). The credentials themselves are never returned.
+	CloudAuth        string `json:"cloudAuth,omitempty"`
+	CloudCredentials string `json:"cloudCredentials,omitempty"`
 }
 
 func describeCluster(uc *store.UserCluster, activeID *int64) clusterView {
@@ -73,7 +83,14 @@ func (s *Server) handleListClusters(w http.ResponseWriter, _ *http.Request, c *c
 	}
 	out := make([]clusterView, 0, len(clusters))
 	for i := range clusters {
-		out = append(out, describeCluster(&clusters[i], c.user.ActiveClusterID))
+		view := describeCluster(&clusters[i], c.user.ActiveClusterID)
+		cluster := &clusters[i].Cluster
+		view.Platform = s.platformOf(cluster, view.Server)
+		if c.user.IsAdmin() {
+			view.CloudAuth = cloudAuthOf(cluster)
+			view.CloudCredentials = cloudauth.ProviderOf(cluster.Credentials)
+		}
+		out = append(out, view)
 	}
 	plugin.WriteJSON(w, out)
 }
@@ -88,6 +105,8 @@ func (s *Server) handleAddCluster(w http.ResponseWriter, r *http.Request, c *cal
 		Path    string `json:"path"`
 		Address string `json:"address"`
 		Context string `json:"context"`
+		// Per-cluster cloud credentials (§7.12), write-only.
+		Credentials json.RawMessage `json:"credentials"`
 	}
 	if strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
 		if err := decodeJSON(w, r, &body); err != nil {
@@ -127,13 +146,24 @@ func (s *Server) handleAddCluster(w http.ResponseWriter, r *http.Request, c *cal
 		writeErr(w, badRequest("kubeconfig content, path or API address is required"))
 		return
 	}
-	c.setAudit("", auditJSON(map[string]string{"source": cluster.Source}))
+	audit := map[string]string{"source": cluster.Source}
+	c.setAudit("", auditJSON(audit))
 
 	if cluster.Source == store.SourceKubeconfig {
 		if err := s.checkKubeconfig(cluster.Kubeconfig, cluster.Context, body.Content != ""); err != nil {
 			writeErr(w, err)
 			return
 		}
+	}
+	credentials, _, err := decodeCredentials(body.Credentials, &cluster)
+	if err != nil {
+		writeErr(w, err)
+		return
+	}
+	if credentials != "" {
+		cluster.Credentials = credentials
+		audit["credentials"] = cloudauth.ProviderOf(credentials) // the provider only, never the values
+		c.setAudit("", auditJSON(audit))
 	}
 	id, err := s.store.AddCluster(cluster)
 	if err != nil {
@@ -165,6 +195,8 @@ func (s *Server) checkKubeconfig(content, contextName string, pasted bool) error
 	if !pasted || s.cfg.AllowKubeconfigExec {
 		return nil
 	}
+	// The clouds' exec plugins are not run but replaced in process
+	// (§7.12), so they need no exception.
 	if refs := serverSideReferences(kc.Clusters[ctx.Cluster], kc.AuthInfos[ctx.AuthInfo]); len(refs) > 0 {
 		return errorf(http.StatusForbidden, plugin.CodeForbidden,
 			"the kubeconfig uses %s, which this server does not allow in pasted kubeconfigs (KUBEBENCH_ALLOW_KUBECONFIG_EXEC); embed the credentials as *-data fields or a token",
@@ -187,7 +219,7 @@ func serverSideReferences(cluster *clientcmdapi.Cluster, user *clientcmdapi.Auth
 		if user.TokenFile != "" {
 			refs = append(refs, "a token file")
 		}
-		if user.Exec != nil {
+		if user.Exec != nil && cloudauth.ProviderFor(user) == "" {
 			refs = append(refs, "an exec credential plugin")
 		}
 		if user.AuthProvider != nil {
@@ -245,6 +277,9 @@ func (s *Server) handleUpdateCluster(w http.ResponseWriter, r *http.Request, c *
 		Name        *string `json:"name"`
 		ReadOnly    *bool   `json:"readOnly"`
 		Environment *string `json:"environment"`
+		// Per-cluster cloud credentials (§7.12): an object replaces them,
+		// null removes them, absent leaves them.
+		Credentials json.RawMessage `json:"credentials"`
 	}
 	if err := decodeJSON(w, r, &body); err != nil {
 		writeErr(w, err)
@@ -262,9 +297,22 @@ func (s *Server) handleUpdateCluster(w http.ResponseWriter, r *http.Request, c *
 	if body.Environment != nil {
 		changes["environment"] = *body.Environment
 	}
+	credentials, removeCredentials, credErr := decodeCredentials(body.Credentials, cluster)
+	switch {
+	case credentials != "":
+		update.Credentials, changes["credentials"] = &credentials, cloudauth.ProviderOf(credentials)
+	case removeCredentials:
+		update.Credentials, changes["credentials"] = &credentials, nil
+	case credErr != nil: // audited as an attempt to change the credentials
+		changes["credentials"] = "invalid"
+	}
 	c.setAudit("cluster/"+cluster.Name, auditJSON(changes))
+	if credErr != nil {
+		writeErr(w, credErr)
+		return
+	}
 	if len(changes) == 0 {
-		writeErr(w, badRequest("nothing to update: send name, readOnly and/or environment"))
+		writeErr(w, badRequest("nothing to update: send name, readOnly, environment and/or credentials"))
 		return
 	}
 	if update.Name != nil {

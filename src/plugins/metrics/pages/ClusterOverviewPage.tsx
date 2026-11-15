@@ -1,8 +1,10 @@
 import { useTranslation } from 'react-i18next'
 import { useProviderQuery } from '@/data/DataContext'
 import { useSettingsStore } from '@/core/store/settingsStore'
+import { useDataMode } from '@/data/mode'
 import type { ResourceAllocation } from '@/data/types'
 import { formatNumber, formatPercent } from '@/i18n/format'
+import { VersionSupportNotice } from '@/shared/cloud/VersionSupportNotice'
 import { EmptyState } from '@/shared/EmptyState'
 import { StatTile } from '@/shared/charts/StatTile'
 import { UsageBar } from '@/shared/charts/UsageBar'
@@ -23,6 +25,7 @@ export function ClusterOverviewPage() {
   const memory = useProviderQuery((p) => p.metrics.clusterSeries('memory', minutes), [minutes])
   const network = useProviderQuery((p) => p.metrics.clusterSeries('network', minutes), [minutes])
   const fs = useProviderQuery((p) => p.metrics.clusterSeries('fs', minutes), [minutes])
+  const platform = useDataMode().cluster?.platform
 
   const stats = overview.data
   if (!stats) {
@@ -45,6 +48,7 @@ export function ClusterOverviewPage() {
     <div className="page">
       <Toolbar title={t('overview.title')} />
       <div className="metrics-page">
+        <VersionSupportNotice platform={platform} />
         <div className="metrics-tiles">
           <StatTile
             icon="server"

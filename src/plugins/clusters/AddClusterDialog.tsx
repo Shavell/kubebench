@@ -9,12 +9,17 @@ import { Dialog } from '@/shared/Dialog'
 import { ErrorNotice } from '@/shared/ErrorNotice'
 import { Field, Select, Textarea, TextInput } from '@/shared/form'
 import { notify } from '@/shared/notify'
+import { CloudCredentialsFields } from './CloudCredentialsFields'
+import { credentialProblems, emptyDraft, modesFor, toCredentials } from './cloudCredentials'
 import { CLUSTERS_NS } from './namespace'
 
 type Source = 'content' | 'path' | 'address'
 
 /** Kubeconfigs are small; anything bigger is almost certainly the wrong file. */
 const MAX_KUBECONFIG_BYTES = 1 << 20
+
+/** Any cloud: the server checks that the kubeconfig signs in to the one chosen. */
+const CREDENTIAL_MODES = modesFor(undefined, ['server'])
 
 /**
  * Admin: register a cluster from a pasted (or loaded) kubeconfig, a
@@ -32,6 +37,7 @@ export function AddClusterDialog({ onClose }: { onClose: () => void }) {
   const [path, setPath] = useState('')
   const [address, setAddress] = useState('')
   const [context, setContext] = useState('')
+  const [credentials, setCredentials] = useState(() => emptyDraft('server'))
   const [attempted, setAttempted] = useState(false)
   const [nameTaken, setNameTaken] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -49,6 +55,7 @@ export function AddClusterDialog({ onClose }: { onClose: () => void }) {
     path: source === 'path' && !path.trim() ? t('form.errors.path') : null,
     address: source === 'address' && !/^https?:\/\/\S+$/.test(address.trim()) ? t('form.errors.address') : null,
   }
+  const credentialIssues = source === 'address' ? {} : credentialProblems(t, credentials)
   const show = (problem: string | null) => (attempted || nameTaken ? problem : null)
 
   const loadFile = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -64,7 +71,7 @@ export function AddClusterDialog({ onClose }: { onClose: () => void }) {
 
   const submit = async () => {
     setAttempted(true)
-    if (Object.values(problems).some(Boolean)) return
+    if (Object.values(problems).some(Boolean) || Object.keys(credentialIssues).length > 0) return
     setBusy(true)
     setFailure(null)
     try {
@@ -74,6 +81,7 @@ export function AddClusterDialog({ onClose }: { onClose: () => void }) {
         kubeconfigPath: source === 'path' ? path.trim() : undefined,
         address: source === 'address' ? address.trim() : undefined,
         context: source !== 'address' && context.trim() ? context.trim() : undefined,
+        credentials: (source !== 'address' && toCredentials(credentials)) || undefined,
       })
     } catch (err) {
       setBusy(false)
@@ -168,6 +176,15 @@ export function AddClusterDialog({ onClose }: { onClose: () => void }) {
         <Field label={t('add.context')} help={t('add.contextHelp')}>
           <TextInput value={context} onChange={setContext} monospace disabled={busy} />
         </Field>
+      )}
+      {source !== 'address' && (
+        <CloudCredentialsFields
+          draft={credentials}
+          onChange={setCredentials}
+          modes={CREDENTIAL_MODES}
+          problems={attempted ? credentialIssues : {}}
+          disabled={busy}
+        />
       )}
       <ErrorNotice error={failure} />
     </Dialog>

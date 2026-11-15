@@ -18,6 +18,9 @@ type Cluster struct {
 	Address     string `json:"address,omitempty"`
 	ReadOnly    bool   `json:"readOnly"`
 	Environment string `json:"environment"` // "" | development | staging | production
+	// Credentials are per-cluster cloud credentials (cloudauth.Credentials
+	// as JSON, "" for none), never serialized.
+	Credentials string `json:"-"`
 }
 
 // UserCluster is a cluster visible to a user with the user's effective
@@ -35,12 +38,12 @@ type Assignment struct {
 	Role        string // ClusterRoleViewer | ClusterRoleOperator
 }
 
-const clusterColumns = `c.id, c.name, c.source, c.kubeconfig, c.context, c.address, c.read_only, c.environment`
+const clusterColumns = `c.id, c.name, c.source, c.kubeconfig, c.context, c.address, c.read_only, c.environment, c.credentials`
 
 func scanCluster(row interface{ Scan(...any) error }, extra ...any) (*Cluster, error) {
 	var c Cluster
 	var kubeconfig, context, address sql.NullString
-	dest := append([]any{&c.ID, &c.Name, &c.Source, &kubeconfig, &context, &address, &c.ReadOnly, &c.Environment}, extra...)
+	dest := append([]any{&c.ID, &c.Name, &c.Source, &kubeconfig, &context, &address, &c.ReadOnly, &c.Environment, &c.Credentials}, extra...)
 	if err := row.Scan(dest...); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
@@ -53,9 +56,9 @@ func scanCluster(row interface{ Scan(...any) error }, extra ...any) (*Cluster, e
 
 func (s *Store) AddCluster(c Cluster) (int64, error) {
 	res, err := s.db.Exec(
-		`INSERT INTO clusters (name, source, kubeconfig, context, address, read_only, environment)
-		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		c.Name, c.Source, c.Kubeconfig, c.Context, c.Address, boolInt(c.ReadOnly), c.Environment,
+		`INSERT INTO clusters (name, source, kubeconfig, context, address, read_only, environment, credentials)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		c.Name, c.Source, c.Kubeconfig, c.Context, c.Address, boolInt(c.ReadOnly), c.Environment, c.Credentials,
 	)
 	if err != nil {
 		return 0, conflictErr(err, "cluster %q", c.Name)
@@ -120,6 +123,7 @@ type ClusterUpdate struct {
 	Name        *string
 	ReadOnly    *bool
 	Environment *string
+	Credentials *string // "" removes them
 }
 
 func (s *Store) UpdateCluster(id int64, u ClusterUpdate) error {
@@ -133,6 +137,9 @@ func (s *Store) UpdateCluster(id int64, u ClusterUpdate) error {
 	}
 	if u.Environment != nil {
 		sets, args = append(sets, "environment = ?"), append(args, *u.Environment)
+	}
+	if u.Credentials != nil {
+		sets, args = append(sets, "credentials = ?"), append(args, *u.Credentials)
 	}
 	if len(sets) == 0 {
 		_, err := s.GetCluster(id)
