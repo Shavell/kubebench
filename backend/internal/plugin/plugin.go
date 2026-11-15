@@ -73,6 +73,13 @@ type Context struct {
 	// only known after the request body was read. The router already
 	// records every write, exec and admin mutation.
 	Audit func(action, target, detail string)
+	// SetAudit refines the router's row for this request (write, exec and
+	// admin mutations) once the handler knows what the body names, e.g.
+	// target "release/web/shop" and detail {"chart":"podinfo"}. Empty
+	// values keep the defaults derived from the URL; for requests that are
+	// not audited it does nothing. Never pass secrets: request bodies are
+	// not recorded for a reason (§3.4).
+	SetAudit func(target, detail string)
 }
 
 // KV is a plugin-scoped persistent key/value store.
