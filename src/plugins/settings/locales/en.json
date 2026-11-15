@@ -56,6 +56,10 @@
       "off": "Off",
       "every_one": "Every second",
       "every_other": "Every {{count}} seconds"
+    },
+    "liveUpdates": {
+      "label": "Live updates",
+      "help": "Refresh views as soon as the cluster changes. Resource types the server cannot watch are refreshed on a timer, at the auto refresh interval or every 30 seconds."
     }
   },
   "terminal": {

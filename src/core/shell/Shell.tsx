@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
+import { LiveUpdates } from '@/core/live/LiveUpdates'
 import { useLayoutStore } from '@/core/store/layoutStore'
 import { useSettingsStore } from '@/core/store/settingsStore'
-import { refreshData } from '@/data/DataContext'
 import { ContextMenuHost } from '@/shared/contextMenu'
 import { Toaster } from '@/shared/Toaster'
 import { ActivityBar } from './ActivityBar'
@@ -22,17 +22,10 @@ export function Shell() {
   const panelHeight = useLayoutStore((s) => s.panelHeight)
   const panelMaximized = useLayoutStore((s) => s.panelMaximized)
   const terminalFontSize = useSettingsStore((s) => s.terminalFontSize)
-  const autoRefreshSeconds = useSettingsStore((s) => s.autoRefreshSeconds)
 
   useEffect(() => {
     document.documentElement.style.setProperty('--terminal-font-size', `${terminalFontSize}px`)
   }, [terminalFontSize])
-
-  useEffect(() => {
-    if (!autoRefreshSeconds) return
-    const timer = setInterval(refreshData, autoRefreshSeconds * 1000)
-    return () => clearInterval(timer)
-  }, [autoRefreshSeconds])
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -75,6 +68,8 @@ export function Shell() {
       <TabCloseGuard />
       <SessionGuard />
       <Toaster />
+      {/* Live updates and the auto-refresh timer (design §7.10). */}
+      <LiveUpdates />
     </div>
   )
 }

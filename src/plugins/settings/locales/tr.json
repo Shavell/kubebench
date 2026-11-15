@@ -56,6 +56,10 @@
       "off": "Kapalı",
       "every_one": "Her saniye",
       "every_other": "{{count}} saniyede bir"
+    },
+    "liveUpdates": {
+      "label": "Canlı güncelleme",
+      "help": "Görünümleri cluster değiştiği anda yeniler. Sunucunun izleyemediği kaynak türleri zamanlayıcıyla, otomatik yenileme aralığında ya da 30 saniyede bir yenilenir."
     }
   },
   "terminal": {

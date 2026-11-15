@@ -199,10 +199,38 @@
       "all": "Tüm Namespace'ler"
     },
     "source": {
-      "live": "Canlı",
       "liveHint": "{{server}} adresine bağlı",
       "mock": "Demo verisi",
       "mockHint": "Demo modu: sabit örnek veriler gösteriliyor, bağlı bir cluster yok."
+    },
+    "live": {
+      "state": {
+        "connecting": "Bağlanıyor…",
+        "live": "Canlı",
+        "polling": "Yoklanıyor",
+        "offline": "Çevrimdışı",
+        "off": "Canlı güncelleme kapalı"
+      },
+      "hint": {
+        "live": "Canlı güncelleme: görünümler cluster değiştiği anda yenilenir.",
+        "livePartly_one": "Canlı güncelleme: görünümler cluster değiştiği anda yenilenir; zamanlayıcıyla yenilenen {{count}} kaynak türü hariç.",
+        "livePartly_other": "Canlı güncelleme: görünümler cluster değiştiği anda yenilenir; zamanlayıcıyla yenilenen {{count}} kaynak türü hariç.",
+        "polling_one": "Açık görünümler için canlı güncelleme kullanılamıyor; her saniye yenilenirler.",
+        "polling_other": "Açık görünümler için canlı güncelleme kullanılamıyor; {{count}} saniyede bir yenilenirler.",
+        "refused": "Canlı güncelleme kullanılamıyor: {{reason}}",
+        "disabled_one": "Canlı güncelleme kapalı; görünümler her saniye yenilenir.",
+        "disabled_other": "Canlı güncelleme kapalı; görünümler {{count}} saniyede bir yenilenir.",
+        "offline": "KubeBench sunucusuna ulaşılamıyor. Yeniden bağlanılıyor…",
+        "connecting": "Canlı güncellemeye bağlanılıyor…",
+        "off": "Canlı güncelleme ve otomatik yenileme kapalı; görünümleri kendiniz yenileyin."
+      },
+      "menu": {
+        "label": "Canlı güncelleme",
+        "watched": "İzlenenler: {{topics}}",
+        "overflow": "aynı anda çok fazla kaynak türü açık",
+        "turnOff": "Canlı güncellemeyi kapat",
+        "turnOn": "Canlı güncellemeyi aç"
+      }
     },
     "version": {
       "label": "v{{version}}",

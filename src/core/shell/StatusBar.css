@@ -176,3 +176,15 @@
   margin: 4px 8px;
   background: var(--vscode-widget-border);
 }
+
+/* Live updates (design §7.10). */
+.status-bar__item--offline {
+  background: var(--vscode-statusBarItem-offlineBackground);
+  color: var(--vscode-statusBarItem-offlineForeground);
+}
+.status-bar__item--offline:hover {
+  background-image: linear-gradient(
+    var(--vscode-statusBarItem-hoverBackground),
+    var(--vscode-statusBarItem-hoverBackground)
+  );
+}

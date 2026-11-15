@@ -8,18 +8,18 @@ import { useWorkbenchDialog } from '../workbenchDialogs'
 import { StatusMenu } from './StatusMenu'
 import { useMenuAnchor } from './useMenuAnchor'
 
-/** Live cluster data or demo data: never ambiguous (design §0). */
+/**
+ * Demo data: never ambiguous (design §0). In live mode the live-updates
+ * item names the connected server instead (LiveItem).
+ */
 export function DataSourceItem() {
   const { t } = useTranslation(PLATFORM_NS)
-  const { mode, server } = useDataMode()
-  const live = mode === 'live'
+  const { mode } = useDataMode()
+  if (mode === 'live') return null
   return (
-    <div
-      className="status-bar__item"
-      title={live ? t('statusBar.source.liveHint', { server: server ?? '' }) : t('statusBar.source.mockHint')}
-    >
-      <Icon name={live ? 'broadcast' : 'beaker'} size={13} />
-      <span>{live ? t('statusBar.source.live') : t('statusBar.source.mock')}</span>
+    <div className="status-bar__item" title={t('statusBar.source.mockHint')}>
+      <Icon name="beaker" size={13} />
+      <span>{t('statusBar.source.mock')}</span>
     </div>
   )
 }

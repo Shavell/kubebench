@@ -199,10 +199,38 @@
       "all": "All namespaces"
     },
     "source": {
-      "live": "Live",
       "liveHint": "Connected to {{server}}",
       "mock": "Demo data",
       "mockHint": "Demo mode: deterministic sample data, no cluster is connected."
+    },
+    "live": {
+      "state": {
+        "connecting": "Connecting…",
+        "live": "Live",
+        "polling": "Polling",
+        "offline": "Offline",
+        "off": "Live updates off"
+      },
+      "hint": {
+        "live": "Live updates: views refresh as soon as the cluster changes.",
+        "livePartly_one": "Live updates: views refresh as soon as the cluster changes, except {{count}} resource type that is refreshed on a timer.",
+        "livePartly_other": "Live updates: views refresh as soon as the cluster changes, except {{count}} resource types that are refreshed on a timer.",
+        "polling_one": "Live updates are not available for the open views; they refresh every second.",
+        "polling_other": "Live updates are not available for the open views; they refresh every {{count}} seconds.",
+        "refused": "Live updates are not available: {{reason}}",
+        "disabled_one": "Live updates are off; views refresh every second.",
+        "disabled_other": "Live updates are off; views refresh every {{count}} seconds.",
+        "offline": "The KubeBench server cannot be reached. Reconnecting…",
+        "connecting": "Connecting to live updates…",
+        "off": "Live updates and auto refresh are off; refresh views yourself."
+      },
+      "menu": {
+        "label": "Live updates",
+        "watched": "Watched: {{topics}}",
+        "overflow": "too many resource types open at once",
+        "turnOff": "Turn live updates off",
+        "turnOn": "Turn live updates on"
+      }
     },
     "version": {
       "label": "v{{version}}",
