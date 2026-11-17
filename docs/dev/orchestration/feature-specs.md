@@ -26,6 +26,7 @@ See [`../v0.5-handoff.md`](../v0.5-handoff.md) §6.
 | W3 | `ux-polish` | Namespace pins, kubectl-like palette, shortcuts, table virtualization | 19891 |
 | W3 | `updates` | GitHub release check, update mode, What's new | 19899 |
 | W3 | `cloud` | EKS, AKS, GKE: detection, version support, in-process credentials | 19900 |
+| v0.6 | `notes` | Personal and shared Markdown notes (backend + frontend plugin) | 19920 |
 
 ---
 
@@ -388,3 +389,50 @@ Tests:
 - No real cloud account is available: live checks on `kubebench-e2e` only
   cover k3s detection, version status, the UI badges and the credential
   fields of the Add/Edit dialogs (stored, never returned, audit clean).
+
+## F14 `notes` — Notes (§7.13, v0.6)
+
+Requested by the product owner: "not alabilelim, notlar eklentisi yapalım"
+("let us take notes; build a notes plugin"). Decision: personal **and**
+shared notes.
+
+Backend:
+- Store migration v5: `notes` + `note_tags` with foreign keys that give
+  the cascades of §7.13 (cluster deleted → its notes; user deleted → their
+  personal notes, shared ones kept with a deleted author), indexes for
+  (cluster, kind, namespace, name), owner and tag lookups. Not the plugin
+  KV: notes need queries, counts and cascades.
+- Plugin contract (§5): `plugin.AccessContribute` (operator/admin, a
+  read-only cluster allowed, non-GET audited) and `Context.Role` /
+  `Context.Store`.
+- Plugin `internal/plugins/notes`: the routes of §7.13. Personal routes
+  are `AccessRead` and act on the caller's own notes only (another user's
+  note is `404`, for admins too); shared routes are `AccessContribute`;
+  deleting another author's shared note needs a global admin. Audit
+  target `note/<id>`, never the text. Limits: body 64 KiB, title 200,
+  16 tags, 1000 notes per author. Optimistic concurrency via `version`
+  (`409 conflict`).
+- Live updates: the watch hub serves Kubernetes topics only, so note
+  queries refresh after own changes, on auto-refresh and on window focus.
+
+Frontend:
+- `src/plugins/notes`: activity bar + sidebar (search, scope, all
+  clusters, tags, list), `notes-editor` tab (CodeEditor `markdown`, Edit /
+  Preview / Split with the shared safe Markdown renderer moved to
+  `src/shared/markdown`, dirty guard, 409 reload/overwrite, shared-note
+  visibility warning), `notes-resource` tab for one object, resource
+  action "Notes" on every kind with a count badge
+  (`ResourceActionContribution.badge`), palette "Notes: New Note".
+- en/tr/de; deterministic mock notes.
+
+Tests:
+- Go: migration v5 from a v4 database; store queries (visibility filter,
+  resource match by group, tags, search, limits, conflicts, cascades);
+  permission matrix through the router (personal isolation between users
+  and from admins, viewer refused on shared writes, read-only cluster
+  allowed, operator cannot delete another's shared note, admin can);
+  audit rows without text.
+- Live on `kubebench-e2e` (namespace `e2e-notes-*`): notes on a
+  Deployment shown on its detail page; shared vs personal visibility for
+  admin, operator and viewer in two browser sessions; audit rows.
+  Playwright in mock and live mode, screenshots en/tr/de.

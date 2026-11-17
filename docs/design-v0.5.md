@@ -146,6 +146,10 @@ Every route declares one of:
 - `write` — `read` + role operator/admin + cluster not read-only. **Audited.**
 - `exec` — same gate as write. **Audited.**
 - `admin` — global admin. Mutations audited.
+- `contribute` (plugin routes only, v0.6) — `read` + role operator/admin;
+  the cluster may be read-only. For KubeBench-side data about a cluster
+  that other users of it see (shared notes, §7.13), not for cluster
+  mutations. Mutations (non-GET) audited.
 
 Every route is registered once (`backend/internal/api/routes.go`) with its
 level. The router runs the gates in this order before the handler, so a
@@ -419,6 +423,9 @@ const (
     AccessWrite
     AccessExec
     AccessAdmin
+    // AccessContribute (v0.6): AccessRead + operator/admin role, the
+    // cluster may be read-only; non-GET requests audited (§3.2, §7.13).
+    AccessContribute
 )
 
 // DryRunnable is combined with AccessWrite or AccessExec for a route whose
@@ -441,6 +448,8 @@ type Status struct {
 type Context struct {
     Runtime *kube.Runtime   // the caller's active cluster
     User    *store.User
+    Role    string          // the caller's role on it: admin | operator | viewer (v0.6)
+    Store   *store.Store    // for plugins with their own tables (store migrations), e.g. notes (v0.6)
     KV      KV              // plugin-scoped persistent key/value (SQLite plugin_kv)
     Audit   func(action, target, detail string) // extra audit rows if needed
     // SetAudit refines the router's row of this (audited) request once the
@@ -1569,6 +1578,124 @@ are resolved on the first request, never while the runtime is built.
   fields are never pre-filled).
 - Mock: deterministic platforms per mock cluster (k3s supported, AKS
   ending soon, EKS end of life), no clock in the data.
+
+### 7.13 Notes (backend plugin `notes`, new in v0.6)
+
+Users keep Markdown notes in KubeBench: runbook snippets, "why is this
+Deployment pinned to 1 replica", hand-over notes. Notes are **KubeBench
+data, not cluster mutations**: they never touch the cluster and never
+contain anything read from it (they are user text).
+
+**Model**:
+
+- Visibility `personal` (only its owner sees it, anywhere) or `shared`
+  (every user with any role on its cluster sees it).
+- Placement: on a cluster (the caller's active cluster when created), on
+  one object of it (`apiVersion`/`kind`/`namespace`/`name`; matched by
+  group, kind, namespace and name, so `apps/v1` and `apps/v1beta2` name
+  the same Deployment; a ref without `apiVersion` matches any group), or
+  **global** (no cluster) — personal notes only.
+- Fields: `title` (1–200 characters), `body` (Markdown, at most 64 KiB),
+  `tags` (at most 16, lower-cased, 1–40 letters, digits, `.`, `_`, `-`,
+  starting with a letter or digit), `pinned`, `version` (starts at 1,
+  +1 per edit), `createdBy`/`createdAt`, `updatedBy`/`updatedAt` (RFC 3339).
+  A note keeps its visibility, cluster and object for life.
+- Limits: a user authors at most 1000 notes (personal and shared;
+  `409 conflict` beyond it).
+- Storage: store migration v5 (§3.5 foreign keys) — table `notes`
+  (`owner_id` → users `ON DELETE CASCADE`, set for personal notes only;
+  `cluster_id` → clusters `ON DELETE CASCADE`; `created_by`/`updated_by` →
+  users `ON DELETE SET NULL`) and `note_tags(note_id, tag)`, indexed for
+  (cluster, kind, namespace, name) lookups, owners and tags. Deleting a
+  cluster deletes its shared notes and the personal notes placed on it;
+  deleting a user deletes their personal notes and keeps their shared
+  ones, whose author then reads as a deleted user (`""` in the API).
+  Search is a case-insensitive substring match (`LIKE`) of every term of
+  `q` in title or body — enough for thousands of notes, no FTS index.
+
+**Permissions** (new plugin access level `plugin.AccessContribute`, §5):
+
+| | admin | operator | viewer |
+|---|---|---|---|
+| personal notes (own only) | ✓ | ✓ | ✓ |
+| read shared notes of the active cluster | ✓ | ✓ | ✓ |
+| create, edit, pin shared notes | ✓ | ✓ | ✗ |
+| delete a shared note | any | own | ✗ |
+
+- A **read-only cluster does not block notes**: the flag protects the
+  cluster from changes, and notes change only KubeBench's database. A
+  viewer may not write shared notes, because every user of the cluster
+  reads them (they would otherwise let a read-only role publish text to
+  operators and admins).
+- Another user's personal note is never readable or changeable by id —
+  not even by an admin — and is reported as `404 not_found` (its
+  existence is not revealed). A shared note of another cluster is
+  `404` too: requests act on the active cluster only.
+- Every route needs a session and an active cluster (like every plugin
+  route; global notes are listed whatever cluster is active).
+- Shared-note mutations are audited by the router (non-GET requests of
+  `AccessContribute` routes): target `note/<id>`, detail only the object
+  (`{"resource":"Deployment/shop/web"}`) or `{"pinned":true}` — never
+  title, body or tags. Personal notes are not audited.
+
+**API** (`/api/plugins/notes`; Detect is always available):
+
+- Note JSON: `{"id","visibility","clusterId"|null,"clusterName","resource":{"apiVersion","kind","namespace","name"}|null,"title","body","tags","pinned","version","createdBy","createdAt","updatedBy","updatedAt"}`.
+- `GET /notes?scope=all|personal|shared&clusters=current|all&kind=&apiVersion=&namespace=&name=&tag=&q=&limit=200&body=false`
+  (read) → `{"items":[note…],"truncated":bool}`: pinned first, then most
+  recently updated. `clusters=current` (default) lists the active
+  cluster's shared and personal notes plus global notes; `all` adds the
+  caller's personal notes on other clusters. Object filters
+  (`kind`+`name`, optional `namespace`, `apiVersion`) imply the active
+  cluster. `body=true` includes bodies (else `""`), `limit` ≤ 500.
+- `GET /notes/{id}` (read) → note, with body.
+- `GET /tags?scope=…` (read) → `{"tags":[{"tag","count"}]}` over the
+  notes `GET /notes?clusters=current` would list.
+- `GET /counts?kind=&apiVersion=&namespace=&name=` (read) →
+  `{"items":[{"apiVersion","kind","namespace","name","personal","shared"}]}`:
+  notes per object on the active cluster visible to the caller (badges).
+- `POST /notes/personal` (read) `{"title","body","tags","pinned","global":bool,"resource"?}`
+  → note. `global` places it on no cluster (no `resource` then).
+- `PUT /notes/personal/{id}` (read) `{"title","body","tags","version"}` →
+  note; `409 conflict` when `version` is not the stored one (someone —
+  another tab — saved in between).
+- `PUT /notes/personal/{id}/pin` (read) `{"pinned"}` → note (neither
+  `version` nor `updatedAt` change); `DELETE /notes/personal/{id}` (read).
+- `POST /notes/shared`, `PUT /notes/shared/{id}`, `PUT /notes/shared/{id}/pin`,
+  `DELETE /notes/shared/{id}` (contribute, audited) — the same bodies,
+  without `global`; the note is placed on the active cluster.
+- A note id under the other visibility's path is `404`.
+
+**Live updates**: the watch hub (§7.10) serves Kubernetes topics only
+(it resolves every topic through discovery), so notes do not publish
+through it. Note queries carry no topic; they re-run after the UI's own
+changes (`refreshData()`), on auto-refresh, and whenever the browser
+window regains focus or becomes visible, which is when another user's
+change can matter.
+
+**Frontend** (`src/plugins/notes`, backend plugin `notes`):
+
+- Activity bar entry "Notes" (`note` icon); sidebar: search, scope
+  (all/personal/shared), "all clusters" toggle, tag filter, the list
+  (pinned first) with visibility icon, object and tags; "New note".
+- Editor tab `notes-editor` (`{id}` or a draft `{visibility, resource?, global?}`):
+  title, tags, visibility (new notes only; shared needs operator/admin,
+  disabled with the reason), "global" for personal notes without an
+  object, Markdown editing in the shared `CodeEditor` (`markdown`
+  language) with Edit / Preview / Split views, the preview rendered by the
+  shared safe renderer (`src/shared/markdown`, moved from
+  `core/updates`: no HTML, `http(s)` links only). Unsaved changes mark
+  the tab dirty (closing asks). A save that gets `409` offers "Reload"
+  (discard mine) or "Overwrite". Shared notes show "Visible to every
+  user of cluster X". Delete asks through `ConfirmDialog`.
+- Resource action "Notes" on every kind (`kinds: ['*']`) with a count
+  badge on detail pages (new optional `ResourceActionContribution.badge`
+  component); it opens tab `notes-resource` `{ref}`: the object's notes
+  rendered, pin/edit/delete, "Add personal note" and "Add shared note".
+- Palette: "Notes: New Note" (`notes.new`), "Notes: New Shared Note".
+- i18n en/tr/de in the `notes` namespace. Mock: deterministic notes on
+  the mock cluster (fixed timestamps; new ones stamped from a fixed base
+  time), the demo user acting as admin.
 
 ## 8. Distribution
 
