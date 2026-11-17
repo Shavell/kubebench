@@ -30,6 +30,11 @@ const (
 	AccessExec
 	// AccessAdmin needs a global admin. Mutating requests are audited.
 	AccessAdmin
+	// AccessContribute needs AccessRead plus the operator or admin role,
+	// whether or not the cluster is read-only: for KubeBench-side data
+	// about a cluster that its other users see (shared notes), never for
+	// changes to the cluster itself. Mutating requests are audited.
+	AccessContribute
 )
 
 // DryRunnable may be combined with AccessWrite or AccessExec
@@ -66,6 +71,13 @@ type Context struct {
 	// Runtime is the caller's active cluster.
 	Runtime *kube.Runtime
 	User    *store.User
+	// Role is the caller's effective role on Runtime's cluster:
+	// store.RoleAdmin, store.ClusterRoleOperator or store.ClusterRoleViewer.
+	Role string
+	// Store is KubeBench's database, for plugins whose data lives in
+	// tables of their own (added by a store migration), e.g. notes. Other
+	// plugins keep their state in KV.
+	Store *store.Store
 	// KV is the plugin's persistent key/value space (SQLite plugin_kv).
 	// Per-cluster data should prefix keys with "cluster/<clusterID>/".
 	KV KV

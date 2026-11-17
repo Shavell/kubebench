@@ -139,6 +139,10 @@ The contract:
   `read` (unaudited), so the handler **must** then perform a real dry run
   (`plugin.IsDryRun(r)`). The router enforces sessions, roles, read-only
   clusters, plugin enablement and `Detect` before your handler runs.
+  `AccessContribute` (v0.6) is for KubeBench-side data that every user of
+  the cluster sees (shared notes): operator or admin, also on a read-only
+  cluster, mutations audited. `c.Role` is the caller's role on the active
+  cluster.
 - **Audit**: write/exec/admin requests are audited automatically. Refine the
   row once the body is read with `c.SetAudit(target, detail)` (never
   secrets); add extra rows with `c.Audit(action, target, detail)`.
@@ -149,7 +153,9 @@ The contract:
   prefix per-cluster keys with `cluster/<clusterID>/`. A plugin that needs
   files or background work implements `plugin.Starter`; `Start` gets
   `Host.DataDir` = `$KUBEBENCH_DATA_DIR/<id>` (mode `0700`) and a context
-  that ends at shutdown.
+  that ends at shutdown. A plugin whose data needs queries, counts or
+  cascades with users and clusters gets tables of its own through a store
+  migration and reaches them through `c.Store` (the notes plugin).
 - **Kubernetes access**: use `Runtime.CS`, `Runtime.Dyn`,
   `Runtime.ResolveKind`/`ResolveResource` (prefer them over `Mapper()`; they
   re-discover once when a CRD appeared) and attribute changes to the field

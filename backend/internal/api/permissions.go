@@ -54,6 +54,18 @@ func mutationDenied(role string, cluster *store.Cluster) error {
 	return nil
 }
 
+// contributionDenied explains why role may not change data that every
+// user of cluster sees (accessContribute), or returns nil. Unlike
+// mutationDenied it ignores the read-only flag: such data lives in
+// KubeBench, not in the cluster.
+func contributionDenied(role string, cluster *store.Cluster) error {
+	if role != store.RoleAdmin && role != store.ClusterRoleOperator {
+		return errorf(http.StatusForbidden, plugin.CodeForbiddenRole,
+			"your role on cluster %q is %s, which cannot change what every user of the cluster sees", cluster.Name, role)
+	}
+	return nil
+}
+
 // activeCluster returns the caller's active cluster and their role on it.
 // It never chooses a cluster by itself (only /api/info does, see
 // selectCluster), so a request cannot act on a cluster other than the one
