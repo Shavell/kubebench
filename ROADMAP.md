@@ -26,8 +26,9 @@ items move, merge or disappear as we learn more.
 
 ## v0.6 (in progress)
 
-Two new plugins, built on the v0.5 plugin platform (a backend plugin with
-its own frontend plugin, like Argo CD or Storage).
+Two new plugins, built on the v0.5 plugin platform: notes (a backend
+plugin with its own frontend plugin, like Argo CD or Storage) and the
+service browser (a frontend plugin on new core proxy routes).
 
 ### Notes plugin
 
@@ -41,15 +42,19 @@ its own frontend plugin, like Argo CD or Storage).
 
 ### Service browser
 
-- Open a Service's web UI (a dashboard, an admin console, a health page)
-  in a side panel, without a port-forward or an Ingress.
-- Traffic goes through the Kubernetes API server's Service proxy, using
-  the cluster credentials KubeBench already holds, so the browser never
-  needs network access to the cluster or its credentials.
-- The page is shown in a sandboxed, isolated iframe, so the proxied
-  application cannot reach KubeBench's session, cookies or UI.
-- An optional, separate proxy origin (its own host name) can be configured
-  for stronger isolation of the proxied content from KubeBench's origin.
+- Open a Service's or Pod's web UI (a dashboard, an admin console, a
+  health page) in a browser tab next to the editor, without a
+  port-forward or an Ingress: back, forward, reload, path, port and
+  scheme, open in a new browser tab.
+- Traffic goes through the Kubernetes API server's proxy, using the
+  cluster credentials KubeBench already holds, so the browser never needs
+  network access to the cluster or its credentials. Operators and admins
+  only; on read-only clusters only GET and HEAD requests are forwarded.
+- The page is shown sandboxed, so the proxied application cannot reach
+  KubeBench's session, cookies or UI.
+- An optional, separate proxy origin (its own host name) serves the pages
+  unsandboxed, isolated from KubeBench by the origin, so apps that need
+  cookies or storage (for example sign-ins) work too.
 
 ## Next (candidates)
 
@@ -62,7 +67,8 @@ and the limitations documented in [docs/security.md](docs/security.md).
 
 | Item | Value | Size |
 |---|---|---|
-| Port-forward through a backend HTTP proxy | Reach a Pod's port from the browser in a web app, where local ports do not exist | M |
+| Port-forward for non-HTTP ports | The v0.6 service browser covers HTTP; databases and other TCP ports still need a local `kubectl port-forward` | M |
+| Open an Ingress in the service browser | Resolve a rule's backend Service and open its path, like Services and Pods today | S |
 | Cluster compare | A/B diff of two clusters or namespaces on neat YAML, to find drift between environments | L |
 | Manifest Composer | Form wizards for common resources beyond storage, with templates | L |
 | Several active clusters per user | Side-by-side views instead of switching the one active cluster | L |
