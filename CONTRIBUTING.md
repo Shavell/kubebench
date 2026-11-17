@@ -3,7 +3,9 @@
 Thank you for helping. This guide covers the development set-up, the rules
 the code base relies on, how to extend KubeBench, the checks to run and how
 pull requests are handled. Before you start on something large, open an
-issue so we can agree on the approach.
+issue so we can agree on the approach. [ROADMAP.md](ROADMAP.md) lists what
+is in progress and the candidates for later versions; propose additions or
+changes to it in an issue or a discussion.
 
 ## Development set-up
 
