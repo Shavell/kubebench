@@ -2,8 +2,8 @@
 # KubeBench installer for Linux servers and VMs.
 #
 #   curl -fsSL https://raw.githubusercontent.com/Shavell/kubebench/main/install.sh | sudo bash
-#   curl -fsSL https://raw.githubusercontent.com/Shavell/kubebench/main/install.sh | sudo bash -s -- --version v0.5.0
-#   sudo bash install.sh --offline ./kubebench-offline-0.5.0.tar.gz
+#   curl -fsSL https://raw.githubusercontent.com/Shavell/kubebench/main/install.sh | sudo bash -s -- --version v0.6.0
+#   sudo bash install.sh --offline ./kubebench-offline-0.6.0.tar.gz
 #
 # Installs the .deb or .rpm package (the tarball where neither fits) from a
 # GitHub release or from local files, verifies SHA-256 checksums, writes
@@ -76,8 +76,8 @@ Usage: install.sh [options]
 
 Examples:
   curl -fsSL https://raw.githubusercontent.com/Shavell/kubebench/main/install.sh | sudo bash
-  curl -fsSL .../install.sh | sudo bash -s -- --version v0.5.0 --port 8080
-  sudo bash install.sh --offline ./kubebench-offline-0.5.0.tar.gz
+  curl -fsSL .../install.sh | sudo bash -s -- --version v0.6.0 --port 8080
+  sudo bash install.sh --offline ./kubebench-offline-0.6.0.tar.gz
   sudo bash install.sh --uninstall --purge --yes
 EOF
 }
@@ -149,7 +149,7 @@ parse_args() {
     *) die "--method must be auto, deb, rpm or tarball" ;;
   esac
   if [[ "$opt_version" != latest && ! "$opt_version" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$ ]]; then
-    die "--version must look like v0.5.0 (or be \"latest\")"
+    die "--version must look like v0.6.0 (or be \"latest\")"
   fi
   if [[ -n "$opt_port" ]] && { [[ ! "$opt_port" =~ ^[0-9]{1,5}$ ]] || ((10#$opt_port < 1 || 10#$opt_port > 65535)); }; then
     die "--port must be a TCP port (1-65535)"

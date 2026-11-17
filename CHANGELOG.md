@@ -16,6 +16,11 @@ those commits.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-18
+
+First public release. It also ships everything listed under 0.5.0, which
+was never published on its own.
+
 ### Added
 
 - **Notes**: personal and shared Markdown notes on a cluster, on any of its
@@ -33,11 +38,16 @@ those commits.
 
 ### Changed
 
+- Dependencies: Kubernetes client libraries 0.37, Helm 3.22, React 19.3,
+  TypeScript 7, Vite 8.3, monaco-editor 0.57, SQLite driver 1.62; images
+  build with Go 1.27 and Node 26.
 - The repository is now `github.com/Shavell/kubebench` and the container
   image `ghcr.io/shavell/kubebench`; the installer, the update check, the
   chart and the docs use the new names.
 
-## [0.5.0] - Unreleased
+## [0.5.0] - 2026-11-15
+
+Not published separately; first released as part of 0.6.0.
 
 Upgrading from 0.4 or the 0.1 chart: read **Changed** first (chart
 resource names, the forced password change, the moved Helm routes).
@@ -289,8 +299,9 @@ resource names, the forced password change, the moved Helm routes).
 - Container image and Helm chart for running KubeBench inside the cluster it
   manages.
 
-[Unreleased]: https://github.com/Shavell/kubebench/compare/v0.5.0...HEAD
-[0.5.0]: https://github.com/Shavell/kubebench/compare/acc8149...v0.5.0
+[Unreleased]: https://github.com/Shavell/kubebench/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/Shavell/kubebench/releases/tag/v0.6.0
+[0.5.0]: https://github.com/Shavell/kubebench/compare/acc8149...v0.6.0
 [0.4.0]: https://github.com/Shavell/kubebench/commit/acc8149
 [0.3.0]: https://github.com/Shavell/kubebench/commit/6bec8c1
 [0.2.0]: https://github.com/Shavell/kubebench/commit/b382f96

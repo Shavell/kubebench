@@ -5,7 +5,7 @@
 KubeBench follows [Semantic Versioning](https://semver.org): `MAJOR.MINOR.PATCH`,
 with pre-releases such as `0.6.0-rc.1`. Until 1.0, a minor version may break
 APIs, the plugin SDK or configuration; the CHANGELOG says how to migrate.
-Tags are `v` + the version (`v0.5.0`).
+Tags are `v` + the version (`v0.6.0`).
 
 One version identifies every artifact of a release:
 
@@ -18,7 +18,7 @@ One version identifies every artifact of a release:
 | binaries, packages, image | stamped by the build (`-X main.version`) from the git tag |
 
 Development builds get their version from `scripts/version.sh`:
-`git describe` on the latest `v*` tag (`0.5.0-3-gabc1234`, `-dirty` for
+`git describe` on the latest `v*` tag (`0.6.0-3-gabc1234`, `-dirty` for
 uncommitted changes), or `<package.json version>-<sha>` before the first
 tag. `make version` prints it. GoReleaser snapshots use
 `<next patch>-snapshot-<sha>` (`0.5.1-snapshot-abc1234`).
@@ -82,13 +82,13 @@ Needs Go, Node 24, Helm, GoReleaser v2, Docker with buildx, and a GitHub
 token with `contents: write` in `GITHUB_TOKEN`:
 
 ```bash
-scripts/check-release.sh 0.5.0 && make test
-git tag -a v0.5.0 -m "KubeBench v0.5.0"
-git push origin v0.5.0        # the remote that points at github.com/Shavell/kubebench
+scripts/check-release.sh 0.6.0 && make test
+git tag -a v0.6.0 -m "KubeBench v0.6.0"
+git push origin v0.6.0        # the remote that points at github.com/Shavell/kubebench
 mkdir -p build/extra
 helm package charts/kubebench --destination build/extra
 cp deploy/kubernetes/kubebench.yaml install.sh build/extra/
-scripts/extract-changelog.sh 0.5.0 >build/release-notes.md
+scripts/extract-changelog.sh 0.6.0 >build/release-notes.md
 goreleaser release --clean --release-notes build/release-notes.md
 ```
 
@@ -97,13 +97,13 @@ Then the images and the bundle:
 ```bash
 for arch in amd64 arm64; do
   docker buildx build --platform "linux/$arch" \
-    --build-arg VERSION=0.5.0 --build-arg COMMIT="$(git rev-parse --short HEAD)" \
-    --build-arg DATE="$(git log -1 --format=%cI)" -t ghcr.io/shavell/kubebench:0.5.0 \
-    --output "type=docker,dest=build/kubebench_0.5.0_linux_$arch.tar" .
+    --build-arg VERSION=0.6.0 --build-arg COMMIT="$(git rev-parse --short HEAD)" \
+    --build-arg DATE="$(git log -1 --format=%cI)" -t ghcr.io/shavell/kubebench:0.6.0 \
+    --output "type=docker,dest=build/kubebench_0.6.0_linux_$arch.tar" .
 done
-scripts/offline-bundle.sh 0.5.0 --chart build/extra/kubebench-0.5.0.tgz \
-  --image-tar build/kubebench_0.5.0_linux_amd64.tar --image-tar build/kubebench_0.5.0_linux_arm64.tar
-gh release upload v0.5.0 build/extra/kubebench-offline-0.5.0.tar.gz{,.sha256}
+scripts/offline-bundle.sh 0.6.0 --chart build/extra/kubebench-0.6.0.tgz \
+  --image-tar build/kubebench_0.6.0_linux_amd64.tar --image-tar build/kubebench_0.6.0_linux_arm64.tar
+gh release upload v0.6.0 build/extra/kubebench-offline-0.6.0.tar.gz{,.sha256}
 ```
 
 ### Dry runs

@@ -102,7 +102,7 @@ Unknown `/api` paths answer `404 not_found`.
 | POST | `/api/auth/login` | public | `{"username","password"}` | `{"id","username","role","mustChangePassword"}`; sets the cookie. 10 failed attempts per client IP and username in 15 min → `429` |
 | POST | `/api/auth/logout` | authed | — | `{"ok":true}` |
 | GET | `/api/auth/me` | authed | — | `{"id","username","role","mustChangePassword","lastSeenVersion"}` |
-| PATCH | `/api/auth/me` | authed | `{"lastSeenVersion":"0.5.0"}` (1–64 characters) | the `me` view |
+| PATCH | `/api/auth/me` | authed | `{"lastSeenVersion":"0.6.0"}` (1–64 characters) | the `me` view |
 | POST | `/api/auth/password` | authed | `{"currentPassword","newPassword"}` | `{"ok":true}`; new password 8 characters to 72 bytes and different; a wrong current password is `403 forbidden` and throttled like logins; other sessions of the user end |
 | GET | `/api/info` | authed | — | server, session and active-cluster facts (below) |
 
@@ -111,7 +111,7 @@ capability probe and provider detection:
 
 ```json
 {
-  "version": "0.5.0", "commit": "abc1234",
+  "version": "0.6.0", "commit": "abc1234",
   "user": "alice", "role": "admin", "mustChangePassword": false,
   "context": "k3s-dev", "server": "https://10.0.0.1:6443",
   "cluster": {"id": 1, "name": "k3s-dev", "environment": "production", "readOnly": false,
