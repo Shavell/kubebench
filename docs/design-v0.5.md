@@ -1610,8 +1610,9 @@ contain anything read from it (they are user text).
   cluster deletes its shared notes and the personal notes placed on it;
   deleting a user deletes their personal notes and keeps their shared
   ones, whose author then reads as a deleted user (`""` in the API).
-  Search is a case-insensitive substring match (`LIKE`) of every term of
-  `q` in title or body — enough for thousands of notes, no FTS index.
+  Search is a substring match (`LIKE`, case-insensitive for ASCII
+  letters) of every term of `q` (at most 8) in title or body — enough for
+  thousands of notes, no FTS index.
 
 **Permissions** (new plugin access level `plugin.AccessContribute`, §5):
 
@@ -1646,7 +1647,8 @@ contain anything read from it (they are user text).
   recently updated. `clusters=current` (default) lists the active
   cluster's shared and personal notes plus global notes; `all` adds the
   caller's personal notes on other clusters. Object filters
-  (`kind`+`name`, optional `namespace`, `apiVersion`) imply the active
+  (`kind`, `namespace`, `name`, `apiVersion` by its group; a `name`
+  without `namespace` names a cluster-scoped object) imply the active
   cluster. `body=true` includes bodies (else `""`), `limit` ≤ 500.
 - `GET /notes/{id}` (read) → note, with body.
 - `GET /tags?scope=…` (read) → `{"tags":[{"tag","count"}]}` over the
