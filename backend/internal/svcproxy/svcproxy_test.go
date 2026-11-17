@@ -286,3 +286,25 @@ func TestIsUpgrade(t *testing.T) {
 		t.Error("keep-alive is not an upgrade")
 	}
 }
+
+func TestBodyRewriteOfAbsoluteURLsNamingTheAPIServer(t *testing.T) {
+	rw := newTestRewriter("https://10.0.0.1:6443/gw")
+	prefix := "/api/v1/namespaces/shop/services/http:web:80/proxy"
+	in := `<a href="https://10.0.0.1:6443/gw` + prefix + `/a">` +
+		`<a href="//10.0.0.1:6443` + prefix + `/b">` +
+		`<a href="http://10.0.0.1` + prefix + `/c">` +
+		`<a href="https://other.example` + prefix + `/d">`
+	want := `<a href="/proxy/tok/a">` +
+		`<a href="/proxy/tok/b">` +
+		`<a href="/proxy/tok/c">` +
+		`<a href="https://other.example/proxy/tok/d">`
+	for name, src := range map[string]io.Reader{
+		"one byte per read": iotest.OneByteReader(strings.NewReader(in)),
+		"large reads":       strings.NewReader(in),
+	} {
+		got, err := io.ReadAll(rw.body(io.NopCloser(src)))
+		if err != nil || string(got) != want {
+			t.Errorf("%s: %q (err %v)", name, got, err)
+		}
+	}
+}

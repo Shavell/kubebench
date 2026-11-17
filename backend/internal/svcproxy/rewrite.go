@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 )
 
@@ -19,6 +20,10 @@ type rewriter struct {
 	// apiHost is the API server's host name: backends build absolute
 	// redirects from the Host header, which names the API server.
 	apiHost string
+	// bodyPatterns are what body replaces with the base: the prefixes, each
+	// also as an absolute URL naming the API server (a backend builds
+	// absolute links from the Host header too), longest first.
+	bodyPatterns []string
 }
 
 func newRewriter(base string, apiServer *url.URL, t Target) *rewriter {
@@ -28,6 +33,22 @@ func newRewriter(base string, apiServer *url.URL, t Target) *rewriter {
 		rw.prefixes = append(rw.prefixes, p+apiPath)
 	}
 	rw.prefixes = append(rw.prefixes, apiPath)
+	hosts := []string{apiServer.Host}
+	if bare := apiServer.Hostname(); apiServer.Port() != "" {
+		if strings.Contains(bare, ":") {
+			bare = "[" + bare + "]"
+		}
+		hosts = append(hosts, bare)
+	}
+	for _, prefix := range rw.prefixes {
+		for _, host := range hosts {
+			for _, scheme := range []string{"https:", "http:", ""} {
+				rw.bodyPatterns = append(rw.bodyPatterns, scheme+"//"+host+prefix)
+			}
+		}
+	}
+	rw.bodyPatterns = append(rw.bodyPatterns, rw.prefixes...)
+	slices.SortStableFunc(rw.bodyPatterns, func(a, b string) int { return len(b) - len(a) })
 	return rw
 }
 
@@ -101,23 +122,32 @@ func (rw *rewriter) setCookie(value, sessionCookie string) (string, bool) {
 }
 
 // body wraps an HTML body, replacing the subresource paths the API server
-// wrote into its links with the base, as a stream.
+// wrote into its links, and absolute URLs of them naming the API server,
+// with the base, as a stream.
 func (rw *rewriter) body(r io.ReadCloser) io.ReadCloser {
-	pairs := make([][2][]byte, len(rw.prefixes))
-	for i, p := range rw.prefixes {
-		pairs[i] = [2][]byte{[]byte(p), []byte(rw.base)}
+	rr := &replacingReader{src: r, to: []byte(rw.base), keep: len(rw.bodyPatterns[0]) - 1}
+	starts := map[byte]bool{}
+	for _, p := range rw.bodyPatterns {
+		rr.patterns = append(rr.patterns, []byte(p))
+		if !starts[p[0]] {
+			starts[p[0]] = true
+			rr.starts += string(p[0])
+		}
 	}
-	return &replacingReader{src: r, pairs: pairs, keep: len(rw.prefixes[0]) - 1}
+	return rr
 }
 
-// replacingReader replaces every occurrence of the first element of each
-// pair with the second, the earliest listed pair winning at a position. It
-// holds back keep bytes (one less than the longest pattern) between reads,
-// so that a pattern split across reads is still found.
+// replacingReader replaces every occurrence of each pattern with to, the
+// earliest listed pattern winning at a position. It holds back keep bytes
+// (one less than the longest pattern) between reads, so that a pattern
+// split across reads is still found.
 type replacingReader struct {
-	src   io.ReadCloser
-	pairs [][2][]byte
-	keep  int
+	src      io.ReadCloser
+	patterns [][]byte
+	to       []byte
+	// starts holds the first byte of every pattern.
+	starts string
+	keep   int
 
 	in  []byte // read, not yet scanned
 	out bytes.Buffer
@@ -148,7 +178,7 @@ func (r *replacingReader) fill() {
 	}
 	i := 0
 	for i < limit {
-		j := bytes.IndexByte(r.in[i:limit], '/')
+		j := bytes.IndexAny(r.in[i:limit], r.starts)
 		if j < 0 {
 			r.out.Write(r.in[i:limit])
 			i = limit
@@ -157,16 +187,16 @@ func (r *replacingReader) fill() {
 		r.out.Write(r.in[i : i+j])
 		i += j
 		matched := false
-		for _, pair := range r.pairs {
-			if bytes.HasPrefix(r.in[i:], pair[0]) {
-				r.out.Write(pair[1])
-				i += len(pair[0])
+		for _, pattern := range r.patterns {
+			if bytes.HasPrefix(r.in[i:], pattern) {
+				r.out.Write(r.to)
+				i += len(pattern)
 				matched = true
 				break
 			}
 		}
 		if !matched {
-			r.out.WriteByte('/')
+			r.out.WriteByte(r.in[i])
 			i++
 		}
 	}

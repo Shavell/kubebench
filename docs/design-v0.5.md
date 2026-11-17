@@ -1792,7 +1792,10 @@ WebSocket upgrades work, no redirect following):
   without a limit and end when the server stops.
 - The API server rewrites absolute links in HTML to its proxy path; the
   proxy maps that path (with or without the server URL's own path prefix)
-  back to `/proxy/<token>` in `text/html` bodies (streaming) and in
+  back to `/proxy/<token>` in `text/html` bodies (streaming; also as an
+  absolute URL `http(s)://` or `//` naming the API server's host, with or
+  without its port, which backends build from the `Host` they got, so the
+  token never goes to the API server's host) and in
   `Location`; a `Location` that is an absolute path, or an absolute URL
   naming the API server's host (backends build it from the `Host` they
   got), is moved below the grant too; other hosts pass unchanged (the
