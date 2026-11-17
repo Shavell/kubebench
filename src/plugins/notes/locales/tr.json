@@ -1,0 +1,113 @@
+{
+  "manifest": {
+    "name": "Notlar",
+    "description": "Cluster ve nesneleri için kişisel ve paylaşılan Markdown notları: runbook'lar, devir notları ve hatırlatmalar; etiketler, arama ve sabitleme ile.",
+    "tooltip": "Notlar",
+    "sidebarTitle": "Notlar"
+  },
+  "commands": {
+    "new": "Notlar: Yeni not",
+    "newShared": "Notlar: Yeni paylaşılan not"
+  },
+  "resourceActions": {
+    "show": "Notlar"
+  },
+  "visibility": {
+    "personal": "Kişisel",
+    "shared": "Paylaşılan"
+  },
+  "placement": {
+    "global": "Tüm cluster'lar"
+  },
+  "deletedUser": "silinmiş kullanıcı",
+  "meta": {
+    "created": "Oluşturan: {{user}}, {{date}}",
+    "updated": "düzenleyen: {{user}}, {{date}}"
+  },
+  "access": {
+    "viewer": "Bu cluster'daki rolünüz viewer. Paylaşılan notları operator'lar ve yöneticiler yazar.",
+    "notAuthor": "Paylaşılan bir notu yalnızca yazarı veya bir yönetici silebilir."
+  },
+  "actions": {
+    "newPersonal": "Yeni not",
+    "newShared": "Yeni paylaşılan not",
+    "create": "Oluştur",
+    "save": "Kaydet",
+    "edit": "Düzenle",
+    "open": "Aç",
+    "delete": "Sil",
+    "pin": "Sabitle",
+    "unpin": "Sabitlemeyi kaldır"
+  },
+  "filters": {
+    "search": "Notlarda ara",
+    "scope": {
+      "label": "Göster",
+      "all": "Kişisel ve paylaşılan",
+      "personal": "Yalnızca kişisel",
+      "shared": "Yalnızca paylaşılan"
+    },
+    "allClusters": "Diğer cluster'lardaki notlarımı da göster",
+    "tags": "Etiketler"
+  },
+  "sidebar": {
+    "empty": "Henüz not yok. Burada yazdığınız notlar, paylaşmadığınız sürece kişiseldir.",
+    "noMatches": "Filtreyle eşleşen not yok.",
+    "truncated": "Yalnızca ilk notlar gösteriliyor; geri kalanını görmek için aramayı daraltın."
+  },
+  "editor": {
+    "newTitle": "Yeni not",
+    "loading": "Not yükleniyor…",
+    "title": "Başlık",
+    "titlePlaceholder": "Bu not ne hakkında?",
+    "tags": "Etiketler",
+    "tagsHelp": "Virgül veya boşlukla ayırın, ör. runbook, incident",
+    "visibility": "Görünürlük",
+    "global": "Tüm cluster'larda göster",
+    "globalHelp": "Geçerli cluster'a bağlı olmayan kişisel bir not.",
+    "sharedWarning": "Paylaşılan notları {{cluster}} cluster'ının tüm kullanıcıları görür. Buraya parola, token veya başka gizli bilgi yazmayın.",
+    "body": "Not metni (Markdown)",
+    "bodyPlaceholder": "Markdown yazın: # başlıklar, listeler, **kalın**, `kod` ve [bağlantılar](https://example.com)",
+    "preview": "Önizleme",
+    "emptyPreview": "Henüz önizlenecek bir şey yok.",
+    "created": "“{{title}}” notu oluşturuldu",
+    "saved": "Not kaydedildi",
+    "conflict": "Bu not siz açtıktan sonra değiştirildi.",
+    "reload": "Yeniden yükle (değişikliklerimi at)",
+    "overwrite": "Üzerine yaz",
+    "views": {
+      "label": "Görünüm",
+      "edit": "Düzenle",
+      "split": "Düzenle ve önizle",
+      "preview": "Önizleme"
+    },
+    "errors": {
+      "titleRequired": "Bir başlık girin.",
+      "titleTooLong": "Başlık en fazla {{max}} karakter olabilir.",
+      "bodyTooLarge": "Metin en fazla {{max}} KiB olabilir.",
+      "tagInvalid": "“{{tag}}” bir etiket değil: harf, rakam, '.', '_' veya '-' kullanın (en fazla 40).",
+      "tooManyTags": "Bir notun en fazla {{max}} etiketi olabilir."
+    }
+  },
+  "delete": {
+    "title": "Not silinsin mi?",
+    "messagePersonal": "“{{title}}” notu kalıcı olarak silinecek.",
+    "messageShared": "Paylaşılan “{{title}}” notu bu cluster'ın tüm kullanıcıları için kalıcı olarak silinecek.",
+    "confirm": "Sil",
+    "done": "“{{title}}” notu silindi"
+  },
+  "card": {
+    "empty": "Bu notun metni yok."
+  },
+  "resource": {
+    "tabTitle": "Notlar: {{name}}",
+    "title": "{{object}} notları",
+    "addPersonal": "Kişisel not ekle",
+    "addShared": "Paylaşılan not ekle",
+    "loading": "Notlar yükleniyor…",
+    "empty": "Bu nesnede not yok",
+    "emptyHint": "Kişisel notları yalnızca siz görürsünüz; paylaşılan notları cluster'ın tüm kullanıcıları görür.",
+    "count_one": "{{count}} not",
+    "count_other": "{{count}} not"
+  }
+}

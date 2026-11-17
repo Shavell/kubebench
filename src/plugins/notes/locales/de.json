@@ -1,0 +1,113 @@
+{
+  "manifest": {
+    "name": "Notizen",
+    "description": "Persönliche und geteilte Markdown-Notizen zum Cluster und seinen Objekten: Runbooks, Übergaben und Erinnerungen, mit Tags, Suche und Anheften.",
+    "tooltip": "Notizen",
+    "sidebarTitle": "Notizen"
+  },
+  "commands": {
+    "new": "Notizen: Neue Notiz",
+    "newShared": "Notizen: Neue geteilte Notiz"
+  },
+  "resourceActions": {
+    "show": "Notizen"
+  },
+  "visibility": {
+    "personal": "Persönlich",
+    "shared": "Geteilt"
+  },
+  "placement": {
+    "global": "Alle Cluster"
+  },
+  "deletedUser": "gelöschter Benutzer",
+  "meta": {
+    "created": "Erstellt von {{user}}, {{date}}",
+    "updated": "bearbeitet von {{user}}, {{date}}"
+  },
+  "access": {
+    "viewer": "Ihre Rolle in diesem Cluster ist Viewer. Geteilte Notizen schreiben Operatoren und Administratoren.",
+    "notAuthor": "Nur der Autor oder ein Administrator kann eine geteilte Notiz löschen."
+  },
+  "actions": {
+    "newPersonal": "Neue Notiz",
+    "newShared": "Neue geteilte Notiz",
+    "create": "Erstellen",
+    "save": "Speichern",
+    "edit": "Bearbeiten",
+    "open": "Öffnen",
+    "delete": "Löschen",
+    "pin": "Anheften",
+    "unpin": "Lösen"
+  },
+  "filters": {
+    "search": "Notizen durchsuchen",
+    "scope": {
+      "label": "Anzeigen",
+      "all": "Persönlich und geteilt",
+      "personal": "Nur persönliche",
+      "shared": "Nur geteilte"
+    },
+    "allClusters": "Meine Notizen in anderen Clustern einbeziehen",
+    "tags": "Tags"
+  },
+  "sidebar": {
+    "empty": "Noch keine Notizen. Was Sie hier schreiben, ist persönlich, solange Sie es nicht teilen.",
+    "noMatches": "Keine Notiz entspricht dem Filter.",
+    "truncated": "Nur die ersten Notizen werden angezeigt; grenzen Sie die Suche ein, um die übrigen zu sehen."
+  },
+  "editor": {
+    "newTitle": "Neue Notiz",
+    "loading": "Notiz wird geladen…",
+    "title": "Titel",
+    "titlePlaceholder": "Worum geht es in dieser Notiz?",
+    "tags": "Tags",
+    "tagsHelp": "Durch Kommas oder Leerzeichen getrennt, z. B. runbook, incident",
+    "visibility": "Sichtbarkeit",
+    "global": "In jedem Cluster anzeigen",
+    "globalHelp": "Eine persönliche Notiz, die nicht an den aktuellen Cluster gebunden ist.",
+    "sharedWarning": "Geteilte Notizen sind für alle Benutzer des Clusters {{cluster}} sichtbar. Geben Sie hier keine Kennwörter, Tokens oder anderen Geheimnisse ein.",
+    "body": "Notiztext (Markdown)",
+    "bodyPlaceholder": "Markdown schreiben: # Überschriften, Listen, **fett**, `Code` und [Links](https://example.com)",
+    "preview": "Vorschau",
+    "emptyPreview": "Noch nichts für die Vorschau.",
+    "created": "Notiz „{{title}}“ erstellt",
+    "saved": "Notiz gespeichert",
+    "conflict": "Diese Notiz wurde geändert, nachdem Sie sie geöffnet haben.",
+    "reload": "Neu laden (meine Änderungen verwerfen)",
+    "overwrite": "Überschreiben",
+    "views": {
+      "label": "Ansicht",
+      "edit": "Bearbeiten",
+      "split": "Bearbeiten und Vorschau",
+      "preview": "Vorschau"
+    },
+    "errors": {
+      "titleRequired": "Geben Sie einen Titel ein.",
+      "titleTooLong": "Der Titel darf höchstens {{max}} Zeichen lang sein.",
+      "bodyTooLarge": "Der Text darf höchstens {{max}} KiB groß sein.",
+      "tagInvalid": "„{{tag}}“ ist kein Tag: Verwenden Sie Buchstaben, Ziffern, '.', '_' oder '-' (höchstens 40).",
+      "tooManyTags": "Eine Notiz kann höchstens {{max}} Tags haben."
+    }
+  },
+  "delete": {
+    "title": "Notiz löschen?",
+    "messagePersonal": "Die Notiz „{{title}}“ wird endgültig gelöscht.",
+    "messageShared": "Die geteilte Notiz „{{title}}“ wird für alle Benutzer dieses Clusters endgültig gelöscht.",
+    "confirm": "Löschen",
+    "done": "Notiz „{{title}}“ gelöscht"
+  },
+  "card": {
+    "empty": "Diese Notiz hat keinen Text."
+  },
+  "resource": {
+    "tabTitle": "Notizen: {{name}}",
+    "title": "Notizen zu {{object}}",
+    "addPersonal": "Persönliche Notiz hinzufügen",
+    "addShared": "Geteilte Notiz hinzufügen",
+    "loading": "Notizen werden geladen…",
+    "empty": "Keine Notizen zu diesem Objekt",
+    "emptyHint": "Persönliche Notizen sehen nur Sie, geteilte alle Benutzer des Clusters.",
+    "count_one": "{{count}} Notiz",
+    "count_other": "{{count}} Notizen"
+  }
+}

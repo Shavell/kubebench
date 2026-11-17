@@ -1,7 +1,7 @@
 # Plugin development
 
 Almost everything in KubeBench is a plugin: Workloads, Helm, Argo CD,
-Storage, Security, Access, Topology, Metrics, CRDs, Clusters, the editor,
+Storage, Security, Access, Topology, Notes, Metrics, CRDs, Clusters, the editor,
 the terminal, Settings, Extensions, Users and Audit. There are three kinds:
 
 | Kind | Lives in | Ships | Use it for |

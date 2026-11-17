@@ -16,6 +16,14 @@ those commits.
 
 ## [Unreleased]
 
+### Added
+
+- **Notes**: personal and shared Markdown notes on a cluster, on any of its
+  objects (a "Notes" button with a count on every detail page) or, for
+  personal notes, on every cluster — with tags, search, pins, an editor with
+  preview and conflict detection. Shared notes are written by operators and
+  admins, also on read-only clusters, and their changes are audited.
+
 ## [0.5.0] - Unreleased
 
 Upgrading from 0.4 or the 0.1 chart: read **Changed** first (chart
