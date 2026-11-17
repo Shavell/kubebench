@@ -6,10 +6,11 @@ import { Button } from '@/shared/Button'
 import { Dialog } from '@/shared/Dialog'
 import { copyText } from '@/shared/fileActions'
 import { Icon } from '@/shared/Icon'
-import { Markdown } from './Markdown'
-import { safeHref } from './markdown'
+import { Markdown } from '@/shared/markdown/Markdown'
+import { safeHref } from '@/shared/markdown/markdown'
 import { UPDATES_NS } from './namespace'
 import { UPGRADE_GUIDE_URL, UPGRADE_METHODS } from './upgradeMethods'
+import './updates.css'
 
 /** "Update available": the release, its notes and the upgrade steps per install method. */
 export function UpdateAvailableDialog({ status, onClose }: { status: UpdateStatus; onClose: () => void }) {

@@ -14,6 +14,7 @@ var migrations = []func(tx *sql.Tx) error{
 	migrateV2,
 	migrateV3,
 	migrateV4,
+	migrateV5,
 }
 
 func (s *Store) migrate() error {
@@ -147,6 +148,50 @@ ALTER TABLE users ADD COLUMN last_seen_version TEXT NOT NULL DEFAULT '';`)
 // §7.12), stored like the kubeconfig: JSON, never returned by the API.
 func migrateV4(tx *sql.Tx) error {
 	_, err := tx.Exec(`ALTER TABLE clusters ADD COLUMN credentials TEXT NOT NULL DEFAULT '';`)
+	return err
+}
+
+// migrateV5 adds notes (docs/design-v0.5.md §7.13). The foreign keys
+// carry the lifecycle: a deleted cluster takes its notes along, a deleted
+// user their personal notes (owner_id), while shared notes stay with an
+// unknown author (created_by/updated_by set to NULL).
+func migrateV5(tx *sql.Tx) error {
+	_, err := tx.Exec(`
+CREATE TABLE notes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  visibility TEXT NOT NULL CHECK (visibility IN ('personal', 'shared')),
+  owner_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  cluster_id INTEGER REFERENCES clusters(id) ON DELETE CASCADE,
+  obj_api_version TEXT NOT NULL DEFAULT '',
+  obj_group TEXT NOT NULL DEFAULT '',
+  obj_kind TEXT NOT NULL DEFAULT '',
+  obj_namespace TEXT NOT NULL DEFAULT '',
+  obj_name TEXT NOT NULL DEFAULT '',
+  title TEXT NOT NULL,
+  body TEXT NOT NULL DEFAULT '',
+  pinned INTEGER NOT NULL DEFAULT 0,
+  version INTEGER NOT NULL DEFAULT 1,
+  created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMP NOT NULL,
+  updated_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  updated_at TIMESTAMP NOT NULL,
+  -- Personal notes have an owner, shared notes none; shared notes and
+  -- notes on an object belong to a cluster.
+  CHECK ((visibility = 'personal') = (owner_id IS NOT NULL)),
+  CHECK (visibility = 'personal' OR cluster_id IS NOT NULL),
+  CHECK (obj_kind = '' OR cluster_id IS NOT NULL)
+);
+CREATE INDEX idx_notes_object ON notes(cluster_id, obj_kind, obj_namespace, obj_name);
+CREATE INDEX idx_notes_owner ON notes(owner_id);
+CREATE INDEX idx_notes_created_by ON notes(created_by);
+CREATE INDEX idx_notes_updated_by ON notes(updated_by);
+
+CREATE TABLE note_tags (
+  note_id INTEGER NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+  tag TEXT NOT NULL,
+  PRIMARY KEY (note_id, tag)
+);
+CREATE INDEX idx_note_tags_tag ON note_tags(tag);`)
 	return err
 }
 

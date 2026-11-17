@@ -1,8 +1,9 @@
 import { useTranslation } from 'react-i18next'
 import { Badge } from '@/shared/Badge'
 import type { ChangelogRelease } from './changelog'
-import { Markdown } from './Markdown'
+import { Markdown } from '@/shared/markdown/Markdown'
 import { UPDATES_NS } from './namespace'
+import './updates.css'
 
 /** Changelog sections, each a version heading over its Markdown body. */
 export function ChangelogSections({ releases, running }: { releases: ChangelogRelease[]; running?: string }) {

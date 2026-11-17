@@ -20,6 +20,10 @@ const (
 	accessWrite                // read + operator/admin + cluster not read-only; audited
 	accessExec                 // same gate as write; audited
 	accessAdmin                // global admin; mutations audited
+	// accessContribute is read + operator/admin on a cluster that may be
+	// read-only; mutations audited. Plugin routes only: KubeBench-side
+	// data that other users of the cluster see, such as shared notes.
+	accessContribute
 
 	// allowDryRun marks a write or exec route whose handler performs a dry
 	// run whenever plugin.IsDryRun(r): such requests need only read access
@@ -199,6 +203,11 @@ func (s *Server) authorize(c *call, level access, p plugin.Plugin) error {
 			return err
 		}
 	}
+	if level == accessContribute {
+		if err := contributionDenied(c.role, c.cluster); err != nil {
+			return err
+		}
+	}
 	if p != nil {
 		if st := s.detect.status(p, c.rt); !st.Available {
 			reason := st.Reason
@@ -217,7 +226,7 @@ func audited(level access, method string) bool {
 	switch level {
 	case accessWrite, accessExec:
 		return true
-	case accessAdmin:
+	case accessAdmin, accessContribute:
 		return method != http.MethodGet && method != http.MethodHead
 	}
 	return false

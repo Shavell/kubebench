@@ -115,6 +115,12 @@ export interface ResourceActionContribution {
    */
   permission?: 'read' | 'write' | 'exec'
   run: (ref: ResourceRef) => void
+  /**
+   * Rendered inside the detail-page button after the title (row menus
+   * show no badge), e.g. the number of notes on the object. A component,
+   * so it can load what it shows; render nothing when there is nothing to say.
+   */
+  badge?: ComponentType<{ resource: ResourceRef }>
 }
 
 /** An object of a resource kind, as kubectl-style palette commands name it. */

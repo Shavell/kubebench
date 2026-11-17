@@ -1,6 +1,6 @@
 /**
- * A tiny Markdown subset for release notes and the changelog (design
- * §7.11): headings, bullet and numbered lists (one nesting level), fenced
+ * A tiny Markdown subset for release notes, the changelog (design §7.11)
+ * and notes (§7.13): headings, bullet and numbered lists (one nesting level), fenced
  * code, paragraphs; inline `code`, **bold**, *emphasis* and links. The
  * result is plain data rendered as React text nodes, so raw HTML in the
  * source stays visible text and can never become markup.

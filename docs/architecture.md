@@ -11,7 +11,7 @@ before the cluster's RBAC.
   core/shell     activity bar · sidebar · tabbed editor · bottom panel ·
                  status bar · command palette            (knows manifests only)
   plugins/*      workloads, editor, terminal, helm, argocd, storage, security,
-                 access, topology, metrics, crd, clusters, extensions,
+                 access, topology, notes, metrics, crd, clusters, extensions,
                  settings, users, audit   (+ external plugins via window.KubeBench)
   data/          providers.ts interfaces ─┬─ data/mock (deterministic demo)
                                           └─ data/api  (fetch, SSE, WebSocket)

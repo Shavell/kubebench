@@ -1,0 +1,113 @@
+{
+  "manifest": {
+    "name": "Notes",
+    "description": "Personal and shared Markdown notes on the cluster and its objects: runbooks, hand-overs and reminders, with tags, search and pins.",
+    "tooltip": "Notes",
+    "sidebarTitle": "Notes"
+  },
+  "commands": {
+    "new": "Notes: New Note",
+    "newShared": "Notes: New Shared Note"
+  },
+  "resourceActions": {
+    "show": "Notes"
+  },
+  "visibility": {
+    "personal": "Personal",
+    "shared": "Shared"
+  },
+  "placement": {
+    "global": "All clusters"
+  },
+  "deletedUser": "deleted user",
+  "meta": {
+    "created": "Created by {{user}}, {{date}}",
+    "updated": "edited by {{user}}, {{date}}"
+  },
+  "access": {
+    "viewer": "Your role on this cluster is viewer. Shared notes are written by operators and administrators.",
+    "notAuthor": "Only its author or an administrator can delete a shared note."
+  },
+  "actions": {
+    "newPersonal": "New note",
+    "newShared": "New shared note",
+    "create": "Create",
+    "save": "Save",
+    "edit": "Edit",
+    "open": "Open",
+    "delete": "Delete",
+    "pin": "Pin",
+    "unpin": "Unpin"
+  },
+  "filters": {
+    "search": "Search notes",
+    "scope": {
+      "label": "Show",
+      "all": "Personal and shared",
+      "personal": "Personal only",
+      "shared": "Shared only"
+    },
+    "allClusters": "Include my notes on other clusters",
+    "tags": "Tags"
+  },
+  "sidebar": {
+    "empty": "No notes yet. Notes you write here are personal unless you share them.",
+    "noMatches": "No notes match the filter.",
+    "truncated": "Showing the first notes only; narrow the search to see the rest."
+  },
+  "editor": {
+    "newTitle": "New note",
+    "loading": "Loading the note…",
+    "title": "Title",
+    "titlePlaceholder": "What is this note about?",
+    "tags": "Tags",
+    "tagsHelp": "Separated by commas or spaces, e.g. runbook, incident",
+    "visibility": "Visibility",
+    "global": "Show on every cluster",
+    "globalHelp": "A personal note that is not tied to the current cluster.",
+    "sharedWarning": "Shared notes are visible to every user of cluster {{cluster}}. Do not put passwords, tokens or other secrets here.",
+    "body": "Note text (Markdown)",
+    "bodyPlaceholder": "Write Markdown: # headings, lists, **bold**, `code` and [links](https://example.com)",
+    "preview": "Preview",
+    "emptyPreview": "Nothing to preview yet.",
+    "created": "Note “{{title}}” created",
+    "saved": "Note saved",
+    "conflict": "This note was changed since you opened it.",
+    "reload": "Reload (discard my changes)",
+    "overwrite": "Overwrite",
+    "views": {
+      "label": "View",
+      "edit": "Edit",
+      "split": "Edit and preview",
+      "preview": "Preview"
+    },
+    "errors": {
+      "titleRequired": "Enter a title.",
+      "titleTooLong": "The title can have at most {{max}} characters.",
+      "bodyTooLarge": "The text can be at most {{max}} KiB.",
+      "tagInvalid": "“{{tag}}” is not a tag: use letters, digits, '.', '_' or '-' (at most 40).",
+      "tooManyTags": "A note can have at most {{max}} tags."
+    }
+  },
+  "delete": {
+    "title": "Delete note?",
+    "messagePersonal": "The note “{{title}}” will be deleted permanently.",
+    "messageShared": "The shared note “{{title}}” will be deleted permanently for every user of this cluster.",
+    "confirm": "Delete",
+    "done": "Note “{{title}}” deleted"
+  },
+  "card": {
+    "empty": "This note has no text."
+  },
+  "resource": {
+    "tabTitle": "Notes: {{name}}",
+    "title": "Notes on {{object}}",
+    "addPersonal": "Add personal note",
+    "addShared": "Add shared note",
+    "loading": "Loading notes…",
+    "empty": "No notes on this object",
+    "emptyHint": "Personal notes are visible only to you; shared notes to every user of the cluster.",
+    "count_one": "{{count}} note",
+    "count_other": "{{count}} notes"
+  }
+}

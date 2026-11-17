@@ -45,7 +45,10 @@ func (pr pluginRouter) Handle(method, path string, a plugin.Access, h plugin.Han
 	}
 	kv := pr.s.store.PluginKV(pr.id)
 	pr.s.register(method+" /api/plugins/"+pr.id+path, level, pr.p, func(w http.ResponseWriter, r *http.Request, c *call) {
-		h(w, r, &plugin.Context{Runtime: c.rt, User: c.user, KV: kv, Audit: pr.s.auditFunc(c), SetAudit: c.setAudit})
+		h(w, r, &plugin.Context{
+			Runtime: c.rt, User: c.user, Role: c.role, Store: pr.s.store, KV: kv,
+			Audit: pr.s.auditFunc(c), SetAudit: c.setAudit,
+		})
 	})
 }
 
@@ -54,6 +57,9 @@ var pluginLevels = map[plugin.Access]access{
 	plugin.AccessWrite: accessWrite,
 	plugin.AccessExec:  accessExec,
 	plugin.AccessAdmin: accessAdmin,
+
+	// Shared, KubeBench-side data about the cluster (§3.2).
+	plugin.AccessContribute: accessContribute,
 }
 
 // auditFunc is plugin.Context.Audit: extra rows, not tied to a response.

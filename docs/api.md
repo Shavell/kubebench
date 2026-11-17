@@ -50,6 +50,7 @@ CHANGELOG says how.
 | `write` | `read` + role operator or admin + the cluster is not read-only | yes |
 | `exec` | the same gate as `write` | yes |
 | `admin` | a global admin | mutations |
+| `contribute` | plugin routes only: `read` + role operator or admin; the cluster may be read-only (KubeBench-side data, e.g. shared notes) | mutations |
 
 While a user must change their password, every `read`, `write`, `exec` and
 `admin` route answers `403 password_change_required`. The router checks, in
@@ -369,6 +370,35 @@ Always available; every route is `read` and not audited.
 | GET | `/risky` | — | roles with risks, most severe first |
 | GET | `/graph` | `?namespace=&system=true` | `{subjects, bindings, roles, edges, truncated}` (≤ 300 bindings) |
 | POST | `/review` | `{"subject":{kind,name,namespace?},"verb","group","resource","subresource","namespace","name"}` or `{subject, verb, path}` | `{allowed, denied?, reason?, evaluationError?, user, groups, grants}` (a SubjectAccessReview; 30 per user per minute) |
+
+### Notes — `/api/plugins/notes` (§7.13)
+
+Always available. Notes are KubeBench data, so a read-only cluster does not
+block them. A note is
+`{"id","visibility":"personal"|"shared","clusterId"|null,"clusterName","resource":{"apiVersion","kind","namespace","name"}|null,"title","body","tags","pinned","version","createdBy","createdAt","updatedBy","updatedAt"}`
+(`createdBy`/`updatedBy` are `""` once that user was deleted). Another
+user's personal note, and a shared note of another cluster, answer
+`404 not_found`, for admins too.
+
+| Method | Path | Access | Body / parameters | Answer |
+|---|---|---|---|---|
+| GET | `/notes` | read | `?scope=all\|personal\|shared&clusters=current\|all&kind=&apiVersion=&namespace=&name=&tag=&q=&limit=200&body=false` | `{"items":[note],"truncated"}`, pinned first, then newest; bodies only with `body=true` |
+| GET | `/notes/{id}` | read | — | the note with its body |
+| GET | `/tags` | read | the filters of `/notes` | `{"tags":[{"tag","count"}]}` |
+| GET | `/counts` | read | `?kind=&apiVersion=&namespace=&name=` | `{"items":[{"apiVersion","kind","namespace","name","personal","shared"}]}` |
+| POST | `/notes/personal` | read | `{"title","body","tags","pinned","global","resource"?}` | the note |
+| PUT | `/notes/personal/{id}` | read | `{"title","body","tags","version"}` | the note; `409 conflict` for an outdated `version` |
+| PUT | `/notes/personal/{id}/pin` | read | `{"pinned"}` | the note |
+| DELETE | `/notes/personal/{id}` | read | — | `{"deleted":id}` |
+| POST | `/notes/shared` | contribute | `{"title","body","tags","pinned","resource"?}` | the note |
+| PUT | `/notes/shared/{id}` | contribute | as for personal notes | the note |
+| PUT | `/notes/shared/{id}/pin` | contribute | `{"pinned"}` | the note |
+| DELETE | `/notes/shared/{id}` | contribute | — | `{"deleted":id}`; `403 forbidden` unless the caller wrote it or is an admin |
+
+Limits: title 200 characters, body 64 KiB, 16 tags, 1000 notes per author
+(`409 conflict`). Shared-note changes are audited with target `note/<id>`
+and at most the object (`{"resource":"Deployment/shop/web"}`) or
+`{"pinned":true}` as detail; personal notes are not audited.
 
 The Topology plugin has no backend routes: it reads through the core
 routes and the passthrough.

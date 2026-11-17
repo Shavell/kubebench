@@ -18,6 +18,7 @@ export function ResourceActionButtons({ resource }: { resource: ResourceRef }) {
 
   return registry.resourceActionsFor(resource.kind).map((action) => {
     const reason = deniedReason(action.permission ?? 'read', perms)
+    const ActionBadge = action.badge
     return (
       <Button
         key={`${action.pluginId}/${action.id}`}
@@ -28,6 +29,7 @@ export function ResourceActionButtons({ resource }: { resource: ResourceRef }) {
         onClick={() => action.run(resource)}
       >
         {text(action.pluginId, action.title)}
+        {ActionBadge && <ActionBadge resource={resource} />}
       </Button>
     )
   })

@@ -234,7 +234,7 @@ export interface ConfirmDialogProps {
 export interface CodeEditorProps {
   value: string
   onChange?: (value: string) => void
-  language?: 'yaml' | 'json' | 'plaintext' | 'shell'
+  language?: 'yaml' | 'json' | 'plaintext' | 'shell' | 'markdown'
   readOnly?: boolean
   ariaLabel?: string
   minimap?: boolean

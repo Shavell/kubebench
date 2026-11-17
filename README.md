@@ -47,6 +47,9 @@ every user a role per cluster.
 - **Topology** — namespace graph Ingress → Service → Pod ← ReplicaSet ←
   Deployment, PVC → PV and ConfigMap/Secret references, with focus on one
   object.
+- **Notes** — personal and shared Markdown notes on the cluster and its
+  objects, with tags, search and pins; shared notes are visible to every
+  user of the cluster.
 - **Metrics** — cluster overview, allocation (requests and limits against
   allocatable) and per-node pages from metrics-server or an auto-discovered
   Prometheus.
