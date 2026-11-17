@@ -5,6 +5,9 @@
   min-height: 0;
   min-width: 0;
 }
+.shell__editors[hidden] {
+  display: none;
+}
 .shell__editors > .editor-area {
   min-width: 0;
 }

@@ -1842,7 +1842,9 @@ from each other (per-application subdomains are a possible follow-up).
   (`core/store/sideGroupStore.ts`, `core/shell/SideEditorGroup.tsx`;
   plugins call `openInSideGroup(tab)` from `core/plugin/sideGroup.ts`),
   shown while it has tabs, resizable from its left edge, tabs rendered by
-  the registered tab renderers and kept mounted while inactive.
+  the registered tab renderers and kept mounted while inactive and while
+  the bottom panel is maximized (the editors are hidden then, not
+  unmounted), so a browser keeps its page, history and grant.
 - Plugin `service-browser` (tools, no activity bar entry): resource action
   "Open in browser" on `Service` and `Pod` rows and detail toolbars
   (permission `browse`) opens tab kind `service-browser` with props

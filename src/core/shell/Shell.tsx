@@ -42,12 +42,12 @@ export function Shell() {
           </div>
         )}
         <div className="shell__main">
-          {!(panelVisible && panelMaximized) && (
-            <div className="shell__editors">
-              <EditorArea />
-              <SideEditorGroup />
-            </div>
-          )}
+          {/* Hidden, not unmounted, under a maximized panel: open tabs (a
+              service browser's page and history) keep their state. */}
+          <div className="shell__editors" hidden={panelVisible && panelMaximized}>
+            <EditorArea />
+            <SideEditorGroup />
+          </div>
           {panelVisible && (
             <div
               className="shell__panel"
