@@ -149,6 +149,9 @@
     "editor": {
       "openHint": "Açmak için kenar çubuğundan bir kaynak seçin",
       "modulesHint": "Modüller arasında etkinlik çubuğundan geçiş yapın — İş Yükleri, CRD'ler, Helm, Metrikler"
+    },
+    "sideGroup": {
+      "label": "Yan düzenleyici grubu"
     }
   },
   "login": {

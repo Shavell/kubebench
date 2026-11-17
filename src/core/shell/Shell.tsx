@@ -11,6 +11,7 @@ import { CommandPalette } from './CommandPalette'
 import { EditorArea } from './EditorArea'
 import { SessionGuard } from './SessionGuard'
 import { SideBar } from './SideBar'
+import { SideEditorGroup } from './SideEditorGroup'
 import { StatusBar } from './StatusBar'
 import { TabCloseGuard } from './TabCloseGuard'
 import { useGlobalShortcuts } from './useGlobalShortcuts'
@@ -41,7 +42,12 @@ export function Shell() {
           </div>
         )}
         <div className="shell__main">
-          {!(panelVisible && panelMaximized) && <EditorArea />}
+          {!(panelVisible && panelMaximized) && (
+            <div className="shell__editors">
+              <EditorArea />
+              <SideEditorGroup />
+            </div>
+          )}
           {panelVisible && (
             <div
               className="shell__panel"
