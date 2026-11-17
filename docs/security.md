@@ -221,6 +221,27 @@ or run commands.
   `KUBEBENCH_UPDATE_MODE=off` for air-gapped installs; nothing is ever
   downloaded or installed by KubeBench.
 
+## Outbound connections (no tracking)
+
+KubeBench does not track its users or customers: there is no telemetry,
+no usage analytics, no crash reporting, no license or activation check and
+no third-party script, font or CDN in the web UI (Monaco and every other
+asset are bundled). The project receives no data about your installation.
+
+The server opens outbound connections only to:
+
+| Destination | When | How to avoid it |
+|---|---|---|
+| The update source (`KUBEBENCH_UPDATE_URL`, GitHub by default) | Update check, at most every few hours, one GET with `User-Agent: KubeBench/<version>` | `KUBEBENCH_UPDATE_MODE=off` (sends nothing) |
+| The Kubernetes API servers of the clusters an admin added | Every cluster operation | — (that is the product) |
+| Helm repositories and OCI registries | Only when a user adds a repository, updates it, searches it or installs/upgrades a chart from it | Do not configure remote repositories; upload `.tgz` charts instead |
+| Cloud token endpoints (AWS STS, Google, Microsoft Entra ID) | Only for EKS, GKE or AKS clusters that use the in-process token providers | Use static credentials in the kubeconfig |
+| In-cluster services | Only through the service browser, at the user's request, via the API server | Do not grant the `browse` access |
+
+The browser loads everything from KubeBench itself; the only external
+links in the UI are documentation and release pages that open when a user
+clicks them.
+
 ## Hardening checklist
 
 **Everywhere**

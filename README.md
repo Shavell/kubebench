@@ -101,6 +101,12 @@ The screenshots show the built-in demo data (`?demo`).
 - **Honest data.** Live mode never shows sample data: a missing capability
   (no Prometheus, no Argo CD, no RBAC access) is shown as unavailable with
   the reason.
+- **No tracking.** KubeBench has no telemetry, analytics, crash reporting
+  or phone-home of any kind: nothing about you, your users or your clusters
+  is ever sent to us. The only connection it opens on its own is the
+  optional update check to GitHub, which you can turn off
+  (`KUBEBENCH_UPDATE_MODE=off`); see
+  [outbound connections](docs/security.md#outbound-connections-no-tracking).
 
 Details: [SECURITY.md](SECURITY.md) and [docs/security.md](docs/security.md).
 
