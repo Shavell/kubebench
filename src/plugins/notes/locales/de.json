@@ -25,7 +25,7 @@
     "updated": "bearbeitet von {{user}}, {{date}}"
   },
   "access": {
-    "viewer": "Ihre Rolle in diesem Cluster ist Viewer. Geteilte Notizen schreiben Operatoren und Administratoren.",
+    "viewer": "Ihre Rolle auf diesem Cluster ist Betrachter. Geteilte Notizen schreiben Operatoren und Administratoren.",
     "notAuthor": "Nur der Autor oder ein Administrator kann eine geteilte Notiz löschen."
   },
   "actions": {

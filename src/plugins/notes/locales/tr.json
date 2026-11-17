@@ -25,7 +25,7 @@
     "updated": "düzenleyen: {{user}}, {{date}}"
   },
   "access": {
-    "viewer": "Bu cluster'daki rolünüz viewer. Paylaşılan notları operator'lar ve yöneticiler yazar.",
+    "viewer": "Bu cluster'daki rolünüz izleyici. Paylaşılan notları operatörler ve yöneticiler yazar.",
     "notAuthor": "Paylaşılan bir notu yalnızca yazarı veya bir yönetici silebilir."
   },
   "actions": {
