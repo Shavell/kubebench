@@ -26,6 +26,7 @@ See [`../v0.5-handoff.md`](../v0.5-handoff.md) §6.
 | W3 | `ux-polish` | Namespace pins, kubectl-like palette, shortcuts, table virtualization | 19891 |
 | W3 | `updates` | GitHub release check, update mode, What's new | 19899 |
 | W3 | `cloud` | EKS, AKS, GKE: detection, version support, in-process credentials | 19900 |
+| v0.6 | `service-browser` | Service browser: API server proxy, isolated frame, proxy origin | 19921 |
 
 ---
 
@@ -388,3 +389,43 @@ Tests:
 - No real cloud account is available: live checks on `kubebench-e2e` only
   cover k3s detection, version status, the UI badges and the credential
   fields of the Add/Edit dialogs (stored, never returned, audit clean).
+
+## F15 `service-browser` — Service browser (§7.14, v0.6)
+
+Requested by the product owner: "service'leri yanda açılacak bir browser
+açılabilir" — open a Service's web interface in a browser next to the
+editor. Decision: the Kubernetes API server's proxy subresource plus an
+isolated iframe, with an optional separate proxy origin for full
+compatibility. The contract is §7.14; in short:
+
+- Backend (core): `POST /api/proxy/services|pods/{ns}/{name}/{port}` (new
+  access level `browse`: operator/admin, allowed on read-only clusters with
+  GET/HEAD only; audited once per grant as `service.proxy` / `pod.proxy`)
+  returns a grant whose random token is part of the URL;
+  `/proxy/{token}/{path...}` forwards every method to
+  `…/<services|pods>/<scheme>:<name>:<port>/proxy/<path>` with the
+  runtime's credential. The token, never the session cookie, authorizes
+  proxied requests; each one re-checks session, role and the read-only
+  rule. Strip credentials, impersonation, `Referer` and the session cookie
+  from requests; strip the session cookie, HSTS, Clear-Site-Data,
+  Service-Worker-Allowed and framing headers from responses; rewrite the
+  API server's proxy path in HTML and `Location`, cookie paths below the
+  grant. Add `CSP: sandbox allow-scripts allow-forms allow-popups
+  allow-downloads; frame-ancestors <KubeBench>`, `X-Frame-Options`,
+  `Referrer-Policy: no-referrer`, CORP. WebSocket upgrades pass.
+- `KUBEBENCH_PROXY_ORIGIN`: the same proxy on a separate origin, which
+  serves nothing else, unsandboxed (config, docs/configuration.md,
+  packaging/kubebench.env, chart `config.proxyOrigin` + ingress host
+  example).
+- Frontend: a side editor group in the core shell (`openInSideGroup`); the
+  `service-browser` plugin adds "Open in browser" to Services and Pods
+  (permission `browse`) and renders the browser tab: back/forward/reload,
+  in-cluster address with editable path, port and scheme, open in a new
+  tab, sandbox and read-only notices; mock mode shows a deterministic
+  placeholder page. en, tr, de.
+- Tests: svcproxy unit tests (headers, rewriting, grants), API tests with a
+  fake API server (viewer refused, read-only method rule, one audit row per
+  grant, access loss, proxy origin); live on `kubebench-e2e`
+  (namespaces `e2e-service-browser-*`): nginx renders, links, redirects and
+  a form post work, a hostile page proves the isolation, WebSocket echo,
+  read-only and viewer checks, proxy-origin mode; screenshots.

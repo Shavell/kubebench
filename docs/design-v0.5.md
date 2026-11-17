@@ -97,6 +97,7 @@ cluster-to-cluster compare, port-forward, light/dark per-plugin theming.
 | `KUBEBENCH_NAMESPACE` | in a pod: the pod's namespace | The namespace KubeBench runs in; deleting a namespace of that name is refused unless forced (§7.3) |
 | `KUBEBENCH_UPDATE_MODE` | `stable` | Default update check mode (§7.11): `off` (never contacts GitHub; use it for air-gapped installs), `stable` (new releases) or `prerelease` (also prereleases). An admin's choice in Settings overrides it |
 | `KUBEBENCH_UPDATE_URL` | `https://api.github.com/repos/Shavell/kube-bench/releases` | Releases endpoint the update check reads: GitHub's "list releases" JSON (a mirror or a GitHub Enterprise API works). `http` or `https` |
+| `KUBEBENCH_PROXY_ORIGIN` | — | v0.6: separate origin (`http(s)://host[:port]`, no path) serving the service browser's proxy unsandboxed (§7.14); unset = sandboxed on KubeBench's own origin |
 
 The backend parses these once into `internal/config.Config`; invalid values
 are all reported at once and the binary exits with status 2. Ports, in `PORT`
@@ -128,10 +129,12 @@ Effective permission of a user on a cluster:
 | read (lists, YAML, events, logs, metrics) | ✓ | ✓ | ✓ |
 | write (mutations) | ✓ | ✓ | ✗ |
 | exec (shell, debug container, reveal secret) | ✓ | ✓ | ✗ |
+| browse (service browser, §7.14; v0.6) | ✓ | ✓ | ✗ |
 | manage users/clusters/plugins/audit | ✓ | ✗ | ✗ |
 
 A **read-only cluster** rejects write and exec for everyone (admins
-included) with `403 {"code":"cluster_read_only"}`; an admin clears the flag
+included) with `403 {"code":"cluster_read_only"}` (browse stays, limited to
+GET and HEAD, §7.14); an admin clears the flag
 in the Clusters view. Kubernetes-side authorization is still whatever the
 stored credential allows.
 
@@ -145,6 +148,9 @@ Every route declares one of:
 - `read` — session + active cluster runtime + any role on it.
 - `write` — `read` + role operator/admin + cluster not read-only. **Audited.**
 - `exec` — same gate as write. **Audited.**
+- `browse` (v0.6, §7.14) — `read` + role operator/admin; **not** refused on
+  read-only clusters (the service browser then sends only GET/HEAD).
+  **Audited.**
 - `admin` — global admin. Mutations audited.
 
 Every route is registered once (`backend/internal/api/routes.go`) with its
@@ -200,7 +206,8 @@ Table `audit_log(id INTEGER PK, ts TIMESTAMP, username TEXT, cluster TEXT,
 action TEXT, target TEXT, status INTEGER, detail TEXT)`.
 Written automatically by the router for `write`/`exec`/admin mutations:
 `action` = `"<METHOD> <route pattern>"` (e.g. `POST /api/deployments/scale`)
-or an explicit action name for plugins/websockets (`exec.session`),
+or an explicit action name for plugins/websockets (`exec.session`;
+`service.proxy` and `pod.proxy`, §7.14),
 `target` = `<kind>/<ns>/<name>` style string from query/path values,
 `status` = HTTP status, `detail` = short JSON (e.g. `{"replicas":3}`) or
 error text. Pruned per `KUBEBENCH_AUDIT_RETENTION_DAYS`.
@@ -611,6 +618,9 @@ interface SettingsSectionContribution { id: string; title: string; component: Co
     it, e.g. `pod-logs` / `pod-exec` with `{namespace, pod, container}`
     (the terminal plugin). Like `openTab`, it keeps plugins from importing
     each other.
+  - v0.6: the side editor group (§7.14): `openInSideGroup(tab)`
+    (`core/plugin/sideGroup.ts`) opens a tab to the right of the editor
+    area; tabs there stay mounted while inactive.
   - External plugins register only under the id of an enabled external
     plugin whose script is loading, and never as `core`.
   - `CommandContribution.keybinding` (e.g. `"Ctrl+,"`, `"Alt+N"`, `"?"`;
@@ -1569,6 +1579,155 @@ are resolved on the first request, never while the runtime is built.
   fields are never pre-filled).
 - Mock: deterministic platforms per mock cluster (k3s supported, AKS
   ending soon, EKS end of life), no clock in the data.
+
+### 7.14 Service browser (core + `service-browser` plugin) — v0.6
+
+Opens the web interface of a Service or Pod in a browser tab next to the
+editor, like VS Code's Simple Browser, through the API server's proxy
+subresource with KubeBench's cluster credential. The proxied pages must
+never run with KubeBench's privileges.
+
+**Access** (new level `browse`, §3.2): `read` + role operator or admin,
+audited. Browsing is not a change of Kubernetes objects, but it reaches
+inside the cluster network with KubeBench's credential, including admin
+interfaces of in-cluster applications that can be posted to, so viewers
+never get it. A read-only cluster does **not** refuse it; the proxy then
+forwards only GET and HEAD (and answers CORS preflights itself), so a
+form post to an in-cluster admin UI is refused like any other change.
+Frontend permission `browse` (`permissionRules.ts`): held when the role is
+admin or operator, whatever the read-only flag.
+
+**API** (core, `internal/api/serviceproxy.go`, `internal/svcproxy`):
+
+- `POST /api/proxy/services/{ns}/{name}/{port}?scheme=http|https` and
+  `POST /api/proxy/pods/{ns}/{name}/{port}?scheme=…` (browse) open a
+  **grant** and return `ProxySession`
+  `{"token","base","sandboxed","readOnly","target":{"kind","namespace","name","port","scheme"},"location"}`.
+  The object must exist; a Service port is matched by number or name, a
+  Pod port name by its containers' port names (numbers pass: containers
+  may listen on undeclared ports); ExternalName Services are refused
+  (`400`). Audited **once per grant** as `service.proxy` / `pod.proxy`,
+  target `service/<ns>/<name>:<port>`, detail `{"scheme","readOnly"?}`;
+  refusals (viewer: `403 forbidden_role`) are audited like every refusal.
+- `GET` / `DELETE /api/proxy/sessions/{token}` (authed; only the session
+  that opened the grant, else `404 not_found`): the grant with the
+  `location` the frame last navigated to; end it (the tab closed).
+- `GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS /proxy/{token}/{path...}`
+  (public: **the token is the credential**; `/proxy/{token}` redirects to
+  `/proxy/{token}/`) forwards to
+  `<server>/api/v1/namespaces/<ns>/<services|pods>/<scheme>:<name>:<port>/proxy/<path>?<query>`.
+  The path is outside `/api` so that relative links work; it may contain
+  no dot segments or encoded slashes/backslashes (`400`). Errors of the
+  proxy itself are short `text/plain` pages for the frame, not JSON.
+
+**Grants** (`svcproxy.Grants`, in memory): 256 random bits (base64url);
+bound to the KubeBench session token, user and cluster that opened them;
+end after 1 h unused (`IdleTimeout`), 12 h in all (`MaxLifetime`), on
+`DELETE`, or with the session; at most 32 per session and 4096 in all
+(least recently used end first). Every proxied request re-checks: the
+session exists (`401` after sign-out), no forced password change, the
+cluster exists, the user still has `browse` on it (`403` after a
+demotion or unassignment), and the read-only method rule. Switching the
+active cluster does not end a grant: it stays on its own cluster.
+
+**Why a token, not the session cookie.** A cookie-authorized proxy would
+let any page it serves send requests with the user's cookie (Chromium
+does not attach a `SameSite=Lax` cookie to requests of a sandboxed,
+opaque-origin frame, but other browsers or a future change might), and
+form posts from sandboxed pages carry `Origin: null`, which the CSRF check
+(§3.5) must refuse for the API. With the token, `/proxy/` never reads the
+session cookie, is exempt from the Origin check (a forged cross-site
+request has no token), and the session cookie is stripped before
+forwarding.
+
+**Forwarding** (`net/http/httputil.ReverseProxy`, transport
+`kube.Runtime.ProxyTransport`: the runtime's credential, HTTP/1.1 so
+WebSocket upgrades work, no redirect following):
+
+- Request headers dropped: `Authorization`, `Proxy-Authorization`,
+  `Impersonate-*`, `X-Remote-*` (they would replace or extend KubeBench's
+  credential at the API server), `Forwarded`, `X-Forwarded-*`, `Referer`
+  (it carries the token), hop-by-hop headers, the `kubebench_session`
+  cookie (other cookies pass), `Accept-Encoding` (the transport asks for
+  gzip and decompresses, so HTML can be rewritten).
+- Limits: request bodies ≤ 32 MiB (`413`), response headers within 1 min
+  (`504`); bodies, server-sent events and WebSocket connections stream
+  without a limit and end when the server stops.
+- The API server rewrites absolute links in HTML to its proxy path; the
+  proxy maps that path (with or without the server URL's own path prefix)
+  back to `/proxy/<token>` in `text/html` bodies (streaming) and in
+  `Location`; a `Location` that is an absolute path, or an absolute URL
+  naming the API server's host (backends build it from the `Host` they
+  got), is moved below the grant too; other hosts pass unchanged (the
+  frame navigates there itself).
+- `Set-Cookie`: `kubebench_session` is dropped; other cookies lose
+  `Domain` and get their `Path` below `/proxy/<token>`.
+- Response headers removed: `Strict-Transport-Security`,
+  `Clear-Site-Data`, `Service-Worker-Allowed`, `X-Frame-Options`,
+  `Alt-Svc`, and the `frame-ancestors` directive of the application's
+  CSP (other directives stay).
+- Added: `Content-Security-Policy: sandbox allow-scripts allow-forms
+  allow-popups allow-downloads; frame-ancestors <origin that opened the
+  grant>` (no `allow-same-origin`, no top navigation, no modals: a page
+  cannot prompt for a password in KubeBench's name) and
+  `X-Frame-Options: SAMEORIGIN`; `Referrer-Policy: no-referrer`;
+  `Cross-Origin-Resource-Policy: cross-origin` (the sandboxed page's own
+  subresources are cross-origin loads from its opaque origin; a stricter
+  value is not dependable across browsers, and other sites cannot name the
+  URL anyway). Requests of the sandboxed page with `Origin: null` get
+  `Access-Control-Allow-Origin: null` (no credentials) and preflights are
+  answered by the proxy, so the page's own fetches work.
+
+**Separate proxy origin** (`KUBEBENCH_PROXY_ORIGIN`, §2): the same grants
+served on another origin, which serves nothing but `/proxy/` (everything
+else `404`, recognised by `Host`, or `X-Forwarded-Host` behind a trusted
+proxy). There responses have no CSP sandbox (only `frame-ancestors`), the
+frame gets `allow-same-origin allow-modals allow-popups-to-escape-sandbox`
+on top of the sandbox flags, and `base` is absolute; applications with
+cookies and storage (sign-ins) work. KubeBench's cookies are host-only and
+never reach it. The host should not be a subdomain of KubeBench's (a
+sibling could set parent-domain cookies and is same-site); applications
+opened there share one origin, so they are isolated from KubeBench, not
+from each other (per-application subdomains are a possible follow-up).
+
+**Frontend**:
+
+- Core: a **side editor group** to the right of the editor area
+  (`core/store/sideGroupStore.ts`, `core/shell/SideEditorGroup.tsx`;
+  plugins call `openInSideGroup(tab)` from `core/plugin/sideGroup.ts`),
+  shown while it has tabs, resizable from its left edge, tabs rendered by
+  the registered tab renderers and kept mounted while inactive.
+- Plugin `service-browser` (tools, no activity bar entry): resource action
+  "Open in browser" on `Service` and `Pod` rows and detail toolbars
+  (permission `browse`) opens tab kind `service-browser` with props
+  `{kind: 'services'|'pods', namespace, name}` in the side group. The tab
+  lists the TCP ports (Service `spec.ports`, Pod container ports; https
+  guessed from names, `appProtocol` and 443/6443/8443/9443), opens a grant
+  for the chosen port and scheme (new grant on change), ends it on close,
+  and shows: back, forward, reload, the in-cluster address
+  (`http://<svc>.<ns>:<port>`) with an editable path, port and scheme
+  pickers, "open in a new browser tab" (the same proxy URL, sandboxed there
+  too; `noopener`), a sandbox (or proxy origin) notice and a read-only
+  notice. The frame is cross-origin, so the tab keeps its own history from
+  the `location` the backend recorded for each document navigation
+  (`Sec-Fetch-Mode: navigate`) and navigates by remounting the frame.
+- Ingress: not in this version (follow-up: resolve a rule's backend
+  Service and open its path).
+- Mock: ports from the mock dataset; the frame shows a deterministic
+  placeholder page (`srcdoc`) naming the address and path; "open in a new
+  tab" is disabled.
+
+**Tests**: `internal/svcproxy` (validation, path cleaning, grant expiry and
+limits, header filtering, Location/Set-Cookie/HTML rewriting across read
+boundaries), `internal/api` (viewer refused and audited, one audit row per
+grant, forwarding through a fake API server with credentials, session cookie
+and impersonation stripped, read-only method rule for old and new grants,
+access lost: sign-out, demotion, unassignment, cluster removal; proxy
+origin), and a live Playwright check on k3d with a hostile in-cluster page
+(document.cookie, storage, parent/top access, credentialed `fetch`/XHR of
+`/api/auth/me`, a namespace create, a popup, top navigation, a planted
+session cookie and `Clear-Site-Data`) — none of which reaches KubeBench —
+plus form posts and WebSocket echo through the proxy.
 
 ## 8. Distribution
 
