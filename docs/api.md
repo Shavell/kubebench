@@ -49,6 +49,7 @@ CHANGELOG says how.
 | `read` | session, a usable active cluster and any role on it (viewer, operator, admin) | no |
 | `write` | `read` + role operator or admin + the cluster is not read-only | yes |
 | `exec` | the same gate as `write` | yes |
+| `browse` | `read` + role operator or admin; allowed on read-only clusters (the service browser then sends only GET and HEAD) | yes |
 | `admin` | a global admin | mutations |
 | `contribute` | plugin routes only: `read` + role operator or admin; the cluster may be read-only (KubeBench-side data, e.g. shared notes) | mutations |
 
@@ -279,6 +280,23 @@ and filesystem series need Prometheus.
   re-authorized at every heartbeat and end when the session, the assignment
   or (terminals) the exec permission goes away.
 
+## Service browser (§7.14)
+
+| Method | Path | Level | Parameters | Response |
+|---|---|---|---|---|
+| POST | `/api/proxy/services/{ns}/{name}/{port}` | browse | `?scheme=http\|https` (default `http`); `port` is a Service port number or name | `ProxySession`; audited once as `service.proxy`, target `service/<ns>/<name>:<port>` |
+| POST | `/api/proxy/pods/{ns}/{name}/{port}` | browse | as above; a port name must be a container port's | `ProxySession`; audited once as `pod.proxy` |
+| GET | `/api/proxy/sessions/{token}` | authed | only the session that opened it | `ProxySession` with the current `location` |
+| DELETE | `/api/proxy/sessions/{token}` | authed | only the session that opened it | `{"ok":true}` |
+| GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS | `/proxy/{token}/{path...}` | public (the token is the credential) | anything the proxied page sends | the page, through `/api/v1/namespaces/<ns>/<services\|pods>/<scheme>:<name>:<port>/proxy/<path>` |
+
+`ProxySession` is `{"token","base","sandboxed","readOnly","target":{"kind","namespace","name","port","scheme"},"location"}`;
+`base` is `/proxy/<token>` (or `<KUBEBENCH_PROXY_ORIGIN>/proxy/<token>`).
+Proxied requests are re-authorized every time (session alive, browse access
+on the session's cluster, GET/HEAD only on a read-only cluster) and never
+audited one by one. Their errors are plain text pages (they are shown in
+the browser frame), not JSON. WebSocket upgrades are forwarded.
+
 ## Backend plugins
 
 Plugin routes live under `/api/plugins/<id>/`. A disabled plugin answers
@@ -407,7 +425,7 @@ routes and the passthrough.
 
 The router writes one row per audited request: `action` is
 `"<METHOD> <route pattern>"` (for example `POST /api/deployments/scale`) or
-a named action (`exec.session`, `argocd.sync`), `target` is
+a named action (`exec.session`, `service.proxy`, `argocd.sync`), `target` is
 `<kind>/<namespace>/<name>`, `status` the HTTP status and `detail` a short
 JSON object or the refusal. Request bodies are never recorded. See §3.4 of
 the design for the full rules.

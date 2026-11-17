@@ -199,3 +199,19 @@ func TestUpdateSettings(t *testing.T) {
 		}
 	}
 }
+
+func TestProxyOrigin(t *testing.T) {
+	c, err := FromEnv(env(nil), false)
+	if err != nil || c.ProxyOrigin != "" {
+		t.Fatalf("default = %+v, %v; want no proxy origin", c, err)
+	}
+	c, err = FromEnv(env(map[string]string{"KUBEBENCH_PROXY_ORIGIN": "HTTPS://Proxy.Example.com:8443/"}), false)
+	if err != nil || c.ProxyOrigin != "https://proxy.example.com:8443" {
+		t.Fatalf("origin = %+v, %v", c, err)
+	}
+	for _, bad := range []string{"proxy.example.com", "ftp://proxy.example.com", "https://proxy.example.com/sub", "https://proxy.example.com/?a=1", "https://u@proxy.example.com"} {
+		if _, err := FromEnv(env(map[string]string{"KUBEBENCH_PROXY_ORIGIN": bad}), false); err == nil || !strings.Contains(err.Error(), "KUBEBENCH_PROXY_ORIGIN") {
+			t.Errorf("%q: err = %v, want it refused", bad, err)
+		}
+	}
+}

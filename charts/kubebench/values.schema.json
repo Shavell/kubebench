@@ -68,7 +68,12 @@
         "auditRetentionDays": { "type": "integer", "minimum": 0 },
         "allowPathKubeconfig": { "type": "boolean" },
         "allowAmbientCloudIdentity": { "type": "boolean" },
-        "updateMode": { "enum": ["off", "stable", "prerelease"] }
+        "updateMode": { "enum": ["off", "stable", "prerelease"] },
+        "proxyOrigin": {
+          "type": "string",
+          "pattern": "^(https?://[^/?#@]+/?)?$",
+          "description": "Origin (scheme://host[:port]) serving the service browser's proxy; empty = none."
+        }
       }
     },
     "extraEnv": { "$ref": "#/definitions/objectList" },

@@ -34,6 +34,13 @@ var (
 // requests with Fetch Metadata headers (Sec-Fetch-*) that page scripts
 // cannot set or remove.
 func (s *Server) originError(r *http.Request) error {
+	if isProxyPath(r.URL.Path) {
+		// The service browser's proxy (§7.14) authorizes with the grant
+		// token in its URL, never with the session cookie, so a forged
+		// cross-site request carries no authority; and the sandboxed
+		// pages it serves send "Origin: null" with their own forms.
+		return nil
+	}
 	origin := r.Header.Get("Origin")
 	switch {
 	case origin == "":
@@ -55,7 +62,7 @@ var errCrossSite = errorf(http.StatusForbidden, plugin.CodeForbidden, "cross-sit
 // and be audited, as the victim's deliberate action. Fetch Metadata
 // headers cannot be set by page scripts; clients without them pass.
 func crossSiteError(r *http.Request, level access) error {
-	if level != accessWrite && level != accessExec {
+	if level != accessWrite && level != accessExec && level != accessBrowse {
 		return nil
 	}
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {

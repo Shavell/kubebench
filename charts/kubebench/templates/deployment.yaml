@@ -76,6 +76,10 @@ spec:
               value: {{ .Values.config.allowAmbientCloudIdentity | quote }}
             - name: KUBEBENCH_UPDATE_MODE
               value: {{ .Values.config.updateMode | quote }}
+            {{- with .Values.config.proxyOrigin }}
+            - name: KUBEBENCH_PROXY_ORIGIN
+              value: {{ . | quote }}
+            {{- end }}
             {{- with $secretName }}
             - name: KUBEBENCH_ADMIN_PASSWORD
               valueFrom:

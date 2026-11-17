@@ -1,0 +1,43 @@
+{
+  "manifest": {
+    "name": "Service Tarayıcısı",
+    "description": "Bir Service'in veya Pod'un web arayüzünü, KubeBench'in proxy'si üzerinden ve KubeBench'ten yalıtılmış olarak, düzenleyicinin yanındaki bir tarayıcıda açar."
+  },
+  "resourceActions": {
+    "open": "Tarayıcıda aç"
+  },
+  "tab": {
+    "title": "{{name}} · tarayıcı"
+  },
+  "page": {
+    "loadingPorts": "Port'lar okunuyor…",
+    "noPorts": "Açılacak TCP port'u yok",
+    "noPortsHint": "Nesne hiçbir TCP port'u tanımlamıyor; tarayıcının gösterebileceği bir şey yok.",
+    "opening": "Sayfa açılıyor…"
+  },
+  "toolbar": {
+    "label": "Tarayıcı",
+    "back": "Geri",
+    "forward": "İleri",
+    "reload": "Yeniden yükle",
+    "path": "Yol",
+    "port": "Port",
+    "scheme": "Şema",
+    "newTab": "Yeni bir tarayıcı sekmesinde aç",
+    "newTabDemo": "Demo modunda kullanılamaz"
+  },
+  "frame": {
+    "title": "{{address}} sayfası"
+  },
+  "notice": {
+    "sandboxed": "Sayfa, KubeBench'ten yalıtılmış bir sandbox içinde çalışır: çerez ve depolama kullanamaz, bu yüzden bazı uygulamalar (örneğin oturum açma isteyenler) burada çalışmaz.",
+    "proxyOrigin": "Sayfa, KubeBench'ten yalıtılmış ayrı proxy origin'inde çalışır.",
+    "readOnly": "Cluster salt okunur: yalnızca GET istekleri gönderilir, bu yüzden veri gönderen formlar reddedilir.",
+    "hide": "Gizle"
+  },
+  "mock": {
+    "title": "Demo sayfası",
+    "body": "Demo modunda bağlanılacak bir cluster yok. Canlı bir cluster'da bu sekme Service'in kendi web arayüzünü gösterir.",
+    "notFound": "{{what}} bulunamadı"
+  }
+}

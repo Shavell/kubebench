@@ -111,9 +111,10 @@ export interface ResourceActionContribution {
   kinds: string[]
   /**
    * Permission needed on the active cluster (default 'read'). Hosts render
-   * the action disabled, with the reason, when it is not held.
+   * the action disabled, with the reason, when it is not held. `browse`
+   * is the service browser's (design §7.14).
    */
-  permission?: 'read' | 'write' | 'exec'
+  permission?: 'read' | 'write' | 'exec' | 'browse'
   run: (ref: ResourceRef) => void
   /**
    * Rendered inside the detail-page button after the title (row menus

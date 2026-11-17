@@ -149,6 +149,9 @@
     "editor": {
       "openHint": "Wählen Sie in der Seitenleiste eine Ressource aus, um sie zu öffnen",
       "modulesHint": "Wechseln Sie Module über die Aktivitätsleiste – Arbeitslasten, CRDs, Helm, Metriken"
+    },
+    "sideGroup": {
+      "label": "Seitliche Editorgruppe"
     }
   },
   "login": {

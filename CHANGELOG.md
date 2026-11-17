@@ -23,6 +23,13 @@ those commits.
   personal notes, on every cluster — with tags, search, pins, an editor with
   preview and conflict detection. Shared notes are written by operators and
   admins, also on read-only clusters, and their changes are audited.
+- **Service browser**: "Open in browser" on Services and Pods shows the
+  workload's web interface in a browser tab to the right of the editor
+  (back, forward, reload, path, port, open in a new tab), through
+  KubeBench's proxy and the API server, sandboxed and isolated from
+  KubeBench. Operators and admins only; read-only clusters allow reading.
+  `KUBEBENCH_PROXY_ORIGIN` serves the pages on a separate origin, where apps
+  with sign-ins work too.
 
 ## [0.5.0] - Unreleased
 

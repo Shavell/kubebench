@@ -1,0 +1,43 @@
+{
+  "manifest": {
+    "name": "Service Browser",
+    "description": "Opens the web interface of a Service or Pod in a browser next to the editor, through KubeBench's proxy, isolated from KubeBench."
+  },
+  "resourceActions": {
+    "open": "Open in browser"
+  },
+  "tab": {
+    "title": "{{name}} · browser"
+  },
+  "page": {
+    "loadingPorts": "Reading the ports…",
+    "noPorts": "No TCP port to open",
+    "noPortsHint": "The object declares no TCP port, so there is nothing a browser can show.",
+    "opening": "Opening the page…"
+  },
+  "toolbar": {
+    "label": "Browser",
+    "back": "Back",
+    "forward": "Forward",
+    "reload": "Reload",
+    "path": "Path",
+    "port": "Port",
+    "scheme": "Scheme",
+    "newTab": "Open in a new browser tab",
+    "newTabDemo": "Not available in demo mode"
+  },
+  "frame": {
+    "title": "Page of {{address}}"
+  },
+  "notice": {
+    "sandboxed": "The page runs sandboxed, isolated from KubeBench: it cannot use cookies or storage, so some apps (for example ones with a sign-in) do not work here.",
+    "proxyOrigin": "The page runs on the separate proxy origin, isolated from KubeBench.",
+    "readOnly": "The cluster is read-only: only GET requests are sent, so forms that post data are refused.",
+    "hide": "Hide"
+  },
+  "mock": {
+    "title": "Demo page",
+    "body": "Demo mode has no cluster to connect to. With a live cluster this tab shows the service's own web interface.",
+    "notFound": "{{what}} was not found"
+  }
+}

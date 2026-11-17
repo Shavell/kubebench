@@ -3,7 +3,11 @@
  * held and how a denial is explained (design §3). Free of imports, so
  * that `node --test` can load it.
  */
-export type Permission = 'read' | 'write' | 'exec' | 'admin'
+/**
+ * `browse` opens the service browser (§7.14): the operator or admin role,
+ * also on a read-only cluster (where it sends only GET and HEAD).
+ */
+export type Permission = 'read' | 'write' | 'exec' | 'admin' | 'browse'
 
 /** The session facts the rules read (a SessionPermissions satisfies it). */
 export interface PermissionFacts {
@@ -28,6 +32,8 @@ export function can(permission: Permission, perms: PermissionFacts): boolean {
       return perms.canExec
     case 'admin':
       return perms.isAdmin
+    case 'browse':
+      return perms.canRead && (perms.role === 'admin' || perms.role === 'operator')
   }
 }
 
@@ -35,6 +41,7 @@ export function can(permission: Permission, perms: PermissionFacts): boolean {
 export function deniedReasonKey(permission: Permission, perms: PermissionFacts): string | null {
   if (can(permission, perms)) return null
   if (permission === 'admin') return 'permissions.adminRequired'
+  if (permission === 'browse') return perms.role === 'viewer' ? 'permissions.browseViewer' : 'permissions.notAllowed'
   if (permission !== 'read' && perms.readOnly) return 'permissions.clusterReadOnly'
   if (perms.role === 'viewer') return 'permissions.viewerRole'
   return 'permissions.notAllowed'
@@ -48,6 +55,7 @@ export function deniedReasonKey(permission: Permission, perms: PermissionFacts):
 export function deniedCode(permission: Permission, perms: PermissionFacts): DeniedCode | null {
   if (can(permission, perms)) return null
   if (permission === 'admin') return 'admin_required'
+  if (permission === 'browse') return 'forbidden_role'
   if (permission !== 'read' && perms.readOnly) return 'cluster_read_only'
   return 'forbidden_role'
 }

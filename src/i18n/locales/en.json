@@ -149,6 +149,9 @@
     "editor": {
       "openHint": "Select a resource from the sidebar to open it",
       "modulesHint": "Switch modules from the activity bar — Workloads, CRDs, Helm, Metrics"
+    },
+    "sideGroup": {
+      "label": "Side editor group"
     }
   },
   "login": {

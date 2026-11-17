@@ -32,11 +32,13 @@ assigned to them.
 | read: lists, YAML, events, logs, metrics, scans | ✓ | ✓ | ✓ |
 | write: apply, edit, delete, scale, drain, Helm, Argo CD sync, … | ✓ | ✓ | — |
 | exec: shells, debug containers, Secret reveal, Helm release values | ✓ | ✓ | — |
+| browse: open a Service's or Pod's web interface (service browser) | ✓ | ✓ | — |
 | users, clusters, plugins, audit, update settings | ✓ | — | — |
 
 **Read-only clusters.** An admin can flag a cluster read-only: every write
 and exec request is refused for everyone, admins included, until the flag is
-cleared. Use it for production clusters people should only look at.
+cleared. Use it for production clusters people should only look at. The
+service browser stays available there, but sends only GET and HEAD.
 
 **Environment tags** (`development`, `staging`, `production`) colour the
 status bar; on `production` clusters destructive dialogs require typing the
@@ -96,6 +98,56 @@ data). Rows are pruned after `KUBEBENCH_AUDIT_RETENTION_DAYS` (default 90;
   ends. Per-user limits: 10 terminals, 20 log streams, 16 watch streams.
 - There is no SSO yet; put KubeBench behind your identity-aware proxy if
   you need one, and still use KubeBench accounts for roles.
+
+## Service browser
+
+"Open in browser" (design §7.14) shows the web interface of a Service or
+Pod through the API server's proxy subresource, **with KubeBench's cluster
+credential**. That reaches inside the cluster network, including admin
+interfaces of in-cluster applications that trust it, so:
+
+- **Who.** It needs the `browse` access: operator or admin on the cluster,
+  never viewer. It is not a change of Kubernetes objects, so a read-only
+  cluster allows it, but only GET and HEAD requests are forwarded there
+  (a form post to an in-cluster admin UI is a change too).
+- **Audit.** Opening a page writes one row, `service.proxy` (or
+  `pod.proxy`) with target `service/<ns>/<name>:<port>`; the requests the
+  page then makes are not recorded one by one.
+- **Credential.** Opening returns a grant: 256 random bits in the URL,
+  `/proxy/<token>/…`. Proxied requests are authorized by that token alone,
+  never by the session cookie; each one checks again that the session that
+  opened it is alive and still holds `browse` on that cluster. A grant ends
+  after 1 h unused, 12 h in all, when its tab closes, or with the session.
+  It reaches only its one Service or Pod port. Responses carry
+  `Referrer-Policy: no-referrer`, so the token does not leak in `Referer`.
+- **What is forwarded.** The browser's `Authorization`, `Proxy-Authorization`,
+  `Impersonate-*` and `X-Remote-*` headers are dropped (they would replace
+  or extend KubeBench's credential at the API server), and so are
+  `Referer` and the `kubebench_session` cookie. The application's own
+  cookies pass, scoped to `/proxy/<token>/`. Answers that would act on
+  KubeBench's origin are removed: `Set-Cookie` of `kubebench_session`,
+  `Clear-Site-Data`, `Strict-Transport-Security`, `Service-Worker-Allowed`,
+  `X-Frame-Options` and `frame-ancestors` of the application. Redirects are
+  never followed by the proxy; `Location` headers pointing into the
+  application are rewritten below the grant.
+- **Isolation.** On KubeBench's own origin every proxied response carries
+  `Content-Security-Policy: sandbox allow-scripts allow-forms allow-popups
+  allow-downloads; frame-ancestors <KubeBench>` (no `allow-same-origin`,
+  no top navigation, no modal dialogs), and the frame has the same
+  `sandbox`. The page runs in an opaque origin: it cannot read KubeBench's
+  cookies, storage or frames, navigate KubeBench, or send a request that
+  KubeBench would accept as the user's (Chromium does not even attach the
+  session cookie; CORS keeps the answers unreadable, and the `Origin: null`
+  of its posts fails the CSRF check of every `/api` route). A live
+  Playwright test with a hostile page checks exactly this.
+- **Separate origin.** Applications that need cookies or storage (sign-ins)
+  do not work sandboxed. `KUBEBENCH_PROXY_ORIGIN` serves the same grants
+  on another origin, unsandboxed; that origin serves nothing but `/proxy/`.
+  Use a host that is **not a subdomain** of KubeBench's (better: another
+  registrable domain): a page on a sibling subdomain could set cookies for
+  the parent domain and is "same-site" for KubeBench. All applications
+  opened there share that one origin, so they are isolated from KubeBench,
+  not from each other.
 
 ## Kubeconfig handling
 
@@ -177,6 +229,8 @@ or run commands.
 - [ ] Leave `KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY` off unless every admin
   may hold the server's cloud identity; prefer per-cluster credentials.
 - [ ] Back up the data directory and protect the backups like credentials.
+- [ ] If you set `KUBEBENCH_PROXY_ORIGIN`, use a host on another domain than
+      KubeBench's, never one of its subdomains.
 
 **Kubernetes (Helm chart)**
 

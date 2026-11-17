@@ -1,5 +1,7 @@
 package api
 
+import "kubebench/internal/svcproxy"
+
 // routes is the API's route table (docs/design-v0.5.md §3.2, §4). The
 // access level decides session, role, read-only and audit handling.
 func (s *Server) routes() {
@@ -89,6 +91,17 @@ func (s *Server) routes() {
 	s.handle("POST /api/namespaces", accessWrite, s.handleCreateNamespace)
 	s.handle("DELETE /api/namespaces", accessWrite, s.handleDeleteNamespace)
 
+	// Service browser (§7.14): opening a grant is audited once; proxied
+	// requests authorize with the grant's token in their URL.
+	s.handle("POST /api/proxy/services/{ns}/{name}/{port}", accessBrowse, s.handleOpenProxy(svcproxy.KindService))
+	s.handle("POST /api/proxy/pods/{ns}/{name}/{port}", accessBrowse, s.handleOpenProxy(svcproxy.KindPod))
+	s.handle("GET /api/proxy/sessions/{token}", accessAuthed, s.handleProxySession)
+	s.handle("DELETE /api/proxy/sessions/{token}", accessAuthed, s.handleCloseProxySession)
+	s.handle("GET /proxy/{token}", accessPublic, s.handleProxyRoot)
+	for _, method := range []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"} {
+		s.handle(method+" /proxy/{token}/{path...}", accessPublic, s.handleProxy)
+	}
+
 	s.mountPlugins()
 	s.mux.HandleFunc("/api/", s.handleUnknownAPI)
 }
@@ -104,6 +117,9 @@ var auditKinds = map[string]string{
 	// Security plugin (§7.7): accepted risks are named by their finding key.
 	"POST /api/plugins/security/accept":         "finding",
 	"DELETE /api/plugins/security/accept/{key}": "finding",
+	// Service browser (§7.14).
+	"POST /api/proxy/services/{ns}/{name}/{port}": "service",
+	"POST /api/proxy/pods/{ns}/{name}/{port}":     "pod",
 }
 
 // auditActions names the audit action of routes that record a named action
@@ -111,4 +127,7 @@ var auditKinds = map[string]string{
 // whose row is written once, when the connection is upgraded.
 var auditActions = map[string]string{
 	"GET /api/exec/ws": "exec.session",
+	// A browsing session, not each request it makes (§7.14).
+	"POST /api/proxy/services/{ns}/{name}/{port}": "service.proxy",
+	"POST /api/proxy/pods/{ns}/{name}/{port}":     "pod.proxy",
 }

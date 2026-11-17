@@ -261,7 +261,8 @@
     "adminRequired": "Bunu yalnızca yöneticiler yapabilir.",
     "clusterReadOnly": "Cluster salt okunur: değişiklikler herkes için engellenir.",
     "viewerRole": "Bu cluster'daki rolünüz izleyici; bu rolle hiçbir şeyi değiştiremezsiniz.",
-    "notAllowed": "Bu cluster'da bunu yapmanıza izin verilmiyor."
+    "notAllowed": "Bu cluster'da bunu yapmanıza izin verilmiyor.",
+    "browseViewer": "Bu cluster'daki rolünüz izleyici; bu rolle Service'leri tarayıcıda açamazsınız."
   },
   "plugins": {
     "reasons": {

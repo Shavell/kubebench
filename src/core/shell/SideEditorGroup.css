@@ -1,0 +1,45 @@
+/* The editor area and the side editor group side by side (design §7.14). */
+.shell__editors {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+}
+.shell__editors > .editor-area {
+  min-width: 0;
+}
+
+.side-group {
+  position: relative;
+  flex-shrink: 0;
+  max-width: calc(100% - 240px);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-left: 1px solid var(--vscode-panel-border);
+  background: var(--vscode-editor-background);
+}
+.side-group > .resize-handle--vertical {
+  left: -2px;
+  right: auto;
+}
+
+.side-group__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.side-group__page {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.side-group__page[hidden] {
+  display: none;
+}
+.side-group__page > * {
+  flex: 1;
+  min-height: 0;
+}

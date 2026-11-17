@@ -66,6 +66,19 @@ func contributionDenied(role string, cluster *store.Cluster) error {
 	return nil
 }
 
+// browseDenied explains why role may not open the service browser on
+// cluster (§7.14), or returns nil: it reaches into the cluster network
+// with KubeBench's credential, so it needs the operator or admin role. A
+// read-only cluster does not refuse it; the proxy then sends only GET and
+// HEAD requests.
+func browseDenied(role string, cluster *store.Cluster) error {
+	if role != store.RoleAdmin && role != store.ClusterRoleOperator {
+		return errorf(http.StatusForbidden, plugin.CodeForbiddenRole,
+			"your role on cluster %q is %s, which cannot open services in the browser", cluster.Name, role)
+	}
+	return nil
+}
+
 // activeCluster returns the caller's active cluster and their role on it.
 // It never chooses a cluster by itself (only /api/info does, see
 // selectCluster), so a request cannot act on a cluster other than the one

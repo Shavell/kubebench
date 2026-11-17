@@ -24,6 +24,10 @@ const (
 	// read-only; mutations audited. Plugin routes only: KubeBench-side
 	// data that other users of the cluster see, such as shared notes.
 	accessContribute
+	// accessBrowse opens the service browser (§7.14): read + operator/
+	// admin; allowed on read-only clusters, where the proxy then sends
+	// only GET and HEAD. Audited.
+	accessBrowse
 
 	// allowDryRun marks a write or exec route whose handler performs a dry
 	// run whenever plugin.IsDryRun(r): such requests need only read access
@@ -208,6 +212,11 @@ func (s *Server) authorize(c *call, level access, p plugin.Plugin) error {
 			return err
 		}
 	}
+	if level == accessBrowse {
+		if err := browseDenied(c.role, c.cluster); err != nil {
+			return err
+		}
+	}
 	if p != nil {
 		if st := s.detect.status(p, c.rt); !st.Available {
 			reason := st.Reason
@@ -224,7 +233,7 @@ func (s *Server) authorize(c *call, level access, p plugin.Plugin) error {
 // audit log: every write and exec request, and admin mutations.
 func audited(level access, method string) bool {
 	switch level {
-	case accessWrite, accessExec:
+	case accessWrite, accessExec, accessBrowse:
 		return true
 	case accessAdmin, accessContribute:
 		return method != http.MethodGet && method != http.MethodHead
