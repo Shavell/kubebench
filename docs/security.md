@@ -33,6 +33,7 @@ assigned to them.
 | write: apply, edit, delete, scale, drain, Helm, Argo CD sync, … | ✓ | ✓ | — |
 | exec: shells, debug containers, Secret reveal, Helm release values | ✓ | ✓ | — |
 | browse: open a Service's or Pod's web interface (service browser) | ✓ | ✓ | — |
+| contribute: create, edit, pin and delete shared notes (also on read-only clusters) | ✓ | ✓ | — |
 | users, clusters, plugins, audit, update settings | ✓ | — | — |
 
 **Read-only clusters.** An admin can flag a cluster read-only: every write

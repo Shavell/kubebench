@@ -130,6 +130,7 @@ Effective permission of a user on a cluster:
 | write (mutations) | ✓ | ✓ | ✗ |
 | exec (shell, debug container, reveal secret) | ✓ | ✓ | ✗ |
 | browse (service browser, §7.14; v0.6) | ✓ | ✓ | ✗ |
+| contribute (shared notes, §7.13; v0.6; allowed on read-only clusters) | ✓ | ✓ | ✗ |
 | manage users/clusters/plugins/audit | ✓ | ✗ | ✗ |
 
 A **read-only cluster** rejects write and exec for everyone (admins
