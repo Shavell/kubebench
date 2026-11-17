@@ -243,3 +243,46 @@ func TestBodyRewriteAcrossReads(t *testing.T) {
 		t.Fatal("rewritten body differs with large reads")
 	}
 }
+
+func TestSameSite(t *testing.T) {
+	for _, pair := range [][2]string{
+		{"kb.example.com", "kb.example.com"},
+		{"kb.example.com", "KB.Example.com."},
+		{"kb.example.com", "proxy.example.com"},
+		{"example.com", "proxy.example.com"},
+		{"kb.corp.internal", "proxy.corp.internal"},
+		{"10.0.0.5", "10.0.0.5"},
+		{"[::1]", "::1"},
+		{"localhost", "localhost"},
+		{"localhost", "proxy.localhost"},
+	} {
+		if !SameSite(pair[0], pair[1]) {
+			t.Errorf("SameSite(%q, %q) = false", pair[0], pair[1])
+		}
+	}
+	for _, pair := range [][2]string{
+		{"kb.example.com", "kubebench-proxy.example.net"},
+		{"a.github.io", "b.github.io"}, // a public suffix
+		{"10.0.0.5", "10.0.0.6"},
+		{"kb.example.com", "10.0.0.5"},
+	} {
+		if SameSite(pair[0], pair[1]) {
+			t.Errorf("SameSite(%q, %q) = true", pair[0], pair[1])
+		}
+	}
+}
+
+func TestIsUpgrade(t *testing.T) {
+	for _, h := range []http.Header{
+		{"Upgrade": {"websocket"}},
+		{"Connection": {"keep-alive, Upgrade"}},
+		{"Connection": {"close", "upgrade"}},
+	} {
+		if !isUpgrade(h) {
+			t.Errorf("isUpgrade(%v) = false", h)
+		}
+	}
+	if isUpgrade(http.Header{"Connection": {"keep-alive"}}) {
+		t.Error("keep-alive is not an upgrade")
+	}
+}

@@ -37,7 +37,8 @@ type Request struct {
 	// Sandboxed is set on KubeBench's own origin; content served on the
 	// separate proxy origin runs unsandboxed.
 	Sandboxed bool
-	// ReadOnly allows GET and HEAD only (a read-only cluster).
+	// ReadOnly allows GET and HEAD only, without protocol upgrades (a
+	// read-only cluster).
 	ReadOnly bool
 	// SessionCookie is the name of KubeBench's session cookie.
 	SessionCookie string
@@ -68,6 +69,10 @@ func Serve(w http.ResponseWriter, r *http.Request, req Request) {
 	}
 	if req.ReadOnly && r.Method != http.MethodGet && r.Method != http.MethodHead {
 		Fail(w, http.StatusForbidden, "the cluster is read-only: the service browser sends only GET and HEAD requests", req.Sandboxed, req.Grant.FrameAncestor)
+		return
+	}
+	if req.ReadOnly && isUpgrade(r.Header) {
+		Fail(w, http.StatusForbidden, "the cluster is read-only: the service browser opens no WebSocket connections", req.Sandboxed, req.Grant.FrameAncestor)
 		return
 	}
 	if r.Body != nil {

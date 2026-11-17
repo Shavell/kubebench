@@ -49,7 +49,7 @@ CHANGELOG says how.
 | `read` | session, a usable active cluster and any role on it (viewer, operator, admin) | no |
 | `write` | `read` + role operator or admin + the cluster is not read-only | yes |
 | `exec` | the same gate as `write` | yes |
-| `browse` | `read` + role operator or admin; allowed on read-only clusters (the service browser then sends only GET and HEAD) | yes |
+| `browse` | `read` + role operator or admin; allowed on read-only clusters (the service browser then sends only GET and HEAD, without WebSocket upgrades) | yes |
 | `admin` | a global admin | mutations |
 | `contribute` | plugin routes only: `read` + role operator or admin; the cluster may be read-only (KubeBench-side data, e.g. shared notes) | mutations |
 
@@ -292,10 +292,13 @@ and filesystem series need Prometheus.
 
 `ProxySession` is `{"token","base","sandboxed","readOnly","target":{"kind","namespace","name","port","scheme"},"location"}`;
 `base` is `/proxy/<token>` (or `<KUBEBENCH_PROXY_ORIGIN>/proxy/<token>`).
-Proxied requests are re-authorized every time (session alive, browse access
-on the session's cluster, GET/HEAD only on a read-only cluster) and never
-audited one by one. Their errors are plain text pages (they are shown in
-the browser frame), not JSON. WebSocket upgrades are forwarded.
+Opening a session fails with `503 capability_unavailable` when
+`KUBEBENCH_PROXY_ORIGIN` is on the same site as KubeBench's origin (design
+§7.14). Proxied requests are re-authorized every time (session alive,
+browse access on the session's cluster, GET/HEAD only on a read-only
+cluster) and never audited one by one. Their errors are plain text pages
+(they are shown in the browser frame), not JSON. WebSocket upgrades are
+forwarded, except on a read-only cluster (`403`).
 
 ## Backend plugins
 

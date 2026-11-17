@@ -126,3 +126,20 @@ func setIsolationHeaders(h http.Header, sandboxed bool, frameAncestor string) {
 	// name the URL anyway; it contains the grant's token.
 	h.Set("Cross-Origin-Resource-Policy", "cross-origin")
 }
+
+// isUpgrade reports whether a request with header h asks to switch
+// protocols (a WebSocket): the reverse proxy would then splice a two-way
+// connection to the backend that no method rule sees.
+func isUpgrade(h http.Header) bool {
+	if h.Get("Upgrade") != "" {
+		return true
+	}
+	for _, v := range h.Values("Connection") {
+		for token := range strings.SplitSeq(v, ",") {
+			if strings.EqualFold(strings.TrimSpace(token), "upgrade") {
+				return true
+			}
+		}
+	}
+	return false
+}

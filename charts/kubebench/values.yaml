@@ -52,8 +52,10 @@ config:
   # (docs/design-v0.5.md §7.14), e.g. https://kubebench-proxy.example.net.
   # Pages opened from Services then run unsandboxed there, isolated from
   # KubeBench by the origin. Route the host to this release too: add it to
-  # ingress.hosts (and ingress.tls). Prefer a host that is not a subdomain
-  # of KubeBench's own host. Empty: pages run sandboxed on KubeBench's origin.
+  # ingress.hosts (and ingress.tls). Use a host on another domain than
+  # KubeBench's: not its host on another port, not a subdomain (cookies ignore
+  # ports and reach subdomains; KubeBench refuses such an origin). Empty:
+  # pages run sandboxed on KubeBench's origin.
   proxyOrigin: ""
 
 # Additional container environment, e.g. [{name: KUBEBENCH_PLUGINS_DIR, value: /plugins}].

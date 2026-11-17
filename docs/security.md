@@ -38,7 +38,8 @@ assigned to them.
 **Read-only clusters.** An admin can flag a cluster read-only: every write
 and exec request is refused for everyone, admins included, until the flag is
 cleared. Use it for production clusters people should only look at. The
-service browser stays available there, but sends only GET and HEAD.
+service browser stays available there, but sends only GET and HEAD and opens
+no WebSocket connections.
 
 **Environment tags** (`development`, `staging`, `production`) colour the
 status bar; on `production` clusters destructive dialogs require typing the
@@ -109,7 +110,9 @@ interfaces of in-cluster applications that trust it, so:
 - **Who.** It needs the `browse` access: operator or admin on the cluster,
   never viewer. It is not a change of Kubernetes objects, so a read-only
   cluster allows it, but only GET and HEAD requests are forwarded there
-  (a form post to an in-cluster admin UI is a change too).
+  (a form post to an in-cluster admin UI is a change too), and WebSocket
+  upgrades are refused: a web terminal or database console sends its
+  commands over a WebSocket, which no method rule sees.
 - **Audit.** Opening a page writes one row, `service.proxy` (or
   `pod.proxy`) with target `service/<ns>/<name>:<port>`; the requests the
   page then makes are not recorded one by one.
@@ -143,9 +146,14 @@ interfaces of in-cluster applications that trust it, so:
 - **Separate origin.** Applications that need cookies or storage (sign-ins)
   do not work sandboxed. `KUBEBENCH_PROXY_ORIGIN` serves the same grants
   on another origin, unsandboxed; that origin serves nothing but `/proxy/`.
-  Use a host that is **not a subdomain** of KubeBench's (better: another
-  registrable domain): a page on a sibling subdomain could set cookies for
-  the parent domain and is "same-site" for KubeBench. All applications
+  It must be **another site** than KubeBench: cookies ignore ports, and a
+  page can set cookies for its parent domain, so a proxied page on
+  KubeBench's host (on another port), on a subdomain or on a sibling
+  subdomain could plant a `kubebench_session` cookie and replace the
+  user's session. KubeBench refuses to open pages when the proxy origin's
+  host equals KubeBench's, is a subdomain of it (or the other way round)
+  or shares its registrable domain; use a host on another domain, e.g.
+  `kubebench-proxy.example.net` for `kubebench.example.com`. All applications
   opened there share that one origin, so they are isolated from KubeBench,
   not from each other.
 
@@ -230,7 +238,8 @@ or run commands.
   may hold the server's cloud identity; prefer per-cluster credentials.
 - [ ] Back up the data directory and protect the backups like credentials.
 - [ ] If you set `KUBEBENCH_PROXY_ORIGIN`, use a host on another domain than
-      KubeBench's, never one of its subdomains.
+      KubeBench's: not its host on another port, not a subdomain (KubeBench
+      refuses those).
 
 **Kubernetes (Helm chart)**
 

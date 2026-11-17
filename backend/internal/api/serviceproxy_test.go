@@ -248,6 +248,14 @@ func TestProxyOnAReadOnlyCluster(t *testing.T) {
 			}
 		}
 	}
+	// A WebSocket upgrade is a GET, but it opens a two-way channel that
+	// requests no method rule can see.
+	upgrade := http.Header{"Connection": {"keep-alive, Upgrade"}, "Upgrade": {"websocket"}, "Sec-Websocket-Version": {"13"}, "Sec-Websocket-Key": {"dGhlIHNhbXBsZSBub25jZQ=="}}
+	for _, header := range []http.Header{upgrade, {"Upgrade": {"websocket"}}} {
+		if rec := e.browse(http.MethodGet, s.Base+"/form", header); rec.Code != http.StatusForbidden || !strings.Contains(rec.Body.String(), "WebSocket") {
+			t.Errorf("upgrade %v on a read-only cluster = %d %q", header, rec.Code, rec.Body.String())
+		}
+	}
 	if upstream.count() != n {
 		t.Error("a refused request reached the API server")
 	}
@@ -310,6 +318,25 @@ func TestProxyOrigin(t *testing.T) {
 	rec = e.browse(http.MethodGet, path+"/", nil)
 	if !strings.HasPrefix(rec.Header().Get("Content-Security-Policy"), "sandbox ") {
 		t.Fatalf("main origin CSP = %q", rec.Header().Get("Content-Security-Policy"))
+	}
+}
+
+func TestProxyOriginMustBeAnotherSite(t *testing.T) {
+	// Cookies are scoped by host (and parent domain), not by port: a page
+	// on such a proxy origin could plant a kubebench_session cookie that
+	// KubeBench would read. KubeBench answers as http://example.com.
+	for _, origin := range []string{"http://example.com:9877", "http://proxy.example.com", "http://www.example.com:8080"} {
+		t.Run(origin, func(t *testing.T) {
+			e, upstream := proxyEnv(t, map[string]string{"KUBEBENCH_PROXY_ORIGIN": origin})
+			rec := e.do(http.MethodPost, "/api/proxy/services/default/web/80", "alice", nil)
+			expect(t, rec, http.StatusServiceUnavailable, plugin.CodeCapabilityUnavailable)
+			if !strings.Contains(rec.Body.String(), "KUBEBENCH_PROXY_ORIGIN") {
+				t.Errorf("error = %s", rec.Body.String())
+			}
+			if upstream.count() != 0 {
+				t.Error("the refused grant reached the API server")
+			}
+		})
 	}
 }
 

@@ -49,10 +49,11 @@ service browser (a frontend plugin on new core proxy routes).
 - Traffic goes through the Kubernetes API server's proxy, using the
   cluster credentials KubeBench already holds, so the browser never needs
   network access to the cluster or its credentials. Operators and admins
-  only; on read-only clusters only GET and HEAD requests are forwarded.
+  only; on read-only clusters only GET and HEAD requests are forwarded
+  (no WebSocket connections).
 - The page is shown sandboxed, so the proxied application cannot reach
   KubeBench's session, cookies or UI.
-- An optional, separate proxy origin (its own host name) serves the pages
+- An optional, separate proxy origin (a host on another domain) serves the pages
   unsandboxed, isolated from KubeBench by the origin, so apps that need
   cookies or storage (for example sign-ins) work too.
 

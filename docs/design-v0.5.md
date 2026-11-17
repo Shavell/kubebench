@@ -134,7 +134,7 @@ Effective permission of a user on a cluster:
 
 A **read-only cluster** rejects write and exec for everyone (admins
 included) with `403 {"code":"cluster_read_only"}` (browse stays, limited to
-GET and HEAD, §7.14); an admin clears the flag
+GET and HEAD without WebSocket upgrades, §7.14); an admin clears the flag
 in the Clusters view. Kubernetes-side authorization is still whatever the
 stored credential allows.
 
@@ -149,7 +149,8 @@ Every route declares one of:
 - `write` — `read` + role operator/admin + cluster not read-only. **Audited.**
 - `exec` — same gate as write. **Audited.**
 - `browse` (v0.6, §7.14) — `read` + role operator/admin; **not** refused on
-  read-only clusters (the service browser then sends only GET/HEAD).
+  read-only clusters (the service browser then sends only GET/HEAD and
+  opens no WebSockets).
   **Audited.**
 - `admin` — global admin. Mutations audited.
 - `contribute` (plugin routes only, v0.6) — `read` + role operator/admin;
@@ -1725,7 +1726,11 @@ inside the cluster network with KubeBench's credential, including admin
 interfaces of in-cluster applications that can be posted to, so viewers
 never get it. A read-only cluster does **not** refuse it; the proxy then
 forwards only GET and HEAD (and answers CORS preflights itself), so a
-form post to an in-cluster admin UI is refused like any other change.
+form post to an in-cluster admin UI is refused like any other change. A
+protocol upgrade (`Upgrade` header or `Connection: upgrade`, i.e. a
+WebSocket) is refused there too with `403`: it is a GET, but the spliced
+two-way connection carries messages no method rule sees, and it would
+outlive the per-request access checks.
 Frontend permission `browse` (`permissionRules.ts`): held when the role is
 admin or operator, whatever the read-only flag.
 
@@ -1816,9 +1821,15 @@ else `404`, recognised by `Host`, or `X-Forwarded-Host` behind a trusted
 proxy). There responses have no CSP sandbox (only `frame-ancestors`), the
 frame gets `allow-same-origin allow-modals allow-popups-to-escape-sandbox`
 on top of the sandbox flags, and `base` is absolute; applications with
-cookies and storage (sign-ins) work. KubeBench's cookies are host-only and
-never reach it. The host should not be a subdomain of KubeBench's (a
-sibling could set parent-domain cookies and is same-site); applications
+cookies and storage (sign-ins) work. KubeBench's cookies are host-only, so
+they are not sent there, but cookies ignore ports and a page can set
+cookies for its parent domain: a page on the same site could plant a
+`kubebench_session` cookie (`path=/api`) that KubeBench would read. So the
+proxy origin must be **another site** than KubeBench's origin as the
+browser sees it (`appOrigin`): opening a grant is refused with `503
+capability_unavailable` when the two host names are equal (whatever the
+ports), one is a subdomain of the other, or they share a registrable
+domain (public suffix list; IP addresses only by equality). Applications
 opened there share one origin, so they are isolated from KubeBench, not
 from each other (per-application subdomains are a possible follow-up).
 

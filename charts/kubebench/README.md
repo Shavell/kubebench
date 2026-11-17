@@ -207,7 +207,7 @@ kubectl -n kubebench delete pvc/kubebench-data secret/kubebench-auth
 | `config.allowPathKubeconfig` | `false` | `KUBEBENCH_ALLOW_PATH_KUBECONFIG`: add clusters by a path inside the pod. |
 | `config.allowAmbientCloudIdentity` | `false` | `KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY`: pasted EKS, GKE and AKS kubeconfigs may sign in with the pod's own cloud identity (workload identity). Every admin can then obtain its token ([security](../../docs/security.md#cloud-identities-eks-aks-gke)). |
 | `config.updateMode` | `stable` | `KUBEBENCH_UPDATE_MODE`: check GitHub for new releases (`stable`, `prerelease`) or never (`off`, for air-gapped clusters). Admins can change it in Settings. |
-| `config.proxyOrigin` | `""` | `KUBEBENCH_PROXY_ORIGIN`: a separate origin (e.g. `https://kubebench-proxy.example.net`) where the service browser shows in-cluster web pages unsandboxed; add its host to `ingress.hosts`. Use a host outside KubeBench's domain. Empty: pages run sandboxed on KubeBench's origin. |
+| `config.proxyOrigin` | `""` | `KUBEBENCH_PROXY_ORIGIN`: a separate origin (e.g. `https://kubebench-proxy.example.net`) where the service browser shows in-cluster web pages unsandboxed; add its host to `ingress.hosts`. Use a host on another domain than KubeBench's (not its host on another port, not a subdomain: KubeBench refuses those). Empty: pages run sandboxed on KubeBench's origin. |
 | `extraEnv` | `[]` | Extra container env entries; they override the chart's variables. |
 | `extraEnvFrom` | `[]` | Extra `envFrom` sources. |
 | `serviceAccount.create` | `true` | Create the ServiceAccount. |

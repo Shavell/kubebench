@@ -27,9 +27,9 @@ those commits.
   workload's web interface in a browser tab to the right of the editor
   (back, forward, reload, path, port, open in a new tab), through
   KubeBench's proxy and the API server, sandboxed and isolated from
-  KubeBench. Operators and admins only; read-only clusters allow reading.
-  `KUBEBENCH_PROXY_ORIGIN` serves the pages on a separate origin, where apps
-  with sign-ins work too.
+  KubeBench. Operators and admins only; read-only clusters allow reading
+  (no form posts, no WebSockets). `KUBEBENCH_PROXY_ORIGIN` serves the pages
+  on a separate origin on another domain, where apps with sign-ins work too.
 
 ## [0.5.0] - Unreleased
 

@@ -80,6 +80,11 @@ func (s *Server) handleOpenProxy(kind string) handlerFunc {
 			detail["readOnly"] = true
 		}
 		c.setAudit(t.AuditTarget(), auditJSON(detail))
+		appOrigin := s.appOrigin(r)
+		if err := s.checkProxyOrigin(appOrigin); err != nil {
+			writeErr(w, err)
+			return
+		}
 		if err := checkProxyTarget(r.Context(), c.rt, t); err != nil {
 			var ae *apiError
 			if errors.As(err, &ae) {
@@ -91,7 +96,7 @@ func (s *Server) handleOpenProxy(kind string) handlerFunc {
 		}
 		g, err := s.grants.Issue(svcproxy.Grant{
 			Session: c.token, UserID: c.user.ID, ClusterID: c.cluster.ID,
-			Target: t, FrameAncestor: s.appOrigin(r),
+			Target: t, FrameAncestor: appOrigin,
 		})
 		if err != nil {
 			writeErr(w, err)
@@ -99,6 +104,32 @@ func (s *Server) handleOpenProxy(kind string) handlerFunc {
 		}
 		plugin.WriteJSON(w, s.proxySessionView(g, c.cluster.ReadOnly))
 	}
+}
+
+// checkProxyOrigin refuses to open grants on a proxy origin of the same
+// site as appOrigin, KubeBench's origin as the browser sees it: cookies
+// ignore ports, and a parent domain's cookies reach every subdomain, so a
+// proxied page there could plant a kubebench_session cookie that KubeBench
+// would read (§7.14).
+func (s *Server) checkProxyOrigin(appOrigin string) error {
+	if s.cfg.ProxyOrigin == "" {
+		return nil
+	}
+	proxy, err := url.Parse(s.cfg.ProxyOrigin)
+	if err != nil {
+		return err
+	}
+	app, err := url.Parse(appOrigin)
+	if err != nil || app.Host == "" {
+		// 'self': the host is unknown, so it cannot be told apart.
+		return errorf(http.StatusServiceUnavailable, plugin.CodeCapabilityUnavailable,
+			"the service browser cannot tell KubeBench's host from KUBEBENCH_PROXY_ORIGIN (%s)", s.cfg.ProxyOrigin)
+	}
+	if svcproxy.SameSite(app.Hostname(), proxy.Hostname()) {
+		return errorf(http.StatusServiceUnavailable, plugin.CodeCapabilityUnavailable,
+			"the service browser is off: KUBEBENCH_PROXY_ORIGIN (%s) is on the same site as KubeBench (%s), so its pages could replace your KubeBench session cookie; an administrator must set it to a host on another domain, or unset it", s.cfg.ProxyOrigin, appOrigin)
+	}
+	return nil
 }
 
 // checkProxyTarget makes sure the object exists and has the port, so that
