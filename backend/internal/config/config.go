@@ -74,6 +74,12 @@ type Config struct {
 	// UpdateURL is the releases endpoint the update check reads
 	// (KUBEBENCH_UPDATE_URL): GitHub's "list releases" JSON.
 	UpdateURL string
+
+	// ProxyOrigin is the separate origin (scheme://host[:port]) that
+	// serves the service browser's proxy unsandboxed
+	// (KUBEBENCH_PROXY_ORIGIN, §7.14); empty serves it sandboxed on
+	// KubeBench's own origin only.
+	ProxyOrigin string
 }
 
 // DefaultUpdateURL lists the releases of KubeBench's GitHub repository.
@@ -168,6 +174,16 @@ func FromEnv(lookup func(string) (string, bool), inCluster bool) (*Config, error
 	c.UpdateURL = p.str("KUBEBENCH_UPDATE_URL", DefaultUpdateURL)
 	if u, err := url.Parse(c.UpdateURL); err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
 		p.fail("KUBEBENCH_UPDATE_URL", "must be an http or https URL")
+	}
+
+	if origin := p.str("KUBEBENCH_PROXY_ORIGIN", ""); origin != "" {
+		u, err := url.Parse(origin)
+		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" ||
+			strings.Trim(u.Path, "/") != "" || u.RawQuery != "" || u.Fragment != "" || u.User != nil {
+			p.fail("KUBEBENCH_PROXY_ORIGIN", "must be an http or https origin without a path, e.g. https://proxy.kubebench.example")
+		} else {
+			c.ProxyOrigin = strings.ToLower(u.Scheme + "://" + u.Host)
+		}
 	}
 
 	if len(p.errs) > 0 {

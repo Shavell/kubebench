@@ -15,6 +15,7 @@ import (
 	"kubebench/internal/kube"
 	"kubebench/internal/plugin"
 	"kubebench/internal/store"
+	"kubebench/internal/svcproxy"
 	"kubebench/internal/updates"
 )
 
@@ -43,6 +44,8 @@ type Server struct {
 	updates *updates.Checker
 	// life ends the streams and terminals when the server stops.
 	life *lifecycle
+	// grants are the service browser's open sessions (§7.14).
+	grants *svcproxy.Grants
 }
 
 // New wires every route. plugins are the built-in backend plugins to mount
@@ -62,6 +65,7 @@ func New(cfg *config.Config, st *store.Store, manager *kube.Manager, build Build
 		streamLimits: newStreamLimiter(),
 		updates:      updates.New(updates.Options{URL: cfg.UpdateURL, Version: build.Version}),
 		life:         newLifecycle(),
+		grants:       svcproxy.NewGrants(time.Now),
 	}
 	slices.SortFunc(s.plugins, func(a, b plugin.Plugin) int {
 		return strings.Compare(a.Manifest().ID, b.Manifest().ID)
@@ -75,6 +79,12 @@ func New(cfg *config.Config, st *store.Store, manager *kube.Manager, build Build
 // Cross-origin mutations are rejected for all of them.
 func (s *Server) Handler(spa http.Handler) http.Handler {
 	return s.checkOrigin(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// The separate proxy origin (§7.14) serves the service browser's
+		// proxy and nothing else.
+		if s.onProxyOrigin(r) && !isProxyPath(r.URL.Path) {
+			http.NotFound(w, r)
+			return
+		}
 		if spa != nil && (r.Method == http.MethodGet || r.Method == http.MethodHead) {
 			if _, pattern := s.mux.Handler(r); pattern == "" {
 				spa.ServeHTTP(w, r)

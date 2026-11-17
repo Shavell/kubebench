@@ -7,6 +7,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 
@@ -59,6 +60,11 @@ type Runtime struct {
 	rawOnce   sync.Once // builds rawClient for RawGet on first use
 	rawClient *http.Client
 	rawErr    error
+
+	proxyOnce sync.Once // builds the service browser's transport; see ProxyTransport
+	proxyRT   http.RoundTripper
+	proxyBase *url.URL
+	proxyErr  error
 
 	mu       sync.RWMutex
 	prom     *PromSource
