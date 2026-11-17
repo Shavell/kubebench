@@ -28,6 +28,7 @@ exits with status 2. Values are trimmed; an empty value counts as unset.
 | `KUBEBENCH_NAMESPACE` | in a pod: the pod's namespace | The namespace KubeBench runs in; deleting a namespace of that name from KubeBench is refused unless forced |
 | `KUBEBENCH_UPDATE_MODE` | `stable` | Default update check: `off` (never contacts GitHub), `stable` or `prerelease`. An admin's choice in Settings > Updates overrides it |
 | `KUBEBENCH_UPDATE_URL` | `https://api.github.com/repos/Shavell/kube-bench/releases` | Releases list the update check reads (GitHub's "list releases" JSON); a mirror or a GitHub Enterprise API works too. `http` or `https` |
+| `KUBEBENCH_PROXY_ORIGIN` | unset | Separate origin (`https://host[:port]`, no path) for the service browser (design §7.14): proxied pages run there unsandboxed, isolated from KubeBench by the origin. The host must reach this server too (DNS, reverse proxy, certificate); it serves only `/proxy/`. Prefer a host that is not a subdomain of KubeBench's. Unset: pages run sandboxed on KubeBench's own origin |
 
 Read by libraries rather than by `internal/config`:
 
@@ -58,6 +59,7 @@ its values:
 | `config.allowPathKubeconfig` | `KUBEBENCH_ALLOW_PATH_KUBECONFIG` | `false` |
 | `config.allowAmbientCloudIdentity` | `KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY` | `false` |
 | `config.updateMode` | `KUBEBENCH_UPDATE_MODE` | `stable` |
+| `config.proxyOrigin` | `KUBEBENCH_PROXY_ORIGIN` (set only when not empty; add its host to `ingress.hosts`) | `""` |
 | `auth.existingSecret` / `auth.adminPassword` / generated | `KUBEBENCH_ADMIN_PASSWORD` | a random password kept across upgrades |
 
 `extraEnv` adds or overrides any variable (for example

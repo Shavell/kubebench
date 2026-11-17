@@ -128,7 +128,7 @@ locally, so offline installs work) and i18next.
 | Directory | Contents | May import |
 |---|---|---|
 | `src/core/shell` | The VS Code-like chrome: activity bar, sidebar, editor area with tabs, bottom panel, status bar (cluster, environment, read-only, namespace, live, user), command palette, login and password screens, boot error | `core/*`, `data`, `shared`, `i18n` — never `plugins/*` |
-| `src/core/plugin` | `PluginManifest` types, the registry, plugin status (`/api/plugins`), resource actions, `editorTabs`, `panelRequests` (`showInPanel`), lazy tab pages, the external plugin loader and the `window.KubeBench` SDK | |
+| `src/core/plugin` | `PluginManifest` types, the registry, plugin status (`/api/plugins`), resource actions, `editorTabs`, `panelRequests` (`showInPanel`), `sideGroup` (`openInSideGroup`, §7.14), lazy tab pages, the external plugin loader and the `window.KubeBench` SDK | |
 | `src/core/*` | `boot` (mock policy, session, `startApp`), `permissions.ts` (`usePermissions`, `usePermission`, `<Can>`), `live` (live-update stream and status), `palette` (kubectl-style commands), `shortcuts`, `updates` (update check, What's new, changelog tab), `session`, `store` (layout, settings, namespace favourites, aliases), `theme` | |
 | `src/plugins/<id>` | One folder per built-in plugin with `manifest.tsx`, its views, `locales/` and, for plugin-owned data, `data/` | `core/plugin`, `core/store`, `core/permissions`, `data`, `shared`, `i18n` — never `core/shell` or another plugin |
 | `src/data` | Domain types (`types.ts`), provider interfaces (`providers.ts`), the API client (`apiClient.ts`), `api/` (live) and `mock/` (demo) implementations, plugin data (`pluginData.ts`), the invalidation bus and `DataContext` | |

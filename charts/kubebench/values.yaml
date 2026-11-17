@@ -48,6 +48,13 @@ config:
   # change it in Settings. With networkPolicy.enabled the check needs egress
   # to api.github.com:443 (networkPolicy.extraEgressCIDRs).
   updateMode: stable
+  # KUBEBENCH_PROXY_ORIGIN: a separate origin for the service browser
+  # (docs/design-v0.5.md §7.14), e.g. https://kubebench-proxy.example.net.
+  # Pages opened from Services then run unsandboxed there, isolated from
+  # KubeBench by the origin. Route the host to this release too: add it to
+  # ingress.hosts (and ingress.tls). Prefer a host that is not a subdomain
+  # of KubeBench's own host. Empty: pages run sandboxed on KubeBench's origin.
+  proxyOrigin: ""
 
 # Additional container environment, e.g. [{name: KUBEBENCH_PLUGINS_DIR, value: /plugins}].
 # Entries listed here override the variables the chart sets.
@@ -117,6 +124,11 @@ ingress:
       paths:
         - path: /
           pathType: Prefix
+    # With config.proxyOrigin, route its host here too, e.g.:
+    # - host: kubebench-proxy.example.net
+    #   paths:
+    #     - path: /proxy/
+    #       pathType: Prefix
   # TLS example (e.g. with cert-manager: cert-manager.io/cluster-issuer in annotations):
   #   - secretName: kubebench-tls
   #     hosts:

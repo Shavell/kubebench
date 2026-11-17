@@ -61,13 +61,17 @@ Rules:
   `workloads-detail`, `generic-detail`, `crd-instances`, `topology`,
   `helm-release-detail`, …) or helpers in `core/plugin/editorTabs`; open
   bottom panel views with `showInPanel('pod-logs' | 'pod-exec', {namespace,
-  pod, container})`.
+  pod, container})`, and a tab next to the editor area (the side editor
+  group, which keeps its tabs mounted) with `openInSideGroup(tab)` from
+  `core/plugin/sideGroup` (the service browser uses kind `service-browser`
+  with `{kind: 'services' | 'pods', namespace, name}`).
 - **Data** through `src/data/providers.ts` (`useProviderQuery`) or your own
   plugin data (below). Declare live-update topics on queries
   (`{ topics: ['pods'], namespace }`) and call `refreshData()` after a
   mutation.
 - **Permissions**: gate mutation UI with `usePermission('write')` /
-  `<Can perm="write">` (shell, debug and Secret reveal: `exec`); show it
+  `<Can perm="write">` (shell, debug and Secret reveal: `exec`; the service
+  browser: `browse`, which a read-only cluster does not take away); show it
   disabled with the reason as tooltip, or hide it. Destructive actions go
   through `ConfirmDialog`, which asks for the name on production clusters.
 - **Unavailable**: in live mode, show `<Unavailable>` with the reason when a

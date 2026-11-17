@@ -16,6 +16,16 @@ those commits.
 
 ## [Unreleased]
 
+### Added
+
+- Service browser: "Open in browser" on Services and Pods shows the
+  workload's web interface in a browser tab to the right of the editor
+  (back, forward, reload, path, port, open in a new tab), through
+  KubeBench's proxy and the API server, sandboxed and isolated from
+  KubeBench. Operators and admins only; read-only clusters allow reading.
+  `KUBEBENCH_PROXY_ORIGIN` serves the pages on a separate origin, where apps
+  with sign-ins work too.
+
 ## [0.5.0] - Unreleased
 
 Upgrading from 0.4 or the 0.1 chart: read **Changed** first (chart
