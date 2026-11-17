@@ -10,7 +10,7 @@ export interface ServiceBrowserProvider {
   listPorts(kind: BrowserKind, namespace: string, name: string): Promise<BrowserPort[]>
   /** Opens a browsing session (needs the browse permission; audited once). */
   open(target: BrowserTarget): Promise<ProxySession>
-  /** The session as it is now, with the location the frame last navigated to. */
+  /** The session as it is now, with the documents its frames loaded. */
   session(token: string): Promise<ProxySession>
   /** Ends the session; its URLs stop working. */
   close(token: string): Promise<void>

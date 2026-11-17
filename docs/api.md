@@ -286,11 +286,14 @@ and filesystem series need Prometheus.
 |---|---|---|---|---|
 | POST | `/api/proxy/services/{ns}/{name}/{port}` | browse | `?scheme=http\|https` (default `http`); `port` is a Service port number or name | `ProxySession`; audited once as `service.proxy`, target `service/<ns>/<name>:<port>` |
 | POST | `/api/proxy/pods/{ns}/{name}/{port}` | browse | as above; a port name must be a container port's | `ProxySession`; audited once as `pod.proxy` |
-| GET | `/api/proxy/sessions/{token}` | authed | only the session that opened it | `ProxySession` with the current `location` |
+| GET | `/api/proxy/sessions/{token}` | authed | only the session that opened it | `ProxySession` with the latest `navigations` |
 | DELETE | `/api/proxy/sessions/{token}` | authed | only the session that opened it | `{"ok":true}` |
 | GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS | `/proxy/{token}/{path...}` | public (the token is the credential) | anything the proxied page sends | the page, through `/api/v1/namespaces/<ns>/<services\|pods>/<scheme>:<name>:<port>/proxy/<path>` |
 
-`ProxySession` is `{"token","base","sandboxed","readOnly","target":{"kind","namespace","name","port","scheme"},"location"}`;
+`ProxySession` is `{"token","base","sandboxed","readOnly","target":{"kind","namespace","name","port","scheme"},"navigations":[{"seq","location"}]}`
+(the latest 16 document loads of the frame and of the frames nested in its
+page, oldest first; `location` is the in-cluster path and query, `""` when
+longer than 4 KiB);
 `base` is `/proxy/<token>` (or `<KUBEBENCH_PROXY_ORIGIN>/proxy/<token>`).
 Opening a session fails with `503 capability_unavailable` when
 `KUBEBENCH_PROXY_ORIGIN` is on the same site as KubeBench's origin (design

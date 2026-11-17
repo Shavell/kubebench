@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Unavailable } from '@/shared/Unavailable'
 import { serviceBrowserData } from '../data'
 import type { BrowserPort, BrowserTarget, ProxySession, Scheme } from '../data/types'
 import { NS } from '../i18n'
+import { frameLocation } from '../model/frameLocation'
 import { canGoBack, canGoForward, currentPath, goBack, goForward, startHistory, visit } from '../model/history'
 import { targetAddress } from '../model/ports'
 import { AddressBar } from './AddressBar'
@@ -29,8 +30,8 @@ type SessionState = { session: ProxySession; error: null } | { session: null; er
 
 /**
  * One browsing session of a target: opens it on mount, ends it on unmount,
- * and keeps the tab's own back/forward history from the locations the
- * backend saw the frame navigate to (the frame is cross-origin).
+ * and keeps the tab's own back/forward history from the documents the
+ * backend saw the frame load (the frame is cross-origin).
  */
 export function BrowserSession({ target, ports, onTargetChange }: BrowserSessionProps) {
   const { t } = useTranslation(NS)
@@ -41,6 +42,8 @@ export function BrowserSession({ target, ports, onTargetChange }: BrowserSession
   // Every navigation KubeBench starts remounts the frame (n), so going to
   // the path the frame was opened with still loads it again.
   const [frame, setFrame] = useState({ path: '/', n: 0 })
+  // The newest navigation of the session seen at a load of the frame.
+  const seen = useRef({ token: '', seq: 0 })
 
   useEffect(() => {
     let cancelled = false
@@ -89,7 +92,11 @@ export function BrowserSession({ target, ports, onTargetChange }: BrowserSession
     if (!session) return
     provider.session(session.token).then(
       (now) => {
-        if (now.location) setHistory((h) => visit(h, now.location))
+        const since = seen.current.token === now.token ? seen.current.seq : 0
+        const load = frameLocation(now.navigations, since)
+        seen.current = { token: now.token, seq: load.seen }
+        const location = load.location
+        if (location) setHistory((h) => visit(h, location))
       },
       // The session ended (expired, signed out): the frame shows why.
       () => undefined,

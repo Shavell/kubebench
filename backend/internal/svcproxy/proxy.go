@@ -43,7 +43,9 @@ type Request struct {
 	// SessionCookie is the name of KubeBench's session cookie.
 	SessionCookie string
 	// Navigated, when set, is told the in-cluster location (path and query)
-	// of every document the browser loads with the grant.
+	// of every document a frame loads with the grant: the frame KubeBench
+	// shows and the frames nested in its page. Top-level documents (the
+	// page opened in a browser tab of its own) are not frame navigations.
 	Navigated func(location string)
 }
 
@@ -57,15 +59,12 @@ func Serve(w http.ResponseWriter, r *http.Request, req Request) {
 		preflight(w, r, req)
 		return
 	}
-	if req.Navigated != nil && r.Header.Get("Sec-Fetch-Mode") == "navigate" {
-		switch r.Header.Get("Sec-Fetch-Dest") {
-		case "iframe", "document":
-			loc := req.Path
-			if r.URL.RawQuery != "" {
-				loc += "?" + r.URL.RawQuery
-			}
-			req.Navigated(loc)
+	if req.Navigated != nil && r.Header.Get("Sec-Fetch-Mode") == "navigate" && r.Header.Get("Sec-Fetch-Dest") == "iframe" {
+		loc := req.Path
+		if r.URL.RawQuery != "" {
+			loc += "?" + r.URL.RawQuery
 		}
+		req.Navigated(loc)
 	}
 	if req.ReadOnly && r.Method != http.MethodGet && r.Method != http.MethodHead {
 		Fail(w, http.StatusForbidden, "the cluster is read-only: the service browser sends only GET and HEAD requests", req.Sandboxed, req.Grant.FrameAncestor)

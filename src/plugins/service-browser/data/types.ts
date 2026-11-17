@@ -38,7 +38,17 @@ export interface ProxySession {
   /** The cluster is read-only: only GET and HEAD requests are sent. */
   readOnly: boolean
   target: BrowserTarget
-  /** In-cluster path of the document the frame shows, "" before the first. */
+  /** The latest document loads of the frame and its nested frames, oldest first. */
+  navigations: Navigation[]
+}
+
+/**
+ * One document a frame loaded through the session, numbered in the order
+ * the proxy got them: a page's own document comes before its nested frames'.
+ */
+export interface Navigation {
+  seq: number
+  /** In-cluster path with its query; "" when too long to keep. */
   location: string
 }
 

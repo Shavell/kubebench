@@ -48,14 +48,14 @@ export function createMockServiceBrowser(): ServiceBrowserProvider {
         sandboxed: true,
         readOnly: currentPermissions().readOnly,
         target,
-        location: '',
+        navigations: [],
       }
       sessions.set(session.token, session)
       return delay(session)
     },
     session: (token) => {
       const session = sessions.get(token)
-      return session ? delay({ ...session }) : notFound(token)
+      return session ? delay({ ...session, navigations: [...session.navigations] }) : notFound(token)
     },
     close: (token) => {
       sessions.delete(token)
@@ -63,7 +63,10 @@ export function createMockServiceBrowser(): ServiceBrowserProvider {
     },
     frame: (session, path) => {
       const stored = sessions.get(session.token)
-      if (stored) stored.location = path
+      if (stored) {
+        const seq = (stored.navigations.at(-1)?.seq ?? 0) + 1
+        stored.navigations = [...stored.navigations, { seq, location: path }].slice(-16)
+      }
       return { srcDoc: placeholderPage(session, path) }
     },
   }

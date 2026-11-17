@@ -4,6 +4,8 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"testing/iotest"
@@ -71,8 +73,8 @@ func TestGrantsExpireAndBelongToTheirSession(t *testing.T) {
 	if gs.Revoke(g.Token, "s2") {
 		t.Fatal("another session revoked the grant")
 	}
-	gs.SetLocation(g.Token, "/a?b=1")
-	if got, ok := gs.Get(g.Token, "s1"); !ok || got.Location() != "/a?b=1" {
+	gs.RecordNavigation(g.Token, "/a?b=1")
+	if got, ok := gs.Get(g.Token, "s1"); !ok || !slices.Equal(got.Navigations(), []Navigation{{Seq: 1, Location: "/a?b=1"}}) {
 		t.Fatalf("Get = %+v, %v", got, ok)
 	}
 	// Used within the idle timeout, it lives on, up to its lifetime.
@@ -307,4 +309,22 @@ func TestBodyRewriteOfAbsoluteURLsNamingTheAPIServer(t *testing.T) {
 			t.Errorf("%s: %q (err %v)", name, got, err)
 		}
 	}
+}
+
+func TestGrantsKeepTheLatestNavigations(t *testing.T) {
+	gs := NewGrants(time.Now)
+	g, _ := gs.Issue(Grant{Session: "s1", Target: web})
+	for i := range MaxNavigations + 3 {
+		gs.RecordNavigation(g.Token, "/p"+strconv.Itoa(i+1))
+	}
+	gs.RecordNavigation(g.Token, "/"+strings.Repeat("x", MaxLocation))
+	got, _ := gs.Get(g.Token, "s1")
+	navs := got.Navigations()
+	if len(navs) != MaxNavigations || navs[0] != (Navigation{Seq: 5, Location: "/p5"}) {
+		t.Fatalf("oldest kept = %+v of %d", navs[0], len(navs))
+	}
+	if last := navs[len(navs)-1]; last != (Navigation{Seq: MaxNavigations + 4, Location: ""}) {
+		t.Errorf("an over-long location = %+v", last)
+	}
+	gs.RecordNavigation("unknown", "/x") // ignored
 }

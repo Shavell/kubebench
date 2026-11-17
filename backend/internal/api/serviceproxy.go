@@ -41,19 +41,19 @@ type proxySessionView struct {
 	Sandboxed bool            `json:"sandboxed"`
 	ReadOnly  bool            `json:"readOnly"`
 	Target    svcproxy.Target `json:"target"`
-	// Location is the in-cluster path of the document the browser shows
-	// (empty before the first navigation).
-	Location string `json:"location"`
+	// Navigations are the frame's latest document loads, oldest first
+	// (the frontend picks its own frame's from them).
+	Navigations []svcproxy.Navigation `json:"navigations"`
 }
 
 func (s *Server) proxySessionView(g svcproxy.Grant, readOnly bool) proxySessionView {
 	return proxySessionView{
-		Token:     g.Token,
-		Base:      s.cfg.ProxyOrigin + proxyPrefix + g.Token,
-		Sandboxed: s.cfg.ProxyOrigin == "",
-		ReadOnly:  readOnly,
-		Target:    g.Target,
-		Location:  g.Location(),
+		Token:       g.Token,
+		Base:        s.cfg.ProxyOrigin + proxyPrefix + g.Token,
+		Sandboxed:   s.cfg.ProxyOrigin == "",
+		ReadOnly:    readOnly,
+		Target:      g.Target,
+		Navigations: g.Navigations(),
 	}
 }
 
@@ -253,7 +253,7 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request, _ *call) {
 		Transport: transport, APIServer: apiServer,
 		Sandboxed: sandboxed, ReadOnly: readOnly,
 		SessionCookie: sessionCookie,
-		Navigated:     func(location string) { s.grants.SetLocation(token, location) },
+		Navigated:     func(location string) { s.grants.RecordNavigation(token, location) },
 	})
 }
 

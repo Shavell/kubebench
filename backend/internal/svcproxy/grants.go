@@ -3,6 +3,7 @@ package svcproxy
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"slices"
 	"sync"
 	"time"
 )
@@ -17,6 +18,11 @@ const (
 	PerSession = 32
 	// MaxGrants bounds the grants of all sessions together.
 	MaxGrants = 4096
+	// MaxNavigations is how many frame navigations a grant remembers.
+	MaxNavigations = 16
+	// MaxLocation bounds a remembered location; a longer one is recorded
+	// as unknown ("").
+	MaxLocation = 4 << 10
 )
 
 // Grant is one browsing session: the right to reach Target through the
@@ -37,12 +43,23 @@ type Grant struct {
 	FrameAncestor string
 
 	issued, used time.Time
-	location     string
+	navigations  []Navigation // oldest first
+	lastSeq      int64
 }
 
-// Location is the in-cluster path (with query) of the latest document the
-// browser navigated to with this grant, "" before the first.
-func (g Grant) Location() string { return g.location }
+// Navigation is one document load of the browser frame: the request of a
+// frame's document, numbered in the order the proxy got them. A page with
+// nested frames yields one navigation per frame, its own first.
+type Navigation struct {
+	Seq int64 `json:"seq"`
+	// Location is the in-cluster path with its query ("" when longer
+	// than MaxLocation).
+	Location string `json:"location"`
+}
+
+// Navigations are the latest MaxNavigations navigations, oldest first
+// (empty, not nil, before the first).
+func (g Grant) Navigations() []Navigation { return append([]Navigation{}, g.navigations...) }
 
 // Grants keeps the grants in memory: they end with the process, and a
 // reopened browser tab asks for a new one.
@@ -71,7 +88,8 @@ func (gs *Grants) Issue(g Grant) (Grant, error) {
 	gs.pruneLocked(now)
 	gs.evictLocked(func(o *Grant) bool { return o.Session == g.Session }, PerSession-1)
 	gs.evictLocked(func(*Grant) bool { return true }, MaxGrants-1)
-	g.Token, g.issued, g.used, g.location = token, now, now, ""
+	g.Token, g.issued, g.used = token, now, now
+	g.navigations, g.lastSeq = nil, 0
 	stored := g
 	gs.byToken[token] = &stored
 	return stored, nil
@@ -100,12 +118,21 @@ func (gs *Grants) Get(token, session string) (Grant, bool) {
 	return *g, true
 }
 
-// SetLocation records the document the browser navigated to.
-func (gs *Grants) SetLocation(token, location string) {
+// RecordNavigation records that a frame loaded the document at location.
+func (gs *Grants) RecordNavigation(token, location string) {
 	gs.mu.Lock()
 	defer gs.mu.Unlock()
-	if g, ok := gs.byToken[token]; ok {
-		g.location = location
+	g, ok := gs.byToken[token]
+	if !ok {
+		return
+	}
+	if len(location) > MaxLocation {
+		location = ""
+	}
+	g.lastSeq++
+	g.navigations = append(g.navigations, Navigation{Seq: g.lastSeq, Location: location})
+	if over := len(g.navigations) - MaxNavigations; over > 0 {
+		g.navigations = slices.Delete(g.navigations, 0, over)
 	}
 }
 

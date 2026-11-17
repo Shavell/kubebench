@@ -14,6 +14,7 @@ import (
 
 	"kubebench/internal/plugin"
 	"kubebench/internal/store"
+	"kubebench/internal/svcproxy"
 )
 
 const webProxyPath = "/api/v1/namespaces/default/services/http:web:80/proxy"
@@ -210,10 +211,17 @@ func TestProxyForwardsAndIsolates(t *testing.T) {
 	if got := len(e.proxyAudits()); got != before {
 		t.Errorf("proxied requests wrote %d audit rows", got-before)
 	}
-	// The session reports where the frame navigated.
+	// A new session has no navigations yet: an empty list, not null.
+	fresh := e.do(http.MethodPost, "/api/proxy/services/default/web/80", "alice", nil)
+	if !strings.Contains(fresh.Body.String(), `"navigations":[]`) {
+		t.Errorf("new session = %s", fresh.Body)
+	}
+	// The session reports where the frame navigated; a top-level document
+	// (the page in a browser tab of its own) is not the frame's.
+	e.browse(http.MethodGet, s.Base+"/form?x=1", http.Header{"Sec-Fetch-Mode": {"navigate"}, "Sec-Fetch-Dest": {"document"}})
 	got := decode[proxySessionView](t, e.do(http.MethodGet, "/api/proxy/sessions/"+s.Token, "alice", nil))
-	if got.Location != "/" {
-		t.Errorf("location = %q", got.Location)
+	if len(got.Navigations) != 1 || got.Navigations[0] != (svcproxy.Navigation{Seq: 1, Location: "/"}) {
+		t.Errorf("navigations = %+v", got.Navigations)
 	}
 	expect(t, e.do(http.MethodGet, "/api/proxy/sessions/"+s.Token, "admin", nil), http.StatusNotFound, plugin.CodeNotFound)
 	if rec := e.browse(http.MethodGet, "/proxy/"+s.Token, nil); rec.Code != http.StatusFound || rec.Header().Get("Location") != s.Base+"/" {

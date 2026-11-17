@@ -1747,8 +1747,12 @@ admin or operator, whatever the read-only flag.
   target `service/<ns>/<name>:<port>`, detail `{"scheme","readOnly"?}`;
   refusals (viewer: `403 forbidden_role`) are audited like every refusal.
 - `GET` / `DELETE /api/proxy/sessions/{token}` (authed; only the session
-  that opened the grant, else `404 not_found`): the grant with the
-  `location` the frame last navigated to; end it (the tab closed).
+  that opened the grant, else `404 not_found`): the grant with its latest
+  16 `navigations` `[{seq, location}]`, oldest first: every frame document
+  request (`Sec-Fetch-Mode: navigate`, `Sec-Fetch-Dest: iframe`; not a
+  top-level page opened in a browser tab) numbered in arrival order, with
+  its in-cluster path and query (`""` when longer than 4 KiB); end it
+  (the tab closed).
 - `GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS /proxy/{token}/{path...}`
   (public: **the token is the credential**; `/proxy/{token}` redirects to
   `/proxy/{token}/`) forwards to
@@ -1857,8 +1861,14 @@ from each other (per-application subdomains are a possible follow-up).
   pickers, "open in a new browser tab" (the same proxy URL, sandboxed there
   too; `noopener`), a sandbox (or proxy origin) notice and a read-only
   notice. The frame is cross-origin, so the tab keeps its own history from
-  the `location` the backend recorded for each document navigation
-  (`Sec-Fetch-Mode: navigate`) and navigates by remounting the frame.
+  the navigations the backend recorded and navigates by remounting the
+  frame. Nested frames of the page navigate too: at each `load` event of
+  the frame the tab takes the **first** navigation after the newest one it
+  saw at the previous load (`model/frameLocation.ts`), because a page's own
+  document is requested before its nested frames, and the frame's `load`
+  waits for them. Limitation: a nested frame that navigates on its own
+  between two loads of the frame (a link inside a widget) is taken for the
+  page at the next load.
 - Ingress: not in this version (follow-up: resolve a rule's backend
   Service and open its path).
 - Mock: ports from the mock dataset; the frame shows a deterministic
