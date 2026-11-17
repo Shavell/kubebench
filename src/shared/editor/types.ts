@@ -1,5 +1,5 @@
 /** Languages the bundled Monaco ships (design §6.6). */
-export type EditorLanguage = 'yaml' | 'json' | 'plaintext' | 'shell'
+export type EditorLanguage = 'yaml' | 'json' | 'plaintext' | 'shell' | 'markdown'
 
 /** Size and class of the box an editor fills. */
 interface EditorBox {

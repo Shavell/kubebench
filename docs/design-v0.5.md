@@ -592,6 +592,7 @@ interface ResourceActionContribution {
   kinds: string[]            // e.g. ['Deployment','Service'] or ['*']
   permission?: 'read' | 'write' | 'exec'
   run: (ref: ResourceRef) => void
+  badge?: ComponentType<{ resource: ResourceRef }>  // v0.6: in the detail-page button, e.g. a note count
 }
 interface SettingsSectionContribution { id: string; title: string; component: ComponentType }
 ```
@@ -666,7 +667,9 @@ environment is `production` or the action is irreversible at scale),
 (`notify.success/error/info`, `<Toaster/>` mounted by the shell),
 `Tabs` (in-page tab strip), `Unavailable` (EmptyState variant with reason),
 `CodeEditor` / `DiffEditor` (Monaco **bundled locally** — no CDN; lazy
-loaded; theme-aware; languages yaml/json/plaintext/shell).
+loaded; theme-aware; languages yaml/json/plaintext/shell, markdown since
+v0.6). The safe Markdown renderer (`src/shared/markdown`: no HTML,
+`http(s)` links only) serves release notes and notes (§7.11, §7.13).
 
 Destructive and rollback actions of the built-in views (Pod delete, Helm
 uninstall and rollback) ask through `ConfirmDialog`, so production

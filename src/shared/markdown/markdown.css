@@ -1,0 +1,72 @@
+/* Markdown subset (release notes, changelog, notes). */
+.kb-md {
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.kb-md > :first-child {
+  margin-top: 0;
+}
+
+.kb-md p,
+.kb-md ul,
+.kb-md ol {
+  margin: 0 0 8px;
+}
+
+.kb-md ul,
+.kb-md ol {
+  padding-left: 20px;
+}
+
+.kb-md li > ul {
+  margin: 2px 0 0;
+}
+
+.kb-md__heading {
+  margin: 12px 0 6px;
+  font-weight: 600;
+}
+
+.kb-md__heading--1 {
+  font-size: 15px;
+}
+
+.kb-md__heading--2 {
+  font-size: 14px;
+}
+
+.kb-md__heading--3 {
+  font-size: 13px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.kb-md a {
+  color: var(--vscode-textLink-foreground);
+  text-decoration: none;
+}
+
+.kb-md a:hover {
+  color: var(--vscode-textLink-activeForeground);
+  text-decoration: underline;
+}
+
+.kb-md__code,
+.kb-md__pre {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--vscode-textPreformat-foreground);
+  background: var(--vscode-textCodeBlock-background);
+  border-radius: 3px;
+}
+
+.kb-md__code {
+  padding: 1px 4px;
+}
+
+.kb-md__pre {
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  overflow-x: auto;
+}

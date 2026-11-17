@@ -7,7 +7,7 @@ import './editor.css'
 const loadCodeEditor = () => importWithMonacoMessages(() => import('./MonacoCodeEditor'))
 
 /**
- * Monaco code editor for YAML, JSON, shell and plain text (design §6.6).
+ * Monaco code editor for YAML, JSON, shell, Markdown and plain text (design §6.6).
  * Monaco is bundled locally and loaded on first use, so it stays out of the
  * main chunk; the theme follows the app (vs-dark / vs).
  *

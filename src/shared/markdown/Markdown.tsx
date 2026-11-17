@@ -1,11 +1,12 @@
 import { useMemo } from 'react'
 import { parseMarkdown, type Block, type Inline, type ListItem } from './markdown'
-import './updates.css'
+import './markdown.css'
 
 /**
  * Renders the Markdown subset of `markdown.ts` as React elements. Text is
- * always passed as text nodes (never innerHTML), so release notes cannot
- * inject markup. `headingOffset` shifts heading levels to fit the host.
+ * always passed as text nodes (never innerHTML), so release notes and user
+ * notes cannot inject markup. `headingOffset` shifts heading levels to fit
+ * the host.
  */
 export function Markdown({ source, headingOffset = 2 }: { source: string; headingOffset?: number }) {
   const blocks = useMemo(() => parseMarkdown(source), [source])
