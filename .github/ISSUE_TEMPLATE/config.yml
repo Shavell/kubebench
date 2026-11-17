@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Report a security vulnerability
-    url: https://github.com/Shavell/kube-bench/security/advisories/new
+    url: https://github.com/Shavell/kubebench/security/advisories/new
     about: Please report security issues privately, not in a public issue.
   - name: Documentation
-    url: https://github.com/Shavell/kube-bench/tree/main/docs
+    url: https://github.com/Shavell/kubebench/tree/main/docs
     about: Installation, configuration and architecture guides.

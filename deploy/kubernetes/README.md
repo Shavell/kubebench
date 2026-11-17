@@ -22,7 +22,7 @@ or a NetworkPolicy.
 ## Install
 
 ```bash
-kubectl apply -f https://github.com/Shavell/kube-bench/releases/download/v0.5.0/kubebench.yaml
+kubectl apply -f https://github.com/Shavell/kubebench/releases/download/v0.5.0/kubebench.yaml
 # or from a checkout / the offline bundle:
 kubectl apply -f deploy/kubernetes/kubebench.yaml
 kubectl -n kubebench rollout status deploy/kubebench
@@ -53,9 +53,9 @@ leave `KUBEBENCH_TRUST_PROXY` off in that case.
 ## Change the image or version
 
 ```bash
-kubectl -n kubebench set image deploy/kubebench kubebench=ghcr.io/shavell/kube-bench:0.5.1
+kubectl -n kubebench set image deploy/kubebench kubebench=ghcr.io/shavell/kubebench:0.5.1
 # private registry (air-gapped):
-sed 's#ghcr.io/shavell/kube-bench#registry.example.internal/kube-bench#' kubebench.yaml | kubectl apply -f -
+sed 's#ghcr.io/shavell/kubebench#registry.example.internal/kubebench#' kubebench.yaml | kubectl apply -f -
 ```
 
 Upgrading is applying the `kubebench.yaml` of the new release; the

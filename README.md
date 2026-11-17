@@ -106,7 +106,7 @@ Details: [SECURITY.md](SECURITY.md) and [docs/security.md](docs/security.md).
 
 ## Quick start
 
-Every release on [GitHub](https://github.com/Shavell/kube-bench/releases)
+Every release on [GitHub](https://github.com/Shavell/kubebench/releases)
 ships the container image, the Helm chart, plain manifests, `.deb`/`.rpm`
 packages, archives for Linux, macOS and Windows, the installer and an
 offline bundle. The full guide, including TLS, reverse proxies, upgrades,
@@ -122,7 +122,7 @@ kubectl -n kubebench get secret kubebench-auth -o jsonpath='{.data.admin-passwor
 kubectl -n kubebench port-forward svc/kubebench 8080:80      # http://localhost:8080, user admin
 
 # or plain manifests (password admin, changed at the first sign-in)
-kubectl apply -f https://github.com/Shavell/kube-bench/releases/download/v0.5.0/kubebench.yaml
+kubectl apply -f https://github.com/Shavell/kubebench/releases/download/v0.5.0/kubebench.yaml
 ```
 
 KubeBench registers the cluster it runs in as `in-cluster` through its
@@ -134,7 +134,7 @@ view. Chart values: [charts/kubebench/README.md](charts/kubebench/README.md).
 
 ```bash
 # installer: picks .deb, .rpm or the tarball, verifies checksums, starts the service
-curl -fsSL https://raw.githubusercontent.com/Shavell/kube-bench/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/Shavell/kubebench/main/install.sh | sudo bash
 
 # or the packages
 sudo apt install ./kubebench_0.5.0_amd64.deb
@@ -150,7 +150,7 @@ in `/var/lib/kubebench`. Without internet access:
 
 ```bash
 docker run -d --name kubebench -p 9876:9876 -v kubebench-data:/data \
-  -e KUBEBENCH_ADMIN_PASSWORD='choose-a-password' ghcr.io/shavell/kube-bench:0.5.0
+  -e KUBEBENCH_ADMIN_PASSWORD='choose-a-password' ghcr.io/shavell/kubebench:0.5.0
 ```
 
 Open http://localhost:9876 and sign in as `admin`. KubeBench asks for a new

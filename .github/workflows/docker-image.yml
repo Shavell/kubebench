@@ -14,7 +14,7 @@ on:
         type: string
         default: linux/amd64,linux/arm64
       push:
-        description: Push to ghcr.io/shavell/kube-bench (otherwise build only)
+        description: Push to ghcr.io/shavell/kubebench (otherwise build only)
         type: boolean
         default: false
   # push:
@@ -28,7 +28,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  IMAGE: ghcr.io/shavell/kube-bench
+  IMAGE: ghcr.io/shavell/kubebench
 
 jobs:
   image:

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # KubeBench installer for Linux servers and VMs.
 #
-#   curl -fsSL https://raw.githubusercontent.com/Shavell/kube-bench/main/install.sh | sudo bash
-#   curl -fsSL https://raw.githubusercontent.com/Shavell/kube-bench/main/install.sh | sudo bash -s -- --version v0.5.0
+#   curl -fsSL https://raw.githubusercontent.com/Shavell/kubebench/main/install.sh | sudo bash
+#   curl -fsSL https://raw.githubusercontent.com/Shavell/kubebench/main/install.sh | sudo bash -s -- --version v0.5.0
 #   sudo bash install.sh --offline ./kubebench-offline-0.5.0.tar.gz
 #
 # Installs the .deb or .rpm package (the tarball where neither fits) from a
@@ -11,7 +11,7 @@
 # upgrades in place and keeps the configuration and the data. See --help.
 set -Eeuo pipefail
 
-readonly REPO="Shavell/kube-bench"
+readonly REPO="Shavell/kubebench"
 readonly RELEASES="https://github.com/${REPO}/releases"
 readonly SERVICE_USER=kubebench
 readonly CONF_DIR=/etc/kubebench
@@ -75,7 +75,7 @@ Usage: install.sh [options]
   -h, --help                 show this help
 
 Examples:
-  curl -fsSL https://raw.githubusercontent.com/Shavell/kube-bench/main/install.sh | sudo bash
+  curl -fsSL https://raw.githubusercontent.com/Shavell/kubebench/main/install.sh | sudo bash
   curl -fsSL .../install.sh | sudo bash -s -- --version v0.5.0 --port 8080
   sudo bash install.sh --offline ./kubebench-offline-0.5.0.tar.gz
   sudo bash install.sh --uninstall --purge --yes

@@ -1,6 +1,6 @@
 # KubeBench Helm chart
 
-[KubeBench](https://github.com/Shavell/kube-bench) is a VSCode-style
+[KubeBench](https://github.com/Shavell/kubebench) is a VSCode-style
 Kubernetes workbench: workloads, logs, shells, YAML, Helm releases and
 metrics for many clusters in one web UI, with users, per-cluster roles and an
 audit log. This chart runs it inside a cluster, which it registers as the
@@ -191,7 +191,7 @@ kubectl -n kubebench delete pvc/kubebench-data secret/kubebench-auth
 |---|---|---|
 | `nameOverride` | `""` | Replaces the chart name in resource names. |
 | `fullnameOverride` | `""` | Replaces the full resource name prefix. |
-| `image.repository` | `ghcr.io/shavell/kube-bench` | Image repository. |
+| `image.repository` | `ghcr.io/shavell/kubebench` | Image repository. |
 | `image.tag` | `""` | Image tag; defaults to the chart `appVersion`. |
 | `image.digest` | `""` | `sha256:...` digest; takes precedence over the tag. |
 | `image.pullPolicy` | `IfNotPresent` | Image pull policy. |

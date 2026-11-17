@@ -18,7 +18,7 @@ func releasesServer(t *testing.T) (*httptest.Server, *atomic.Int32) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		requests.Add(1)
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`[{"tag_name":"v1.3.0","html_url":"https://github.com/Shavell/kube-bench/releases/tag/v1.3.0","body":"## Added\n- things","published_at":"2026-11-01T00:00:00Z"}]`))
+		_, _ = w.Write([]byte(`[{"tag_name":"v1.3.0","html_url":"https://github.com/Shavell/kubebench/releases/tag/v1.3.0","body":"## Added\n- things","published_at":"2026-11-01T00:00:00Z"}]`))
 	}))
 	t.Cleanup(srv.Close)
 	return srv, &requests

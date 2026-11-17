@@ -83,7 +83,7 @@ type Config struct {
 }
 
 // DefaultUpdateURL lists the releases of KubeBench's GitHub repository.
-const DefaultUpdateURL = "https://api.github.com/repos/Shavell/kube-bench/releases"
+const DefaultUpdateURL = "https://api.github.com/repos/Shavell/kubebench/releases"
 
 // TLS reports whether the server terminates TLS itself.
 func (c *Config) TLS() bool { return c.TLSCert != "" }

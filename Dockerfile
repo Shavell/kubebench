@@ -7,7 +7,7 @@
 #
 #   docker buildx build --platform linux/amd64,linux/arm64 \
 #     --build-arg VERSION=0.5.0 --build-arg COMMIT="$(git rev-parse --short HEAD)" \
-#     --build-arg DATE="$(git log -1 --format=%cI)" -t ghcr.io/shavell/kube-bench:0.5.0 .
+#     --build-arg DATE="$(git log -1 --format=%cI)" -t ghcr.io/shavell/kubebench:0.5.0 .
 #
 # `make image` does the same for the local platform.
 
@@ -53,9 +53,9 @@ ARG DATE=unknown
 LABEL org.opencontainers.image.title="KubeBench" \
       org.opencontainers.image.licenses="GPL-3.0-only" \
       org.opencontainers.image.description="VSCode-style Kubernetes workbench: workloads, logs, shells, YAML, Helm and metrics for many clusters in one web UI" \
-      org.opencontainers.image.url="https://github.com/Shavell/kube-bench" \
-      org.opencontainers.image.source="https://github.com/Shavell/kube-bench" \
-      org.opencontainers.image.documentation="https://github.com/Shavell/kube-bench/blob/main/docs/deployment.md" \
+      org.opencontainers.image.url="https://github.com/Shavell/kubebench" \
+      org.opencontainers.image.source="https://github.com/Shavell/kubebench" \
+      org.opencontainers.image.documentation="https://github.com/Shavell/kubebench/blob/main/docs/deployment.md" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.revision="${COMMIT}" \
       org.opencontainers.image.created="${DATE}"

@@ -1,6 +1,6 @@
 [Unit]
 Description=KubeBench Kubernetes workbench
-Documentation=https://github.com/Shavell/kube-bench/blob/main/docs/deployment.md
+Documentation=https://github.com/Shavell/kubebench/blob/main/docs/deployment.md
 After=network-online.target
 Wants=network-online.target
 

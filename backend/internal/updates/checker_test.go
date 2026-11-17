@@ -16,11 +16,11 @@ import (
 // releasesJSON is a GitHub "list releases" answer, deliberately unsorted,
 // with a draft, a non-SemVer tag and a prerelease newer than any release.
 const releasesJSON = `[
-  {"tag_name":"v0.5.0","draft":false,"prerelease":false,"html_url":"https://github.com/Shavell/kube-bench/releases/tag/v0.5.0","body":"old","published_at":"2026-10-01T10:00:00Z"},
+  {"tag_name":"v0.5.0","draft":false,"prerelease":false,"html_url":"https://github.com/Shavell/kubebench/releases/tag/v0.5.0","body":"old","published_at":"2026-10-01T10:00:00Z"},
   {"tag_name":"v0.7.0","draft":true,"prerelease":false,"html_url":"https://github.com/x","body":"draft"},
-  {"tag_name":"v0.6.0-rc.1","draft":false,"prerelease":true,"html_url":"https://github.com/Shavell/kube-bench/releases/tag/v0.6.0-rc.1","body":"## Candidate","published_at":"2026-11-10T08:00:00Z"},
+  {"tag_name":"v0.6.0-rc.1","draft":false,"prerelease":true,"html_url":"https://github.com/Shavell/kubebench/releases/tag/v0.6.0-rc.1","body":"## Candidate","published_at":"2026-11-10T08:00:00Z"},
   {"tag_name":"nightly","draft":false,"prerelease":false,"html_url":"https://github.com/y","body":"nightly"},
-  {"tag_name":"v0.5.1","draft":false,"prerelease":false,"html_url":"https://github.com/Shavell/kube-bench/releases/tag/v0.5.1","body":"### Fixed\n- a bug","published_at":"2026-11-01T09:30:00Z"}
+  {"tag_name":"v0.5.1","draft":false,"prerelease":false,"html_url":"https://github.com/Shavell/kubebench/releases/tag/v0.5.1","body":"### Fixed\n- a bug","published_at":"2026-11-01T09:30:00Z"}
 ]`
 
 // fakeGitHub serves a release list through a replaceable handler and
@@ -99,13 +99,13 @@ func newChecker(url, version string) (*Checker, *clock) {
 
 func TestLatestRelease(t *testing.T) {
 	gh := newFakeGitHub(t, serveJSON(releasesJSON, ""))
-	c, _ := newChecker(gh.URL+"/repos/Shavell/kube-bench/releases", "0.5.0")
+	c, _ := newChecker(gh.URL+"/repos/Shavell/kubebench/releases", "0.5.0")
 
 	s := c.Status(context.Background(), ModeStable)
 	if s.Error != "" || s.Latest != "0.5.1" || !s.Available || s.Prerelease || s.Current != "0.5.0" {
 		t.Fatalf("stable status = %+v", s)
 	}
-	if s.URL != "https://github.com/Shavell/kube-bench/releases/tag/v0.5.1" || s.Notes != "### Fixed\n- a bug" {
+	if s.URL != "https://github.com/Shavell/kubebench/releases/tag/v0.5.1" || s.Notes != "### Fixed\n- a bug" {
 		t.Fatalf("release details = %q, %q", s.URL, s.Notes)
 	}
 	if s.PublishedAt == nil || !s.PublishedAt.Equal(time.Date(2026, 11, 1, 9, 30, 0, 0, time.UTC)) {
@@ -277,7 +277,7 @@ func (f *failingTransport) RoundTrip(*http.Request) (*http.Response, error) {
 func TestFailedCheckRetriesAfter15Minutes(t *testing.T) {
 	transport := &failingTransport{}
 	clk := &clock{now: time.Date(2026, 11, 15, 12, 0, 0, 0, time.UTC)}
-	c := New(Options{URL: "https://api.github.com/repos/Shavell/kube-bench/releases", Version: "0.5.0",
+	c := New(Options{URL: "https://api.github.com/repos/Shavell/kubebench/releases", Version: "0.5.0",
 		Client: &http.Client{Transport: transport}, Now: clk.Now})
 	s := c.Status(context.Background(), ModeStable)
 	if s.Error != "cannot reach api.github.com: dial tcp: lookup api.github.com: no such host" {
@@ -366,8 +366,8 @@ func TestCheckOutlivesItsCaller(t *testing.T) {
 }
 
 func TestReleasesPage(t *testing.T) {
-	c := New(Options{URL: "https://api.github.com/repos/Shavell/kube-bench/releases", Version: "0.5.0"})
-	if s := c.status(ModeStable); s.URL != "https://github.com/Shavell/kube-bench/releases" {
+	c := New(Options{URL: "https://api.github.com/repos/Shavell/kubebench/releases", Version: "0.5.0"})
+	if s := c.status(ModeStable); s.URL != "https://github.com/Shavell/kubebench/releases" {
 		t.Fatalf("url = %q", s.URL)
 	}
 	if got := releasesPage("https://mirror.internal/kubebench/releases.json"); got != "" {

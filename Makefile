@@ -20,7 +20,7 @@ override VERSION := $(patsubst v%,%,$(VERSION))
 COMMIT := $(COMMIT)
 DATE   := $(DATE)
 
-IMAGE      ?= ghcr.io/shavell/kube-bench
+IMAGE      ?= ghcr.io/shavell/kubebench
 # Container image tarballs to put into the offline bundle (space separated).
 IMAGE_TARS ?=
 

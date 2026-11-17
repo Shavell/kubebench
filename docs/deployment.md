@@ -10,11 +10,11 @@ machine:
 |---|---|---|
 | Kubernetes | Helm chart (OCI or `.tgz`) or plain manifests | [Kubernetes](#kubernetes) |
 | Linux VM / server | `install.sh`, `.deb`, `.rpm` or the release tarball | [Virtual machines](#virtual-machines) |
-| Container host | `ghcr.io/shavell/kube-bench` | [Docker](#docker) |
+| Container host | `ghcr.io/shavell/kubebench` | [Docker](#docker) |
 | Laptop (Linux, macOS, Windows) | release archive + your kubeconfig | [Local app](#local-app) |
 | No internet access | offline bundle | [Offline and air-gapped](#offline-and-air-gapped) |
 
-Every release on [GitHub](https://github.com/Shavell/kube-bench/releases)
+Every release on [GitHub](https://github.com/Shavell/kubebench/releases)
 carries all of these artifacts with a `checksums.txt` (SHA-256); see
 [releasing.md](releasing.md#what-a-release-contains).
 
@@ -60,7 +60,7 @@ persistence and security settings:
 ### Plain manifests
 
 ```bash
-kubectl apply -f https://github.com/Shavell/kube-bench/releases/download/v0.5.0/kubebench.yaml
+kubectl apply -f https://github.com/Shavell/kubebench/releases/download/v0.5.0/kubebench.yaml
 kubectl -n kubebench port-forward svc/kubebench 8080:80     # admin / admin, then a new password
 ```
 
@@ -74,8 +74,8 @@ and has no password Secret. Customizing, exposing and uninstalling:
 ### Installer
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Shavell/kube-bench/main/install.sh | sudo bash
-curl -fsSL https://raw.githubusercontent.com/Shavell/kube-bench/main/install.sh | sudo bash -s -- --version v0.5.0
+curl -fsSL https://raw.githubusercontent.com/Shavell/kubebench/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/Shavell/kubebench/main/install.sh | sudo bash -s -- --version v0.5.0
 ```
 
 The installer picks the `.deb` (dpkg), `.rpm` (rpm) or the tarball for the
@@ -149,7 +149,7 @@ runuser -u kubebench -- sh -c 'set -a; KUBEBENCH_DATA_DIR=/var/lib/kubebench \
 docker volume create kubebench-data
 docker run -d --name kubebench --restart unless-stopped -p 9876:9876 \
   -v kubebench-data:/data -e KUBEBENCH_ADMIN_PASSWORD='choose-a-password' \
-  ghcr.io/shavell/kube-bench:0.5.0
+  ghcr.io/shavell/kubebench:0.5.0
 docker inspect --format '{{.State.Health.Status}}' kubebench    # HEALTHCHECK: kubebench healthcheck
 ```
 
@@ -197,11 +197,11 @@ sha256sum -c SHA256SUMS
 - **VM**: `sudo bash install.sh --offline .` (or pass the `.tar.gz` itself);
   the installer verifies the package against `packages/checksums.txt` and
   turns the update check off (`KUBEBENCH_UPDATE_MODE=off`).
-- **Kubernetes**: load `images/kube-bench_<version>_linux_<arch>.tar` on every
+- **Kubernetes**: load `images/kubebench_<version>_linux_<arch>.tar` on every
   node (`docker load -i`, `ctr -n k8s.io images import`, `k3s ctr images import`)
   or push it to an internal registry, then
   `helm install kubebench kubernetes/kubebench-<version>.tgz -n kubebench --create-namespace --set config.updateMode=off`
-  (add `--set image.repository=<registry>/kube-bench` for a registry) or
+  (add `--set image.repository=<registry>/kubebench` for a registry) or
   `kubectl apply -f kubernetes/kubebench.yaml` followed by
   `kubectl -n kubebench set env deployment/kubebench KUBEBENCH_UPDATE_MODE=off`
   ([update checks](#update-checks)).

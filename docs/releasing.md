@@ -58,7 +58,7 @@ with:
 |---|---|
 | `version` | `vX.Y.Z`; the tag is created on the selected commit when it does not exist yet, an existing tag is released as it is |
 | `prerelease` | mark the GitHub release as a pre-release (versions with `-rc.N` and the like are marked anyway) |
-| `push_image` | also push the multi-arch image `ghcr.io/shavell/kube-bench:X.Y.Z` (+ `X.Y`, and `latest` for final releases) |
+| `push_image` | also push the multi-arch image `ghcr.io/shavell/kubebench:X.Y.Z` (+ `X.Y`, and `latest` for final releases) |
 | `push_chart` | also push the chart to `oci://ghcr.io/shavell/charts/kubebench` |
 
 The workflow checks versions and the CHANGELOG (`scripts/check-release.sh`),
@@ -84,7 +84,7 @@ token with `contents: write` in `GITHUB_TOKEN`:
 ```bash
 scripts/check-release.sh 0.5.0 && make test
 git tag -a v0.5.0 -m "KubeBench v0.5.0"
-git push origin v0.5.0        # the remote that points at github.com/Shavell/kube-bench
+git push origin v0.5.0        # the remote that points at github.com/Shavell/kubebench
 mkdir -p build/extra
 helm package charts/kubebench --destination build/extra
 cp deploy/kubernetes/kubebench.yaml install.sh build/extra/
@@ -98,11 +98,11 @@ Then the images and the bundle:
 for arch in amd64 arm64; do
   docker buildx build --platform "linux/$arch" \
     --build-arg VERSION=0.5.0 --build-arg COMMIT="$(git rev-parse --short HEAD)" \
-    --build-arg DATE="$(git log -1 --format=%cI)" -t ghcr.io/shavell/kube-bench:0.5.0 \
-    --output "type=docker,dest=build/kube-bench_0.5.0_linux_$arch.tar" .
+    --build-arg DATE="$(git log -1 --format=%cI)" -t ghcr.io/shavell/kubebench:0.5.0 \
+    --output "type=docker,dest=build/kubebench_0.5.0_linux_$arch.tar" .
 done
 scripts/offline-bundle.sh 0.5.0 --chart build/extra/kubebench-0.5.0.tgz \
-  --image-tar build/kube-bench_0.5.0_linux_amd64.tar --image-tar build/kube-bench_0.5.0_linux_arm64.tar
+  --image-tar build/kubebench_0.5.0_linux_amd64.tar --image-tar build/kubebench_0.5.0_linux_arm64.tar
 gh release upload v0.5.0 build/extra/kubebench-offline-0.5.0.tar.gz{,.sha256}
 ```
 
@@ -121,7 +121,7 @@ packages, and `make offline-bundle` assembles a bundle from that output.
 | `checksums.txt` (SHA-256 of the archives and packages) | GoReleaser |
 | `kubebench-<v>.tgz` (Helm chart), `kubebench.yaml` (manifests), `install.sh` | release workflow, via `build/extra/` |
 | `kubebench-offline-<v>.tar.gz` + `.sha256` | `scripts/offline-bundle.sh` |
-| `ghcr.io/shavell/kube-bench:<v>` (linux/amd64, linux/arm64, SBOM and provenance) | release workflow (`push_image`) |
+| `ghcr.io/shavell/kubebench:<v>` (linux/amd64, linux/arm64, SBOM and provenance) | release workflow (`push_image`) |
 | `oci://ghcr.io/shavell/charts/kubebench:<v>` | release workflow (`push_chart`) |
 
 Every artifact carries the GPL-3.0 text: the archives and the offline

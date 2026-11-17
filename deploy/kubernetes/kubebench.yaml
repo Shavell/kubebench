@@ -4,7 +4,7 @@
 #   kubectl apply -f kubebench.yaml
 #
 # Sign in as admin/admin; KubeBench asks for a new password right away.
-# Guide: https://github.com/Shavell/kube-bench/blob/main/deploy/kubernetes/README.md
+# Guide: https://github.com/Shavell/kubebench/blob/main/deploy/kubernetes/README.md
 ---
 apiVersion: v1
 kind: Namespace
@@ -149,7 +149,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: kubebench
-          image: "ghcr.io/shavell/kube-bench:0.5.0"
+          image: "ghcr.io/shavell/kubebench:0.5.0"
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false

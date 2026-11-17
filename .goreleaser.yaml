@@ -76,7 +76,7 @@ nfpms:
     file_name_template: "{{ .ConventionalFileName }}"
     formats: [deb, rpm]
     vendor: KubeBench
-    homepage: https://github.com/Shavell/kube-bench
+    homepage: https://github.com/Shavell/kubebench
     maintainer: Shavell <Shavell@users.noreply.github.com>
     description: |-
       VSCode-style Kubernetes workbench
@@ -149,7 +149,7 @@ changelog:
 release:
   github:
     owner: Shavell
-    name: kube-bench
+    name: kubebench
   name_template: KubeBench {{ .Tag }}
   draft: true
   replace_existing_draft: true

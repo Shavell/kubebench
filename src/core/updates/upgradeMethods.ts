@@ -1,5 +1,5 @@
 /** Where the upgrade steps of every install method are documented. */
-export const UPGRADE_GUIDE_URL = 'https://github.com/Shavell/kube-bench/blob/main/docs/deployment.md#upgrades'
+export const UPGRADE_GUIDE_URL = 'https://github.com/Shavell/kubebench/blob/main/docs/deployment.md#upgrades'
 
 export interface UpgradeMethod {
   /** Key under `methods.` in the updates namespace (title and hint). */
@@ -18,7 +18,7 @@ export const UPGRADE_METHODS: UpgradeMethod[] = [
   },
   {
     id: 'manifests',
-    commands: (v) => [`kubectl apply -f https://github.com/Shavell/kube-bench/releases/download/v${v}/kubebench.yaml`],
+    commands: (v) => [`kubectl apply -f https://github.com/Shavell/kubebench/releases/download/v${v}/kubebench.yaml`],
   },
   {
     id: 'packages',
@@ -27,11 +27,11 @@ export const UPGRADE_METHODS: UpgradeMethod[] = [
   {
     id: 'installer',
     commands: (v) => [
-      `curl -fsSL https://raw.githubusercontent.com/Shavell/kube-bench/main/install.sh | sudo bash -s -- --version v${v}`,
+      `curl -fsSL https://raw.githubusercontent.com/Shavell/kubebench/main/install.sh | sudo bash -s -- --version v${v}`,
     ],
   },
   {
     id: 'docker',
-    commands: (v) => [`docker pull ghcr.io/shavell/kube-bench:${v}`],
+    commands: (v) => [`docker pull ghcr.io/shavell/kubebench:${v}`],
   },
 ]

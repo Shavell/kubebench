@@ -25,12 +25,12 @@ const NOTES = `## What's changed
 
 ### Security
 
-- Dependencies updated. Details in the [security advisory](https://github.com/Shavell/kube-bench/security/advisories).
+- Dependencies updated. Details in the [security advisory](https://github.com/Shavell/kubebench/security/advisories).
 
 <img src=x onerror="alert('notes are never HTML')">
 `
 
-const RELEASE_PAGE = `https://github.com/Shavell/kube-bench/releases/tag/v${LATEST}`
+const RELEASE_PAGE = `https://github.com/Shavell/kubebench/releases/tag/v${LATEST}`
 
 /**
  * Demo update check: a fixed release one patch above the app version,
@@ -50,7 +50,7 @@ export function createMockUpdates(): UpdatesProvider {
       available: false,
       prerelease: false,
       publishedAt: null,
-      url: 'https://github.com/Shavell/kube-bench/releases',
+      url: 'https://github.com/Shavell/kubebench/releases',
       notes: '',
       checkedAt: null,
       error: '',

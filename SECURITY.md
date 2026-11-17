@@ -15,7 +15,7 @@ release line only.
 Please **do not open a public issue** for a security problem.
 
 Report it privately through GitHub's private vulnerability reporting:
-[github.com/Shavell/kube-bench/security/advisories/new](https://github.com/Shavell/kube-bench/security/advisories/new)
+[github.com/Shavell/kubebench/security/advisories/new](https://github.com/Shavell/kubebench/security/advisories/new)
 (repository **Security** tab → **Report a vulnerability**).
 
 Include what you can of:

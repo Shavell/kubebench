@@ -49,7 +49,7 @@ render() {
 #   kubectl apply -f kubebench.yaml
 #
 # Sign in as admin/admin; KubeBench asks for a new password right away.
-# Guide: https://github.com/Shavell/kube-bench/blob/main/deploy/kubernetes/README.md
+# Guide: https://github.com/Shavell/kubebench/blob/main/deploy/kubernetes/README.md
 ---
 apiVersion: v1
 kind: Namespace

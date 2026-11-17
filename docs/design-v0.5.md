@@ -96,7 +96,7 @@ cluster-to-cluster compare, port-forward, light/dark per-plugin theming.
 | `KUBECONFIG` | — | Dev/VM convenience: seeds the inventory on first run (a path list is merged the way kubectl merges it) |
 | `KUBEBENCH_NAMESPACE` | in a pod: the pod's namespace | The namespace KubeBench runs in; deleting a namespace of that name is refused unless forced (§7.3) |
 | `KUBEBENCH_UPDATE_MODE` | `stable` | Default update check mode (§7.11): `off` (never contacts GitHub; use it for air-gapped installs), `stable` (new releases) or `prerelease` (also prereleases). An admin's choice in Settings overrides it |
-| `KUBEBENCH_UPDATE_URL` | `https://api.github.com/repos/Shavell/kube-bench/releases` | Releases endpoint the update check reads: GitHub's "list releases" JSON (a mirror or a GitHub Enterprise API works). `http` or `https` |
+| `KUBEBENCH_UPDATE_URL` | `https://api.github.com/repos/Shavell/kubebench/releases` | Releases endpoint the update check reads: GitHub's "list releases" JSON (a mirror or a GitHub Enterprise API works). `http` or `https` |
 | `KUBEBENCH_PROXY_ORIGIN` | — | v0.6: separate origin (`http(s)://host[:port]`, no path) serving the service browser's proxy unsandboxed (§7.14); unset = sandboxed on KubeBench's own origin |
 
 The backend parses these once into `internal/config.Config`; invalid values
@@ -1342,7 +1342,7 @@ installs anything: upgrading stays the operator's job (§8,
 **Update check** (`backend/internal/updates`):
 
 - Reads `KUBEBENCH_UPDATE_URL` (§2; GitHub's "list releases" JSON of
-  `Shavell/kube-bench`, `per_page=20` added unless the URL sets it) with
+  `Shavell/kubebench`, `per_page=20` added unless the URL sets it) with
   `Accept: application/vnd.github+json`, `X-GitHub-Api-Version: 2022-11-28`
   and `User-Agent: KubeBench/<version>`. The proxy comes from
   `HTTPS_PROXY`/`HTTP_PROXY`/`NO_PROXY`; 10 s timeout; the response is
@@ -1896,13 +1896,13 @@ plus form posts and WebSocket echo through the proxy.
 - **VM**: `.deb` (and `.rpm`) via nfpm/GoReleaser — binary `/usr/bin/kubebench`,
   systemd unit `kubebench.service`, config `/etc/kubebench/kubebench.env`,
   data `/var/lib/kubebench`, system user `kubebench`.
-- **Installer**: `install.sh` — `curl -fsSL https://raw.githubusercontent.com/Shavell/kube-bench/main/install.sh | sudo bash`
+- **Installer**: `install.sh` — `curl -fsSL https://raw.githubusercontent.com/Shavell/kubebench/main/install.sh | sudo bash`
   (online: downloads the release for the detected arch, verifies
   SHA-256) or `sudo bash install.sh --offline ./kubebench-offline-<ver>.tar.gz`.
 - **Offline bundle** `kubebench-offline-<version>.tar.gz`: binaries,
   .deb/.rpm, container image tarballs (amd64/arm64), Helm chart `.tgz`,
   manifests, `install.sh`, checksums, README.
-- **Container image** `ghcr.io/shavell/kube-bench:<version>` (multi-arch).
+- **Container image** `ghcr.io/shavell/kubebench:<version>` (multi-arch).
 - **GitHub Actions**: `ci.yml`, `release.yml`, `docker-image.yml`,
   `helm-chart.yml`, `codeql.yml` — all `on: workflow_dispatch` only, with
   the push/PR triggers present but commented out.

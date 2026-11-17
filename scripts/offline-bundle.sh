@@ -114,9 +114,9 @@ if ((${#image_files[@]})); then
   example_image="${image_files[0]}"
 else
   image_list="- none: this bundle was built without image tarballs. Save the image on a
-  connected machine with \`docker pull ghcr.io/shavell/kube-bench:$version\` and
-  \`docker save -o kube-bench_${version}_linux_amd64.tar ghcr.io/shavell/kube-bench:$version\`."
-  example_image="images/kube-bench_${version}_linux_amd64.tar"
+  connected machine with \`docker pull ghcr.io/shavell/kubebench:$version\` and
+  \`docker save -o kubebench_${version}_linux_amd64.tar ghcr.io/shavell/kubebench:$version\`."
+  example_image="images/kubebench_${version}_linux_amd64.tar"
 fi
 cat >"$stage/OFFLINE-README.md" <<EOF
 # KubeBench $version offline bundle
@@ -174,10 +174,10 @@ or push it to a registry inside the network:
 
 \`\`\`bash
 docker load -i "\$image"
-docker tag ghcr.io/shavell/kube-bench:$version registry.example.internal/kube-bench:$version
-docker push registry.example.internal/kube-bench:$version
+docker tag ghcr.io/shavell/kubebench:$version registry.example.internal/kubebench:$version
+docker push registry.example.internal/kubebench:$version
 # without Docker:
-skopeo copy "docker-archive:\$image" docker://registry.example.internal/kube-bench:$version
+skopeo copy "docker-archive:\$image" docker://registry.example.internal/kubebench:$version
 \`\`\`
 
 ### 2a. Install with Helm
@@ -186,7 +186,7 @@ skopeo copy "docker-archive:\$image" docker://registry.example.internal/kube-ben
 helm install kubebench kubernetes/$chart_file \\
   --namespace kubebench --create-namespace --set config.updateMode=off
 # images pushed to a private registry:
-#   --set image.repository=registry.example.internal/kube-bench
+#   --set image.repository=registry.example.internal/kubebench
 \`\`\`
 
 Read the generated admin password with the command printed by Helm (NOTES).
@@ -195,7 +195,7 @@ Read the generated admin password with the command printed by Helm (NOTES).
 
 \`\`\`bash
 # with a private registry, rewrite the image first:
-#   sed -i 's#ghcr.io/shavell/kube-bench#registry.example.internal/kube-bench#' kubernetes/kubebench.yaml
+#   sed -i 's#ghcr.io/shavell/kubebench#registry.example.internal/kubebench#' kubernetes/kubebench.yaml
 kubectl apply -f kubernetes/kubebench.yaml
 kubectl -n kubebench set env deployment/kubebench KUBEBENCH_UPDATE_MODE=off
 \`\`\`
@@ -217,7 +217,7 @@ the releases list inside the network works too: set
 
 - Helm charts installed from the KubeBench UI need a chart repository inside
   the network, or an uploaded chart \`.tgz\` (Helm > Install > Upload).
-- Documentation: https://github.com/Shavell/kube-bench/blob/main/docs/deployment.md
+- Documentation: https://github.com/Shavell/kubebench/blob/main/docs/deployment.md
 EOF
 
 (cd "$stage" && find . -type f -printf '%P\n' | LC_ALL=C sort | xargs sha256sum) >"$work/SHA256SUMS"

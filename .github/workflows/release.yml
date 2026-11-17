@@ -14,7 +14,7 @@ on:
         type: boolean
         default: false
       push_image:
-        description: Push the multi-arch image to ghcr.io/shavell/kube-bench
+        description: Push the multi-arch image to ghcr.io/shavell/kubebench
         type: boolean
         default: false
       push_chart:
@@ -32,7 +32,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  IMAGE: ghcr.io/shavell/kube-bench
+  IMAGE: ghcr.io/shavell/kubebench
   CHART_REPOSITORY: oci://ghcr.io/shavell/charts
   NODE_VERSION: "24"
   HELM_VERSION: v3.22.1
@@ -166,7 +166,7 @@ jobs:
             VERSION=${{ steps.version.outputs.version }}
             COMMIT=${{ steps.build.outputs.commit }}
             DATE=${{ steps.build.outputs.date }}
-          outputs: type=docker,dest=build/images/kube-bench_${{ steps.version.outputs.version }}_linux_amd64.tar
+          outputs: type=docker,dest=build/images/kubebench_${{ steps.version.outputs.version }}_linux_amd64.tar
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Image tarball (linux/arm64)
@@ -179,7 +179,7 @@ jobs:
             VERSION=${{ steps.version.outputs.version }}
             COMMIT=${{ steps.build.outputs.commit }}
             DATE=${{ steps.build.outputs.date }}
-          outputs: type=docker,dest=build/images/kube-bench_${{ steps.version.outputs.version }}_linux_arm64.tar
+          outputs: type=docker,dest=build/images/kubebench_${{ steps.version.outputs.version }}_linux_arm64.tar
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -189,8 +189,8 @@ jobs:
         run: |
           scripts/offline-bundle.sh "$VERSION" \
             --chart "build/extra/kubebench-$VERSION.tgz" \
-            --image-tar "build/images/kube-bench_${VERSION}_linux_amd64.tar" \
-            --image-tar "build/images/kube-bench_${VERSION}_linux_arm64.tar" \
+            --image-tar "build/images/kubebench_${VERSION}_linux_amd64.tar" \
+            --image-tar "build/images/kubebench_${VERSION}_linux_arm64.tar" \
             --output build/bundle
       - name: Upload the offline bundle to the draft release
         env:

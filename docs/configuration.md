@@ -27,7 +27,7 @@ exits with status 2. Values are trimmed; an empty value counts as unset.
 | `KUBECONFIG` | unset | Seeds the cluster inventory on the first start; a path list (`a:b`) is merged the way kubectl merges it |
 | `KUBEBENCH_NAMESPACE` | in a pod: the pod's namespace | The namespace KubeBench runs in; deleting a namespace of that name from KubeBench is refused unless forced |
 | `KUBEBENCH_UPDATE_MODE` | `stable` | Default update check: `off` (never contacts GitHub), `stable` or `prerelease`. An admin's choice in Settings > Updates overrides it |
-| `KUBEBENCH_UPDATE_URL` | `https://api.github.com/repos/Shavell/kube-bench/releases` | Releases list the update check reads (GitHub's "list releases" JSON); a mirror or a GitHub Enterprise API works too. `http` or `https` |
+| `KUBEBENCH_UPDATE_URL` | `https://api.github.com/repos/Shavell/kubebench/releases` | Releases list the update check reads (GitHub's "list releases" JSON); a mirror or a GitHub Enterprise API works too. `http` or `https` |
 | `KUBEBENCH_PROXY_ORIGIN` | unset | Separate origin (`https://host[:port]`, no path) for the service browser (design §7.14): proxied pages run there unsandboxed, isolated from KubeBench by the origin. The host must reach this server too (DNS, reverse proxy, certificate); it serves only `/proxy/`. It must be on another domain than KubeBench (not KubeBench's host on another port, not a subdomain: cookies ignore ports and reach subdomains); otherwise the service browser refuses to open pages. Unset: pages run sandboxed on KubeBench's own origin |
 
 Read by libraries rather than by `internal/config`:

@@ -10,9 +10,9 @@ items move, merge or disappear as we learn more.
   progress has a fixed scope; everything under [Next](#next-candidates)
   is a candidate, in no particular order.
 - **GitHub is the place to discuss it.** Proposals, votes and questions go
-  to [issues](https://github.com/Shavell/kube-bench/issues) and
-  [discussions](https://github.com/Shavell/kube-bench/discussions) on
-  `Shavell/kube-bench`. Before you start on something large, open an issue
+  to [issues](https://github.com/Shavell/kubebench/issues) and
+  [discussions](https://github.com/Shavell/kubebench/discussions) on
+  `Shavell/kubebench`. Before you start on something large, open an issue
   so we can agree on the approach ([CONTRIBUTING.md](CONTRIBUTING.md)).
 - **Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).**
   While KubeBench is `0.x`, a minor version may change behaviour; the

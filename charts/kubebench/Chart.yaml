@@ -6,10 +6,10 @@ type: application
 version: 0.5.0
 appVersion: "0.5.0"
 kubeVersion: ">=1.25.0-0"
-home: https://github.com/Shavell/kube-bench
+home: https://github.com/Shavell/kubebench
 sources:
-  - https://github.com/Shavell/kube-bench
-icon: https://raw.githubusercontent.com/Shavell/kube-bench/main/public/favicon.svg
+  - https://github.com/Shavell/kubebench
+icon: https://raw.githubusercontent.com/Shavell/kubebench/main/public/favicon.svg
 keywords:
   - kubernetes
   - dashboard

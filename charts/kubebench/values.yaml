@@ -5,7 +5,7 @@ nameOverride: ""
 fullnameOverride: ""
 
 image:
-  repository: ghcr.io/shavell/kube-bench
+  repository: ghcr.io/shavell/kubebench
   # Defaults to the chart appVersion.
   tag: ""
   # Optional "sha256:..." digest; pins the image and takes precedence over the tag.

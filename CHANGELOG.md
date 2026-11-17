@@ -31,6 +31,12 @@ those commits.
   (no form posts, no WebSockets). `KUBEBENCH_PROXY_ORIGIN` serves the pages
   on a separate origin on another domain, where apps with sign-ins work too.
 
+### Changed
+
+- The repository is now `github.com/Shavell/kubebench` and the container
+  image `ghcr.io/shavell/kubebench`; the installer, the update check, the
+  chart and the docs use the new names.
+
 ## [0.5.0] - Unreleased
 
 Upgrading from 0.4 or the 0.1 chart: read **Changed** first (chart
@@ -106,7 +112,7 @@ resource names, the forced password change, the moved Helm routes).
   (AWS access key or profile, GCP service-account key, Azure service
   principal) or, when `KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY` is on (or the
   kubeconfig was added by path), the server's own cloud identity.
-- Distribution: multi-arch container image `ghcr.io/shavell/kube-bench`,
+- Distribution: multi-arch container image `ghcr.io/shavell/kubebench`,
   Helm chart on `oci://ghcr.io/shavell/charts`, plain manifests
   (`deploy/kubernetes/kubebench.yaml`), `.deb` and `.rpm` packages with a
   hardened systemd unit, release archives for Linux, macOS and Windows, the
@@ -134,7 +140,7 @@ resource names, the forced password change, the moved Helm routes).
   problem listed. See `docs/configuration.md`.
 - The bootstrap `admin` password, a configured one included, must be
   changed at the first sign-in; so must passwords an admin sets for others.
-- Helm chart 0.5.0: image `ghcr.io/shavell/kube-bench`; a random admin
+- Helm chart 0.5.0: image `ghcr.io/shavell/kubebench`; a random admin
   password kept across upgrades instead of `admin`; RBAC presets
   (`cluster-admin`, `read-only`, `custom`); restricted Pod Security settings
   with a read-only root filesystem; startup probe; optional NetworkPolicy;
@@ -283,9 +289,9 @@ resource names, the forced password change, the moved Helm routes).
 - Container image and Helm chart for running KubeBench inside the cluster it
   manages.
 
-[Unreleased]: https://github.com/Shavell/kube-bench/compare/v0.5.0...HEAD
-[0.5.0]: https://github.com/Shavell/kube-bench/compare/acc8149...v0.5.0
-[0.4.0]: https://github.com/Shavell/kube-bench/commit/acc8149
-[0.3.0]: https://github.com/Shavell/kube-bench/commit/6bec8c1
-[0.2.0]: https://github.com/Shavell/kube-bench/commit/b382f96
-[0.1.0]: https://github.com/Shavell/kube-bench/commit/a0129ab
+[Unreleased]: https://github.com/Shavell/kubebench/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/Shavell/kubebench/compare/acc8149...v0.5.0
+[0.4.0]: https://github.com/Shavell/kubebench/commit/acc8149
+[0.3.0]: https://github.com/Shavell/kubebench/commit/6bec8c1
+[0.2.0]: https://github.com/Shavell/kubebench/commit/b382f96
+[0.1.0]: https://github.com/Shavell/kubebench/commit/a0129ab

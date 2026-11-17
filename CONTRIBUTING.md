@@ -15,7 +15,7 @@ work; GoReleaser, shellcheck, actionlint and kubeconform are needed only for
 packaging and CI changes.
 
 ```bash
-git clone https://github.com/Shavell/kube-bench.git && cd kube-bench
+git clone https://github.com/Shavell/kubebench.git && cd kubebench
 npm ci
 
 npm run dev                                         # UI on http://localhost:5173 with demo data
