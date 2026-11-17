@@ -261,7 +261,8 @@
     "adminRequired": "Only administrators can do this.",
     "clusterReadOnly": "The cluster is read-only: changes are blocked for everyone.",
     "viewerRole": "Your role on this cluster is viewer, which cannot change anything.",
-    "notAllowed": "You are not allowed to do this on this cluster."
+    "notAllowed": "You are not allowed to do this on this cluster.",
+    "browseViewer": "Your role on this cluster is viewer, which cannot open services in the browser."
   },
   "plugins": {
     "reasons": {

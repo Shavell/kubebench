@@ -27,3 +27,18 @@ describe('deniedCode', () => {
     assert.equal(deniedReasonKey('exec', viewer), 'permissions.viewerRole')
   })
 })
+
+describe('browse', () => {
+  const operator: PermissionFacts = { ...admin, role: 'operator', isAdmin: false }
+
+  it('needs the operator or admin role', () => {
+    assert.equal(deniedCode('browse', operator), null)
+    assert.equal(deniedCode('browse', viewer), 'forbidden_role')
+    assert.equal(deniedReasonKey('browse', viewer), 'permissions.browseViewer')
+  })
+
+  it('is held on a read-only cluster, unlike exec', () => {
+    assert.equal(deniedCode('browse', readOnlyAdmin), null)
+    assert.equal(deniedCode('browse', { ...operator, canWrite: false, canExec: false, readOnly: true }), null)
+  })
+})

@@ -1,0 +1,43 @@
+{
+  "manifest": {
+    "name": "Service-Browser",
+    "description": "Öffnet die Weboberfläche eines Service oder Pod in einem Browser neben dem Editor, über den Proxy von KubeBench und von KubeBench isoliert."
+  },
+  "resourceActions": {
+    "open": "Im Browser öffnen"
+  },
+  "tab": {
+    "title": "{{name}} · Browser"
+  },
+  "page": {
+    "loadingPorts": "Ports werden gelesen…",
+    "noPorts": "Kein TCP-Port zum Öffnen",
+    "noPortsHint": "Das Objekt deklariert keinen TCP-Port, ein Browser kann also nichts anzeigen.",
+    "opening": "Seite wird geöffnet…"
+  },
+  "toolbar": {
+    "label": "Browser",
+    "back": "Zurück",
+    "forward": "Vorwärts",
+    "reload": "Neu laden",
+    "path": "Pfad",
+    "port": "Port",
+    "scheme": "Schema",
+    "newTab": "In einem neuen Browser-Tab öffnen",
+    "newTabDemo": "Im Demo-Modus nicht verfügbar"
+  },
+  "frame": {
+    "title": "Seite von {{address}}"
+  },
+  "notice": {
+    "sandboxed": "Die Seite läuft in einer Sandbox, isoliert von KubeBench: Sie kann weder Cookies noch Speicher nutzen, daher funktionieren manche Anwendungen (etwa solche mit Anmeldung) hier nicht.",
+    "proxyOrigin": "Die Seite läuft auf dem separaten Proxy-Origin, isoliert von KubeBench.",
+    "readOnly": "Der Cluster ist schreibgeschützt: Es werden nur GET-Anfragen gesendet, Formulare, die Daten senden, werden daher abgelehnt.",
+    "hide": "Ausblenden"
+  },
+  "mock": {
+    "title": "Demo-Seite",
+    "body": "Im Demo-Modus gibt es keinen Cluster, mit dem verbunden werden kann. Mit einem echten Cluster zeigt dieser Tab die Weboberfläche des Service.",
+    "notFound": "{{what}} wurde nicht gefunden"
+  }
+}

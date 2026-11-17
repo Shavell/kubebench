@@ -261,7 +261,8 @@
     "adminRequired": "Nur Administratoren können dies tun.",
     "clusterReadOnly": "Der Cluster ist schreibgeschützt: Änderungen sind für alle gesperrt.",
     "viewerRole": "Ihre Rolle auf diesem Cluster ist Betrachter und kann nichts ändern.",
-    "notAllowed": "Sie dürfen dies auf diesem Cluster nicht tun."
+    "notAllowed": "Sie dürfen dies auf diesem Cluster nicht tun.",
+    "browseViewer": "Ihre Rolle in diesem Cluster ist viewer; damit können Sie Services nicht im Browser öffnen."
   },
   "plugins": {
     "reasons": {
