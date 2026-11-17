@@ -89,6 +89,7 @@ and the limitations documented in [docs/security.md](docs/security.md).
 |---|---|---|
 | Hashed session tokens | Store only a hash of each session token, so a copy of the database does not hold usable sessions | S |
 | Optional OIDC/SSO login | Sign in with the organization's identity provider instead of local accounts | L |
+| LDAP and Active Directory login | Sign in with directory accounts (LDAPS/StartTLS bind, AD `sAMAccountName`/UPN), map directory groups to the admin role and per-cluster viewer/operator assignments, sync or just-in-time provision users, keep a local break-glass admin | L |
 | Kubernetes impersonation per user | Let the cluster's own RBAC and audit see the real KubeBench user | L |
 | NSA/CISA mapping and PDF export | Map the posture checks to the NSA/CISA guide and export a printable report | M |
 | Narrower ambient cloud identity | Limit `KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY` instead of all or nothing | M |
