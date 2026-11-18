@@ -8,6 +8,7 @@ import (
 
 	"kubebench/internal/kube"
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 )
 
 // probeWait bounds how long /api/info waits for a fresh runtime's
@@ -45,6 +46,16 @@ type infoView struct {
 	Capabilities       kube.Capabilities `json:"capabilities"`
 	Features           features          `json:"features"`
 	ClusterError       string            `json:"clusterError"`
+	// ClusterErrorReason and ClusterErrorParams let the UI translate
+	// ClusterError (§3.3).
+	ClusterErrorReason string        `json:"clusterErrorReason,omitempty"`
+	ClusterErrorParams reason.Params `json:"clusterErrorParams,omitempty"`
+}
+
+// setClusterError records why no cluster can be used.
+func (v *infoView) setClusterError(err error) {
+	why := reason.From(err)
+	v.ClusterError, v.ClusterErrorReason, v.ClusterErrorParams = why.Error(), why.Code.String(), why.Params
 }
 
 // handleInfo describes the session for the app's boot (§4.1). It
@@ -65,7 +76,7 @@ func (s *Server) handleInfo(w http.ResponseWriter, r *http.Request, c *call) {
 	}
 	cluster, role, err := s.selectCluster(c.user)
 	if err != nil {
-		info.ClusterError = err.Error()
+		info.setClusterError(err)
 		plugin.WriteJSON(w, info)
 		return
 	}
@@ -74,7 +85,7 @@ func (s *Server) handleInfo(w http.ResponseWriter, r *http.Request, c *call) {
 	info.Permissions = permissionsFor(c.user, role, cluster)
 	rt, err := s.manager.Runtime(cluster)
 	if err != nil {
-		info.ClusterError = "cluster " + cluster.Name + " is unavailable: " + err.Error()
+		info.setClusterError(reason.New(reasonClusterDown, reason.Params{"cluster": cluster.Name, "detail": err.Error()}))
 		plugin.WriteJSON(w, info)
 		return
 	}

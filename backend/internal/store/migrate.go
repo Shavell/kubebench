@@ -15,6 +15,7 @@ var migrations = []func(tx *sql.Tx) error{
 	migrateV3,
 	migrateV4,
 	migrateV5,
+	migrateV6,
 }
 
 func (s *Store) migrate() error {
@@ -193,6 +194,16 @@ CREATE TABLE note_tags (
 );
 CREATE INDEX idx_note_tags_tag ON note_tags(tag);`)
 	return err
+}
+
+// migrateV6 stores session tokens as SHA-256 digests (sessions.token_hash)
+// instead of the tokens themselves. Existing sessions are hashed in place,
+// so the upgrade signs nobody out.
+func migrateV6(tx *sql.Tx) error {
+	if _, err := tx.Exec(`ALTER TABLE sessions RENAME COLUMN token TO token_hash;`); err != nil {
+		return err
+	}
+	return hashSessionTokens(tx)
 }
 
 // reencodeSessionExpiry rewrites v0.4 session expiries (stored in Go's

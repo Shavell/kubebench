@@ -17,6 +17,8 @@ import (
 
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
+
+	"kubebench/internal/reason"
 )
 
 const (
@@ -43,10 +45,10 @@ type Upload struct {
 func (e *environment) saveUpload(archive []byte, now time.Time) (*Upload, error) {
 	ch, err := loader.LoadArchive(bytes.NewReader(archive))
 	if err != nil {
-		return nil, badRequest("not a chart archive: %v", err)
+		return nil, badRequest(reasonNotArchive, reason.Params{"detail": err.Error()})
 	}
 	if err := ch.Validate(); err != nil {
-		return nil, badRequest("invalid chart: %v", err)
+		return nil, badRequest(reasonUploadInvalid, reason.Params{"detail": err.Error()})
 	}
 	var raw [16]byte
 	if _, err := rand.Read(raw[:]); err != nil {
@@ -64,7 +66,7 @@ func (e *environment) loadUpload(id string) (*chart.Chart, error) {
 	path := e.uploadPath(id)
 	info, err := os.Stat(path)
 	if errors.Is(err, fs.ErrNotExist) || (err == nil && time.Since(info.ModTime()) > uploadTTL) {
-		return nil, notFound("upload %s does not exist or has expired; upload the chart again", id)
+		return nil, notFound(reasonUploadNotFound, reason.Params{"id": id})
 	}
 	if err != nil {
 		return nil, err
@@ -118,7 +120,7 @@ func readLimited(r io.Reader, limit int64) ([]byte, error) {
 		return nil, err
 	}
 	if int64(len(data)) > limit {
-		return nil, badRequest("the chart archive is larger than %d MiB", limit>>20)
+		return nil, badRequest(reasonArchiveSize, reason.Params{"size": limit >> 20})
 	}
 	return data, nil
 }

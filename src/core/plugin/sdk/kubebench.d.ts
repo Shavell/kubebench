@@ -142,11 +142,16 @@ export interface ApiRequestInit extends Omit<RequestInit, 'body'> {
 /**
  * What every API helper rejects with: `status` is the HTTP status (0 when
  * the server is unreachable), `code` the machine code from the server's
- * `{"error","code"}` body.
+ * `{"error","code"}` body. `reason` and `params` are the stable reason
+ * code of an error KubeBench explains itself (e.g. "cluster.read_only"),
+ * which `notify.error` shows in the user's language; `message` stays the
+ * server's English text.
  */
 export interface ApiError extends Error {
   readonly status: number
   readonly code: string
+  readonly reason?: string
+  readonly params?: Record<string, unknown>
 }
 
 /** Client for a backend plugin's routes under `/api/plugins/<id>`. */

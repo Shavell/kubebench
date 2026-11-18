@@ -11,6 +11,7 @@ import (
 
 	"kubebench/internal/kube"
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 )
 
 // defaultShell starts bash when the image has it, else sh.
@@ -40,18 +41,18 @@ func (s *Server) handleTerminal(w http.ResponseWriter, r *http.Request, c *call)
 		Command:   defaultShell,
 	}
 	if target.Namespace == "" || target.Pod == "" {
-		writeErr(w, badRequest("ns and pod are required"))
+		writeErr(w, required("ns", "pod"))
 		return
 	}
 	if shell := q.Get("command"); shell != "" {
 		if !slices.Contains(terminalShells, shell) {
-			writeErr(w, badRequest("command must be one of the shells %s", strings.Join(terminalShells, ", ")))
+			writeErr(w, badRequest(reasonShell, reason.Params{"shells": strings.Join(terminalShells, ", ")}))
 			return
 		}
 		target.Command = []string{shell}
 	}
 	if !websocket.IsWebSocketUpgrade(r) {
-		writeErr(w, badRequest("this endpoint needs a WebSocket connection"))
+		writeErr(w, badRequest(reasonWebSocket, nil))
 		return
 	}
 	if target.Container == "" {
@@ -88,7 +89,7 @@ func (s *Server) handleTerminal(w http.ResponseWriter, r *http.Request, c *call)
 		// Server.checkOrigin has applied the same rule; repeated here so
 		// that the upgrade never depends on the middleware order.
 		CheckOrigin: func(r *http.Request) bool { return s.originError(r) == nil },
-		Error: func(w http.ResponseWriter, _ *http.Request, status int, reason error) {
+		Error: func(w http.ResponseWriter, _ *http.Request, status int, upgradeErr error) {
 			code := plugin.CodeBadRequest
 			switch {
 			case status == http.StatusForbidden:
@@ -96,7 +97,7 @@ func (s *Server) handleTerminal(w http.ResponseWriter, r *http.Request, c *call)
 			case status >= http.StatusInternalServerError:
 				code = plugin.CodeInternal
 			}
-			writeErr(w, errorf(status, code, "%v", reason))
+			writeErr(w, refuse(status, code, upgradeErr))
 		},
 	}
 	conn, err := upgrader.Upgrade(w, r, nil)

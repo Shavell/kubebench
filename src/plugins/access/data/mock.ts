@@ -1,4 +1,5 @@
 import { ApiError } from '@/data/apiClient'
+import { reasonError } from '@/data/reasonError'
 import { delay, delayReject } from '@/data/mock/delay'
 import { identityOf, RbacEngine } from './mockEngine'
 import { mockRbac } from './mockRbac'
@@ -11,22 +12,22 @@ import type { AccessRequest, Grant, ReviewResult, Subject } from './types'
  * with the reason text the API server's RBAC authorizer gives.
  */
 
-const badRequest = (field: string, message: string) => new ApiError(400, 'bad_request', `${field}: ${message}`)
+/** The server's refusal of field, with the same reason code (design §3.3). */
+const badRequest = (field: string, reason: string) => reasonError(400, 'bad_request', reason, { field })
 
 function requestProblem(r: AccessRequest): ApiError | null {
-  if (!r.verb) return badRequest('verb', 'is required')
+  if (!r.verb) return badRequest('verb', 'field.required')
   if (r.path) {
-    if (r.resource || r.subresource || r.group || r.namespace || r.name)
-      return badRequest('path', 'a non-resource URL takes no group, resource, namespace or name')
-    return r.path.startsWith('/') ? null : badRequest('path', 'must start with /')
+    if (r.resource || r.subresource || r.group || r.namespace || r.name) return badRequest('path', 'access.non_resource_fields')
+    return r.path.startsWith('/') ? null : badRequest('path', 'access.path_slash')
   }
-  return r.resource ? null : badRequest('resource', 'is required (or path, for a non-resource URL)')
+  return r.resource ? null : badRequest('resource', 'access.resource_required')
 }
 
 function subjectProblem(s: Subject): ApiError | null {
-  if (!s.name) return badRequest('name', 'is required')
-  if (s.kind === 'ServiceAccount' && !s.namespace) return badRequest('namespace', 'is required for a ServiceAccount')
-  if (s.kind !== 'ServiceAccount' && s.namespace) return badRequest('namespace', 'only a ServiceAccount has a namespace')
+  if (!s.name) return badRequest('name', 'field.required')
+  if (s.kind === 'ServiceAccount' && !s.namespace) return badRequest('namespace', 'field.required')
+  if (s.kind !== 'ServiceAccount' && s.namespace) return badRequest('namespace', 'access.namespace_only_service_account')
   return null
 }
 

@@ -1,5 +1,6 @@
 import { ApiError, apiRefusal, apiUrl, type QueryParams } from '../apiClient'
 import type { LogStream, LogStreamHandlers, LogStreamRequest } from '../streams'
+import { streamReasonText } from './streamReason'
 
 /**
  * Follows logs through GET /api/logs/stream with an EventSource. The
@@ -47,7 +48,7 @@ export function streamLogs(request: LogStreamRequest, handlers: LogStreamHandler
   source.addEventListener('error', (event) => {
     if (finished) return
     if (event instanceof MessageEvent) {
-      handlers.onError(String(event.data))
+      handlers.onError(streamReasonText(String(event.data)))
       return
     }
     finish()

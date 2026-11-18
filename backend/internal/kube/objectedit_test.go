@@ -140,7 +140,7 @@ func TestEditObjectSecretPlaceholders(t *testing.T) {
 	added := strings.Replace(original, "data: {pin: '<8 bytes, redacted>'}", "data: {pin: '<8 bytes, redacted>', pin2: '<8 bytes, redacted>'}", 1)
 	_, err = rt.EditObject(ctx, o, []byte(original), []byte(added), false)
 	var ee *EditError
-	if !errors.As(err, &ee) || !ee.Redacted || !strings.Contains(ee.Problem, "data.pin2") {
+	if !errors.As(err, &ee) || !ee.Redacted || !strings.Contains(ee.Error(), "data.pin2") {
 		t.Fatalf("a placeholder as a new value: %v", err)
 	}
 	removed := strings.Replace(original, "data: {pin: '<8 bytes, redacted>'}", "data: {}", 1)

@@ -8,6 +8,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/validation"
+
+	"kubebench/internal/reason"
 )
 
 // Limits on lists a request may carry; real objects stay far below.
@@ -22,10 +24,10 @@ const (
 // StorageClasses.
 func objectName(field, name string) error {
 	if name == "" {
-		return invalidf(field, "is required")
+		return invalidField(field, reason.FieldRequired, nil)
 	}
 	if errs := validation.IsDNS1123Subdomain(name); len(errs) > 0 {
-		return invalidf(field, "%q is not a valid name: %s", name, strings.Join(errs, "; "))
+		return invalidField(field, reasonInvalidName, reason.Params{"name": name, "detail": strings.Join(errs, "; ")})
 	}
 	return nil
 }
@@ -33,10 +35,10 @@ func objectName(field, name string) error {
 // namespaceName checks a DNS-1123 label, the name rule of namespaces.
 func namespaceName(field, name string) error {
 	if name == "" {
-		return invalidf(field, "is required")
+		return invalidField(field, reason.FieldRequired, nil)
 	}
 	if errs := validation.IsDNS1123Label(name); len(errs) > 0 {
-		return invalidf(field, "%q is not a valid namespace name: %s", name, strings.Join(errs, "; "))
+		return invalidField(field, reasonInvalidNamespace, reason.Params{"name": name, "detail": strings.Join(errs, "; ")})
 	}
 	return nil
 }
@@ -44,14 +46,14 @@ func namespaceName(field, name string) error {
 // storageSize parses a positive storage quantity such as "10Gi" or "500M".
 func storageSize(field, text string) (resource.Quantity, error) {
 	if text == "" {
-		return resource.Quantity{}, invalidf(field, "is required")
+		return resource.Quantity{}, invalidField(field, reason.FieldRequired, nil)
 	}
 	q, err := resource.ParseQuantity(text)
 	if err != nil {
-		return resource.Quantity{}, invalidf(field, "%q is not a quantity such as 10Gi or 500M", text)
+		return resource.Quantity{}, invalidField(field, reasonQuantity, reason.Params{"value": text})
 	}
 	if q.Sign() <= 0 {
-		return resource.Quantity{}, invalidf(field, "must be greater than zero")
+		return resource.Quantity{}, invalidField(field, reasonPositive, nil)
 	}
 	return q, nil
 }
@@ -73,7 +75,7 @@ var accessModeNames = []corev1.PersistentVolumeAccessMode{
 // excludes every other mode, as the API server requires.
 func accessModes(field string, modes []string) ([]corev1.PersistentVolumeAccessMode, error) {
 	if len(modes) == 0 {
-		return nil, invalidf(field, "name at least one access mode")
+		return nil, invalidField(field, reasonNoAccessMode, nil)
 	}
 	out := make([]corev1.PersistentVolumeAccessMode, 0, len(modes))
 	for _, m := range modes {
@@ -82,15 +84,15 @@ func accessModes(field string, modes []string) ([]corev1.PersistentVolumeAccessM
 			mode = alias
 		}
 		if !slices.Contains(accessModeNames, mode) {
-			return nil, invalidf(field, "%q is not an access mode (ReadWriteOnce, ReadOnlyMany, ReadWriteMany or ReadWriteOncePod)", m)
+			return nil, invalidField(field, reasonAccessMode, reason.Params{"mode": m})
 		}
 		if slices.Contains(out, mode) {
-			return nil, invalidf(field, "%s is listed twice", mode)
+			return nil, invalidField(field, reasonListedTwice, reason.Params{"value": string(mode)})
 		}
 		out = append(out, mode)
 	}
 	if len(out) > 1 && slices.Contains(out, corev1.ReadWriteOncePod) {
-		return nil, invalidf(field, "ReadWriteOncePod cannot be combined with other access modes")
+		return nil, invalidField(field, reasonRWOPCombined, nil)
 	}
 	return out, nil
 }
@@ -104,20 +106,20 @@ func volumeMode(field, mode string) (*corev1.PersistentVolumeMode, error) {
 	case corev1.PersistentVolumeFilesystem, corev1.PersistentVolumeBlock:
 		return &m, nil
 	}
-	return nil, invalidf(field, "%q is not a volume mode (Filesystem or Block)", mode)
+	return nil, invalidField(field, reasonVolumeModeValue, reason.Params{"mode": mode})
 }
 
 // labels checks label keys (qualified names) and values.
 func labels(field string, l map[string]string) error {
 	if len(l) > maxLabels {
-		return invalidf(field, "at most %d labels", maxLabels)
+		return invalidField(field, reasonTooManyLabels, reason.Params{"max": maxLabels})
 	}
 	for key, value := range l {
 		if errs := validation.IsQualifiedName(key); len(errs) > 0 {
-			return invalidf(field, "key %q: %s", key, strings.Join(errs, "; "))
+			return invalidField(field, reasonLabelKey, reason.Params{"key": key, "detail": strings.Join(errs, "; ")})
 		}
 		if errs := validation.IsValidLabelValue(value); len(errs) > 0 {
-			return invalidf(field, "value of %q: %s", key, strings.Join(errs, "; "))
+			return invalidField(field, reasonLabelValue, reason.Params{"key": key, "detail": strings.Join(errs, "; ")})
 		}
 	}
 	return nil
@@ -126,11 +128,11 @@ func labels(field string, l map[string]string) error {
 // mountOptions checks a short list of non-empty options without spaces.
 func mountOptions(field string, opts []string) error {
 	if len(opts) > maxMountOptions {
-		return invalidf(field, "at most %d mount options", maxMountOptions)
+		return invalidField(field, reasonTooManyOptions, reason.Params{"max": maxMountOptions})
 	}
 	for _, o := range opts {
 		if o == "" || strings.ContainsAny(o, " \t\n") {
-			return invalidf(field, "%q is not a mount option", o)
+			return invalidField(field, reasonMountOption, reason.Params{"value": o})
 		}
 	}
 	return nil
@@ -139,10 +141,10 @@ func mountOptions(field string, opts []string) error {
 // absolutePath checks a clean absolute path such as /mnt/data.
 func absolutePath(field, p string) error {
 	if p == "" {
-		return invalidf(field, "is required")
+		return invalidField(field, reason.FieldRequired, nil)
 	}
 	if !strings.HasPrefix(p, "/") || path.Clean(p) != p {
-		return invalidf(field, "%q must be a clean absolute path such as /mnt/data", p)
+		return invalidField(field, reasonAbsolutePath, reason.Params{"value": p})
 	}
 	return nil
 }
@@ -151,10 +153,10 @@ func absolutePath(field, p string) error {
 // server does: a qualified name, compared in lower case.
 func qualifiedDriver(field, name string) error {
 	if name == "" {
-		return invalidf(field, "is required")
+		return invalidField(field, reason.FieldRequired, nil)
 	}
 	if errs := validation.IsQualifiedName(strings.ToLower(name)); len(errs) > 0 {
-		return invalidf(field, "%q is not a valid name: %s", name, strings.Join(errs, "; "))
+		return invalidField(field, reasonInvalidName, reason.Params{"name": name, "detail": strings.Join(errs, "; ")})
 	}
 	return nil
 }

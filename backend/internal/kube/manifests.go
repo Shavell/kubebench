@@ -7,10 +7,13 @@ import (
 	"fmt"
 	"io"
 	"slices"
+	"strconv"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	utiljson "k8s.io/apimachinery/pkg/util/json"
 	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
+
+	"kubebench/internal/reason"
 )
 
 // ManifestError explains why a document of an apply request is refused
@@ -18,18 +21,34 @@ import (
 type ManifestError struct {
 	// Document is the 1-based position of the YAML document or JSON value.
 	Document int
-	Problem  string
+	// Code and Params explain the problem; Params["document"] names the
+	// document (and the item of a list).
+	Code   reason.Code
+	Params reason.Params
 	// Redacted marks a Secret that still holds KubeBench's redaction
 	// placeholders instead of its values.
 	Redacted bool
 }
 
-func (e *ManifestError) Error() string { return fmt.Sprintf("document %d: %s", e.Document, e.Problem) }
+func (e *ManifestError) Error() string { return e.Code.Text(e.Params) }
 
-// redactedError is a Secret value that is a redaction placeholder.
-type redactedError struct{ problem string }
+// Reason implements reason.Reasoned.
+func (e *ManifestError) Reason() (reason.Code, reason.Params) { return e.Code, e.Params }
 
-func (e *redactedError) Error() string { return e.problem }
+// manifestError places problem in document doc: "2", or "2, items[3]"
+// for an item of a list.
+func manifestError(doc int, problem *reason.Error, redacted bool) *ManifestError {
+	params := reason.Params{}
+	for k, v := range problem.Params {
+		params[k] = v
+	}
+	params["document"] = strconv.Itoa(doc)
+	if item, ok := params["item"]; ok {
+		params["document"] = fmt.Sprintf("%d, items[%v]", doc, item)
+		delete(params, "item")
+	}
+	return &ManifestError{Document: doc, Code: problem.Code, Params: params, Redacted: redacted}
+}
 
 // ParseManifests splits YAML ("---"-separated documents) or JSON
 // (concatenated values) into objects, skipping empty documents and
@@ -45,26 +64,25 @@ func ParseManifests(data []byte) ([]*unstructured.Unstructured, error) {
 			if errors.Is(err, io.EOF) {
 				return objects, nil
 			}
-			return nil, &ManifestError{Document: doc, Problem: "not valid YAML or JSON: " + err.Error()}
+			return nil, manifestError(doc, reason.New(reasonManifestYAML, reason.Params{"detail": err.Error()}), false)
 		}
 		if len(raw) == 0 || string(raw) == "null" {
 			continue // an empty document, e.g. after a trailing "---"
 		}
 		var content map[string]any
 		if err := utiljson.Unmarshal(raw, &content); err != nil {
-			return nil, &ManifestError{Document: doc, Problem: "not an object"}
+			return nil, manifestError(doc, reason.New(reasonManifestNotObject, nil), false)
 		}
 		found, err := documentObjects(content)
 		if err != nil {
-			var redacted *redactedError
-			return nil, &ManifestError{Document: doc, Problem: err.Error(), Redacted: errors.As(err, &redacted)}
+			return nil, manifestError(doc, err, err.Code == reasonManifestRedacted || err.Code == reasonManifestAnnotation)
 		}
 		objects = append(objects, found...)
 	}
 }
 
 // documentObjects validates one document; a list yields its items.
-func documentObjects(content map[string]any) ([]*unstructured.Unstructured, error) {
+func documentObjects(content map[string]any) ([]*unstructured.Unstructured, *reason.Error) {
 	if len(content) == 0 {
 		return nil, nil
 	}
@@ -80,11 +98,12 @@ func documentObjects(content map[string]any) ([]*unstructured.Unstructured, erro
 	for i, item := range items {
 		itemContent, ok := item.(map[string]any)
 		if !ok {
-			return nil, fmt.Errorf("items[%d] is not an object", i)
+			return nil, reason.New(reasonManifestNotObject, reason.Params{"item": i})
 		}
 		itemObj := &unstructured.Unstructured{Object: itemContent}
 		if err := checkManifest(itemObj); err != nil {
-			return nil, fmt.Errorf("items[%d]: %w", i, err)
+			err.Params["item"] = i
+			return nil, err
 		}
 		objects = append(objects, itemObj)
 	}
@@ -94,14 +113,14 @@ func documentObjects(content map[string]any) ([]*unstructured.Unstructured, erro
 // checkManifest refuses objects server-side apply cannot address, and
 // Secrets whose values are redaction placeholders: applying those would
 // replace the real values with the placeholders.
-func checkManifest(obj *unstructured.Unstructured) error {
+func checkManifest(obj *unstructured.Unstructured) *reason.Error {
 	switch {
 	case obj.GetAPIVersion() == "":
-		return errors.New("apiVersion is required")
+		return reason.New(reasonManifestAPIVersion, reason.Params{})
 	case obj.GetKind() == "":
-		return errors.New("kind is required")
+		return reason.New(reasonManifestKind, reason.Params{})
 	case obj.GetName() == "":
-		return fmt.Errorf("%s: metadata.name is required (server-side apply cannot generate names)", obj.GetKind())
+		return reason.New(reasonManifestName, reason.Params{"kind": obj.GetKind()})
 	}
 	if obj.GetAPIVersion() != "v1" || obj.GetKind() != "Secret" {
 		return nil
@@ -110,16 +129,12 @@ func checkManifest(obj *unstructured.Unstructured) error {
 		values, _ := obj.Object[field].(map[string]any)
 		for _, key := range sortedKeys(values) {
 			if s, ok := values[key].(string); ok && IsRedacted(s) {
-				return &redactedError{fmt.Sprintf(
-					"Secret %s: %s.%s holds a redaction placeholder, not its value; reveal the Secret and use the real values",
-					obj.GetName(), field, key)}
+				return reason.New(reasonManifestRedacted, reason.Params{"name": obj.GetName(), "field": field + "." + key})
 			}
 		}
 	}
 	if IsRedacted(obj.GetAnnotations()[lastAppliedAnnotation]) {
-		return &redactedError{fmt.Sprintf(
-			"Secret %s: the %s annotation holds a redaction placeholder; remove the annotation",
-			obj.GetName(), lastAppliedAnnotation)}
+		return reason.New(reasonManifestAnnotation, reason.Params{"name": obj.GetName(), "annotation": lastAppliedAnnotation})
 	}
 	return nil
 }

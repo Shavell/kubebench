@@ -1,4 +1,5 @@
-import type { ApiError } from '@/data/apiClient'
+import { reasonText } from '@/core/reasons'
+import { errorMessage, type ApiError } from '@/data/apiClient'
 import { getWatchedTopics, onWatchedTopicsChange, refreshData, refreshTopics } from '@/data/invalidation'
 import type { LiveProvider } from '@/data/providers'
 import type { WatchStream } from '@/data/streams'
@@ -59,14 +60,16 @@ export function startLiveUpdates(live: LiveProvider): () => void {
       .map((topic) => ({ topic, reason: '', overflow: true }))
     if (!current?.opened) {
       const state = failure ? (failure.status === 0 ? 'offline' : 'polling') : wanted.length ? 'connecting' : 'live'
-      setLiveStatus({ state, reason: failure?.message ?? null, polled: overflow, watched: [] })
+      setLiveStatus({ state, reason: failure ? errorMessage(failure) : null, polled: overflow, watched: [] })
       return
     }
     const polled: PolledTopic[] = []
     const watched: string[] = []
     for (const topic of current.topics) {
       const status = current.statuses.get(topic)
-      if (status?.mode === 'polling') polled.push({ topic, reason: status.reason ?? '', overflow: false })
+      if (status?.mode === 'polling') {
+        polled.push({ topic, reason: reasonText(status.reasonCode, status.reasonParams, status.reason ?? ''), overflow: false })
+      }
       else watched.push(topic)
     }
     setLiveStatus({

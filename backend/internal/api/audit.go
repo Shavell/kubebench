@@ -15,6 +15,7 @@ import (
 	"unicode/utf8"
 
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 	"kubebench/internal/store"
 )
 
@@ -118,10 +119,10 @@ func (a *auditWriter) recordable() error {
 		return nil
 	}
 	if utf8.RuneCountInString(a.target) > maxAuditTarget {
-		return badRequest("the target is too long to be recorded in the audit log (at most %d characters)", maxAuditTarget)
+		return badRequest(reasonAuditTarget, reason.Params{"max": maxAuditTarget})
 	}
 	if utf8.RuneCountInString(a.detail) > maxAuditDetail {
-		return badRequest("the request parameters are too long to be recorded in the audit log (at most %d characters)", maxAuditDetail)
+		return badRequest(reasonAuditDetail, reason.Params{"max": maxAuditDetail})
 	}
 	return nil
 }

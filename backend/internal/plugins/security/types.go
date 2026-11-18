@@ -1,6 +1,10 @@
 package security
 
-import "time"
+import (
+	"time"
+
+	"kubebench/internal/reason"
+)
 
 // Severities, from the most to the least serious. Their weights make up the
 // posture score (see score.go).
@@ -77,7 +81,11 @@ type ScanOptions struct {
 // credential may not list the objects it needs.
 type Skipped struct {
 	CheckID string `json:"checkId"`
-	Reason  string `json:"reason"`
+	// Reason is the English explanation; ReasonCode and ReasonParams let
+	// the UI translate it (§3.3).
+	Reason       string        `json:"reason"`
+	ReasonCode   string        `json:"reasonCode,omitempty"`
+	ReasonParams reason.Params `json:"reasonParams,omitempty"`
 }
 
 // Report answers POST /scan and GET /report.
@@ -92,6 +100,8 @@ type Report struct {
 	// Warnings are partial failures that did not stop any check, e.g. a
 	// kind that could not be listed or a list cut at the scan's limit.
 	Warnings []string `json:"warnings"`
+	// WarningReasons explain Warnings, index by index, for translation.
+	WarningReasons []reason.Ref `json:"warningReasons"`
 	// Inventory counts the objects the scan looked at, by kind.
 	Inventory map[string]int `json:"inventory"`
 	// SystemNamespaces are the namespaces left out unless IncludeSystem.

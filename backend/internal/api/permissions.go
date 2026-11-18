@@ -6,6 +6,7 @@ import (
 
 	"kubebench/internal/kube"
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 	"kubebench/internal/store"
 )
 
@@ -44,12 +45,10 @@ func permissionsFor(user *store.User, role string, cluster *store.Cluster) permi
 // is reported first, as the UI does.
 func mutationDenied(role string, cluster *store.Cluster) error {
 	if cluster.ReadOnly {
-		return errorf(http.StatusForbidden, plugin.CodeClusterReadOnly,
-			"cluster %q is read-only; an administrator can clear the flag in the Clusters view", cluster.Name)
+		return fail(http.StatusForbidden, plugin.CodeClusterReadOnly, reasonReadOnly, reason.Params{"cluster": cluster.Name})
 	}
 	if role != store.RoleAdmin && role != store.ClusterRoleOperator {
-		return errorf(http.StatusForbidden, plugin.CodeForbiddenRole,
-			"your role on cluster %q is %s, which cannot change resources", cluster.Name, role)
+		return fail(http.StatusForbidden, plugin.CodeForbiddenRole, reasonRoleNoChange, reason.Params{"cluster": cluster.Name, "role": role})
 	}
 	return nil
 }
@@ -60,8 +59,7 @@ func mutationDenied(role string, cluster *store.Cluster) error {
 // KubeBench, not in the cluster.
 func contributionDenied(role string, cluster *store.Cluster) error {
 	if role != store.RoleAdmin && role != store.ClusterRoleOperator {
-		return errorf(http.StatusForbidden, plugin.CodeForbiddenRole,
-			"your role on cluster %q is %s, which cannot change what every user of the cluster sees", cluster.Name, role)
+		return fail(http.StatusForbidden, plugin.CodeForbiddenRole, reasonRoleNoContribute, reason.Params{"cluster": cluster.Name, "role": role})
 	}
 	return nil
 }
@@ -73,8 +71,7 @@ func contributionDenied(role string, cluster *store.Cluster) error {
 // HEAD requests.
 func browseDenied(role string, cluster *store.Cluster) error {
 	if role != store.RoleAdmin && role != store.ClusterRoleOperator {
-		return errorf(http.StatusForbidden, plugin.CodeForbiddenRole,
-			"your role on cluster %q is %s, which cannot open services in the browser", cluster.Name, role)
+		return fail(http.StatusForbidden, plugin.CodeForbiddenRole, reasonRoleNoBrowse, reason.Params{"cluster": cluster.Name, "role": role})
 	}
 	return nil
 }
@@ -85,11 +82,11 @@ func browseDenied(role string, cluster *store.Cluster) error {
 // the UI shows.
 func (s *Server) activeCluster(user *store.User) (*store.Cluster, string, error) {
 	if user.ActiveClusterID == nil {
-		return nil, "", errorf(http.StatusConflict, plugin.CodeNoCluster, "no cluster is active; choose one in the Clusters view")
+		return nil, "", fail(http.StatusConflict, plugin.CodeNoCluster, reasonNoActive, nil)
 	}
 	cluster, err := s.store.GetCluster(*user.ActiveClusterID)
 	if errors.Is(err, store.ErrNotFound) {
-		return nil, "", errorf(http.StatusConflict, plugin.CodeNoCluster, "the active cluster was removed; choose another one")
+		return nil, "", fail(http.StatusConflict, plugin.CodeNoCluster, reasonActiveRemoved, nil)
 	}
 	if err != nil {
 		return nil, "", err
@@ -99,8 +96,7 @@ func (s *Server) activeCluster(user *store.User) (*store.Cluster, string, error)
 		return nil, "", err
 	}
 	if role == "" {
-		return nil, "", errorf(http.StatusConflict, plugin.CodeNoCluster,
-			"you no longer have access to cluster %q; choose another one", cluster.Name)
+		return nil, "", fail(http.StatusConflict, plugin.CodeNoCluster, reasonAccessRevoked, reason.Params{"cluster": cluster.Name})
 	}
 	return cluster, role, nil
 }
@@ -113,10 +109,10 @@ func (s *Server) resolveCluster(c *call) error {
 	}
 	rt, err := s.manager.Runtime(cluster)
 	if errors.Is(err, kube.ErrClusterRemoved) {
-		return errorf(http.StatusConflict, plugin.CodeNoCluster, "the active cluster was removed; choose another one")
+		return fail(http.StatusConflict, plugin.CodeNoCluster, reasonActiveRemoved, nil)
 	}
 	if err != nil {
-		return errorf(http.StatusServiceUnavailable, plugin.CodeNoCluster, "cluster %q is unavailable: %v", cluster.Name, err)
+		return fail(http.StatusServiceUnavailable, plugin.CodeNoCluster, reasonClusterDown, reason.Params{"cluster": cluster.Name, "detail": err.Error()})
 	}
 	c.cluster, c.role, c.rt = cluster, role, rt
 	return nil
@@ -147,7 +143,7 @@ func (s *Server) selectCluster(user *store.User) (*store.Cluster, string, error)
 		return &uc.Cluster, uc.Role, nil
 	}
 	if user.IsAdmin() {
-		return nil, "", errorf(http.StatusConflict, plugin.CodeNoCluster, "no cluster has been added yet; add one in the Clusters view")
+		return nil, "", fail(http.StatusConflict, plugin.CodeNoCluster, reasonNoneAdded, nil)
 	}
-	return nil, "", errorf(http.StatusConflict, plugin.CodeNoCluster, "no cluster is assigned to you; ask an administrator")
+	return nil, "", fail(http.StatusConflict, plugin.CodeNoCluster, reasonNoneAssigned, nil)
 }

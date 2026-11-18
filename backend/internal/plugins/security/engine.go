@@ -7,6 +7,8 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+
+	"kubebench/internal/reason"
 )
 
 // maxFindings bounds a report; a cluster with more findings gets the first
@@ -32,8 +34,8 @@ type scan struct {
 	policies map[string]int
 
 	// unavailable says, per target, why its checks cannot run.
-	unavailable map[string]string
-	warnings    []string
+	unavailable map[string]*reason.Error
+	warnings    []*reason.Error
 	inventory   map[string]int
 }
 
@@ -42,7 +44,7 @@ func newScan(inv *inventory, opts ScanOptions) *scan {
 	inScope := func(ns string) bool { return opts.IncludeSystem || !isSystemNamespace(ns) }
 	s := &scan{
 		opts: opts, automount: map[string]*bool{}, policies: map[string]int{},
-		unavailable: map[string]string{}, inventory: inv.counts(),
+		unavailable: map[string]*reason.Error{}, inventory: inv.counts(),
 	}
 	s.workloads = workloads(inv, inScope)
 	for i := range inv.namespaces {
@@ -91,10 +93,10 @@ func (s *scan) availability(inv *inventory) {
 	}
 	for _, kind := range allKinds {
 		if err := inv.errs[kind]; err != nil {
-			s.warnings = append(s.warnings, err.Error())
+			s.warnings = append(s.warnings, err)
 		}
 		if inv.truncated[kind] {
-			s.warnings = append(s.warnings, fmt.Sprintf("only the first %d %s were scanned", maxPerKind, kind))
+			s.warnings = append(s.warnings, reason.New(reasonTruncatedKind, reason.Params{"max": maxPerKind, "kind": kind}))
 		}
 	}
 }
@@ -110,7 +112,7 @@ type result struct {
 	// evaluated counts the objects each check that ran looked at.
 	evaluated map[string]int
 	skipped   []Skipped
-	warnings  []string
+	warnings  []*reason.Error
 	inventory map[string]int
 }
 
@@ -126,8 +128,8 @@ func (s *scan) run(checks []*Check) *result {
 		res.findings = append(res.findings, newFinding(c, r, evidence))
 	}
 	for _, c := range checks {
-		if reason, ok := s.unavailable[c.Target]; ok {
-			res.skipped = append(res.skipped, Skipped{CheckID: c.ID, Reason: reason})
+		if why, ok := s.unavailable[c.Target]; ok {
+			res.skipped = append(res.skipped, Skipped{CheckID: c.ID, Reason: why.Error(), ReasonCode: why.Code.String(), ReasonParams: why.Params})
 			continue
 		}
 		n := 0
@@ -174,7 +176,7 @@ func (s *scan) run(checks []*Check) *result {
 		res.evaluated[c.ID] = n
 	}
 	if truncated {
-		res.warnings = append(res.warnings, fmt.Sprintf("the report lists the first %d findings only", maxFindings))
+		res.warnings = append(res.warnings, reason.New(reasonTruncatedFindings, reason.Params{"max": maxFindings}))
 	}
 	slices.SortStableFunc(res.findings, compareFindings)
 	return res

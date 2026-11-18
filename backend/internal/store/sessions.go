@@ -2,13 +2,28 @@ package store
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
 	"errors"
 	"time"
 )
 
-// CreateSession issues a random 256-bit session token for the user.
+// Session tokens are 256-bit random values handed to the browser once.
+// The database keeps only their SHA-256 digest (sessions.token_hash), so a
+// copy of it holds no usable sessions. A plain digest, rather than a keyed
+// one or a slow password hash, suffices: the tokens are uniformly random
+// and far too long to guess, so nothing can be recovered by brute force,
+// and a key would have to be stored next to the digests anyway.
+
+// hashToken is the stored form of a session token.
+func hashToken(token string) string {
+	sum := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(sum[:])
+}
+
+// CreateSession issues a random 256-bit session token for the user and
+// stores its digest.
 func (s *Store) CreateSession(userID int64, ttl time.Duration) (string, error) {
 	raw := make([]byte, 32)
 	if _, err := rand.Read(raw); err != nil {
@@ -16,19 +31,20 @@ func (s *Store) CreateSession(userID int64, ttl time.Duration) (string, error) {
 	}
 	token := hex.EncodeToString(raw)
 	_, err := s.db.Exec(
-		`INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)`,
-		token, userID, now().Add(ttl),
+		`INSERT INTO sessions (token_hash, user_id, expires_at) VALUES (?, ?, ?)`,
+		hashToken(token), userID, now().Add(ttl),
 	)
 	return token, err
 }
 
 // UserBySession resolves a live session token to its user; unknown and
-// expired tokens yield ErrNotFound.
+// expired tokens yield ErrNotFound. The lookup goes by the token's digest,
+// so its timing reveals nothing about the stored tokens.
 func (s *Store) UserBySession(token string) (*User, error) {
 	var userID int64
 	var expires time.Time
 	err := s.db.QueryRow(
-		`SELECT user_id, expires_at FROM sessions WHERE token = ?`, token,
+		`SELECT user_id, expires_at FROM sessions WHERE token_hash = ?`, hashToken(token),
 	).Scan(&userID, &expires)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
@@ -42,8 +58,9 @@ func (s *Store) UserBySession(token string) (*User, error) {
 	return s.GetUser(userID)
 }
 
+// DeleteSession ends the session of token (signing out).
 func (s *Store) DeleteSession(token string) error {
-	_, err := s.db.Exec(`DELETE FROM sessions WHERE token = ?`, token)
+	_, err := s.db.Exec(`DELETE FROM sessions WHERE token_hash = ?`, hashToken(token))
 	return err
 }
 
@@ -54,4 +71,33 @@ func (s *Store) PruneSessions(t time.Time) (int64, error) {
 		return 0, err
 	}
 	return res.RowsAffected()
+}
+
+// hashSessionTokens replaces the raw tokens of sessions stored before
+// schema v6 with their digests, so their users stay signed in.
+func hashSessionTokens(tx *sql.Tx) error {
+	rows, err := tx.Query(`SELECT token_hash FROM sessions`)
+	if err != nil {
+		return err
+	}
+	var tokens []string
+	for rows.Next() {
+		var token string
+		if err := rows.Scan(&token); err != nil {
+			rows.Close()
+			return err
+		}
+		tokens = append(tokens, token)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	for _, token := range tokens {
+		_, err := tx.Exec(`UPDATE sessions SET token_hash = ? WHERE token_hash = ?`, hashToken(token), token)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

@@ -11,6 +11,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
+
+	"kubebench/internal/reason"
 )
 
 const (
@@ -52,11 +54,11 @@ func (r *Runtime) DeletePod(ctx context.Context, namespace, name string, force b
 // each pod's outcome in the order given.
 func (r *Runtime) DeletePods(ctx context.Context, pods []PodKey, force bool) ([]PodDeleteResult, error) {
 	if len(pods) == 0 || len(pods) > MaxBulkDelete {
-		return nil, opError(OpInvalid, "a bulk delete takes 1 to %d pods, not %d", MaxBulkDelete, len(pods))
+		return nil, opError(OpInvalid, reasonBulkDeleteCount, reason.Params{"max": MaxBulkDelete, "count": len(pods)})
 	}
 	for _, p := range pods {
 		if p.Namespace == "" || p.Name == "" {
-			return nil, opError(OpInvalid, "every pod needs a namespace and a name")
+			return nil, opError(OpInvalid, reasonBulkDeleteName, nil)
 		}
 	}
 	results := make([]PodDeleteResult, len(pods))
@@ -95,7 +97,7 @@ func (r *Runtime) AddDebugContainer(ctx context.Context, namespace, podName, ima
 		image = DefaultDebugImage
 	}
 	if strings.ContainsAny(image, " \t\r\n") {
-		return nil, opError(OpInvalid, "the image %q contains white space", image)
+		return nil, opError(OpInvalid, reasonDebugImageSpace, reason.Params{"image": image})
 	}
 	pods := r.CS.CoreV1().Pods(namespace)
 	pod, err := pods.Get(ctx, podName, metav1.GetOptions{})
@@ -103,7 +105,7 @@ func (r *Runtime) AddDebugContainer(ctx context.Context, namespace, podName, ima
 		return nil, err
 	}
 	if target != "" && !hasAppContainer(pod, target) {
-		return nil, opError(OpInvalid, "pod %s has no container %q to target", podName, target)
+		return nil, opError(OpInvalid, reasonDebugNoContainer, reason.Params{"pod": podName, "container": target})
 	}
 	debugger := corev1.EphemeralContainer{
 		TargetContainerName: target,

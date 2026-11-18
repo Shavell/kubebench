@@ -10,7 +10,6 @@ package argocd
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -18,6 +17,7 @@ import (
 
 	"kubebench/internal/kube"
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 )
 
 // ID is the plugin id: its routes are served under /api/plugins/argocd/.
@@ -57,16 +57,16 @@ func (*Plugin) Detect(_ context.Context, rt *kube.Runtime) plugin.Status {
 	list, err := rt.CS.Discovery().ServerResourcesForGroupVersion(groupVersion)
 	switch {
 	case apierrors.IsNotFound(err):
-		return plugin.Status{Reason: "Argo CD is not installed: the cluster does not serve " + groupVersion}
+		return plugin.Unavailable(reasonNotInstalled, reason.Params{"groupVersion": groupVersion})
 	case err != nil:
-		return plugin.Status{Reason: fmt.Sprintf("cannot discover Argo CD: %v", err)}
+		return plugin.Unavailable(reasonDiscovery, reason.Params{"detail": err.Error()})
 	}
 	for _, r := range list.APIResources {
 		if r.Name == applicationsGVR.Resource {
 			return plugin.Status{Available: true}
 		}
 	}
-	return plugin.Status{Reason: "Argo CD is not installed: the cluster does not serve " + groupVersion + " applications"}
+	return plugin.Unavailable(reasonNoApplications, reason.Params{"groupVersion": groupVersion})
 }
 
 // Routes registers the plugin API. Every mutation is a write route, so a

@@ -1,4 +1,5 @@
 import { ApiError } from '../apiClient'
+import { reasonError } from '../reasonError'
 import type { KubeObject } from '../types'
 import { delay, delayReject } from './delay'
 import { deployments, namespaces, nodes, pods, services } from './mockCluster'
@@ -87,7 +88,7 @@ export function mockK8sGet<T>(rawPath: string): Promise<T> {
   if (!match) return delayReject(notFound(path))
   const [, coreVersion, groupVersion, namespace, resource] = match
   if (resource === 'secrets') {
-    return delayReject(new ApiError(403, 'forbidden', 'secrets are not readable through /api/k8s'))
+    return delayReject(reasonError(403, 'forbidden', 'passthrough.no_secrets'))
   }
   const shape = RESOURCES[`${coreVersion ?? groupVersion}/${resource}`]
   if (!shape || (namespace && !shape.namespaced)) return delayReject(notFound(path))

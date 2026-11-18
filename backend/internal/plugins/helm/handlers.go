@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation"
 
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 )
 
 // maxBodyBytes bounds JSON request bodies (values of an install or upgrade).
@@ -22,10 +23,10 @@ const maxBodyBytes = 8 << 20
 func releaseRef(r *http.Request) (namespace, name string, err error) {
 	namespace, name = r.PathValue("ns"), r.PathValue("name")
 	if len(validation.IsDNS1123Label(namespace)) > 0 {
-		return "", "", badRequest("%q is not a namespace name", namespace)
+		return "", "", badRequest(reasonNamespace, reason.Params{"namespace": namespace})
 	}
 	if len(validation.IsDNS1123Subdomain(name)) > 0 || len(name) > 53 {
-		return "", "", badRequest("%q is not a release name", name)
+		return "", "", badRequest(reasonReleaseName, reason.Params{"name": name})
 	}
 	return namespace, name, nil
 }
@@ -38,7 +39,7 @@ func revisionParam(r *http.Request) (int, error) {
 	}
 	n, err := strconv.Atoi(raw)
 	if err != nil || n < 0 {
-		return 0, badRequest("revision must be a revision number")
+		return 0, badRequest(reasonRevision, nil)
 	}
 	return n, nil
 }
@@ -48,9 +49,9 @@ func decodeJSON(w http.ResponseWriter, r *http.Request, v any) error {
 	if err := dec.Decode(v); err != nil {
 		var tooLarge *http.MaxBytesError
 		if errors.As(err, &tooLarge) {
-			return badRequest("the request body is larger than %d MiB", maxBodyBytes>>20)
+			return badRequest(reasonBodyTooLarge, reason.Params{"size": maxBodyBytes >> 20})
 		}
-		return badRequest("invalid JSON body: %v", err)
+		return badRequest(reason.InvalidJSON, reason.Params{"detail": err.Error()})
 	}
 	return nil
 }
@@ -72,7 +73,7 @@ func refineAudit(c *plugin.Context, target string, detail map[string]any) {
 func (p *Plugin) handleListReleases(w http.ResponseWriter, r *http.Request, c *plugin.Context) {
 	ns := r.URL.Query().Get("ns")
 	if ns != "" && len(validation.IsDNS1123Label(ns)) > 0 {
-		writeError(w, badRequest("%q is not a namespace name", ns))
+		writeError(w, badRequest(reasonNamespace, reason.Params{"namespace": ns}))
 		return
 	}
 	cfg, err := p.actions(c.Runtime, ns)
@@ -169,7 +170,7 @@ func (p *Plugin) handleRollback(w http.ResponseWriter, r *http.Request, c *plugi
 		return
 	}
 	if in.Revision < 0 {
-		writeError(w, badRequest("revision must be a revision number (0 = the previous one)"))
+		writeError(w, badRequest(reasonRollback, nil))
 		return
 	}
 	refineAudit(c, "", map[string]any{"revision": in.Revision})
@@ -318,7 +319,7 @@ func (p *Plugin) handleAddRepo(w http.ResponseWriter, r *http.Request, c *plugin
 func (p *Plugin) handleRemoveRepo(w http.ResponseWriter, r *http.Request, _ *plugin.Context) {
 	name := r.PathValue("name")
 	if !repoNamePattern.MatchString(name) {
-		writeError(w, badRequest("%q is not a repository name", name))
+		writeError(w, badRequest(reasonRepoName, reason.Params{"name": name}))
 		return
 	}
 	if err := p.env.removeRepo(name); err != nil {
@@ -352,7 +353,7 @@ func (p *Plugin) handleSearchCharts(w http.ResponseWriter, r *http.Request, _ *p
 func (p *Plugin) handleChartValues(w http.ResponseWriter, r *http.Request, _ *plugin.Context) {
 	q := r.URL.Query()
 	if q.Get("ref") != "" {
-		writeError(w, badRequest("the values of an OCI chart are read through POST /charts/oci/values"))
+		writeError(w, badRequest(reasonOCIValues, nil))
 		return
 	}
 	ref := ChartRef{Repo: q.Get("repo"), Name: q.Get("chart"), Version: q.Get("version"), UploadID: q.Get("uploadId")}
@@ -371,7 +372,7 @@ func (p *Plugin) handleOCIChartValues(w http.ResponseWriter, r *http.Request, c 
 	}
 	ref := ChartRef{Ref: body.Ref, Version: body.Version}
 	if ref.Ref == "" {
-		writeError(w, badRequest("ref must name an OCI chart"))
+		writeError(w, badRequest(reasonRefNotOCI, nil))
 		return
 	}
 	refineAudit(c, "chart/"+ref.Ref, map[string]any{"version": ref.Version})
@@ -401,7 +402,7 @@ func (p *Plugin) handleUploadChart(w http.ResponseWriter, r *http.Request, c *pl
 	if err != nil {
 		var tooLarge *http.MaxBytesError
 		if errors.As(err, &tooLarge) {
-			err = badRequest("the chart archive is larger than %d MiB", maxUploadBytes>>20)
+			err = badRequest(reasonArchiveSize, reason.Params{"size": maxUploadBytes >> 20})
 		}
 		writeError(w, err)
 		return
@@ -419,15 +420,15 @@ func (p *Plugin) handleUploadChart(w http.ResponseWriter, r *http.Request, c *pl
 func chartPart(r *http.Request) (*multipart.Part, error) {
 	mr, err := r.MultipartReader()
 	if err != nil {
-		return nil, badRequest("send the chart as multipart/form-data with a file field named chart")
+		return nil, badRequest(reasonMultipart, nil)
 	}
 	for {
 		part, err := mr.NextPart()
 		if errors.Is(err, io.EOF) {
-			return nil, badRequest("the request has no file field named chart")
+			return nil, badRequest(reasonNoChartField, nil)
 		}
 		if err != nil {
-			return nil, badRequest("invalid multipart body: %v", err)
+			return nil, badRequest(reasonMultipartBody, reason.Params{"detail": err.Error()})
 		}
 		if part.FormName() == "chart" && part.FileName() != "" {
 			return part, nil

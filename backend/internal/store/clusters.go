@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"kubebench/internal/reason"
 )
 
 // Cluster is one inventory entry. The struct is comparable, which lets the
@@ -61,7 +63,7 @@ func (s *Store) AddCluster(c Cluster) (int64, error) {
 		c.Name, c.Source, c.Kubeconfig, c.Context, c.Address, boolInt(c.ReadOnly), c.Environment, c.Credentials,
 	)
 	if err != nil {
-		return 0, conflictErr(err, "cluster %q", c.Name)
+		return 0, conflictErr(err, reasonClusterExists, reason.Params{"name": c.Name})
 	}
 	return res.LastInsertId()
 }
@@ -148,7 +150,7 @@ func (s *Store) UpdateCluster(id int64, u ClusterUpdate) error {
 	res, err := s.db.Exec(`UPDATE clusters SET `+strings.Join(sets, ", ")+` WHERE id = ?`, append(args, id)...)
 	if err != nil {
 		if u.Name != nil {
-			return conflictErr(err, "cluster %q", *u.Name)
+			return conflictErr(err, reasonClusterExists, reason.Params{"name": *u.Name})
 		}
 		return err
 	}

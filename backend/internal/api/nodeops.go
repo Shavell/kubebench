@@ -107,7 +107,7 @@ func (s *Server) handleSetTaints(w http.ResponseWriter, r *http.Request, c *call
 		return
 	}
 	if body.Taints == nil {
-		writeErr(w, badRequest("taints is required; send [] to remove every taint"))
+		writeErr(w, badRequest(reasonTaintsRequired, nil))
 		return
 	}
 	taints, err := c.rt.SetNodeTaints(r.Context(), name, *body.Taints)

@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 	"kubebench/internal/store"
 	"kubebench/internal/updates"
 )
@@ -57,7 +58,7 @@ func (s *Server) handleCheckUpdates(w http.ResponseWriter, r *http.Request, _ *c
 		return
 	}
 	if mode == updates.ModeOff {
-		writeErr(w, errorf(http.StatusConflict, plugin.CodeConflict, "update checks are off; choose another update mode first"))
+		writeErr(w, fail(http.StatusConflict, plugin.CodeConflict, reasonUpdatesOff, nil))
 		return
 	}
 	s.writeUpdateStatus(w, s.updates.Check(r.Context(), mode))
@@ -75,7 +76,7 @@ func (s *Server) handleSetUpdateMode(w http.ResponseWriter, r *http.Request, c *
 	}
 	mode, ok := updates.ParseMode(body.Mode)
 	if !ok {
-		writeErr(w, badRequest("mode must be off, stable or prerelease"))
+		writeErr(w, badRequest(reason.FieldOneOf, reason.Params{"field": "mode", "values": "off, stable, prerelease"}))
 		return
 	}
 	c.setAudit("setting/updates", auditJSON(map[string]string{"mode": string(mode)}))

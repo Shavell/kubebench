@@ -166,7 +166,7 @@ func TestUpgradeFromV1KeepsData(t *testing.T) {
 	}
 	for _, token := range []string{"orphan", "garbled"} {
 		var n int
-		if err := s.db.QueryRow(`SELECT COUNT(*) FROM sessions WHERE token = ?`, token).Scan(&n); err != nil || n != 0 {
+		if err := s.db.QueryRow(`SELECT COUNT(*) FROM sessions WHERE token_hash IN (?, ?)`, token, hashToken(token)).Scan(&n); err != nil || n != 0 {
 			t.Fatalf("session %q survived the migration", token)
 		}
 	}

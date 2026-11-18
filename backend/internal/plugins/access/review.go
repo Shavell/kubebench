@@ -1,7 +1,6 @@
 package access
 
 import (
-	"fmt"
 	"math"
 	"net/http"
 	"strconv"
@@ -12,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 )
 
 // reviewRequest is the body of POST /review: a subject and the request to
@@ -62,7 +62,7 @@ func (p *Plugin) review(w http.ResponseWriter, r *http.Request, c *plugin.Contex
 	if wait := p.limiter.take(userID); wait > 0 {
 		w.Header().Set("Retry-After", strconv.Itoa(int(math.Ceil(wait.Seconds()))))
 		plugin.WriteError(w, http.StatusTooManyRequests, plugin.CodeRateLimited,
-			fmt.Errorf("at most %d access reviews per minute; try again in %s", reviewsPerWindow, wait.Round(time.Second)))
+			reason.New(reasonReviewRate, reason.Params{"max": reviewsPerWindow, "wait": wait.Round(time.Second).String()}))
 		return
 	}
 
@@ -79,9 +79,8 @@ func (p *Plugin) review(w http.ResponseWriter, r *http.Request, c *plugin.Contex
 	res, err := c.Runtime.CS.AuthorizationV1().SubjectAccessReviews().Create(r.Context(), sar, metav1.CreateOptions{})
 	if err != nil {
 		if apierrors.IsForbidden(err) {
-			plugin.WriteError(w, http.StatusForbidden, plugin.CodeKubernetes, fmt.Errorf(
-				"KubeBench's credential for this cluster may not create SubjectAccessReviews "+
-					"(it needs create on subjectaccessreviews.authorization.k8s.io cluster-wide): %w", err))
+			plugin.WriteError(w, http.StatusForbidden, plugin.CodeKubernetes,
+				reason.Wrap(err, reasonCannotReview, reason.Params{"detail": err.Error()}))
 			return
 		}
 		plugin.WriteK8sError(w, err)

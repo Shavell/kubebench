@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"runtime"
 	"slices"
 	"strings"
@@ -136,7 +137,7 @@ func TestChangesAfterSync(t *testing.T) {
 	h, l := newTestHub(t, dyn, Options{})
 	sub := subscribe(t, h, "pods")
 
-	if st := sub.TakeStatuses(); len(st) != 1 || st[0] != (TopicStatus{Topic: "pods", Mode: ModeStarting}) {
+	if st := sub.TakeStatuses(); len(st) != 1 || !reflect.DeepEqual(st[0], TopicStatus{Topic: "pods", Mode: ModeStarting}) {
 		t.Fatalf("first statuses = %v", st)
 	}
 	waitStatus(t, sub, "pods", ModeLive)

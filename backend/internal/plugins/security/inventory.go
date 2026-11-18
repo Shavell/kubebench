@@ -2,7 +2,6 @@ package security
 
 import (
 	"context"
-	"fmt"
 
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -11,6 +10,8 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+
+	"kubebench/internal/reason"
 )
 
 // Limits that bound the cost of one scan on a large cluster. Lists are
@@ -61,7 +62,7 @@ type inventory struct {
 
 	// errs holds the kinds that could not be listed, truncated those cut
 	// at maxPerKind.
-	errs      map[string]error
+	errs      map[string]*reason.Error
 	truncated map[string]bool
 }
 
@@ -69,7 +70,7 @@ type inventory struct {
 // that cannot be listed (RBAC, a missing API) is recorded in errs and the
 // checks that need it are skipped; only an ended context stops it.
 func collect(ctx context.Context, cs kubernetes.Interface) (*inventory, error) {
-	inv := &inventory{errs: map[string]error{}, truncated: map[string]bool{}}
+	inv := &inventory{errs: map[string]*reason.Error{}, truncated: map[string]bool{}}
 	var err error
 	if inv.namespaces, err = listKind(ctx, inv, kindNamespaces, func(o metav1.ListOptions) ([]corev1.Namespace, string, error) {
 		l, err := cs.CoreV1().Namespaces().List(ctx, o)
@@ -212,7 +213,7 @@ func listKind[T any](ctx context.Context, inv *inventory, kind string, list func
 			if ctx.Err() != nil {
 				return nil, ctx.Err()
 			}
-			inv.errs[kind] = fmt.Errorf("cannot list %s: %w", kind, err)
+			inv.errs[kind] = reason.Wrap(err, reasonCannotList, reason.Params{"kind": kind, "detail": err.Error()})
 			return nil, nil
 		}
 		out = append(out, page...)
@@ -250,13 +251,13 @@ func (inv *inventory) anyListed(kinds ...string) bool {
 }
 
 // failure is the reason the first of kinds that failed could not be listed.
-func (inv *inventory) failure(kinds ...string) string {
+func (inv *inventory) failure(kinds ...string) *reason.Error {
 	for _, k := range kinds {
 		if err := inv.errs[k]; err != nil {
-			return err.Error()
+			return err
 		}
 	}
-	return ""
+	return reason.New(reasonNotListed, nil)
 }
 
 // counts is the report's inventory: the objects listed, by kind.

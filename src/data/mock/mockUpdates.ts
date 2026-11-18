@@ -1,4 +1,4 @@
-import { ApiError } from '../apiClient'
+import { reasonError } from '../reasonError'
 import type { UpdatesProvider } from '../providers'
 import type { UpdateMode, UpdateStatus } from '../types'
 import { delay, delayReject } from './delay'
@@ -75,7 +75,7 @@ export function createMockUpdates(): UpdatesProvider {
     },
     checkNow: () =>
       mode === 'off'
-        ? delayReject(new ApiError(409, 'conflict', 'update checks are off; choose another update mode first'))
+        ? delayReject(reasonError(409, 'conflict', 'updates.off'))
         : delay(status()),
     lastSeenVersion: () => delay(lastSeen),
     markSeen: (version) => {

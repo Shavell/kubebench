@@ -1,6 +1,6 @@
 package kube
 
-import "fmt"
+import "kubebench/internal/reason"
 
 // OpErrorKind says why KubeBench refused an operation.
 type OpErrorKind int
@@ -20,15 +20,20 @@ const (
 )
 
 // OpError is an operation KubeBench refused itself, before or instead of
-// sending the request to the cluster. Errors from the cluster stay client-go
-// errors; the API reports the two differently (design §3.3).
+// sending the request to the cluster, explained by a reason code. Errors
+// from the cluster stay client-go errors; the API reports the two
+// differently (design §3.3).
 type OpError struct {
-	Kind OpErrorKind
-	Msg  string
+	Kind   OpErrorKind
+	Code   reason.Code
+	Params reason.Params
 }
 
-func (e *OpError) Error() string { return e.Msg }
+func (e *OpError) Error() string { return e.Code.Text(e.Params) }
 
-func opError(kind OpErrorKind, format string, args ...any) error {
-	return &OpError{Kind: kind, Msg: fmt.Sprintf(format, args...)}
+// Reason implements reason.Reasoned.
+func (e *OpError) Reason() (reason.Code, reason.Params) { return e.Code, e.Params }
+
+func opError(kind OpErrorKind, code reason.Code, params reason.Params) error {
+	return &OpError{Kind: kind, Code: code, Params: params}
 }

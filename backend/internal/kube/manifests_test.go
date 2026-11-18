@@ -129,7 +129,7 @@ func TestParseManifestsRefusals(t *testing.T) {
 			if !errors.As(err, &me) {
 				t.Fatalf("err = %v, want a ManifestError", err)
 			}
-			if me.Document != tc.document || !strings.Contains(me.Problem, tc.problem) || me.Redacted != tc.redacted {
+			if me.Document != tc.document || !strings.Contains(me.Error(), tc.problem) || me.Redacted != tc.redacted {
 				t.Fatalf("error = %+v, want document %d, problem containing %q, redacted %v", me, tc.document, tc.problem, tc.redacted)
 			}
 		})

@@ -36,7 +36,7 @@ func TestShutdownHangsUpTerminals(t *testing.T) {
 	readOutput(t, conn, "echo:hi")
 
 	done := shutdown(t, e)
-	if msg := readEnd(t, conn); msg["type"] != "error" || msg["message"] != errShuttingDown.Error() {
+	if msg := readEnd(t, conn); msg["type"] != "error" || msg["message"] != errShuttingDown.Error() || msg["reason"] != "api.shutting_down" {
 		t.Fatalf("final message = %v, want the shutdown", msg)
 	}
 	if err := <-done; err != nil {
@@ -62,7 +62,7 @@ func TestShutdownEndsWatchStreams(t *testing.T) {
 	events := openWatch(t, e, srv, "bob", "pods")
 	nextEvent(t, events, "status")
 	done := shutdown(t, e)
-	if got := nextEvent(t, events, "end"); got != errShuttingDown.Error() {
+	if got := nextEvent(t, events, "end"); got != `{"error":"the server is shutting down","reason":"api.shutting_down"}` {
 		t.Fatalf("end = %q, want the shutdown", got)
 	}
 	if err := <-done; err != nil {
@@ -103,7 +103,7 @@ func TestShutdownEndsLogStreams(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("the log stream outlived the shutdown")
 	}
-	if got := w.String(); !strings.HasSuffix(got, "event: error\ndata: "+errShuttingDown.Error()+"\n\n") || strings.Contains(got, "event: end") {
+	if got := w.String(); !strings.HasSuffix(got, "event: error\ndata: {\"error\":\"the server is shutting down\",\"reason\":\"api.shutting_down\"}\n\n") || strings.Contains(got, "event: end") {
 		t.Fatalf("stream = %q, want it to end with the shutdown error", got)
 	}
 }

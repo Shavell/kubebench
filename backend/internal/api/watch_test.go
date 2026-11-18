@@ -202,10 +202,10 @@ func TestWatchEnds(t *testing.T) {
 		end    func(e *testEnv) error
 		reason string
 	}{
-		"logout": {func(e *testEnv) error { return e.store.DeleteSession(e.tokens["bob"]) }, "the session was closed"},
+		"logout": {func(e *testEnv) error { return e.store.DeleteSession(e.tokens["bob"]) }, `"reason":"streams.closed"`},
 		"unassigned": {
 			func(e *testEnv) error { return e.store.SetAssignments(e.users["bob"], nil) },
-			"the session was closed: you no longer have access",
+			`"error":"the session was closed: you no longer have access`,
 		},
 		"rebuilt": {func(e *testEnv) error {
 			name := "renamed"
@@ -217,7 +217,7 @@ func TestWatchEnds(t *testing.T) {
 				t.Errorf("namespaces: %d %s", rec.Code, rec.Body.String())
 			}
 			return nil
-		}, "the cluster connection was rebuilt"},
+		}, `{"error":"the cluster connection was rebuilt","reason":"watch.connection_rebuilt"}`},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {

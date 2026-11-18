@@ -15,6 +15,7 @@ import (
 	"kubebench/internal/cloudauth"
 	"kubebench/internal/kube"
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 	"kubebench/internal/store"
 )
 
@@ -131,25 +132,24 @@ func (s *Server) handleAddCluster(w http.ResponseWriter, r *http.Request, c *cal
 		cluster.Source, cluster.Kubeconfig = store.SourceKubeconfig, body.Content
 	case body.Path != "":
 		if !s.cfg.AllowPathKubeconfig {
-			writeErr(w, errorf(http.StatusForbidden, plugin.CodeForbidden,
-				"adding clusters by server-side path is disabled (KUBEBENCH_ALLOW_PATH_KUBECONFIG); paste the kubeconfig instead"))
+			writeErr(w, fail(http.StatusForbidden, plugin.CodeForbidden, reasonPathDisabled, nil))
 			return
 		}
 		if dir := s.requestWrittenDir(body.Path); dir != "" {
-			writeErr(w, errorf(http.StatusForbidden, plugin.CodeForbidden,
-				"%s is inside %s, which KubeBench writes with content from requests; add a kubeconfig of the server's own instead", body.Path, dir))
+			writeErr(w, fail(http.StatusForbidden, plugin.CodeForbidden, reasonPathWritten,
+				reason.Params{"path": body.Path, "dir": dir}))
 			return
 		}
 		content, err := kube.ReadKubeconfig(body.Path)
 		if err != nil {
-			writeErr(w, badRequest("cannot read the kubeconfig %s: %v", body.Path, err))
+			writeErr(w, badRequest(reasonReadKubeconfig, reason.Params{"path": body.Path, "detail": err.Error()}))
 			return
 		}
 		cluster.Source, cluster.Kubeconfig = store.SourceKubeconfig, string(content)
 	case body.Address != "":
 		cluster.Source, cluster.Address = store.SourceAddress, body.Address
 	default:
-		writeErr(w, badRequest("kubeconfig content, path or API address is required"))
+		writeErr(w, badRequest(reasonSourceRequired, nil))
 		return
 	}
 	audit := map[string]string{"source": cluster.Source}
@@ -229,14 +229,14 @@ func resolvedPath(path string) string {
 func (s *Server) checkKubeconfig(content, contextName string, pasted bool) error {
 	kc, err := clientcmd.Load([]byte(content))
 	if err != nil {
-		return badRequest("invalid kubeconfig: %v", err)
+		return badRequest(reasonBadKubeconfig, reason.Params{"detail": err.Error()})
 	}
 	if contextName == "" {
 		contextName = kc.CurrentContext
 	}
 	ctx, ok := kc.Contexts[contextName]
 	if !ok {
-		return badRequest("context %q is not in the kubeconfig", contextName)
+		return badRequest(reasonUnknownContext, reason.Params{"context": contextName})
 	}
 	if !pasted || s.cfg.AllowKubeconfigExec {
 		return nil
@@ -245,9 +245,8 @@ func (s *Server) checkKubeconfig(content, contextName string, pasted bool) error
 	// (§7.12), so they need no exception here; the identity they sign in
 	// with is checked by ambientIdentityError.
 	if refs := serverSideReferences(kc.Clusters[ctx.Cluster], kc.AuthInfos[ctx.AuthInfo]); len(refs) > 0 {
-		return errorf(http.StatusForbidden, plugin.CodeForbidden,
-			"the kubeconfig uses %s, which this server does not allow in pasted kubeconfigs (KUBEBENCH_ALLOW_KUBECONFIG_EXEC); embed the credentials as *-data fields or a token",
-			strings.Join(refs, ", "))
+		return fail(http.StatusForbidden, plugin.CodeForbidden, reasonServerSideRefs,
+			reason.Params{"references": strings.Join(refs, ", ")})
 	}
 	return nil
 }
@@ -279,7 +278,7 @@ func serverSideReferences(cluster *clientcmdapi.Cluster, user *clientcmdapi.Auth
 
 func validateClusterName(name string) error {
 	if name == "" || len(name) > 63 {
-		return badRequest("a cluster name is 1-63 characters")
+		return badRequest(reasonClusterName, nil)
 	}
 	return nil
 }
@@ -288,7 +287,7 @@ func (s *Server) handleDeleteCluster(w http.ResponseWriter, r *http.Request, _ *
 	name := r.URL.Query().Get("name")
 	cluster, err := s.store.ClusterByName(name)
 	if errors.Is(err, store.ErrNotFound) {
-		writeErr(w, errorf(http.StatusNotFound, plugin.CodeNotFound, "cluster %q not found", name))
+		writeErr(w, fail(http.StatusNotFound, plugin.CodeNotFound, reasonClusterNotFound, reason.Params{"name": name}))
 		return
 	}
 	if err != nil {
@@ -310,12 +309,12 @@ func (s *Server) handleDeleteCluster(w http.ResponseWriter, r *http.Request, _ *
 func (s *Server) handleUpdateCluster(w http.ResponseWriter, r *http.Request, c *call) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		writeErr(w, badRequest("invalid cluster id %q", r.PathValue("id")))
+		writeErr(w, badRequest(reasonClusterID, reason.Params{"id": r.PathValue("id")}))
 		return
 	}
 	cluster, err := s.store.GetCluster(id)
 	if errors.Is(err, store.ErrNotFound) {
-		writeErr(w, errorf(http.StatusNotFound, plugin.CodeNotFound, "cluster %d not found", id))
+		writeErr(w, fail(http.StatusNotFound, plugin.CodeNotFound, reasonClusterIDMissing, reason.Params{"id": id}))
 		return
 	}
 	if err != nil {
@@ -361,7 +360,7 @@ func (s *Server) handleUpdateCluster(w http.ResponseWriter, r *http.Request, c *
 		return
 	}
 	if len(changes) == 0 {
-		writeErr(w, badRequest("nothing to update: send name, readOnly, environment and/or credentials"))
+		writeErr(w, badRequest(reasonClusterNothing, nil))
 		return
 	}
 	if update.Name != nil {
@@ -371,7 +370,7 @@ func (s *Server) handleUpdateCluster(w http.ResponseWriter, r *http.Request, c *
 		}
 	}
 	if update.Environment != nil && !store.ValidEnvironment(*update.Environment) {
-		writeErr(w, badRequest("invalid environment %q: use development, staging, production or empty", *update.Environment))
+		writeErr(w, badRequest(reasonEnvironment, reason.Params{"environment": *update.Environment}))
 		return
 	}
 	if update.Credentials != nil {
@@ -396,7 +395,7 @@ func (s *Server) handleActivateCluster(w http.ResponseWriter, r *http.Request, c
 	name := r.URL.Query().Get("name")
 	cluster, err := s.store.ClusterByName(name)
 	if errors.Is(err, store.ErrNotFound) {
-		writeErr(w, errorf(http.StatusNotFound, plugin.CodeNotFound, "cluster %q not found", name))
+		writeErr(w, fail(http.StatusNotFound, plugin.CodeNotFound, reasonClusterNotFound, reason.Params{"name": name}))
 		return
 	}
 	if err != nil {
@@ -404,7 +403,7 @@ func (s *Server) handleActivateCluster(w http.ResponseWriter, r *http.Request, c
 		return
 	}
 	if cluster.Source == store.SourceAddress {
-		writeErr(w, badRequest("address-only entries cannot be activated"))
+		writeErr(w, badRequest(reasonAddressOnly, nil))
 		return
 	}
 	role, err := s.store.ClusterRole(c.user, cluster.ID)
@@ -413,11 +412,11 @@ func (s *Server) handleActivateCluster(w http.ResponseWriter, r *http.Request, c
 		return
 	}
 	if role == "" {
-		writeErr(w, errorf(http.StatusForbidden, plugin.CodeForbidden, "you have no access to cluster %q", name))
+		writeErr(w, fail(http.StatusForbidden, plugin.CodeForbidden, reasonNoAccess, reason.Params{"name": name}))
 		return
 	}
 	if _, err := s.manager.Runtime(cluster); err != nil {
-		writeErr(w, badRequest("cannot connect to cluster %q: %v", name, err))
+		writeErr(w, badRequest(reasonConnectFailed, reason.Params{"name": name, "detail": err.Error()}))
 		return
 	}
 	if err := s.store.SetActiveCluster(c.user.ID, cluster.ID); err != nil {

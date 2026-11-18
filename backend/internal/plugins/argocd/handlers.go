@@ -13,6 +13,7 @@ import (
 	"k8s.io/client-go/dynamic"
 
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 )
 
 // Argo CD's markers on an Application.
@@ -112,7 +113,7 @@ func startOperation(ctx context.Context, c *plugin.Context, ns, name string,
 		return nil, err
 	}
 	if operating(app.Object) {
-		return nil, conflict("another operation is already running on application %s/%s; wait for it to finish", ns, name)
+		return nil, conflict(reasonOperationRunning, reason.Params{"namespace": ns, "name": name})
 	}
 	op, err := build(app.Object)
 	if err != nil {
@@ -196,7 +197,7 @@ func deleteApplication(w http.ResponseWriter, r *http.Request, c *plugin.Context
 	finalizers, changed := cascadeFinalizers(app.GetFinalizers(), cascade)
 	if changed {
 		if cascade && app.GetDeletionTimestamp() != nil {
-			writeError(w, conflict("application %s/%s is already being deleted without cascade", ns, name))
+			writeError(w, conflict(reasonOrphanDeleting, reason.Params{"namespace": ns, "name": name}))
 			return
 		}
 		if app, err = patch(r.Context(), res, app, map[string]any{}, map[string]any{"finalizers": toAnyList(finalizers)}); err != nil {

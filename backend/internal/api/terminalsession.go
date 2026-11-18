@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"sync"
 	"sync/atomic"
@@ -13,6 +12,8 @@ import (
 	"github.com/gorilla/websocket"
 	"k8s.io/client-go/tools/remotecommand"
 	utilexec "k8s.io/client-go/util/exec"
+
+	"kubebench/internal/reason"
 )
 
 // maxTerminalMessage bounds every WebSocket message of a terminal, in
@@ -27,6 +28,9 @@ const maxTerminalMessage = 64 << 10
 // text frames that end the session:
 //
 //	{"type":"exit","code":0}  {"type":"error","message":"…"}
+//
+// An error frame explains KubeBench's own reasons with "reason" and
+// "params" (§3.3) next to the English message.
 type terminalInput struct {
 	Type string `json:"type"`
 	Data string `json:"data"`
@@ -40,8 +44,16 @@ type terminalExit struct {
 }
 
 type terminalError struct {
-	Type    string `json:"type"` // "error"
-	Message string `json:"message"`
+	Type    string        `json:"type"` // "error"
+	Message string        `json:"message"`
+	Reason  string        `json:"reason,omitempty"`
+	Params  reason.Params `json:"params,omitempty"`
+}
+
+// errorFrame is the error frame explaining err.
+func errorFrame(err error) terminalError {
+	m := reason.MessageOf(err)
+	return terminalError{Type: "error", Message: m.Text, Reason: m.Code, Params: m.Params}
 }
 
 // terminalSession pumps one session between the browser's WebSocket and
@@ -65,9 +77,9 @@ type terminalSession struct {
 	cancel     context.CancelFunc
 	done       chan struct{} // closed when the remote stream has ended
 	hangupOnce sync.Once
-	clientGone atomic.Bool            // the client left or stopped answering pings
-	idle       atomic.Bool            // the idle timeout ended the session
-	ended      atomic.Pointer[string] // why check or the shutdown ended the session
+	clientGone atomic.Bool           // the client left or stopped answering pings
+	idle       atomic.Bool           // the idle timeout ended the session
+	ended      atomic.Pointer[error] // why check or the shutdown ended the session
 }
 
 func newTerminalSession(conn *websocket.Conn, settings streamSettings) *terminalSession {
@@ -148,10 +160,9 @@ func (t *terminalSession) finish(err error) {
 	var exitErr utilexec.ExitError
 	switch {
 	case t.ended.Load() != nil:
-		t.sendJSON(terminalError{Type: "error", Message: *t.ended.Load()})
+		t.sendJSON(errorFrame(*t.ended.Load()))
 	case t.idle.Load():
-		t.sendJSON(terminalError{Type: "error", Message: fmt.Sprintf(
-			"the session was closed after %s without input", t.settings.terminalIdle)})
+		t.sendJSON(errorFrame(reason.New(reasonTerminalIdle, reason.Params{"duration": t.settings.terminalIdle.String()})))
 	case t.clientGone.Load():
 		return // nobody to tell
 	case err == nil:
@@ -159,7 +170,7 @@ func (t *terminalSession) finish(err error) {
 	case errors.As(err, &exitErr):
 		t.sendJSON(terminalExit{Type: "exit", Code: exitErr.ExitStatus()})
 	default:
-		t.sendJSON(terminalError{Type: "error", Message: err.Error()})
+		t.sendJSON(errorFrame(err))
 	}
 	_ = t.conn.WriteControl(websocket.CloseMessage,
 		websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""),
@@ -243,14 +254,14 @@ func (t *terminalSession) keepAlive(ctx context.Context) {
 				continue
 			}
 			if err := t.check(); err != nil {
-				msg := endedMessage(err)
-				t.ended.Store(&msg)
+				why := accessEnded(err)
+				t.ended.Store(&why)
 				t.hangup()
 				return
 			}
 		case <-t.stopping:
-			msg := errShuttingDown.Error()
-			t.ended.Store(&msg)
+			var why error = errShuttingDown
+			t.ended.Store(&why)
 			t.hangup()
 			return
 		case <-t.input:

@@ -1,11 +1,14 @@
 package api
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"strings"
 	"time"
+
+	"kubebench/internal/reason"
 )
 
 // sseWriter writes a Server-Sent Events response. It is not safe for
@@ -62,6 +65,20 @@ func (s *sseWriter) event(name, data string) error {
 	}
 	_, err := io.WriteString(s.w, b.String())
 	return err
+}
+
+// explain writes the event name with why as its data: a reason.Message
+// ({"error", "reason", "params"}), which the UI shows in its language,
+// and flushes it. It ends log streams ("error") and watch streams ("end").
+func (s *sseWriter) explain(name string, why error) error {
+	data, err := json.Marshal(reason.MessageOf(why))
+	if err != nil {
+		return err
+	}
+	if err := s.event(name, string(data)); err != nil {
+		return err
+	}
+	return s.flush()
 }
 
 // comment writes a comment line, which clients ignore; used as heartbeat.

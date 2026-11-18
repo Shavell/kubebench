@@ -2,7 +2,6 @@ package cloudauth
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -13,6 +12,8 @@ import (
 	"golang.org/x/oauth2"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/transport"
+
+	"kubebench/internal/reason"
 )
 
 // fetchTimeout bounds one token fetch (credential lookup and exchange).
@@ -53,9 +54,9 @@ func CheckCredentials(user *clientcmdapi.AuthInfo, provider string) error {
 	case provider:
 		return nil
 	case "":
-		return fmt.Errorf("%s credentials need a kubeconfig whose user runs aws eks get-token or aws-iam-authenticator (aws), gke-gcloud-auth-plugin (gcp) or kubelogin get-token (azure)", provider)
+		return reason.New(reasonNoCloudExec, reason.Params{"provider": provider})
 	default:
-		return fmt.Errorf("the kubeconfig signs in to %s, not %s", got, provider)
+		return reason.New(reasonOtherCloud, reason.Params{"provider": provider, "actual": got})
 	}
 }
 

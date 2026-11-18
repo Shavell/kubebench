@@ -2,6 +2,8 @@ package security
 
 import (
 	"time"
+
+	"kubebench/internal/reason"
 )
 
 // severityWeight is how much one (check, object) pair of a severity counts
@@ -13,14 +15,16 @@ var severityWeight = map[string]int{SeverityCritical: 10, SeverityHigh: 6, Sever
 func buildReport(res *result, accepted map[string]Acceptance, now time.Time) *Report {
 	rep := &Report{
 		GeneratedAt: res.generatedAt, Cluster: res.cluster, Options: res.opts,
-		Findings: make([]Finding, len(res.findings)), Skipped: res.skipped, Warnings: res.warnings,
+		Findings: make([]Finding, len(res.findings)), Skipped: res.skipped,
+		Warnings: []string{}, WarningReasons: []reason.Ref{},
 		Inventory: res.inventory, SystemNamespaces: systemNamespaces,
 	}
 	if rep.Skipped == nil {
 		rep.Skipped = []Skipped{}
 	}
-	if rep.Warnings == nil {
-		rep.Warnings = []string{}
+	for _, w := range res.warnings {
+		rep.Warnings = append(rep.Warnings, w.Error())
+		rep.WarningReasons = append(rep.WarningReasons, w.Ref())
 	}
 	failed := map[string]int{} // active findings per check
 	byCategory := map[string]*CategoryScore{}

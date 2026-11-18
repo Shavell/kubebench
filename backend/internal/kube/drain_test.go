@@ -224,7 +224,8 @@ func TestDrainReportsPodsStillTerminating(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res.Completed || len(res.Failed) != 1 || !strings.Contains(res.Failed[0].Error, "had not terminated") || len(res.BlockedByPDB) != 0 {
+	if res.Completed || len(res.Failed) != 1 || !strings.Contains(res.Failed[0].Error, "had not terminated") ||
+		res.Failed[0].Reason != "drain.not_terminated" || len(res.BlockedByPDB) != 0 {
 		t.Fatalf("result = %+v", res)
 	}
 }

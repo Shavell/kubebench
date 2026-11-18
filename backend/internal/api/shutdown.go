@@ -7,11 +7,12 @@ import (
 	"sync"
 
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 )
 
 // errShuttingDown is why the server ends a stream or terminal itself when
-// it stops; clients see its text.
-var errShuttingDown = errors.New("the server is shutting down")
+// it stops; clients see its reason.
+var errShuttingDown = reason.New(reasonShuttingDown, nil)
 
 // lifecycle ends the long-lived connections when the server stops.
 // http.Server.Shutdown waits for SSE handlers, which never return on their
@@ -78,7 +79,7 @@ func (s *Server) startTerminal() (done func(), err error) {
 	s.life.mu.Lock()
 	defer s.life.mu.Unlock()
 	if s.life.closed {
-		return nil, errorf(http.StatusServiceUnavailable, plugin.CodeInternal, "%v", errShuttingDown)
+		return nil, fail(http.StatusServiceUnavailable, plugin.CodeInternal, reasonShuttingDown, nil)
 	}
 	s.life.terminals.Add(1)
 	return s.life.terminals.Done, nil

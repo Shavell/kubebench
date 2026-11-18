@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 	"kubebench/internal/watch"
 )
 
@@ -27,16 +28,16 @@ func parseWatchTopics(raw string) ([]string, error) {
 			continue
 		}
 		if !watch.ValidTopic(t) && !watch.IsInternalTopic(t) {
-			return nil, badRequest("invalid topic %q: give a resource like pods or applications.argoproj.io", t)
+			return nil, badRequest(reasonTopic, reason.Params{"topic": t})
 		}
 		seen[t] = true
 		topics = append(topics, t)
 	}
 	if len(topics) == 0 {
-		return nil, badRequest("topics is required")
+		return nil, badRequest(reason.FieldRequired, reason.Params{"field": "topics"})
 	}
 	if len(topics) > maxWatchTopics {
-		return nil, badRequest("at most %d topics per stream", maxWatchTopics)
+		return nil, badRequest(reasonTooManyTopics, reason.Params{"max": maxWatchTopics})
 	}
 	return topics, nil
 }
@@ -45,7 +46,8 @@ func parseWatchTopics(raw string) ([]string, error) {
 // Server-Sent Events (§7.10): "event: status" with a topic's mode (live,
 // starting or polling with the reason) whenever it changes, the first
 // ones at once; "event: change" with {topic, namespace}, debounced;
-// heartbeat comments; and "event: end" with the reason when the server
+// heartbeat comments; and "event: end" with the reason (a reason.Message)
+// when the server
 // ends the stream (the cluster connection was rebuilt, or the caller's
 // access changed), after which clients may reconnect. Internal topics
 // (kubebench:<name>) are always live and report the changes that
@@ -73,11 +75,11 @@ func (s *Server) handleWatch(w http.ResponseWriter, r *http.Request, c *call) {
 	sub, err := c.rt.Watch().Subscribe(c.user.ID, resources)
 	switch {
 	case errors.Is(err, watch.ErrClosed):
-		writeErr(w, errorf(http.StatusServiceUnavailable, plugin.CodeCapabilityUnavailable,
-			"the connection to cluster %q is being rebuilt; try again", c.cluster.Name))
+		writeErr(w, fail(http.StatusServiceUnavailable, plugin.CodeCapabilityUnavailable, reasonRebuilding,
+			reason.Params{"cluster": c.cluster.Name}))
 		return
 	case errors.Is(err, watch.ErrTooManySubscribers):
-		writeErr(w, errorf(http.StatusTooManyRequests, plugin.CodeRateLimited, "%v", err))
+		writeErr(w, refuse(http.StatusTooManyRequests, plugin.CodeRateLimited, err))
 		return
 	case err != nil:
 		writeErr(w, err)
@@ -127,23 +129,20 @@ func streamChanges(ctx context.Context, sse *sseWriter, sub *watch.Subscription,
 	// debounced fires once the changes collected since the first pending
 	// one are due; nil while none are pending.
 	var debounced <-chan time.Time
-	end := func(reason string) {
-		_ = sse.event("end", reason)
-		_ = sse.flush()
-	}
+	end := func(why error) { _ = sse.explain("end", why) }
 	for {
 		select {
 		case <-ctx.Done():
 			if shuttingDown(ctx) {
-				end(errShuttingDown.Error())
+				end(errShuttingDown)
 			}
 			return
 		case <-sub.Done():
-			end("the cluster connection was rebuilt")
+			end(reason.New(reasonWatchRebuilt, nil))
 			return
 		case <-heartbeat.C:
 			if err := check(); err != nil {
-				end(endedMessage(err))
+				end(accessEnded(err))
 				return
 			}
 			if sse.comment("ping") != nil || sse.flush() != nil {

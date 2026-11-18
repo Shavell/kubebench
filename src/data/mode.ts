@@ -3,6 +3,7 @@ import type {
   ActiveCluster,
   GlobalRole,
   LiveCapabilities,
+  ReasonParams,
   ServerFeatures,
   ServerInfo,
   SessionPermissions,
@@ -38,6 +39,9 @@ export interface DataMode {
   mustChangePassword?: boolean
   /** Why no cluster runtime is available (no assignment, bad kubeconfig, …). */
   clusterError?: string
+  /** Reason code and parameters of clusterError, for its translation (§3.3). */
+  clusterErrorReason?: string
+  clusterErrorParams?: ReasonParams
 }
 
 export const dataMode: DataMode = { mode: 'mock', context: '' }
@@ -84,6 +88,8 @@ export function dataModeFromInfo(mode: DataMode['mode'], info: ServerInfo): Data
     features: info.features,
     mustChangePassword: info.mustChangePassword,
     clusterError: info.clusterError || undefined,
+    clusterErrorReason: info.clusterErrorReason,
+    clusterErrorParams: info.clusterErrorParams,
   }
 }
 

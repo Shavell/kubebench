@@ -13,6 +13,7 @@ import (
 
 	"kubebench/internal/kube"
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 )
 
 // ResizeRequest is the body of PATCH /pvcs/{ns}/{name}/resize.
@@ -52,17 +53,17 @@ func expandBlocker(pvc *corev1.PersistentVolumeClaim, classes map[string]bool) s
 	return ""
 }
 
-// blockerMessage explains a blocker to API clients.
-func blockerMessage(pvc *corev1.PersistentVolumeClaim, blocker string) string {
+// blockerReason explains a blocker to API clients.
+func blockerReason(pvc *corev1.PersistentVolumeClaim, blocker string) *reason.Error {
 	switch blocker {
 	case blockerNotBound:
-		return "only a Bound claim can be expanded (it is " + phaseOr(string(pvc.Status.Phase), "Pending") + ")"
+		return reason.New(reasonNotBound, reason.Params{"phase": phaseOr(string(pvc.Status.Phase), "Pending")})
 	case blockerNoClass:
-		return "the claim has no StorageClass, so it cannot be expanded"
+		return reason.New(reasonNoClass, nil)
 	case blockerClassMissing:
-		return "the claim's StorageClass " + *pvc.Spec.StorageClassName + " does not exist"
+		return reason.New(reasonClassMissing, reason.Params{"class": *pvc.Spec.StorageClassName})
 	default:
-		return "the StorageClass " + *pvc.Spec.StorageClassName + " does not set allowVolumeExpansion"
+		return reason.New(reasonNotExpandable, reason.Params{"class": *pvc.Spec.StorageClassName})
 	}
 }
 
@@ -106,10 +107,10 @@ func resize(ctx context.Context, rt *kube.Runtime, ns, name string, size resourc
 	}
 	current := requested(pvc)
 	if size.Cmp(current) <= 0 {
-		return nil, current, invalidf("size", "must be larger than the current request (%s): volumes cannot shrink", current.String())
+		return nil, current, invalidField("size", reasonShrinkRequest, reason.Params{"size": current.String()})
 	}
 	if capacity, ok := pvc.Status.Capacity[corev1.ResourceStorage]; ok && size.Cmp(capacity) <= 0 {
-		return nil, current, invalidf("size", "must be larger than the current capacity (%s)", capacity.String())
+		return nil, current, invalidField("size", reasonShrinkCapacity, reason.Params{"size": capacity.String()})
 	}
 	classes := map[string]bool{}
 	if class := pvc.Spec.StorageClassName; class != nil && *class != "" {
@@ -122,7 +123,7 @@ func resize(ctx context.Context, rt *kube.Runtime, ns, name string, size resourc
 		}
 	}
 	if blocker := expandBlocker(pvc, classes); blocker != "" {
-		return nil, current, conflictf("%s", blockerMessage(pvc, blocker))
+		return nil, current, &conflictErr{blockerReason(pvc, blocker)}
 	}
 	// The resourceVersion makes the patch fail with a conflict if the claim
 	// changed since it was checked.

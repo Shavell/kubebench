@@ -8,6 +8,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+
+	"kubebench/internal/reason"
 )
 
 // restartedAtAnnotation is the pod template annotation kubectl rollout
@@ -39,7 +41,7 @@ func (r *Runtime) RestartWorkload(ctx context.Context, kind, namespace, name str
 	case "DaemonSet":
 		_, err = apps.DaemonSets(namespace).Patch(ctx, name, types.StrategicMergePatchType, patch, metav1.PatchOptions{FieldManager: FieldManager})
 	default:
-		return opError(OpInvalid, "only a Deployment, StatefulSet or DaemonSet can be restarted, not %q", kind)
+		return opError(OpInvalid, reasonRestartKind, reason.Params{"kind": kind})
 	}
 	return err
 }
@@ -51,10 +53,10 @@ func (r *Runtime) RestartWorkload(ctx context.Context, kind, namespace, name str
 func (r *Runtime) ScaleWorkload(ctx context.Context, kind, namespace, name string, replicas int32) error {
 	resource, ok := scalableKinds[kind]
 	if !ok {
-		return opError(OpInvalid, "only a Deployment, StatefulSet or ReplicaSet can be scaled, not %q", kind)
+		return opError(OpInvalid, reasonScaleKind, reason.Params{"kind": kind})
 	}
 	if replicas < 0 {
-		return opError(OpInvalid, "replicas must be at least 0")
+		return opError(OpInvalid, reasonReplicasNegative, nil)
 	}
 	patch := []byte(fmt.Sprintf(`{"spec":{"replicas":%d}}`, replicas))
 	_, err := r.Dyn.Resource(resource).Namespace(namespace).Patch(ctx, name, types.MergePatchType, patch, metav1.PatchOptions{FieldManager: FieldManager}, "scale")

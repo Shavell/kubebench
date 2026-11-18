@@ -2,7 +2,6 @@ package watch
 
 import (
 	"cmp"
-	"errors"
 	"log"
 	"slices"
 	"sync"
@@ -10,6 +9,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
+
+	"kubebench/internal/reason"
 )
 
 // Defaults of Options.
@@ -27,9 +28,9 @@ const (
 
 var (
 	// ErrClosed: the hub was closed; its cluster connection is gone.
-	ErrClosed = errors.New("the cluster connection was closed")
+	ErrClosed = reason.New(reasonClosed, nil)
 	// ErrTooManySubscribers: the hub has Options.MaxSubscribers already.
-	ErrTooManySubscribers = errors.New("too many live-update subscribers on this cluster")
+	ErrTooManySubscribers = reason.New(reasonTooManyWatchers, nil)
 )
 
 // Options tunes a Hub; zero values take the defaults.
@@ -128,7 +129,7 @@ func (h *Hub) Subscribe(owner int64, topics []string) (*Subscription, error) {
 	reasons := map[string]string{}
 	for _, t := range topics {
 		if err, ok := failed[t]; ok {
-			sub.addStatus(TopicStatus{Topic: t, Mode: ModePolling, Reason: err.Error()})
+			sub.addStatus(topicStatus(t, ModePolling, reason.From(err)))
 			if !isNotServed(err) {
 				retry = append(retry, t)
 				reasons[t] = err.Error()
@@ -182,9 +183,9 @@ func (h *Hub) retryResolve(sub *Subscription, topics []string, reasons map[strin
 				h.attachTopic(sub, t, resolved[t])
 				continue
 			}
-			if reason := err.Error(); reason != reasons[t] {
-				reasons[t] = reason
-				sub.addStatus(TopicStatus{Topic: t, Mode: ModePolling, Reason: reason})
+			if msg := err.Error(); msg != reasons[t] {
+				reasons[t] = msg
+				sub.addStatus(topicStatus(t, ModePolling, reason.From(err)))
 			}
 			if !isNotServed(err) {
 				again = append(again, t)
@@ -201,15 +202,13 @@ func (h *Hub) attachTopic(sub *Subscription, topic string, gvr schema.GroupVersi
 	_, watched := sub.watching[gvr]
 	owned := h.owned[sub.owner]
 	if !watched && owned[gvr] == 0 && len(owned) >= h.opts.MaxOwnerTypes {
-		sub.addStatus(TopicStatus{Topic: topic, Mode: ModePolling,
-			Reason: "you watch too many resource types on this cluster at once"})
+		sub.addStatus(topicStatus(topic, ModePolling, reason.New(reasonOwnerTypes, nil)))
 		return
 	}
 	inf := h.informers[gvr]
 	if inf == nil {
 		if len(h.informers) >= h.opts.MaxInformers {
-			sub.addStatus(TopicStatus{Topic: topic, Mode: ModePolling,
-				Reason: "too many resource types are watched on this cluster at once"})
+			sub.addStatus(topicStatus(topic, ModePolling, reason.New(reasonClusterTypes, nil)))
 			return
 		}
 		inf = h.startInformer(gvr)
@@ -223,7 +222,7 @@ func (h *Hub) attachTopic(sub *Subscription, topic string, gvr schema.GroupVersi
 		}
 		owned[gvr]++
 	}
-	sub.addStatus(TopicStatus{Topic: topic, Mode: inf.mode, Reason: inf.reason})
+	sub.addStatus(topicStatus(topic, inf.mode, inf.reason))
 }
 
 func (h *Hub) unsubscribe(sub *Subscription) {
@@ -305,7 +304,10 @@ func (h *Hub) Stats() (informers []InformerStats, subscribers int) {
 	defer h.mu.Unlock()
 	informers = make([]InformerStats, 0, len(h.informers))
 	for _, inf := range h.informers {
-		st := InformerStats{Resource: gvrName(inf.gvr), Mode: inf.mode, Reason: inf.reason, Subscribers: len(inf.subs)}
+		st := InformerStats{Resource: gvrName(inf.gvr), Mode: inf.mode, Subscribers: len(inf.subs)}
+		if inf.reason != nil {
+			st.Reason = inf.reason.Error()
+		}
 		if len(inf.subs) == 0 {
 			since := inf.idleSince
 			st.IdleSince = &since

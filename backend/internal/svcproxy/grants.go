@@ -2,6 +2,7 @@ package svcproxy
 
 import (
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/base64"
 	"slices"
 	"sync"
@@ -112,7 +113,7 @@ func (gs *Grants) Get(token, session string) (Grant, bool) {
 	gs.mu.Lock()
 	defer gs.mu.Unlock()
 	g, ok := gs.liveLocked(token)
-	if !ok || g.Session != session {
+	if !ok || !sameSession(g.Session, session) {
 		return Grant{}, false
 	}
 	return *g, true
@@ -141,7 +142,7 @@ func (gs *Grants) Revoke(token, session string) bool {
 	gs.mu.Lock()
 	defer gs.mu.Unlock()
 	g, ok := gs.byToken[token]
-	if !ok || g.Session != session {
+	if !ok || !sameSession(g.Session, session) {
 		return false
 	}
 	delete(gs.byToken, token)
@@ -202,4 +203,11 @@ func newToken() (string, error) {
 		return "", err
 	}
 	return base64.RawURLEncoding.EncodeToString(b), nil
+}
+
+// sameSession compares two KubeBench session tokens in constant time, so
+// checking whether a grant belongs to the caller's session leaks nothing
+// about the session that opened it.
+func sameSession(a, b string) bool {
+	return subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
 }

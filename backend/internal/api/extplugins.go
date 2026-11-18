@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 )
 
 // External plugins are UI bundles an admin installs as
@@ -131,7 +132,7 @@ func (s *Server) loadExternalPlugin(id string) (*externalPlugin, error) {
 // the plugin's directory; directories are never listed.
 func (s *Server) handlePluginFile(w http.ResponseWriter, r *http.Request, _ *call) {
 	id, name := r.PathValue("id"), r.PathValue("file")
-	notFound := errorf(http.StatusNotFound, plugin.CodeNotFound, "no plugin file %s", r.URL.Path)
+	notFound := fail(http.StatusNotFound, plugin.CodeNotFound, reasonNoPluginFile, reason.Params{"path": r.URL.Path})
 	contentType, served := pluginFileTypes[strings.ToLower(path.Ext(name))]
 	if !served || !fs.ValidPath(name) {
 		writeErr(w, notFound)
@@ -145,7 +146,7 @@ func (s *Server) handlePluginFile(w http.ResponseWriter, r *http.Request, _ *cal
 		writeErr(w, err)
 		return
 	} else if !enabled {
-		writeErr(w, errorf(http.StatusNotFound, plugin.CodePluginDisabled, "the %s plugin is disabled", id))
+		writeErr(w, fail(http.StatusNotFound, plugin.CodePluginDisabled, reasonPluginDisabled, reason.Params{"id": id}))
 		return
 	}
 	root, err := os.OpenRoot(filepath.Join(s.cfg.PluginsDir, id))

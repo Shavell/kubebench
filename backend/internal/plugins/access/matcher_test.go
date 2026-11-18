@@ -137,7 +137,7 @@ func TestValidateRequest(t *testing.T) {
 			continue
 		}
 		bad, ok := err.(*invalid)
-		if !ok || bad.field != tc.field {
+		if !ok || bad.err.Params["field"] != tc.field {
 			t.Errorf("%+v: error %v, want one on %s", tc.req, err, tc.field)
 		}
 	}

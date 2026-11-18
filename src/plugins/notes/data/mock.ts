@@ -1,5 +1,6 @@
 import { currentPermissions } from '@/core/permissions'
 import { ApiError } from '@/data/apiClient'
+import { reasonError } from '@/data/reasonError'
 import { delay, delayReject } from '@/data/mock/delay'
 import { mockClusterNames } from '@/data/mock/mockInventory'
 import { dataMode } from '@/data/mode'
@@ -96,7 +97,7 @@ function seeds(me: string): MockNote[] {
   ]
 }
 
-const notFound = () => new ApiError(404, 'not_found', 'note not found')
+const notFound = () => reasonError(404, 'not_found', 'notes.not_found')
 
 function canContribute(): boolean {
   const { role } = currentPermissions()
@@ -185,7 +186,7 @@ export function createMockNotes(): NotesProvider {
       const invalid = validate({ ...input, tags })
       if (invalid) return delayReject(invalid)
       if (notes.filter((n) => n.createdBy === me).length >= MAX_NOTES_PER_USER) {
-        return delayReject(new ApiError(409, 'conflict', `you have reached the limit of ${MAX_NOTES_PER_USER} notes`))
+        return delayReject(reasonError(409, 'conflict', 'notes.limit_reached', { max: MAX_NOTES_PER_USER }))
       }
       const at = stamp(++clock)
       const note: MockNote = {
@@ -214,7 +215,7 @@ export function createMockNotes(): NotesProvider {
       const invalid = validate({ ...content, tags })
       if (invalid) return delayReject(invalid)
       if (note.version !== version) {
-        return delayReject(new ApiError(409, 'conflict', 'the note was changed since you opened it; reload it or overwrite the other change'))
+        return delayReject(reasonError(409, 'conflict', 'notes.changed'))
       }
       Object.assign(note, { title: content.title.trim(), body: content.body, tags, version: note.version + 1, updatedBy: me, updatedAt: stamp(++clock) })
       return delay(view(note))
@@ -229,7 +230,7 @@ export function createMockNotes(): NotesProvider {
       const note = target(key)
       if (note instanceof ApiError) return delayReject(note)
       if (note.visibility === 'shared' && currentPermissions().role !== 'admin' && note.createdBy !== me) {
-        return delayReject(new ApiError(403, 'forbidden', 'only its author or an administrator can delete a shared note'))
+        return delayReject(reasonError(403, 'forbidden', 'notes.delete_shared'))
       }
       notes.splice(notes.indexOf(note), 1)
       return delay(undefined)

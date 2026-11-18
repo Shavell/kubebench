@@ -1,5 +1,7 @@
 import { dump, load, loadAll } from 'js-yaml'
+import { englishWarnings } from '@/core/reasons'
 import { ApiError } from '../apiClient'
+import { reasonError } from '../reasonError'
 import type { ClusterProvider } from '../providers'
 import type { ApplyOptions, ApplyResult, KubeObject, MetadataPatch, ObjectRef } from '../types'
 import { delay, delayReject } from './delay'
@@ -34,14 +36,12 @@ const fieldOwners = new Map<string, Record<string, string>>([
   ['apps/v1/Deployment/shop/shop-frontend', { 'spec.replicas': 'kube-controller-manager' }],
 ])
 
-const badRequest = (message: string) => new ApiError(400, 'bad_request', message)
-
 /** The kind, scope-checked namespace and name of ref; throws the API's errors. */
 function resolve(ref: ObjectRef): { kind: MockKind; namespace: string } {
   const kind = findKind(ref.apiVersion, ref.kind)
   if (!kind) throw new ApiError(404, 'not_found', `no matches for kind "${ref.kind}" in version "${ref.apiVersion}"`)
   const namespace = kind.namespaced ? (ref.namespace ?? '') : ''
-  if (kind.namespaced && !namespace) throw badRequest(`${ref.kind} is a namespaced kind: name its namespace`)
+  if (kind.namespaced && !namespace) throw reasonError(400, 'bad_request', 'resource.namespaced_kind', { kind: ref.kind })
   return { kind, namespace }
 }
 
@@ -65,55 +65,58 @@ function parseManifests(text: string): Manifest[] {
   const objects: Manifest[] = []
   const documents = text.split(/^---(?:[ \t].*)?$/m).filter((doc) => doc.trim() !== '')
   documents.forEach((doc, index) => {
-    const refuse = (problem: string, code = 'bad_request') =>
-      new ApiError(400, code, `document ${index + 1}: ${problem}`)
+    // The backend names the document, and the item of a list: "2, items[3]".
+    const refuse = (problem: ManifestProblem, item?: number) =>
+      reasonError(400, problem.code ?? 'bad_request', problem.reason, {
+        ...problem.params,
+        document: item === undefined ? String(index + 1) : `${index + 1}, items[${item}]`,
+      })
     let content: unknown
     try {
       content = load(doc)
     } catch (err) {
       // js-yaml appends a source excerpt on further lines; the API answers one line.
-      const reason = (err instanceof Error ? err.message : String(err)).split('\n')[0]
-      throw refuse(`not valid YAML or JSON: ${reason}`)
+      const detail = (err instanceof Error ? err.message : String(err)).split('\n')[0]
+      throw refuse({ reason: 'manifest.invalid_yaml', params: { detail } })
     }
     if (content === null || content === undefined) return
-    if (!isObject(content)) throw refuse('not an object')
+    if (!isObject(content)) throw refuse({ reason: 'manifest.not_object' })
     if (Object.keys(content).length === 0) return
     const items = Array.isArray(content.items) ? content.items : [content]
     items.forEach((item, i) => {
-      const where = Array.isArray(content.items) ? `items[${i}]: ` : ''
-      if (!isObject(item)) throw refuse(`${where}not an object`)
+      const at = Array.isArray(content.items) ? i : undefined
+      if (!isObject(item)) throw refuse({ reason: 'manifest.not_object' }, at)
       const problem = manifestProblem(item)
-      if (problem) throw refuse(where + problem.text, problem.code)
+      if (problem) throw refuse(problem, at)
       objects.push(item)
     })
   })
   return objects
 }
 
-function manifestProblem(obj: Manifest): { text: string; code?: string } | null {
+/** Why the backend refuses a manifest: a reason code (§3.3) and the §3.3 error code. */
+interface ManifestProblem {
+  reason: string
+  params?: Record<string, string>
+  code?: string
+}
+
+function manifestProblem(obj: Manifest): ManifestProblem | null {
   const meta = isObject(obj.metadata) ? obj.metadata : {}
-  if (typeof obj.apiVersion !== 'string' || !obj.apiVersion) return { text: 'apiVersion is required' }
-  if (typeof obj.kind !== 'string' || !obj.kind) return { text: 'kind is required' }
-  if (typeof meta.name !== 'string' || !meta.name) {
-    return { text: `${obj.kind}: metadata.name is required (server-side apply cannot generate names)` }
-  }
+  if (typeof obj.apiVersion !== 'string' || !obj.apiVersion) return { reason: 'manifest.api_version_required' }
+  if (typeof obj.kind !== 'string' || !obj.kind) return { reason: 'manifest.kind_required' }
+  if (typeof meta.name !== 'string' || !meta.name) return { reason: 'manifest.name_required', params: { kind: obj.kind } }
   if (obj.apiVersion !== 'v1' || obj.kind !== 'Secret') return null
   for (const field of ['data', 'stringData']) {
     const key = Object.keys(stringMap(obj[field]))
       .sort()
       .find((k) => isRedacted(stringMap(obj[field])[k]))
     if (key) {
-      return {
-        code: 'redacted_secret',
-        text: `Secret ${meta.name}: ${field}.${key} holds a redaction placeholder, not its value; reveal the Secret and use the real values`,
-      }
+      return { code: 'redacted_secret', reason: 'manifest.secret_placeholder', params: { name: meta.name, field: `${field}.${key}` } }
     }
   }
   if (isRedacted(stringMap(meta.annotations)[LAST_APPLIED] ?? '')) {
-    return {
-      code: 'redacted_secret',
-      text: `Secret ${meta.name}: the ${LAST_APPLIED} annotation holds a redaction placeholder; remove the annotation`,
-    }
+    return { code: 'redacted_secret', reason: 'manifest.secret_annotation_placeholder', params: { name: meta.name, annotation: LAST_APPLIED } }
   }
   return null
 }
@@ -156,7 +159,7 @@ function applyObject(manifest: Manifest, options: ApplyOptions): ApplyResult {
     }
   }
   if (!kind.namespaced && namespace) {
-    result.warnings = [`${kindName} is cluster-scoped: metadata.namespace "${namespace}" was ignored`]
+    Object.assign(result, englishWarnings([{ reason: 'apply.namespace_ignored', params: { kind: kindName, namespace } }]))
     namespace = ''
   } else if (kind.namespaced) {
     namespace ||= options.namespace || 'default'
@@ -191,25 +194,43 @@ function applyObject(manifest: Manifest, options: ApplyOptions): ApplyResult {
 
 // --- edit -----------------------------------------------------------------------
 
+/** The backend's reason codes for the original and the edited manifest of an edit. */
+const EDIT_REASONS = {
+  original: {
+    invalidYaml: 'edit.original_invalid_yaml',
+    several: 'edit.original_several_documents',
+    notObject: 'edit.original_not_object',
+    empty: 'edit.original_empty',
+    other: 'edit.original_other_object',
+  },
+  edited: {
+    invalidYaml: 'edit.invalid_yaml',
+    several: 'edit.several_documents',
+    notObject: 'edit.not_object',
+    empty: 'edit.empty',
+    other: 'edit.other_object',
+  },
+}
+
 /** One edited object (YAML or JSON), checked to be ref; refusals as the API's 400s. */
-function parseEdited(text: string, what: string, ref: ObjectRef, namespace: string): Manifest {
+function parseEdited(text: string, which: keyof typeof EDIT_REASONS, ref: ObjectRef, namespace: string): Manifest {
+  const reasons = EDIT_REASONS[which]
+  const refuse = (reason: string, params?: Record<string, string>) => reasonError(400, 'bad_request', reason, params)
   let documents: unknown[]
   try {
     documents = loadAll(text).filter((doc) => doc !== null && doc !== undefined)
   } catch (err) {
-    throw badRequest(`${what} is not valid YAML or JSON: ${(err instanceof Error ? err.message : String(err)).split('\n')[0]}`)
+    throw refuse(reasons.invalidYaml, { detail: (err instanceof Error ? err.message : String(err)).split('\n')[0] })
   }
-  if (documents.length === 0) throw badRequest(`${what} is empty`)
-  if (documents.length > 1) throw badRequest(`${what} holds more than one document; edit one object at a time`)
+  if (documents.length === 0) throw refuse(reasons.empty)
+  if (documents.length > 1) throw refuse(reasons.several)
   const obj = documents[0]
-  if (!isObject(obj)) throw badRequest(`${what} is not an object`)
+  if (!isObject(obj)) throw refuse(reasons.notObject)
   const meta = metadataOf(obj)
   const ns = typeof meta.namespace === 'string' ? meta.namespace : ''
   if (obj.apiVersion !== ref.apiVersion || obj.kind !== ref.kind || meta.name !== ref.name || (namespace && ns && ns !== namespace)) {
     const name = (n: string, value: unknown) => (n ? `${n}/${String(value)}` : String(value))
-    throw badRequest(
-      `${what} describes ${String(obj.kind)} ${name(ns, meta.name)}, not the edited ${name(namespace, ref.name)}; create other objects with New resource`,
-    )
+    throw refuse(reasons.other, { kind: String(obj.kind), name: name(ns, meta.name), edited: name(namespace, ref.name) })
   }
   return obj
 }
@@ -222,23 +243,17 @@ function checkPatchValues(ref: ObjectRef, patch: Manifest): void {
     const key = Object.keys(values)
       .sort()
       .find((k) => isRedacted(values[k]))
-    if (key) {
-      throw new ApiError(
-        400,
-        'redacted_secret',
-        `Secret ${ref.name}: ${field}.${key} is set to a redaction placeholder; leave the placeholder unchanged to keep the value, or enter the real value`,
-      )
-    }
+    if (key) throw reasonError(400, 'redacted_secret', 'edit.secret_placeholder', { name: ref.name, field: `${field}.${key}` })
   }
   if (isRedacted(stringMap(metadataOf(patch).annotations)[LAST_APPLIED] ?? '')) {
-    throw new ApiError(400, 'redacted_secret', `Secret ${ref.name}: the ${LAST_APPLIED} annotation holds a redaction placeholder; remove the annotation`)
+    throw reasonError(400, 'redacted_secret', 'edit.secret_annotation_placeholder', { name: ref.name, annotation: LAST_APPLIED })
   }
 }
 
 function editObject(ref: ObjectRef, original: string, edited: string, dryRun: boolean): ApplyResult {
   const { kind, namespace } = resolve(ref)
-  const from = parseEdited(original, 'the original manifest', ref, namespace)
-  const to = parseEdited(edited, 'the edited manifest', ref, namespace)
+  const from = parseEdited(original, 'original', ref, namespace)
+  const to = parseEdited(edited, 'edited', ref, namespace)
   const patch = mergePatch(from, to)
   if (isObject(patch.metadata)) {
     delete patch.metadata.namespace
@@ -269,11 +284,11 @@ function patched(current: unknown, changes: Record<string, string | null> | unde
 function patchObject(ref: ObjectRef, patch: MetadataPatch): void {
   const { kind, namespace } = resolve(ref)
   const values = [...Object.values(patch.labels ?? {}), ...Object.values(patch.annotations ?? {})]
-  if (values.length === 0) throw badRequest('nothing to change: name labels or annotations')
+  if (values.length === 0) throw reasonError(400, 'bad_request', 'editing.nothing_to_change')
   const manifest = readObject(kind, namespace, ref.name)
   if (!manifest) throw notFound(kind, ref.name)
   if (kind.kind === 'Secret' && values.some((v) => typeof v === 'string' && isRedacted(v))) {
-    throw new ApiError(400, 'redacted_secret', "a value is a redaction placeholder; it would replace the real value of the Secret's annotation")
+    throw reasonError(400, 'redacted_secret', 'editing.annotation_placeholder')
   }
   const meta = metadataOf(manifest)
   for (const [field, changes] of [['labels', patch.labels], ['annotations', patch.annotations]] as const) {
@@ -318,7 +333,7 @@ export const mockEditing: Pick<
   applyYaml: (manifests, options = {}) =>
     respond(() => {
       const objects = parseManifests(manifests)
-      if (objects.length === 0) throw badRequest('the request contains no objects')
+      if (objects.length === 0) throw reasonError(400, 'bad_request', 'editing.no_objects')
       return objects.map((obj) => applyObject(obj, options))
     }),
   editYaml: (ref, original, edited, options = {}) =>
@@ -327,7 +342,7 @@ export const mockEditing: Pick<
     respond(() => {
       const { kind, namespace } = resolve(ref)
       if (kind.apiVersion === 'v1' && kind.kind === 'Namespace') {
-        throw badRequest('Namespaces are deleted with DELETE /api/namespaces, which protects the system namespaces')
+        throw reasonError(400, 'bad_request', 'editing.namespace_delete')
       }
       if (!removeObject(kind, namespace, ref.name, options.propagation ?? 'Background')) throw notFound(kind, ref.name)
     }),

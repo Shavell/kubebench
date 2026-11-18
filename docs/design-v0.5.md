@@ -180,7 +180,30 @@ runs template `lookup`s with KubeBench's own credential.
 
 ### 3.3 Error format
 
-All errors are JSON: `{"error": "<human message>", "code": "<machine code>"}`.
+All errors are JSON: `{"error": "<human message>", "code": "<machine code>"}`,
+plus `"reason": "<reason code>", "params": {…}` (v0.7) when KubeBench
+explains the error itself: a stable `<group>.<name>` code (e.g.
+`cluster.read_only`, `role.cannot_change`, `metrics.no_prometheus`,
+`argocd.not_installed`) whose English template (`{{param}}` placeholders)
+is `error`. Codes are defined once with `reason.Define` in the Go package
+that emits them (`backend/internal/reason`); the UI translates them from
+`src/core/reasons/locales` (namespace `reasons`, keys are the codes) and
+shows `error` for unknown codes; a test requires a string with the same
+placeholders for every defined code in every UI language, English equal
+to the server's. Kubernetes API errors (`kubernetes`) carry no reason, and
+a `detail` parameter holds text from elsewhere, untranslated. Status
+objects explain themselves the same way: plugin `Status`
+(`reasonCode`/`reasonParams`, set by `plugin.Unavailable`), watch topic
+statuses, `/api/info` (`clusterErrorReason`/`clusterErrorParams`), the
+update status (`errorReason`/`errorParams`) and the security report
+(`skipped[].reasonCode`, `warningReasons`), apply results and storage
+creates (`warningReasons`, apply errors with `reason`/`params`) and drain
+results (`failed[].reason`). Streams end with a reason
+message `{"error", "reason"?, "params"?}` (`reason.Message`: log stream
+`event: error`, watch `event: end`, terminal error frames with
+`reason`/`params` next to `message`, §7.1, §7.10); a message can be a
+parameter of another reason (`{{cause}}` of `streams.closed`), which the UI
+translates in place.
 Codes used across the API: `unauthenticated`, `session_expired`,
 `forbidden`, `forbidden_role`, `cluster_read_only`, `admin_required`,
 `no_cluster`, `not_found`, `bad_request`, `conflict`, `rate_limited`,
@@ -268,6 +291,10 @@ error text. Pruned per `KUBEBENCH_AUDIT_RETENTION_DAYS`.
   cookie accompanies) → `403 forbidden` too.
 - Session cookie `kubebench_session`: HttpOnly, SameSite=Lax, Secure per
   `KUBEBENCH_SECURE_COOKIES`. Expired sessions pruned hourly.
+- Session tokens (256 random bits, hex) are stored only as their SHA-256
+  digest (`sessions.token_hash`, schema v6, v0.7) and looked up by it;
+  the migration hashes the plain tokens of earlier versions in place, so
+  live sessions survive the upgrade.
 - A successful sign-in with the well-known default password `admin` sets
   `must_change_password` too, so accounts carried over from v0.4 (which had
   no forced change) cannot keep it.
@@ -736,15 +763,16 @@ and `new-resource` with `{namespace?, kind?}` (see 7.2);
   `exec.session` at start) — WebSocket. Client→server text frames
   `{"type":"input","data":"…"}` / `{"type":"resize","cols":N,"rows":N}`;
   server→client **binary** frames = terminal output, text frames
-  `{"type":"exit","code":N}` / `{"type":"error","message":"…"}`.
+  `{"type":"exit","code":N}` / `{"type":"error","message":"…"}` (plus
+  `reason`/`params`, §3.3).
   TTY + stdin; default command tries `bash` then `sh`. Uses client-go
   `remotecommand` (WebSocket executor with SPDY fallback) and a
   `TerminalSizeQueue`. Origin checked; 30 s ping; idle timeout 30 min.
 - `GET /api/logs/stream?ns=&pod=&container=&tail=&previous=&timestamps=&sinceSeconds=`
   (read) — Server-Sent Events: first `event: pods` with
   `{"pods":["<pod>/<container>"],"total":N}` (followed containers, matching
-  pods), then `data:` one log line per event, `event: error`, `event: end`,
-  `: ping` every 15 s. Also `?selector=<labelSelector>` (≤10 pods, lines
+  pods), then `data:` one log line per event, `event: error` (a reason
+  message, §3.3), `event: end`, `: ping` every 15 s. Also `?selector=<labelSelector>` (≤10 pods, lines
   prefixed `[pod/container]`). Failures before the stream starts are JSON
   errors (§3.3).
 - Both are authorized when they start and checked again at every ping
@@ -752,8 +780,9 @@ and `new-resource` with `{namespace?, kind?}` (see 7.2);
   change, user deleted), a password change is due, the cluster is removed,
   the caller's assignment is gone or, for a terminal, the role or the
   cluster's read-only flag no longer allows exec, the terminal ends with
-  `{"type":"error","message":"the session was closed: …"}` and the log
-  stream with `event: error` carrying the same text. Switching the active
+  `{"type":"error","message":"the session was closed: …"}` (reason
+  `streams.closed` with the refusal as `cause`) and the log stream with
+  `event: error` carrying the same reason message. Switching the active
   cluster does not end them. A user may have at most 10 terminals and 20
   log streams open; more are refused with `429 rate_limited` before the
   upgrade or stream starts. A log stream whose client stops reading ends
@@ -761,9 +790,9 @@ and `new-resource` with `{namespace?, kind?}` (see 7.2);
 - When the server shuts down (SIGINT/SIGTERM) it ends them before the
   HTTP server's graceful shutdown (10 s): every terminal is hung up like
   an idle one (Ctrl+C, Ctrl+D, then cut after 5 s) and ends with
-  `{"type":"error","message":"the server is shutting down"}`, log streams
-  end with `event: error` and watch streams (§7.10) with `event: end`,
-  both carrying that text. The server waits for the terminals within the
+  `{"type":"error","message":"the server is shutting down"}` (reason
+  `api.shutting_down`), log streams end with `event: error` and watch
+  streams (§7.10) with `event: end`, both carrying that reason message. The server waits for the terminals within the
   grace period; new terminals are refused with `503`.
 - UI: xterm.js terminal (`@xterm/xterm` + fit addon), multiple sessions as
   sub-tabs in the bottom Terminal panel, container picker, reconnect;
@@ -789,7 +818,7 @@ and `new-resource` with `{namespace?, kind?}` (see 7.2);
     Secret whose data/stringData values or last-applied annotation are
     redaction placeholders (`redacted_secret`).
   - Otherwise every object is attempted in order and the answer is `200`:
-    `{"results":[{"apiVersion","kind","namespace"?,"name","action"?:"created|configured|unchanged","error"?,"code"?,"warnings"?}]}`.
+    `{"results":[{"apiVersion","kind","namespace"?,"name","action"?:"created|configured|unchanged","error"?,"code"?,"reason"?,"params"?,"warnings"?,"warningReasons"?}]}`.
     A failed object carries `error` and `code` instead of `action`:
     `conflict` for a server-side apply conflict with another field manager
     (applying again with `force=true` takes the fields over), `not_found`
@@ -899,7 +928,7 @@ Details settled by the implementation:
 - Drain: defaults as in the path above; `timeoutSeconds` 1–600, `gracePeriod`
   −1 (the pod's own) to 3600. It cordons first and answers `200` when the
   evictions ended: `{"node","cordoned","completed","evicted":["ns/pod"],
-  "failed":[{"pod","error"}],"blockedByPDB":["ns/pod"],"skipped":[{"pod",
+  "failed":[{"pod","error","reason"?}],"blockedByPDB":["ns/pod"],"skipped":[{"pod",
   "reason":"daemonSet"|"mirror"}],"errors":[…]}`. Pods a drain must not lose
   (no controller without `force`, emptyDir without `deleteEmptyDirData`,
   DaemonSet pods without `ignoreDaemonSets`) stop it before any eviction and
@@ -1106,8 +1135,8 @@ Bodies are validated server-side (DNS-1123 names, quantities, access modes).
   labels?, nodes?, hostPath|nfs|local|csi}`; StorageClass `{name,
   provisioner, parameters?, reclaimPolicy?, volumeBindingMode?,
   allowVolumeExpansion?, isDefault?, mountOptions?, labels?}`. They answer
-  `{apiVersion, kind, namespace?, name, dryRun, warnings?}`; each create
-  route is `write` + DryRunnable. References are checked before the create
+  `{apiVersion, kind, namespace?, name, dryRun, warnings?,
+  warningReasons?}`; each create route is `write` + DryRunnable. References are checked before the create
   (`400`): the PV to bind must be Available and fit (class, size, modes,
   volume mode); a clone or restore must be at least as large as its source.
   A PV's `nodes` must exist; its required node affinity matches their
@@ -1325,7 +1354,8 @@ start lazily and stop when unused. Frontend: scoped invalidation
   `reason` says which) — the first
   ones at once, then on every change; `event: change` `{topic, namespace}`
   collected for 500 ms (`namespace` `""` = cluster-scoped, or anywhere
-  after more than 256 pending changes); `event: end` with the reason when
+  after more than 256 pending changes); `event: end` with the reason (a
+  reason message, §3.3) when
   the server ends the stream: the cluster's runtime was rebuilt or removed,
   the caller's session/assignment ended (checked every heartbeat, like
   log streams) or the server shuts down (§7.1). Clients may reconnect after `end`.

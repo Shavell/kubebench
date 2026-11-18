@@ -7,6 +7,8 @@ import (
 	"sync"
 
 	"golang.org/x/crypto/bcrypt"
+
+	"kubebench/internal/reason"
 )
 
 type User struct {
@@ -60,7 +62,7 @@ func (s *Store) CreateUser(username, password, role string, mustChangePassword b
 		username, hash, role, boolInt(mustChangePassword),
 	)
 	if err != nil {
-		return 0, conflictErr(err, "user %q", username)
+		return 0, conflictErr(err, reasonUserExists, reason.Params{"name": username})
 	}
 	return res.LastInsertId()
 }
@@ -138,7 +140,7 @@ func (s *Store) SetPassword(userID int64, password string, mustChangePassword bo
 		if n, _ := res.RowsAffected(); n == 0 {
 			return ErrNotFound
 		}
-		_, err = tx.Exec(`DELETE FROM sessions WHERE user_id = ? AND token != ?`, userID, keepToken)
+		_, err = tx.Exec(`DELETE FROM sessions WHERE user_id = ? AND token_hash != ?`, userID, hashToken(keepToken))
 		return err
 	})
 }

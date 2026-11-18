@@ -14,6 +14,8 @@ import (
 	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	"kubebench/internal/reason"
 )
 
 // Mode is how a topic's changes reach its subscribers.
@@ -37,12 +39,38 @@ type Change struct {
 	Namespace string `json:"namespace"`
 }
 
-// TopicStatus is the current mode of one subscribed topic.
+// TopicStatus is the current mode of one subscribed topic. Reason is the
+// English explanation of a polled topic; ReasonCode and ReasonParams let
+// the UI translate it (§3.3).
 type TopicStatus struct {
-	Topic  string `json:"topic"`
-	Mode   Mode   `json:"mode"`
-	Reason string `json:"reason,omitempty"`
+	Topic        string        `json:"topic"`
+	Mode         Mode          `json:"mode"`
+	Reason       string        `json:"reason,omitempty"`
+	ReasonCode   string        `json:"reasonCode,omitempty"`
+	ReasonParams reason.Params `json:"reasonParams,omitempty"`
 }
+
+// topicStatus is the status of topic in mode, explained by why (nil for
+// none).
+func topicStatus(topic string, mode Mode, why *reason.Error) TopicStatus {
+	st := TopicStatus{Topic: topic, Mode: mode}
+	if why != nil {
+		st.Reason, st.ReasonCode, st.ReasonParams = why.Error(), why.Code.String(), why.Params
+	}
+	return st
+}
+
+// Reasons of polled topics and refused subscriptions.
+var (
+	reasonNotServed       = reason.Define("watch.not_served", "the cluster does not serve {{topic}}")
+	reasonDenied          = reason.Define("watch.denied", "the cluster credential may not list and watch {{resource}}")
+	reasonCannotWatch     = reason.Define("watch.cannot_watch", "{{resource}} cannot be watched: {{detail}}")
+	reasonCannotList      = reason.Define("watch.cannot_list", "cannot list {{resource}}: {{detail}}")
+	reasonOwnerTypes      = reason.Define("watch.too_many_own_types", "you watch too many resource types on this cluster at once")
+	reasonClusterTypes    = reason.Define("watch.too_many_types", "too many resource types are watched on this cluster at once")
+	reasonClosed          = reason.Define("watch.closed", "the cluster connection was closed")
+	reasonTooManyWatchers = reason.Define("watch.too_many_subscribers", "too many live-update subscribers on this cluster")
+)
 
 // Resolver maps a topic to the resource it names, at the version the
 // cluster prefers. Its error is shown to users as the reason the topic is
@@ -54,7 +82,12 @@ type Resolver func(topic string) (schema.GroupVersionResource, error)
 // cluster does not serve.
 type NotServedError struct{ Topic string }
 
-func (e *NotServedError) Error() string { return "the cluster does not serve " + e.Topic }
+func (e *NotServedError) Error() string { return reasonNotServed.Text(e.params()) }
+
+// Reason implements reason.Reasoned.
+func (e *NotServedError) Reason() (reason.Code, reason.Params) { return reasonNotServed, e.params() }
+
+func (e *NotServedError) params() reason.Params { return reason.Params{"topic": e.Topic} }
 
 func isNotServed(err error) bool {
 	var ns *NotServedError

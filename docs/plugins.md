@@ -119,6 +119,8 @@ falls back. Components call `usePluginQuery(() => demoData().list(ns), [ns],
    }
 
    // Detect says whether the plugin works on a cluster; cached 60 s per cluster.
+   // An unavailable plugin explains why with a reason code (see Errors below):
+   // return plugin.Unavailable(reasonNoThings, reason.Params{"group": "things.example.com"})
    func (*Plugin) Detect(ctx context.Context, rt *kube.Runtime) plugin.Status {
        return plugin.Status{Available: true}
    }
@@ -158,7 +160,15 @@ The contract:
   when the live-update stream reports it.
 - **Errors**: `plugin.WriteError(w, status, code, err)` with the codes of
   [api.md](api.md#errors), and `plugin.WriteK8sError(w, err)` for errors from
-  the cluster.
+  the cluster. Explain your own refusals and unavailable states with reason
+  codes so the UI can translate them: define each once,
+  `var reasonNoThings = reason.Define("demo.no_things", "the cluster does not serve {{group}}")`
+  (package `kubebench/internal/reason`), and return
+  `reason.New(reasonNoThings, reason.Params{"group": g})` (or `reason.Wrap`
+  with a cause) as the error; `WriteError` adds `reason` and `params` to the
+  body. Add the code's strings to every language of
+  `src/core/reasons/locales`; the backend test
+  `TestEveryReasonIsTranslated` fails until they are there.
 - **Storage**: `c.KV` is a key/value store scoped to the plugin (SQLite);
   prefix per-cluster keys with `cluster/<clusterID>/`. A plugin that needs
   files or background work implements `plugin.Starter`; `Start` gets

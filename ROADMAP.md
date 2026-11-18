@@ -57,6 +57,17 @@ service browser (a frontend plugin on new core proxy routes).
   unsandboxed, isolated from KubeBench by the origin, so apps that need
   cookies or storage (for example sign-ins) work too.
 
+## v0.7 (in progress)
+
+### Security and polish
+
+- **Hashed session tokens**: the database keeps only a SHA-256 digest of
+  each session token, so a copy of it does not hold usable sessions;
+  sessions of earlier versions are converted in place on upgrade.
+- **Localized server-side reasons and errors**: the server's own errors
+  and unavailable reasons carry stable reason codes with parameters, which
+  the UI shows in every UI language.
+
 ## Next (candidates)
 
 Collected from the [comparison notes](docs/notes/kubelizeme-comparison.md#4-still-missing-after-v05-roadmap),
@@ -86,7 +97,6 @@ and the limitations documented in [docs/security.md](docs/security.md).
 
 | Item | Value | Size |
 |---|---|---|
-| Hashed session tokens | Store only a hash of each session token, so a copy of the database does not hold usable sessions | S |
 | Optional OIDC/SSO login | Sign in with the organization's identity provider instead of local accounts | L |
 | LDAP and Active Directory login | Sign in with directory accounts (LDAPS/StartTLS bind, AD `sAMAccountName`/UPN), map directory groups to the admin role and per-cluster viewer/operator assignments, sync or just-in-time provision users, keep a local break-glass admin | L |
 | Kubernetes impersonation per user | Let the cluster's own RBAC and audit see the real KubeBench user | L |
@@ -107,7 +117,6 @@ and the limitations documented in [docs/security.md](docs/security.md).
 
 | Item | Value | Size |
 |---|---|---|
-| Localized server-side reasons and errors | Unavailable reasons and error texts from the backend are English today; translate them like the UI | M |
 | More UI languages | English, Turkish and German ship today; a language is data only ([docs/i18n.md](docs/i18n.md)) | S each |
 | Smaller main bundle | Split the main chunk (over 800 kB minified) further, for a faster first load | M |
 

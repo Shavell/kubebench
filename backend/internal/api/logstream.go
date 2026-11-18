@@ -17,6 +17,7 @@ import (
 
 	"kubebench/internal/kube"
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 )
 
 // Limits of GET /api/logs/stream (design §7.1).
@@ -46,21 +47,21 @@ func parseLogStreamRequest(q url.Values) (logStreamRequest, error) {
 		container: q.Get("container"),
 	}
 	if req.namespace == "" {
-		return req, badRequest("ns is required")
+		return req, badRequest(reason.FieldRequired, reason.Params{"field": "ns"})
 	}
 	if (req.pod == "") == (req.selector == "") {
-		return req, badRequest("give either pod or selector")
+		return req, badRequest(reasonPodOrSelector, nil)
 	}
 	if req.selector != "" {
 		if _, err := labels.Parse(req.selector); err != nil {
-			return req, badRequest("invalid selector: %v", err)
+			return req, badRequest(reasonSelector, reason.Params{"detail": err.Error()})
 		}
 	}
 	tail := int64(defaultStreamTail)
 	if raw := q.Get("tail"); raw != "" {
 		n, err := strconv.ParseInt(raw, 10, 64)
 		if err != nil || n < 0 {
-			return req, badRequest("tail must be a number of lines, or 0 for the whole log")
+			return req, badRequest(reasonLogTail, nil)
 		}
 		tail = min(n, maxStreamTail)
 	}
@@ -77,7 +78,7 @@ func parseLogStreamRequest(q url.Values) (logStreamRequest, error) {
 	if raw := q.Get("sinceSeconds"); raw != "" {
 		n, err := strconv.ParseInt(raw, 10, 64)
 		if err != nil || n < 1 {
-			return req, badRequest("sinceSeconds must be a positive number")
+			return req, badRequest(reason.FieldMin, reason.Params{"field": "sinceSeconds", "min": 1})
 		}
 		req.opts.SinceSeconds = n
 	}
@@ -92,7 +93,7 @@ func boolQuery(q url.Values, name string) (bool, error) {
 	}
 	v, err := strconv.ParseBool(raw)
 	if err != nil {
-		return false, badRequest("%s must be true or false", name)
+		return false, badRequest(reason.FieldBoolean, reason.Params{"field": name})
 	}
 	return v, nil
 }
@@ -142,8 +143,8 @@ func (s *Server) handleLogStream(w http.ResponseWriter, r *http.Request, c *call
 			return
 		}
 		if len(sources) == 0 {
-			writeErr(w, errorf(http.StatusNotFound, plugin.CodeNotFound,
-				"no pod in namespace %q matches %q", req.namespace, req.selector))
+			writeErr(w, fail(http.StatusNotFound, plugin.CodeNotFound, reasonNoPodMatches,
+				reason.Params{"namespace": req.namespace, "selector": req.selector}))
 			return
 		}
 		for _, src := range sources {
@@ -231,8 +232,7 @@ func streamLogs(ctx context.Context, sse *sseWriter, feeds []logFeed, matched in
 		if !shuttingDown(ctx) {
 			return false
 		}
-		_ = sse.event("error", errShuttingDown.Error())
-		_ = sse.flush()
+		_ = sse.explain("error", errShuttingDown)
 		return true
 	}
 	ticker := time.NewTicker(heartbeat)
@@ -245,8 +245,7 @@ func streamLogs(ctx context.Context, sse *sseWriter, feeds []logFeed, matched in
 		case <-ticker.C:
 			if check != nil {
 				if err := check(); err != nil {
-					_ = sse.event("error", endedMessage(err))
-					_ = sse.flush()
+					_ = sse.explain("error", accessEnded(err))
 					return
 				}
 			}
@@ -287,7 +286,7 @@ func (f logFeed) run(ctx context.Context, events chan<- logEvent) {
 	prefix := f.prefix()
 	body, err := f.open(ctx)
 	if err != nil {
-		send(logEvent{name: "error", data: prefix + err.Error()})
+		send(feedError(prefix, err))
 		return
 	}
 	defer body.Close()
@@ -299,8 +298,16 @@ func (f logFeed) run(ctx context.Context, events chan<- logEvent) {
 		return send(logEvent{data: prefix + line})
 	})
 	if err != nil && ctx.Err() == nil {
-		send(logEvent{name: "error", data: prefix + err.Error()})
+		send(feedError(prefix, err))
 	}
+}
+
+// feedError is the "error" event of a log that failed: its message (from
+// the cluster, untranslated) as a reason.Message, like the stream's own
+// errors.
+func feedError(prefix string, err error) logEvent {
+	data, _ := json.Marshal(reason.Message{Text: prefix + err.Error()})
+	return logEvent{name: "error", data: string(data)}
 }
 
 // readLines calls emit with every line of r, without its line break and

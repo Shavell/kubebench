@@ -13,6 +13,7 @@ import (
 
 	"kubebench/internal/kube"
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 )
 
 const (
@@ -38,8 +39,7 @@ func (s *Server) handlePassthrough(w http.ResponseWriter, r *http.Request, c *ca
 	defer cancel()
 	res, err := c.rt.RawGet(ctx, path, query, maxPassthroughBytes)
 	if errors.Is(err, kube.ErrResponseTooLarge) {
-		plugin.WriteError(w, http.StatusBadGateway, plugin.CodeKubernetes,
-			errors.New("the response exceeds 16 MiB; page through it with limit and continue"))
+		plugin.WriteError(w, http.StatusBadGateway, plugin.CodeKubernetes, reason.New(reasonPassthroughSize, nil))
 		return
 	}
 	if err != nil {
@@ -53,8 +53,8 @@ func (s *Server) handlePassthrough(w http.ResponseWriter, r *http.Request, c *ca
 	if res.Status >= http.StatusMultipleChoices {
 		// A redirect: RawGet does not follow it, and passing it on would
 		// send the browser to wherever it points.
-		plugin.WriteError(w, http.StatusBadGateway, plugin.CodeKubernetes,
-			fmt.Errorf("the cluster API answered %d %s; redirects are not followed", res.Status, http.StatusText(res.Status)))
+		plugin.WriteError(w, http.StatusBadGateway, plugin.CodeKubernetes, reason.New(reasonPassthroughRedirect,
+			reason.Params{"status": fmt.Sprintf("%d %s", res.Status, http.StatusText(res.Status))}))
 		return
 	}
 	h := w.Header()
@@ -90,7 +90,7 @@ func checkPassthrough(path string, q url.Values) error {
 	segs := strings.Split(path, "/")
 	for _, seg := range segs {
 		if seg == "" || seg == "." || seg == ".." {
-			return badRequest("invalid path %q", path)
+			return badRequest(reasonPassthroughPath, reason.Params{"path": path})
 		}
 	}
 	var rest []string // the path after the group version
@@ -102,21 +102,21 @@ func checkPassthrough(path string, q url.Values) error {
 		rest = segs[3:]
 	case segs[0] == "api" || segs[0] == "apis": // discovery documents
 	default:
-		return badRequest("only /api, /apis and /version can be read through /api/k8s")
+		return badRequest(reasonPassthroughPrefix, nil)
 	}
 	if queryTrue(q, "watch") || (len(rest) > 0 && rest[0] == "watch") {
-		return badRequest("watch requests are not proxied; use the live-updates stream")
+		return badRequest(reasonPassthroughWatch, nil)
 	}
 	if queryTrue(q, "follow") {
-		return badRequest("followed logs are not proxied; use the log stream")
+		return badRequest(reasonPassthroughFollow, nil)
 	}
 	resource, subresource := splitResourcePath(rest)
 	if strings.EqualFold(resource, "secrets") {
-		return errorf(http.StatusForbidden, plugin.CodeForbidden, "secrets cannot be read through /api/k8s; use /api/resource")
+		return fail(http.StatusForbidden, plugin.CodeForbidden, reasonPassthroughSecrets, nil)
 	}
 	for _, blocked := range blockedSubresources {
 		if strings.EqualFold(subresource, blocked) {
-			return errorf(http.StatusForbidden, plugin.CodeForbidden, "the %s subresource cannot be used through /api/k8s", subresource)
+			return fail(http.StatusForbidden, plugin.CodeForbidden, reasonPassthroughSubres, reason.Params{"subresource": subresource})
 		}
 	}
 	return nil

@@ -14,6 +14,7 @@ import (
 
 	"kubebench/internal/kube"
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 )
 
 // hostnameLabel is the node label a node-affinity term matches on.
@@ -101,7 +102,7 @@ func (req PVRequest) validate() (pvSpec, error) {
 	case corev1.PersistentVolumeReclaimRetain, corev1.PersistentVolumeReclaimDelete:
 		s.reclaim = p
 	default:
-		return s, invalidf("reclaimPolicy", "%q is not Retain or Delete", req.ReclaimPolicy)
+		return s, invalidField("reclaimPolicy", reasonOneOf, reason.Params{"value": string(req.ReclaimPolicy), "values": "Retain, Delete"})
 	}
 	if err = storageClassRef("storageClassName", req.StorageClassName); err != nil {
 		return s, err
@@ -137,7 +138,7 @@ func (req PVRequest) validateSource(mode corev1.PersistentVolumeMode) (string, e
 		kinds = append(kinds, "csi")
 	}
 	if len(kinds) != 1 {
-		return "", invalidf("source", "set exactly one of hostPath, nfs, local or csi")
+		return "", invalidField("source", reasonOneSource, nil)
 	}
 	kind := kinds[0]
 	block := mode == corev1.PersistentVolumeBlock
@@ -147,10 +148,10 @@ func (req PVRequest) validateSource(mode corev1.PersistentVolumeMode) (string, e
 			return kind, err
 		}
 		if !hostPathTypes[req.HostPath.Type] {
-			return kind, invalidf("hostPath.type", "%q is not a hostPath type", req.HostPath.Type)
+			return kind, invalidField("hostPath.type", reasonHostPathType, reason.Params{"value": req.HostPath.Type})
 		}
 		if block {
-			return kind, invalidf("volumeMode", "a hostPath volume cannot be a raw block device")
+			return kind, invalidField("volumeMode", reasonHostPathBlock, nil)
 		}
 	case "nfs":
 		if err := nfsServer(req.NFS.Server); err != nil {
@@ -160,7 +161,7 @@ func (req PVRequest) validateSource(mode corev1.PersistentVolumeMode) (string, e
 			return kind, err
 		}
 		if block {
-			return kind, invalidf("volumeMode", "an NFS volume cannot be a raw block device")
+			return kind, invalidField("volumeMode", reasonNFSBlock, nil)
 		}
 	case "local":
 		if err := absolutePath("local.path", req.Local.Path); err != nil {
@@ -174,14 +175,14 @@ func (req PVRequest) validateSource(mode corev1.PersistentVolumeMode) (string, e
 			return kind, err
 		}
 		if strings.TrimSpace(req.CSI.VolumeHandle) == "" {
-			return kind, invalidf("csi.volumeHandle", "is required")
+			return kind, invalidField("csi.volumeHandle", reason.FieldRequired, nil)
 		}
 		if err := fsType("csi.fsType", req.CSI.FSType); err != nil {
 			return kind, err
 		}
 		for key := range req.CSI.VolumeAttributes {
 			if key == "" {
-				return kind, invalidf("csi.volumeAttributes", "keys cannot be empty")
+				return kind, invalidField("csi.volumeAttributes", reasonEmptyKeys, nil)
 			}
 		}
 	}
@@ -192,19 +193,19 @@ func (req PVRequest) validateSource(mode corev1.PersistentVolumeMode) (string, e
 func (req PVRequest) validateNodes(source string) error {
 	switch {
 	case source == "local" && len(req.Nodes) == 0:
-		return invalidf("nodes", "a local volume lives on one node: pick the node(s) it is on")
+		return invalidField("nodes", reasonLocalNodes, nil)
 	case source == "nfs" && len(req.Nodes) > 0:
-		return invalidf("nodes", "an NFS volume is reachable from every node and takes no node affinity")
+		return invalidField("nodes", reasonNFSNodes, nil)
 	case len(req.Nodes) > maxNodes:
-		return invalidf("nodes", "at most %d nodes", maxNodes)
+		return invalidField("nodes", reasonTooManyNodes, reason.Params{"max": maxNodes})
 	}
 	seen := map[string]bool{}
 	for _, n := range req.Nodes {
 		if errs := validation.IsDNS1123Subdomain(n); len(errs) > 0 {
-			return invalidf("nodes", "%q is not a node name", n)
+			return invalidField("nodes", reasonNodeName, reason.Params{"value": n})
 		}
 		if seen[n] {
-			return invalidf("nodes", "%s is listed twice", n)
+			return invalidField("nodes", reasonListedTwice, reason.Params{"value": n})
 		}
 		seen[n] = true
 	}
@@ -213,13 +214,13 @@ func (req PVRequest) validateNodes(source string) error {
 
 func nfsServer(server string) error {
 	if server == "" {
-		return invalidf("nfs.server", "is required")
+		return invalidField("nfs.server", reason.FieldRequired, nil)
 	}
 	if net.ParseIP(server) != nil {
 		return nil
 	}
 	if errs := validation.IsDNS1123Subdomain(strings.ToLower(server)); len(errs) > 0 {
-		return invalidf("nfs.server", "%q is not a host name or IP address", server)
+		return invalidField("nfs.server", reasonNFSServer, reason.Params{"value": server})
 	}
 	return nil
 }
@@ -230,7 +231,7 @@ func fsType(field, fs string) error {
 		return nil
 	}
 	if errs := validation.IsDNS1123Label(fs); len(errs) > 0 {
-		return invalidf(field, "%q is not a file system type such as ext4 or xfs", fs)
+		return invalidField(field, reasonFSType, reason.Params{"value": fs})
 	}
 	return nil
 }
@@ -245,7 +246,7 @@ func (s *pvSpec) checkCluster(ctx context.Context, rt *kube.Runtime) error {
 	for _, n := range s.req.Nodes {
 		node, err := rt.CS.CoreV1().Nodes().Get(ctx, n, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
-			return invalidf("nodes", "no node %q", n)
+			return invalidField("nodes", reasonNoNode, reason.Params{"value": n})
 		}
 		if err != nil {
 			return err

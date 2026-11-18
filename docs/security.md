@@ -10,8 +10,9 @@ KubeBench is a web front end to clusters it can reach with **stored
 credentials**: the in-cluster ServiceAccount token, kubeconfigs pasted or
 seeded by admins, and optional per-cluster cloud credentials. Its SQLite
 database therefore contains everything needed to act on every registered
-cluster, plus password hashes (bcrypt) and sessions. Whoever reads the
-database, its backups or the data volume has the clusters.
+cluster, plus password hashes (bcrypt) and session digests. Whoever reads
+the database, its backups or the data volume has the clusters (but no
+usable KubeBench sessions, see below).
 
 - The database and its `-wal`/`-shm` files are created `0600` (existing
   ones are tightened at start). Keep backups as protected as the clusters.
@@ -89,6 +90,17 @@ data). Rows are pruned after `KUBEBENCH_AUDIT_RETENTION_DAYS` (default 90;
 - Session cookie `kubebench_session`: HttpOnly, SameSite=Lax, `Secure` on
   TLS (`KUBEBENCH_SECURE_COOKIES`). Sessions last `KUBEBENCH_SESSION_TTL`
   (default 7 days); a password change ends the user's other sessions.
+- The database stores only the SHA-256 digest of each session token
+  (256 random bits), never the token itself, so a copy of the database or
+  of a backup does not let anyone sign in as a user. Sessions stored as
+  plain tokens by v0.6 and earlier are hashed when v0.7 first opens the
+  database (schema v6), so the upgrade signs nobody out. Service browser
+  grants (below) live only in memory and end with the process; checking
+  that a grant belongs to the caller's session compares in constant time.
+  Secrets that KubeBench must present to someone else (cluster
+  credentials in the database, Helm repository passwords in the data
+  directory's `repositories.yaml`) cannot be hashed; their `0600` file
+  modes protect them.
 - Logins are throttled: 10 failures per client IP and username in 15
   minutes → `429`. Wrong current passwords count too.
 - State-changing requests and WebSocket upgrades must carry an `Origin`

@@ -6,6 +6,8 @@ import (
 
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/util/validation"
+
+	"kubebench/internal/reason"
 )
 
 // Subject is who a binding grants to: a User, Group or ServiceAccount.
@@ -95,23 +97,23 @@ func validateSubject(s Subject) error {
 	switch s.Kind {
 	case rbacv1.UserKind, rbacv1.GroupKind:
 		if s.Namespace != "" {
-			return invalidf("namespace", "only a ServiceAccount has a namespace")
+			return invalidField("namespace", reasonOnlySANamespace, nil)
 		}
 	case rbacv1.ServiceAccountKind:
 		if errs := validation.IsDNS1123Label(s.Namespace); len(errs) > 0 {
-			return invalidf("namespace", "%s", strings.Join(errs, "; "))
+			return invalidField("namespace", reason.FieldInvalid, reason.Params{"detail": strings.Join(errs, "; ")})
 		}
 		if errs := validation.IsDNS1123Subdomain(s.Name); len(errs) > 0 {
-			return invalidf("name", "%s", strings.Join(errs, "; "))
+			return invalidField("name", reason.FieldInvalid, reason.Params{"detail": strings.Join(errs, "; ")})
 		}
 	default:
-		return invalidf("kind", "must be User, Group or ServiceAccount, not %q", s.Kind)
+		return invalidField("kind", reasonSubjectKind, reason.Params{"kind": s.Kind})
 	}
 	if strings.TrimSpace(s.Name) == "" {
-		return invalidf("name", "is required")
+		return invalidField("name", reason.FieldRequired, nil)
 	}
 	if len(s.Name) > maxNameLength {
-		return invalidf("name", "must be at most %d characters", maxNameLength)
+		return invalidField("name", reason.FieldTooLong, reason.Params{"max": maxNameLength})
 	}
 	return nil
 }

@@ -12,6 +12,7 @@ import (
 
 	"kubebench/internal/kube"
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 )
 
 // Kinds a claim may be cloned from (spec.dataSource).
@@ -80,12 +81,12 @@ func (req PVCRequest) validate() (pvcSpec, error) {
 			return s, err
 		}
 		if req.DataSource != nil {
-			return s, invalidf("dataSource", "a claim bound to an existing volume cannot be cloned as well")
+			return s, invalidField("dataSource", reasonBoundClone, nil)
 		}
 	}
 	if ds := req.DataSource; ds != nil {
 		if ds.Kind != sourcePVC && ds.Kind != sourceSnapshot {
-			return s, invalidf("dataSource.kind", "%q is not %s or %s", ds.Kind, sourcePVC, sourceSnapshot)
+			return s, invalidField("dataSource.kind", reasonSourceKind, reason.Params{"kind": ds.Kind, "pvc": sourcePVC, "snapshot": sourceSnapshot})
 		}
 		if err = objectName("dataSource.name", ds.Name); err != nil {
 			return s, err
@@ -123,7 +124,7 @@ func (s pvcSpec) object() *corev1.PersistentVolumeClaim {
 // checkCluster checks what the request refers to: the volume to bind and
 // the claim or snapshot to clone. It returns warnings that do not stop the
 // create.
-func (s pvcSpec) checkCluster(ctx context.Context, rt *kube.Runtime) ([]string, error) {
+func (s pvcSpec) checkCluster(ctx context.Context, rt *kube.Runtime) ([]*reason.Error, error) {
 	if s.req.VolumeName != "" {
 		return nil, s.checkVolume(ctx, rt)
 	}
@@ -134,13 +135,13 @@ func (s pvcSpec) checkCluster(ctx context.Context, rt *kube.Runtime) ([]string, 
 	if ds.Kind == sourcePVC {
 		src, err := rt.CS.CoreV1().PersistentVolumeClaims(s.req.Namespace).Get(ctx, ds.Name, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
-			return nil, invalidf("dataSource.name", "no PersistentVolumeClaim %q in namespace %q", ds.Name, s.req.Namespace)
+			return nil, invalidField("dataSource.name", reasonNoSourceClaim, reason.Params{"name": ds.Name, "namespace": s.req.Namespace})
 		}
 		if err != nil {
 			return nil, err
 		}
 		if want := requested(src); s.size.Cmp(want) < 0 {
-			return nil, invalidf("size", "a clone must be at least as large as its source (%s)", want.String())
+			return nil, invalidField("size", reasonCloneSize, reason.Params{"size": want.String()})
 		}
 		return nil, nil
 	}
@@ -150,11 +151,11 @@ func (s pvcSpec) checkCluster(ctx context.Context, rt *kube.Runtime) ([]string, 
 	}
 	if snap.RestoreSize != "" {
 		if want, err := resource.ParseQuantity(snap.RestoreSize); err == nil && s.size.Cmp(want) < 0 {
-			return nil, invalidf("size", "a restored claim must be at least as large as the snapshot (%s)", snap.RestoreSize)
+			return nil, invalidField("size", reasonRestoreSize, reason.Params{"size": snap.RestoreSize})
 		}
 	}
 	if !snap.ReadyToUse {
-		return []string{"the snapshot is not ready to use yet; the claim stays Pending until it is"}, nil
+		return []*reason.Error{reason.New(reasonSnapshotNotReady, nil)}, nil
 	}
 	return nil, nil
 }
@@ -164,30 +165,30 @@ func (s pvcSpec) checkCluster(ctx context.Context, rt *kube.Runtime) ([]string, 
 func (s pvcSpec) checkVolume(ctx context.Context, rt *kube.Runtime) error {
 	pv, err := rt.CS.CoreV1().PersistentVolumes().Get(ctx, s.req.VolumeName, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		return invalidf("volumeName", "no PersistentVolume %q", s.req.VolumeName)
+		return invalidField("volumeName", reasonNoVolume, reason.Params{"name": s.req.VolumeName})
 	}
 	if err != nil {
 		return err
 	}
 	if pv.Status.Phase != corev1.VolumeAvailable {
-		return invalidf("volumeName", "PersistentVolume %q is %s, not Available", pv.Name, phaseOr(string(pv.Status.Phase), "Pending"))
+		return invalidField("volumeName", reasonVolumePhase, reason.Params{"name": pv.Name, "phase": phaseOr(string(pv.Status.Phase), "Pending")})
 	}
 	if ref := pv.Spec.ClaimRef; ref != nil && (ref.Namespace != s.req.Namespace || ref.Name != s.req.Name) {
-		return invalidf("volumeName", "PersistentVolume %q is reserved for %s/%s", pv.Name, ref.Namespace, ref.Name)
+		return invalidField("volumeName", reasonVolumeReserved, reason.Params{"name": pv.Name, "claim": ref.Namespace + "/" + ref.Name})
 	}
 	if class := pv.Spec.StorageClassName; s.req.StorageClassName == nil || *s.req.StorageClassName != class {
-		return invalidf("storageClassName", "must be the volume's class (%s)", phaseOr(class, `""`))
+		return invalidField("storageClassName", reasonVolumeClass, reason.Params{"class": phaseOr(class, `""`)})
 	}
 	if capacity := pv.Spec.Capacity[corev1.ResourceStorage]; capacity.Cmp(s.size) < 0 {
-		return invalidf("size", "PersistentVolume %q holds only %s", pv.Name, capacity.String())
+		return invalidField("size", reasonVolumeCapacity, reason.Params{"name": pv.Name, "size": capacity.String()})
 	}
 	for _, m := range s.modes {
 		if !slices.Contains(pv.Spec.AccessModes, m) {
-			return invalidf("accessModes", "PersistentVolume %q does not offer %s", pv.Name, m)
+			return invalidField("accessModes", reasonVolumeAccessMode, reason.Params{"name": pv.Name, "mode": string(m)})
 		}
 	}
 	if modeOf(pv.Spec.VolumeMode) != modeOf(s.mode) {
-		return invalidf("volumeMode", "PersistentVolume %q is in %s mode", pv.Name, modeOf(pv.Spec.VolumeMode))
+		return invalidField("volumeMode", reasonVolumeMode, reason.Params{"name": pv.Name, "mode": string(modeOf(pv.Spec.VolumeMode))})
 	}
 	return nil
 }
@@ -226,10 +227,12 @@ func createPVC(w http.ResponseWriter, r *http.Request, c *plugin.Context) {
 		writeErr(w, err)
 		return
 	}
-	plugin.WriteJSON(w, CreateResult{
+	res := CreateResult{
 		APIVersion: "v1", Kind: "PersistentVolumeClaim", Namespace: created.Namespace, Name: created.Name,
-		DryRun: plugin.IsDryRun(r), Warnings: warnings,
-	})
+		DryRun: plugin.IsDryRun(r),
+	}
+	res.Warnings, res.WarningReasons = reason.Split(warnings)
+	plugin.WriteJSON(w, res)
 }
 
 // requested is a claim's requested storage.

@@ -3,11 +3,11 @@ package argocd
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 )
 
 // requestError is a failure the plugin decides itself, reported with its
@@ -15,21 +15,25 @@ import (
 type requestError struct {
 	status int
 	code   string
-	msg    string
+	reason reason.Code
+	params reason.Params
 }
 
-func (e *requestError) Error() string { return e.msg }
+func (e *requestError) Error() string { return e.reason.Text(e.params) }
 
-func badRequest(format string, args ...any) error {
-	return &requestError{http.StatusBadRequest, plugin.CodeBadRequest, fmt.Sprintf(format, args...)}
+// Reason implements reason.Reasoned.
+func (e *requestError) Reason() (reason.Code, reason.Params) { return e.reason, e.params }
+
+func badRequest(rc reason.Code, params reason.Params) error {
+	return &requestError{http.StatusBadRequest, plugin.CodeBadRequest, rc, params}
 }
 
-func conflict(format string, args ...any) error {
-	return &requestError{http.StatusConflict, plugin.CodeConflict, fmt.Sprintf(format, args...)}
+func conflict(rc reason.Code, params reason.Params) error {
+	return &requestError{http.StatusConflict, plugin.CodeConflict, rc, params}
 }
 
-func notFound(format string, args ...any) error {
-	return &requestError{http.StatusNotFound, plugin.CodeNotFound, fmt.Sprintf(format, args...)}
+func notFound(rc reason.Code, params reason.Params) error {
+	return &requestError{http.StatusNotFound, plugin.CodeNotFound, rc, params}
 }
 
 // writeError reports a requestError with its status, anything else as a
@@ -53,10 +57,10 @@ func decodeBody(r *http.Request, v any) error {
 	dec := json.NewDecoder(http.MaxBytesReader(nil, r.Body, maxBody))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(v); err != nil && !errors.Is(err, io.EOF) {
-		return badRequest("invalid request body: %v", err)
+		return badRequest(reason.InvalidJSON, reason.Params{"detail": err.Error()})
 	}
 	if dec.More() {
-		return badRequest("invalid request body: more than one JSON value")
+		return badRequest(reasonSeveralValues, nil)
 	}
 	return nil
 }
@@ -71,5 +75,5 @@ func boolParam(r *http.Request, name string, fallback bool) (bool, error) {
 	case "false":
 		return false, nil
 	}
-	return false, badRequest("%s must be true or false", name)
+	return false, badRequest(reason.FieldBoolean, reason.Params{"field": name})
 }

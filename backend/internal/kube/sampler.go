@@ -2,7 +2,6 @@ package kube
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"maps"
 	"math"
@@ -11,6 +10,8 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"kubebench/internal/reason"
 )
 
 const (
@@ -161,7 +162,7 @@ func (u usage) percentOf(metric string, capacity usage) float64 {
 // reports CPU and memory only.
 func sampled(metric string) error {
 	if metric != "cpu" && metric != "memory" {
-		return fmt.Errorf("metrics-server has no %s data; it needs Prometheus", metric)
+		return reason.New(reasonNeedsPrometheus, reason.Params{"metric": metric})
 	}
 	return nil
 }

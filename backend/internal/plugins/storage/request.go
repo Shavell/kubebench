@@ -10,6 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 )
 
 // maxBody bounds a create or resize body; real ones are a few hundred bytes.
@@ -20,30 +21,33 @@ const fieldManager = "kubebench"
 
 // invalid is a request the server refuses before it reaches the cluster:
 // 400 bad_request naming the field, e.g. "size: must be greater than zero".
-type invalid struct {
-	field, msg string
-}
+type invalid struct{ err *reason.Error }
 
-func (e *invalid) Error() string {
-	if e.field == "" {
-		return e.msg
+func (e *invalid) Error() string { return e.err.Error() }
+
+// Reason implements reason.Reasoned.
+func (e *invalid) Reason() (reason.Code, reason.Params) { return e.err.Reason() }
+
+// invalidField is the refusal of field ("" for the body as a whole),
+// explained by code with params; the field is the {{field}} parameter.
+func invalidField(field string, code reason.Code, params reason.Params) error {
+	if params == nil {
+		params = reason.Params{}
 	}
-	return e.field + ": " + e.msg
-}
-
-func invalidf(field, format string, args ...any) error {
-	return &invalid{field: field, msg: fmt.Sprintf(format, args...)}
+	if field != "" {
+		params["field"] = field
+	}
+	return &invalid{reason.New(code, params)}
 }
 
 // conflictErr is a request the cluster's current state rules out, e.g.
 // expanding a claim whose StorageClass does not allow it: 409 conflict.
-type conflictErr struct{ msg string }
+type conflictErr struct{ err *reason.Error }
 
-func (e *conflictErr) Error() string { return e.msg }
+func (e *conflictErr) Error() string { return e.err.Error() }
 
-func conflictf(format string, args ...any) error {
-	return &conflictErr{msg: fmt.Sprintf(format, args...)}
-}
+// Reason implements reason.Reasoned.
+func (e *conflictErr) Reason() (reason.Code, reason.Params) { return e.err.Reason() }
 
 // writeErr reports err with the status of its kind; anything that is not a
 // validation or state refusal came from the cluster.
@@ -68,12 +72,12 @@ func decodeBody(w http.ResponseWriter, r *http.Request, v any) error {
 	if err := dec.Decode(v); err != nil {
 		var tooLarge *http.MaxBytesError
 		if errors.As(err, &tooLarge) {
-			return invalidf("", "the request body is larger than %d KiB", maxBody>>10)
+			return invalidField("", reason.BodyTooLarge, reason.Params{"size": fmt.Sprintf("%d KiB", maxBody>>10)})
 		}
-		return invalidf("", "invalid JSON body: %v", err)
+		return invalidField("", reason.InvalidJSON, reason.Params{"detail": err.Error()})
 	}
 	if _, err := dec.Token(); err != io.EOF {
-		return invalidf("", "invalid JSON body: unexpected data after the object")
+		return invalidField("", reason.TrailingData, nil)
 	}
 	return nil
 }
@@ -98,6 +102,8 @@ type CreateResult struct {
 	Name       string   `json:"name"`
 	DryRun     bool     `json:"dryRun"`
 	Warnings   []string `json:"warnings,omitempty"`
+	// WarningReasons explain Warnings, index by index, for translation.
+	WarningReasons []reason.Ref `json:"warningReasons,omitempty"`
 }
 
 // auditCreate names the created object in the router's row for the request:

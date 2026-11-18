@@ -1,5 +1,6 @@
 import { dump, load } from 'js-yaml'
 import { ApiError } from '@/data/apiClient'
+import { reasonError } from '@/data/reasonError'
 import { delay, delayReject } from '@/data/mock/delay'
 import {
   defaultValues,
@@ -187,11 +188,11 @@ export function createMockHelm(): HelmData {
   const resolve = (ref: HelmChartRef): ResolvedChart => {
     if ('uploadId' in ref) {
       const upload = uploads.get(ref.uploadId)
-      if (!upload) throw notFound(`upload ${ref.uploadId} does not exist or has expired; upload the chart again`)
+      if (!upload) throw reasonError(404, 'not_found', 'helm.upload_not_found', { id: ref.uploadId })
       return upload
     }
     const name = 'ref' in ref ? (ref.ref.split('/').pop() ?? '') : ref.name
-    if ('repo' in ref && !repos.some((r) => r.name === ref.repo)) throw notFound(`repository "${ref.repo}" is not added`)
+    if ('repo' in ref && !repos.some((r) => r.name === ref.repo)) throw reasonError(404, 'not_found', 'helm.repo_not_added', { name: ref.repo })
     const chart = 'repo' in ref ? findChart(name, ref.repo) : findChart(name)
     if (!chart) throw badRequest(`could not download chart ${name}: not found`)
     const version = ref.version ? chart.versions.find((x) => x.version === ref.version) : chart.versions[0]
@@ -354,7 +355,7 @@ export function createMockHelm(): HelmData {
 
     addRepo: async (input) => {
       if (repos.some((r) => r.name === input.name)) {
-        return delayReject(new ApiError(409, 'conflict', `repository "${input.name}" already exists`))
+        return delayReject(reasonError(409, 'conflict', 'helm.repo_exists', { name: input.name }))
       }
       if (!/^https?:\/\/[^/@]+/.test(input.url)) {
         return delayReject(badRequest('url must be an http or https URL without credentials'))
@@ -366,7 +367,7 @@ export function createMockHelm(): HelmData {
 
     removeRepo: async (name) => {
       const index = repos.findIndex((r) => r.name === name)
-      if (index < 0) return delayReject(notFound(`repository "${name}" does not exist`))
+      if (index < 0) return delayReject(reasonError(404, 'not_found', 'helm.repo_missing', { name }))
       repos.splice(index, 1)
       return delay(undefined)
     },

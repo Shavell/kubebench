@@ -14,6 +14,8 @@ import (
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+
+	"kubebench/internal/reason"
 )
 
 const (
@@ -115,7 +117,7 @@ func (r *Runtime) RollbackDeployment(ctx context.Context, namespace, name string
 		return err
 	}
 	if d.Spec.Paused {
-		return opError(OpConflict, "Deployment %s is paused; resume it before rolling back", name)
+		return opError(OpConflict, reasonRolloutPaused, reason.Params{"name": name})
 	}
 	sets, err := r.ownedReplicaSets(ctx, d)
 	if err != nil {
@@ -128,10 +130,10 @@ func (r *Runtime) RollbackDeployment(ctx context.Context, namespace, name string
 		}
 	}
 	if target == nil {
-		return opError(OpNotFound, "Deployment %s has no revision %d", name, revision)
+		return opError(OpNotFound, reasonRolloutNoRevision, reason.Params{"name": name, "revision": revision})
 	}
 	if equalIgnoreHash(&target.Spec.Template, &d.Spec.Template) {
-		return opError(OpConflict, "revision %d is the current revision of Deployment %s", revision, name)
+		return opError(OpConflict, reasonRolloutCurrent, reason.Params{"name": name, "revision": revision})
 	}
 
 	template := target.Spec.Template.DeepCopy()

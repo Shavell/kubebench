@@ -10,6 +10,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/util/retry"
+
+	"kubebench/internal/reason"
 )
 
 // Taint is a node taint as the API reports and accepts it (src/data/types.ts NodeTaint).
@@ -71,17 +73,17 @@ func validateTaints(taints []Taint) error {
 	seen := map[string]bool{}
 	for i, t := range taints {
 		if problems := validation.IsQualifiedName(t.Key); len(problems) > 0 {
-			return opError(OpInvalid, "taint %d: key %q: %s", i+1, t.Key, strings.Join(problems, "; "))
+			return opError(OpInvalid, reasonTaintKey, reason.Params{"index": i + 1, "key": t.Key, "detail": strings.Join(problems, "; ")})
 		}
 		if problems := validation.IsValidLabelValue(t.Value); len(problems) > 0 {
-			return opError(OpInvalid, "taint %q: value %q: %s", t.Key, t.Value, strings.Join(problems, "; "))
+			return opError(OpInvalid, reasonTaintValue, reason.Params{"key": t.Key, "value": t.Value, "detail": strings.Join(problems, "; ")})
 		}
 		if !validEffect(t.Effect) {
-			return opError(OpInvalid, "taint %q: effect must be NoSchedule, PreferNoSchedule or NoExecute, not %q", t.Key, t.Effect)
+			return opError(OpInvalid, reasonTaintEffect, reason.Params{"key": t.Key, "effect": t.Effect})
 		}
 		id := t.Key + ":" + t.Effect
 		if seen[id] {
-			return opError(OpInvalid, "taint %q with effect %s is listed twice", t.Key, t.Effect)
+			return opError(OpInvalid, reasonTaintDuplicate, reason.Params{"key": t.Key, "effect": t.Effect})
 		}
 		seen[id] = true
 	}

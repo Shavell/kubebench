@@ -14,6 +14,7 @@ import (
 	"kubebench/internal/config"
 	"kubebench/internal/kube"
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 	"kubebench/internal/store"
 	"kubebench/internal/svcproxy"
 	"kubebench/internal/updates"
@@ -112,9 +113,9 @@ func (s *Server) handleUnknownAPI(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if len(allowed) == 0 {
-		writeErr(w, errorf(http.StatusNotFound, plugin.CodeNotFound, "no API endpoint %s", r.URL.Path))
+		writeErr(w, fail(http.StatusNotFound, plugin.CodeNotFound, reasonNoEndpoint, reason.Params{"path": r.URL.Path}))
 		return
 	}
 	w.Header().Set("Allow", strings.Join(allowed, ", "))
-	writeErr(w, errorf(http.StatusMethodNotAllowed, plugin.CodeBadRequest, "%s is not allowed on %s", r.Method, r.URL.Path))
+	writeErr(w, fail(http.StatusMethodNotAllowed, plugin.CodeBadRequest, reasonMethodNotAllowed, reason.Params{"method": r.Method, "path": r.URL.Path}))
 }

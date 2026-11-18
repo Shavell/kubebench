@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { reasonText } from '@/core/reasons'
 import { usePluginQuery } from '@/data/pluginData'
 import { formatNumber } from '@/i18n/format'
 import { EmptyState } from '@/shared/EmptyState'
@@ -27,7 +28,7 @@ export function ChecksPage() {
     for (const f of report.data?.findings ?? []) if (!f.accepted) counts.set(f.checkId, (counts.get(f.checkId) ?? 0) + 1)
     return counts
   }, [report.data])
-  const skipped = useMemo(() => new Map((report.data?.skipped ?? []).map((s) => [s.checkId, s.reason])), [report.data])
+  const skipped = useMemo(() => new Map((report.data?.skipped ?? []).map((s) => [s.checkId, s])), [report.data])
 
   const columns = useMemo<Column<SecurityCheck>[]>(
     () => [
@@ -70,8 +71,11 @@ export function ChecksPage() {
         width: '110px',
         sortValue: (c) => open.get(c.id) ?? 0,
         render: (c) => {
-          const reason = skipped.get(c.id)
-          if (reason) return <span className="security-muted" title={reason}>{t('catalog.skipped')}</span>
+          const skip = skipped.get(c.id)
+          if (skip) {
+            const reason = reasonText(skip.reasonCode, skip.reasonParams, skip.reason)
+            return <span className="security-muted" title={reason}>{t('catalog.skipped')}</span>
+          }
           if (!report.data) return <span className="security-muted">—</span>
           const n = open.get(c.id) ?? 0
           return n ? formatNumber(n) : <span className="security-pass">{t('catalog.passing')}</span>

@@ -1,6 +1,10 @@
 package argocd
 
-import "slices"
+import (
+	"slices"
+
+	"kubebench/internal/reason"
+)
 
 // Building the Application .operation for syncs and rollbacks, as the Argo
 // CD API server does (server/application: Sync and Rollback). The
@@ -48,7 +52,7 @@ func syncOperation(app map[string]any, req SyncRequest, username string) (map[st
 		// A multi-source Application syncs every source at its own
 		// targetRevision; one revision cannot name them all.
 		if req.Revision != "" {
-			return nil, badRequest("a revision cannot be chosen for an application with several sources")
+			return nil, badRequest(reasonMultiSource, nil)
 		}
 		revisions := make([]any, len(multi))
 		for i, s := range multi {
@@ -68,7 +72,7 @@ func syncOperation(app map[string]any, req SyncRequest, username string) (map[st
 		resources := make([]any, len(req.Resources))
 		for i, r := range req.Resources {
 			if r.Kind == "" || r.Name == "" {
-				return nil, badRequest("every selected resource needs a kind and a name")
+				return nil, badRequest(reasonResourceName, nil)
 			}
 			resources[i] = map[string]any{"group": r.Group, "kind": r.Kind, "namespace": r.Namespace, "name": r.Name}
 		}
@@ -91,10 +95,10 @@ func syncOperation(app map[string]any, req SyncRequest, username string) (map[st
 func rollbackOperation(app map[string]any, req RollbackRequest, username string) (map[string]any, error) {
 	spec := object(app, "spec")
 	if autoSyncEnabled(spec) {
-		return nil, conflict("rollback is not possible while automated sync is enabled; disable it first")
+		return nil, conflict(reasonAutoSync, nil)
 	}
 	if req.HistoryID == nil {
-		return nil, badRequest("historyId is required")
+		return nil, badRequest(reason.FieldRequired, reason.Params{"field": "historyId"})
 	}
 	history := objects(app, "status", "history")
 	i := slices.IndexFunc(history, func(h map[string]any) bool {
@@ -102,7 +106,7 @@ func rollbackOperation(app map[string]any, req RollbackRequest, username string)
 		return ok && id == *req.HistoryID
 	})
 	if i < 0 {
-		return nil, notFound("the application has no history entry %d", *req.HistoryID)
+		return nil, notFound(reasonNoHistoryEntry, reason.Params{"id": *req.HistoryID})
 	}
 	entry := history[i]
 	sync := map[string]any{"syncStrategy": map[string]any{"apply": map[string]any{}}}
@@ -113,7 +117,7 @@ func rollbackOperation(app map[string]any, req RollbackRequest, username string)
 		sync["source"] = source
 		sync["revision"] = str(entry, "revision")
 	} else {
-		return nil, badRequest("history entry %d does not record its source (deployed by Argo CD 1.4 or older)", *req.HistoryID)
+		return nil, badRequest(reasonHistorySource, reason.Params{"id": *req.HistoryID})
 	}
 	if req.Prune {
 		sync["prune"] = true

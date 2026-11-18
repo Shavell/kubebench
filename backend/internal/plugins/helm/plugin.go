@@ -10,7 +10,6 @@ package helm
 
 import (
 	"context"
-	"errors"
 	"net/http"
 
 	"helm.sh/helm/v3/pkg/action"
@@ -18,6 +17,7 @@ import (
 
 	"kubebench/internal/kube"
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 )
 
 func init() { plugin.Register(New()) }
@@ -71,12 +71,12 @@ func (p *Plugin) Start(ctx context.Context, host plugin.Host) error {
 func (p *Plugin) Detect(ctx context.Context, rt *kube.Runtime) plugin.Status {
 	_, err := rt.CS.CoreV1().Secrets("").List(ctx, metav1.ListOptions{LabelSelector: "owner=helm", Limit: 1})
 	if err != nil {
-		return plugin.Status{Reason: "Helm is not available on this cluster: cannot list the release Secrets (" + err.Error() + ")"}
+		return plugin.Unavailable(reasonUnavailable, reason.Params{"detail": err.Error()})
 	}
 	return plugin.Status{Available: true}
 }
 
-var errNotStarted = errors.New("the Helm plugin was not started")
+var errNotStarted = reason.New(reasonNotStarted, nil)
 
 // Routes registers §7.4's endpoints. Install and upgrade need write even
 // for a dry run: Helm's server-side dry run runs template lookups with

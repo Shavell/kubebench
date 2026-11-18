@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 )
 
 // handleDeploymentHistory: GET /api/deployments/history?ns=&name= lists the
@@ -29,7 +30,7 @@ func (s *Server) handleRollback(w http.ResponseWriter, r *http.Request, c *call)
 	}
 	revision, err := strconv.ParseInt(q.Get("revision"), 10, 64)
 	if err != nil || revision < 1 {
-		writeErr(w, badRequest("revision must be a revision number (at least 1)"))
+		writeErr(w, badRequest(reason.FieldMin, reason.Params{"field": "revision", "min": 1}))
 		return
 	}
 	respondOp(w, c.rt.RollbackDeployment(r.Context(), ns, name, revision))
@@ -73,7 +74,7 @@ func (s *Server) handleScaleWorkload(w http.ResponseWriter, r *http.Request, c *
 	}
 	replicas, err := strconv.ParseInt(q.Get("replicas"), 10, 32)
 	if err != nil || replicas < 0 {
-		writeErr(w, badRequest("replicas must be a number of at least 0"))
+		writeErr(w, badRequest(reason.FieldMin, reason.Params{"field": "replicas", "min": 0}))
 		return
 	}
 	respondOp(w, c.rt.ScaleWorkload(r.Context(), q.Get("kind"), ns, name, int32(replicas)))

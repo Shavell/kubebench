@@ -8,6 +8,7 @@ import (
 
 	"kubebench/internal/kube"
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 )
 
 // Helpers of the workload and node operations (§7.3): query parameters
@@ -17,7 +18,7 @@ import (
 func requiredParam(q url.Values, key string) (string, error) {
 	v := q.Get(key)
 	if v == "" {
-		return "", badRequest("%s is required", key)
+		return "", badRequest(reason.FieldRequired, reason.Params{"field": key})
 	}
 	return v, nil
 }
@@ -30,7 +31,7 @@ func boolFlag(q url.Values, key string, fallback bool) (bool, error) {
 	}
 	v, err := strconv.ParseBool(raw)
 	if err != nil {
-		return false, badRequest("%s must be true or false", key)
+		return false, badRequest(reason.FieldBoolean, reason.Params{"field": key})
 	}
 	return v, nil
 }
@@ -43,7 +44,7 @@ func boundedInt(q url.Values, key string, fallback, lowest, highest int) (int, e
 	}
 	n, err := strconv.Atoi(raw)
 	if err != nil || n < lowest || n > highest {
-		return 0, badRequest("%s must be a number from %d to %d", key, lowest, highest)
+		return 0, badRequest(reason.FieldRange, reason.Params{"field": key, "min": lowest, "max": highest})
 	}
 	return n, nil
 }

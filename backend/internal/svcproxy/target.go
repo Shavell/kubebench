@@ -13,6 +13,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"kubebench/internal/reason"
 )
 
 // Kinds of objects a grant reaches: the API server resources whose proxy
@@ -45,28 +47,37 @@ var (
 	portName     = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
 )
 
+// Reasons of Validate (§3.3).
+var (
+	reasonTargetKind      = reason.Define("proxy.target_kind", "unknown kind \"{{kind}}\"")
+	reasonTargetScheme    = reason.Define("proxy.target_scheme", "scheme must be http or https, not \"{{scheme}}\"")
+	reasonTargetPortRange = reason.Define("proxy.target_port_range", "port {{port}} is out of range")
+	reasonTargetPort      = reason.Define("proxy.target_port", "invalid port \"{{port}}\"")
+	reasonTargetHost      = reason.Define("proxy.target_host", "invalid host \"{{host}}\"")
+)
+
 // Validate checks the target's fields, which end up in an API server path.
 func (t Target) Validate() error {
 	switch {
 	case t.Kind != KindService && t.Kind != KindPod:
-		return fmt.Errorf("unknown kind %q", t.Kind)
+		return reason.New(reasonTargetKind, reason.Params{"kind": t.Kind})
 	case len(t.Namespace) > 63 || !dnsLabel.MatchString(t.Namespace):
-		return fmt.Errorf("invalid namespace %q", t.Namespace)
+		return reason.New(reason.NotNamespace, reason.Params{"value": t.Namespace})
 	case len(t.Name) > 253 || !dnsSubdomain.MatchString(t.Name):
-		return fmt.Errorf("invalid name %q", t.Name)
+		return reason.New(reason.NotName, reason.Params{"value": t.Name})
 	case t.Scheme != "http" && t.Scheme != "https":
-		return fmt.Errorf("scheme must be http or https, not %q", t.Scheme)
+		return reason.New(reasonTargetScheme, reason.Params{"scheme": t.Scheme})
 	case t.Host != "" && (t.Kind != KindService || len(t.Host) > 253 || !dnsSubdomain.MatchString(t.Host)):
-		return fmt.Errorf("invalid host %q", t.Host)
+		return reason.New(reasonTargetHost, reason.Params{"host": t.Host})
 	}
 	if n, err := strconv.Atoi(t.Port); err == nil {
 		if n < 1 || n > 65535 {
-			return fmt.Errorf("port %d is out of range", n)
+			return reason.New(reasonTargetPortRange, reason.Params{"port": n})
 		}
 		return nil
 	}
 	if len(t.Port) > 15 || !portName.MatchString(t.Port) {
-		return fmt.Errorf("invalid port %q", t.Port)
+		return reason.New(reasonTargetPort, reason.Params{"port": t.Port})
 	}
 	return nil
 }

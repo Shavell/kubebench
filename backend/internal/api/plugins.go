@@ -5,6 +5,7 @@ import (
 
 	"kubebench/internal/kube"
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 	"kubebench/internal/store"
 )
 
@@ -54,7 +55,7 @@ func (s *Server) handleListPlugins(w http.ResponseWriter, _ *http.Request, c *ca
 			Builtin: true, Enabled: enabled || !set, // built-in plugins default to enabled
 		}
 		if clusterErr != nil {
-			view.Status = plugin.Status{Reason: clusterErr.Error()}
+			view.Status = plugin.UnavailableFrom(clusterErr)
 		} else {
 			view.Status = s.detect.status(p, rt)
 		}
@@ -85,7 +86,7 @@ func (s *Server) statusRuntime(user *store.User) (*kube.Runtime, error) {
 func (s *Server) handleSetPluginEnabled(w http.ResponseWriter, r *http.Request, c *call) {
 	id := r.PathValue("id")
 	if !plugin.ValidID(id) {
-		writeErr(w, badRequest("invalid plugin id %q", id))
+		writeErr(w, badRequest(reasonPluginID, reason.Params{"id": id}))
 		return
 	}
 	var body struct {
@@ -96,7 +97,7 @@ func (s *Server) handleSetPluginEnabled(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 	if body.Enabled == nil {
-		writeErr(w, badRequest("enabled is required"))
+		writeErr(w, badRequest(reason.FieldRequired, reason.Params{"field": "enabled"}))
 		return
 	}
 	c.setAudit("", auditJSON(map[string]bool{"enabled": *body.Enabled}))
@@ -115,7 +116,7 @@ func (s *Server) checkPluginEnabled(p plugin.Plugin) error {
 		return err
 	}
 	if set && !enabled {
-		return errorf(http.StatusNotFound, plugin.CodePluginDisabled, "the %s plugin is disabled", id)
+		return fail(http.StatusNotFound, plugin.CodePluginDisabled, reasonPluginDisabled, reason.Params{"id": id})
 	}
 	return nil
 }

@@ -1,3 +1,4 @@
+import { reasonText } from '@/core/reasons'
 import { errorMessage, isApiError } from '@/data/apiClient'
 import type { UpdatesProvider } from '@/data/providers'
 import { i18n } from '@/i18n'
@@ -17,7 +18,9 @@ export async function runUpdateCheck(provider: UpdatesProvider, { openDialog }: 
   const store = useUpdatesStore.getState()
   try {
     const status = await store.check(provider)
-    if (status.error) notify.error(t('notices.checkFailed'), { detail: status.error })
+    if (status.error) {
+      notify.error(t('notices.checkFailed'), { detail: reasonText(status.errorReason, status.errorParams, status.error) })
+    }
     else if (status.available && openDialog) store.showAvailable()
     else if (status.available) notify.info(t('statusBar.available', { version: status.latest }))
     else if (!status.latest) notify.info(t('notices.noReleases'))

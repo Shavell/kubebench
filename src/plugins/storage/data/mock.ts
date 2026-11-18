@@ -1,9 +1,11 @@
+import { englishWarnings } from '@/core/reasons'
 import { ApiError } from '@/data/apiClient'
 import { delay, delayReject } from '@/data/mock/delay'
 import { namespaces, nodes } from '@/data/mock/mockCluster'
 import { genericMock } from '@/data/mock/mockGeneric'
 import { mulberry32 } from '@/data/mock/rng'
-import type { KubeObject } from '@/data/types'
+import { reasonError } from '@/data/reasonError'
+import type { KubeObject, ReasonRef } from '@/data/types'
 import { i18n } from '@/i18n'
 import { DEFAULT_CLASS_ANNOTATION, pvcObject, pvObject, storageClassObject, type Manifest } from '../model/build'
 import { quantityBytes } from '../model/quantity'
@@ -108,6 +110,9 @@ const isDefault = (o: Obj) => o.metadata?.annotations?.[DEFAULT_CLASS_ANNOTATION
 
 const enT = () => i18n.getFixedT('en', NS)
 const badRequest = (field: string, message: string) => new ApiError(400, 'bad_request', `${field}: ${message}`)
+/** A refusal the server explains with a storage reason code (§3.3) about field. */
+const invalid = (field: string, reason: string, params: Record<string, string>) =>
+  reasonError(400, 'bad_request', reason, { ...params, field })
 
 /** The first problem as the server words it (in English, like every API message). */
 function refuse(problems: Problems): ApiError | null {
@@ -264,7 +269,7 @@ function store(key: string, object: Manifest, extra: Record<string, unknown>): v
   list(key).push({ ...(object as Obj), ...extra, age: '0s' })
 }
 
-function createResult(object: Manifest, dryRun: boolean, warnings?: string[]): CreateResult {
+function createResult(object: Manifest, dryRun: boolean, warnings: ReasonRef[] = []): CreateResult {
   const meta = record(object.metadata)
   return {
     apiVersion: str(object.apiVersion),
@@ -272,7 +277,7 @@ function createResult(object: Manifest, dryRun: boolean, warnings?: string[]): C
     namespace: str(meta.namespace) || undefined,
     name: str(meta.name),
     dryRun,
-    warnings,
+    ...(warnings.length ? englishWarnings(warnings) : {}),
   }
 }
 
@@ -291,36 +296,36 @@ export function createMockStorage(): StorageProvider {
         if (problem) throw problem
         if (!findNamespace(req.namespace)) throw new ApiError(404, 'kubernetes', `namespaces "${req.namespace}" not found`)
         const size = bytes(req.size)
-        const warnings: string[] = []
+        const warnings: ReasonRef[] = []
         if (req.volumeName) {
           const pv = findPv(req.volumeName)
-          if (!pv) throw badRequest('volumeName', `no PersistentVolume "${req.volumeName}"`)
+          if (!pv) throw invalid('volumeName', 'storage.no_volume', { name: req.volumeName })
           const phase = str(status(pv).phase) || 'Pending'
-          if (phase !== 'Available') throw badRequest('volumeName', `PersistentVolume "${req.volumeName}" is ${phase}, not Available`)
+          if (phase !== 'Available') throw invalid('volumeName', 'storage.volume_phase', { name: req.volumeName, phase })
           const pvClass = str(spec(pv).storageClassName)
-          if (req.storageClassName !== pvClass) throw badRequest('storageClassName', `must be the volume's class (${pvClass || '""'})`)
-          if (bytes(pvCapacity(pv)) < size) throw badRequest('size', `PersistentVolume "${req.volumeName}" holds only ${pvCapacity(pv)}`)
+          if (req.storageClassName !== pvClass) throw invalid('storageClassName', 'storage.volume_class', { class: pvClass || '""' })
+          if (bytes(pvCapacity(pv)) < size) throw invalid('size', 'storage.volume_capacity', { name: req.volumeName, size: pvCapacity(pv) })
           const offered = strings(spec(pv).accessModes)
           const missing = req.accessModes.find((m) => !offered.includes(m))
-          if (missing) throw badRequest('accessModes', `PersistentVolume "${req.volumeName}" does not offer ${missing}`)
+          if (missing) throw invalid('accessModes', 'storage.volume_access_mode', { name: req.volumeName, mode: missing })
         } else if (req.dataSource?.kind === 'PersistentVolumeClaim') {
           const source = findPvc(req.namespace, req.dataSource.name)
-          if (!source) throw badRequest('dataSource.name', `no PersistentVolumeClaim "${req.dataSource.name}" in namespace "${req.namespace}"`)
-          if (size < bytes(requestOf(source))) throw badRequest('size', `a clone must be at least as large as its source (${requestOf(source)})`)
+          if (!source) throw invalid('dataSource.name', 'storage.no_source_claim', { name: req.dataSource.name, namespace: req.namespace })
+          if (size < bytes(requestOf(source))) throw invalid('size', 'storage.clone_size', { size: requestOf(source) })
         } else if (req.dataSource?.kind === 'VolumeSnapshot') {
           const name = req.dataSource.name
           const snap = SNAPSHOTS.find((s) => s.namespace === req.namespace && s.name === name)
-          if (!snap) throw badRequest('dataSource.name', `no VolumeSnapshot "${name}" in namespace "${req.namespace}"`)
+          if (!snap) throw invalid('dataSource.name', 'storage.no_snapshot', { name, namespace: req.namespace })
           if (snap.restoreSize && size < snap.restoreSizeBytes) {
-            throw badRequest('size', `a restored claim must be at least as large as the snapshot (${snap.restoreSize})`)
+            throw invalid('size', 'storage.restore_size', { size: snap.restoreSize })
           }
-          if (!snap.readyToUse) warnings.push('the snapshot is not ready to use yet; the claim stays Pending until it is')
+          if (!snap.readyToUse) warnings.push({ reason: 'storage.snapshot_not_ready' })
         }
         if (findPvc(req.namespace, req.name)) throw alreadyExists('persistentvolumeclaims', req.name)
 
         const object = pvcObject({ ...req, storageClassName: req.storageClassName ?? defaultClassName() })
         if (!options?.dryRun) provisionClaim(object, req.volumeName)
-        return createResult(object, Boolean(options?.dryRun), warnings.length ? warnings : undefined)
+        return createResult(object, Boolean(options?.dryRun), warnings)
       }),
 
     createPv: (req, options) =>
@@ -328,7 +333,7 @@ export function createMockStorage(): StorageProvider {
         const problem = refuse(pvProblems(req))
         if (problem) throw problem
         const unknown = (req.nodes ?? []).find((n) => !nodes.some((node) => node.name === n))
-        if (unknown) throw badRequest('nodes', `no node "${unknown}"`)
+        if (unknown) throw invalid('nodes', 'storage.no_node', { value: unknown })
         if (findPv(req.name)) throw alreadyExists('persistentvolumes', req.name)
         const object = pvObject(req)
         if (!options?.dryRun) store('persistentvolumes', object, { status: { phase: 'Available' } })
@@ -341,10 +346,10 @@ export function createMockStorage(): StorageProvider {
         if (problem) throw problem
         if (findClass(req.name)) throw alreadyExists('storageclasses.storage.k8s.io', req.name)
         const defaults = classes().filter(isDefault).map(nameOf)
-        const warnings =
+        const warnings: ReasonRef[] =
           req.isDefault && defaults.length
-            ? [`already marked as default: ${defaults.join(', ')}. Claims without a class get the newest default`]
-            : undefined
+            ? [{ reason: 'storage.other_defaults', params: { classes: defaults.join(', '), annotation: DEFAULT_CLASS_ANNOTATION } }]
+            : []
         const object = storageClassObject(req)
         if (!options?.dryRun) store('storageclasses', object, {})
         return createResult(object, Boolean(options?.dryRun), warnings)
@@ -358,7 +363,7 @@ export function createMockStorage(): StorageProvider {
         if (sizeError) throw sizeError
         const current = requestOf(pvc)
         if (bytes(size) <= bytes(current)) {
-          throw badRequest('size', `must be larger than the current request (${current}): volumes cannot shrink`)
+          throw invalid('size', 'storage.shrink_request', { size: current })
         }
         const blocker = expandBlocker(pvc)
         if (blocker) throw new ApiError(409, 'conflict', enT()(`expand.blocked.${blocker}`))

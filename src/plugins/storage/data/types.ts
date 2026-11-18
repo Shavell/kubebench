@@ -4,6 +4,8 @@
  * cluster stores ("10Gi").
  */
 
+import type { ReasonRef } from '@/data/types'
+
 export interface StorageClassSummary {
   name: string
   provisioner: string
@@ -161,4 +163,6 @@ export interface CreateResult {
   name: string
   dryRun: boolean
   warnings?: string[]
+  /** The reasons of `warnings`, index by index (§3.3). */
+  warningReasons?: ReasonRef[]
 }

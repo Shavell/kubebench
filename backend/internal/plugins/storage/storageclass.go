@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"sort"
 	"strings"
@@ -13,6 +12,7 @@ import (
 
 	"kubebench/internal/kube"
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 )
 
 // Annotations marking the default StorageClass (the beta one is still
@@ -52,11 +52,11 @@ func (req StorageClassRequest) validate() (storageClassSpec, error) {
 		return s, err
 	}
 	if len(req.Parameters) > maxParameters {
-		return s, invalidf("parameters", "at most %d parameters", maxParameters)
+		return s, invalidField("parameters", reasonTooManyParams, reason.Params{"max": maxParameters})
 	}
 	for key := range req.Parameters {
 		if key == "" {
-			return s, invalidf("parameters", "keys cannot be empty")
+			return s, invalidField("parameters", reasonEmptyKeys, nil)
 		}
 	}
 	switch p := corev1.PersistentVolumeReclaimPolicy(req.ReclaimPolicy); p {
@@ -65,7 +65,7 @@ func (req StorageClassRequest) validate() (storageClassSpec, error) {
 	case corev1.PersistentVolumeReclaimDelete, corev1.PersistentVolumeReclaimRetain:
 		s.reclaim = p
 	default:
-		return s, invalidf("reclaimPolicy", "%q is not Delete or Retain", req.ReclaimPolicy)
+		return s, invalidField("reclaimPolicy", reasonOneOf, reason.Params{"value": string(req.ReclaimPolicy), "values": "Delete, Retain"})
 	}
 	switch m := storagev1.VolumeBindingMode(req.VolumeBindingMode); m {
 	case "":
@@ -73,7 +73,7 @@ func (req StorageClassRequest) validate() (storageClassSpec, error) {
 	case storagev1.VolumeBindingImmediate, storagev1.VolumeBindingWaitForFirstConsumer:
 		s.binding = m
 	default:
-		return s, invalidf("volumeBindingMode", "%q is not Immediate or WaitForFirstConsumer", req.VolumeBindingMode)
+		return s, invalidField("volumeBindingMode", reasonOneOf, reason.Params{"value": string(req.VolumeBindingMode), "values": "Immediate, WaitForFirstConsumer"})
 	}
 	if err := mountOptions("mountOptions", req.MountOptions); err != nil {
 		return s, err
@@ -104,10 +104,10 @@ func (s storageClassSpec) object() *storagev1.StorageClass {
 
 // defaultWarning advises when a new default class joins existing ones:
 // the API server then gives claims without a class the newest default.
-func defaultWarning(ctx context.Context, rt *kube.Runtime) (string, error) {
+func defaultWarning(ctx context.Context, rt *kube.Runtime) (*reason.Error, error) {
 	list, err := rt.CS.StorageV1().StorageClasses().List(ctx, metav1.ListOptions{})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	var defaults []string
 	for i := range list.Items {
@@ -116,12 +116,12 @@ func defaultWarning(ctx context.Context, rt *kube.Runtime) (string, error) {
 		}
 	}
 	if len(defaults) == 0 {
-		return "", nil
+		return nil, nil
 	}
 	sort.Strings(defaults)
-	return fmt.Sprintf("already marked as default: %s. Claims without a class get the newest default; "+
-		"remove the %s annotation from the classes that should no longer be default",
-		strings.Join(defaults, ", "), defaultClassAnnotation), nil
+	return reason.New(reasonOtherDefaults, reason.Params{
+		"classes": strings.Join(defaults, ", "), "annotation": defaultClassAnnotation,
+	}), nil
 }
 
 // createStorageClass serves POST /storageclasses?dryRun=.
@@ -136,14 +136,14 @@ func createStorageClass(w http.ResponseWriter, r *http.Request, c *plugin.Contex
 		writeErr(w, err)
 		return
 	}
-	var warnings []string
+	var warnings []*reason.Error
 	if req.IsDefault {
 		warning, err := defaultWarning(r.Context(), c.Runtime)
 		if err != nil {
 			writeErr(w, err)
 			return
 		}
-		if warning != "" {
+		if warning != nil {
 			warnings = append(warnings, warning)
 		}
 	}
@@ -157,10 +157,9 @@ func createStorageClass(w http.ResponseWriter, r *http.Request, c *plugin.Contex
 		writeErr(w, err)
 		return
 	}
-	plugin.WriteJSON(w, CreateResult{
-		APIVersion: "storage.k8s.io/v1", Kind: "StorageClass", Name: created.Name,
-		DryRun: plugin.IsDryRun(r), Warnings: warnings,
-	})
+	res := CreateResult{APIVersion: "storage.k8s.io/v1", Kind: "StorageClass", Name: created.Name, DryRun: plugin.IsDryRun(r)}
+	res.Warnings, res.WarningReasons = reason.Split(warnings)
+	plugin.WriteJSON(w, res)
 }
 
 func isDefaultClass(sc *storagev1.StorageClass) bool {

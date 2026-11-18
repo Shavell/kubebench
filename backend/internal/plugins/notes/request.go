@@ -3,7 +3,6 @@ package notes
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"regexp"
@@ -14,6 +13,7 @@ import (
 	"unicode/utf8"
 
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 	"kubebench/internal/store"
 )
 
@@ -39,12 +39,21 @@ var (
 )
 
 // invalidErr is a request refused as 400 bad_request, naming the field.
-type invalidErr struct{ field, msg string }
+type invalidErr struct{ err *reason.Error }
 
-func (e *invalidErr) Error() string { return e.field + ": " + e.msg }
+func (e *invalidErr) Error() string { return e.err.Error() }
 
-func invalidf(field, format string, args ...any) error {
-	return &invalidErr{field: field, msg: fmt.Sprintf(format, args...)}
+// Reason implements reason.Reasoned.
+func (e *invalidErr) Reason() (reason.Code, reason.Params) { return e.err.Reason() }
+
+// invalidField is the refusal of field, explained by code with params;
+// the field is the {{field}} parameter.
+func invalidField(field string, code reason.Code, params reason.Params) error {
+	if params == nil {
+		params = reason.Params{}
+	}
+	params["field"] = field
+	return &invalidErr{reason.New(code, params)}
 }
 
 // writeErr reports err with the status of its kind.
@@ -54,13 +63,12 @@ func writeErr(w http.ResponseWriter, err error) {
 	case errors.As(err, &bad):
 		plugin.WriteError(w, http.StatusBadRequest, plugin.CodeBadRequest, err)
 	case errors.Is(err, store.ErrNotFound):
-		plugin.WriteError(w, http.StatusNotFound, plugin.CodeNotFound, errors.New("note not found"))
+		plugin.WriteError(w, http.StatusNotFound, plugin.CodeNotFound, reason.New(reasonNotFound, nil))
 	case errors.Is(err, store.ErrNoteVersion):
-		plugin.WriteError(w, http.StatusConflict, plugin.CodeConflict,
-			errors.New("the note was changed since you opened it; reload it or overwrite the other change"))
+		plugin.WriteError(w, http.StatusConflict, plugin.CodeConflict, reason.New(reasonChanged, nil))
 	case errors.Is(err, store.ErrNoteLimit):
 		plugin.WriteError(w, http.StatusConflict, plugin.CodeConflict,
-			fmt.Errorf("you have reached the limit of %d notes; delete notes you no longer need", maxNotesPerUser))
+			reason.New(reasonNoteLimit, reason.Params{"max": maxNotesPerUser}))
 	default:
 		plugin.WriteError(w, http.StatusInternalServerError, plugin.CodeInternal, err)
 	}
@@ -73,12 +81,12 @@ func decode(w http.ResponseWriter, r *http.Request, v any) error {
 	if err := dec.Decode(v); err != nil {
 		var tooLarge *http.MaxBytesError
 		if errors.As(err, &tooLarge) {
-			return invalidf("body", "the request is larger than %d bytes", maxRequest)
+			return invalidField("body", reasonRequestSize, reason.Params{"max": maxRequest})
 		}
-		return invalidf("body", "invalid JSON: %v", err)
+		return invalidField("body", reasonInvalidJSON, reason.Params{"detail": err.Error()})
 	}
 	if dec.Decode(&struct{}{}) != io.EOF {
-		return invalidf("body", "unexpected data after the JSON object")
+		return invalidField("body", reasonTrailingData, nil)
 	}
 	return nil
 }
@@ -96,17 +104,17 @@ func (c content) edit() (store.NoteEdit, error) {
 	title := strings.TrimSpace(c.Title)
 	switch {
 	case title == "":
-		return store.NoteEdit{}, invalidf("title", "must not be empty")
+		return store.NoteEdit{}, invalidField("title", reasonTitleEmpty, nil)
 	case utf8.RuneCountInString(title) > maxTitle:
-		return store.NoteEdit{}, invalidf("title", "must be at most %d characters", maxTitle)
+		return store.NoteEdit{}, invalidField("title", reasonTitleLength, reason.Params{"max": maxTitle})
 	case strings.IndexFunc(title, unicode.IsControl) >= 0:
-		return store.NoteEdit{}, invalidf("title", "must be a single line of text")
+		return store.NoteEdit{}, invalidField("title", reasonTitleLine, nil)
 	}
 	if len(c.Body) > maxBody {
-		return store.NoteEdit{}, invalidf("body", "must be at most %d KiB", maxBody>>10)
+		return store.NoteEdit{}, invalidField("body", reasonBodySize, reason.Params{"max": maxBody >> 10})
 	}
 	if !utf8.ValidString(c.Body) {
-		return store.NoteEdit{}, invalidf("body", "must be UTF-8 text")
+		return store.NoteEdit{}, invalidField("body", reasonBodyUTF8, nil)
 	}
 	tags, err := normalizeTags(c.Tags)
 	if err != nil {
@@ -120,14 +128,14 @@ func normalizeTags(in []string) ([]string, error) {
 	for _, raw := range in {
 		tag := strings.ToLower(strings.TrimSpace(raw))
 		if !tagPattern.MatchString(tag) {
-			return nil, invalidf("tags", "%q is not a tag: 1-40 letters, digits, '.', '_' or '-', starting with a letter or digit", raw)
+			return nil, invalidField("tags", reasonTag, reason.Params{"tag": raw})
 		}
 		if !slices.Contains(tags, tag) {
 			tags = append(tags, tag)
 		}
 	}
 	if len(tags) > maxTags {
-		return nil, invalidf("tags", "at most %d tags", maxTags)
+		return nil, invalidField("tags", reasonTooManyTags, reason.Params{"max": maxTags})
 	}
 	slices.Sort(tags)
 	return tags, nil
@@ -136,13 +144,13 @@ func normalizeTags(in []string) ([]string, error) {
 // object validates a reference to a Kubernetes object.
 func (o ObjectRef) object() (*store.NoteObject, error) {
 	if !kindPattern.MatchString(o.Kind) {
-		return nil, invalidf("resource.kind", "%q is not a Kubernetes kind", o.Kind)
+		return nil, invalidField("resource.kind", reasonKind, reason.Params{"value": o.Kind})
 	}
 	if err := checkName("resource.name", o.Name); err != nil {
 		return nil, err
 	}
 	if o.Namespace != "" && !namespacePattern.MatchString(o.Namespace) {
-		return nil, invalidf("resource.namespace", "%q is not a namespace name", o.Namespace)
+		return nil, invalidField("resource.namespace", reasonNamespace, reason.Params{"value": o.Namespace})
 	}
 	group, err := groupOf(o.APIVersion)
 	if err != nil {
@@ -156,7 +164,7 @@ func (o ObjectRef) object() (*store.NoteObject, error) {
 func checkName(field, name string) error {
 	if name == "" || len(name) > 253 || strings.ContainsAny(name, "/%") ||
 		strings.IndexFunc(name, func(r rune) bool { return unicode.IsControl(r) || unicode.IsSpace(r) }) >= 0 {
-		return invalidf(field, "%q is not an object name", name)
+		return invalidField(field, reasonObjectName, reason.Params{"value": name})
 	}
 	return nil
 }
@@ -168,7 +176,7 @@ func groupOf(apiVersion string) (string, error) {
 	}
 	if len(apiVersion) > 253 || strings.Count(apiVersion, "/") > 1 ||
 		strings.IndexFunc(apiVersion, func(r rune) bool { return unicode.IsControl(r) || unicode.IsSpace(r) }) >= 0 {
-		return "", invalidf("resource.apiVersion", "%q is not an API version", apiVersion)
+		return "", invalidField("resource.apiVersion", reasonAPIVersion, reason.Params{"value": apiVersion})
 	}
 	group, _, found := strings.Cut(apiVersion, "/")
 	if !found {
@@ -181,7 +189,7 @@ func groupOf(apiVersion string) (string, error) {
 func noteID(r *http.Request) (int64, error) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil || id <= 0 {
-		return 0, invalidf("id", "%q is not a note id", r.PathValue("id"))
+		return 0, invalidField("id", reasonNoteID, reason.Params{"value": r.PathValue("id")})
 	}
 	return id, nil
 }
@@ -195,7 +203,7 @@ func match(r *http.Request) (*store.NoteMatch, error) {
 	set := false
 	if kind := q.Get("kind"); kind != "" {
 		if !kindPattern.MatchString(kind) {
-			return nil, invalidf("kind", "%q is not a Kubernetes kind", kind)
+			return nil, invalidField("kind", reasonKind, reason.Params{"value": kind})
 		}
 		m.Kind, set = &kind, true
 	}
@@ -208,7 +216,7 @@ func match(r *http.Request) (*store.NoteMatch, error) {
 	// An object named without a namespace is cluster-scoped.
 	if namespace := q.Get("namespace"); namespace != "" || m.Name != nil {
 		if namespace != "" && !namespacePattern.MatchString(namespace) {
-			return nil, invalidf("namespace", "%q is not a namespace name", namespace)
+			return nil, invalidField("namespace", reasonNamespace, reason.Params{"value": namespace})
 		}
 		m.Namespace, set = &namespace, true
 	}

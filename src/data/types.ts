@@ -1,5 +1,14 @@
 /** Domain types shaped after the Kubernetes API, trimmed to what the UI shows. */
 
+/** Parameters of a server reason code (design §3.3), e.g. `{"cluster": "prod"}`. */
+export type ReasonParams = Record<string, unknown>
+
+/** A server reason code with its parameters, e.g. one of a response's `warningReasons`. */
+export interface ReasonRef {
+  reason: string
+  params?: ReasonParams
+}
+
 export interface K8sNode {
   name: string
   roles: string[]
@@ -117,6 +126,9 @@ export interface ServerInfo {
   features: ServerFeatures
   /** Why no cluster runtime is available (no assignment, bad kubeconfig, …); empty otherwise. */
   clusterError: string
+  /** Reason code and parameters of clusterError, for its translation (§3.3). */
+  clusterErrorReason?: string
+  clusterErrorParams?: ReasonParams
 }
 
 /** Options of GET /api/logs (design §4.4). */
@@ -158,7 +170,10 @@ export interface AuditQuery {
 
 export interface PluginAvailability {
   available: boolean
+  /** The server's English explanation; reasonCode and reasonParams translate it (§3.3). */
   reason?: string
+  reasonCode?: string
+  reasonParams?: ReasonParams
 }
 
 /** A plugin known to the server: a backend plugin or an installed external UI plugin. */
@@ -381,8 +396,13 @@ export interface ApplyResult {
    * `not_found` a kind the cluster does not serve.
    */
   code?: string
+  /** Reason code and parameters of `error` when KubeBench explains it itself (§3.3). */
+  reason?: string
+  params?: ReasonParams
   /** E.g. that the namespace of a cluster-scoped object was ignored. */
   warnings?: string[]
+  /** The reasons of `warnings`, index by index. */
+  warningReasons?: ReasonRef[]
 }
 
 export interface ApplyOptions {
@@ -443,8 +463,8 @@ export interface DrainResult {
   /** Every Pod that had to leave the node is gone. */
   completed: boolean
   evicted: string[]
-  /** Pods that should have left but are still there. */
-  failed: { pod: string; error: string }[]
+  /** Pods that should have left but are still there; `reason` translates KubeBench's own `error` (§3.3). */
+  failed: { pod: string; error: string; reason?: string }[]
   /** The failed Pods a PodDisruptionBudget kept on the node. */
   blockedByPDB: string[]
   /** Pods a drain leaves alone. */
@@ -529,6 +549,9 @@ export interface UpdateStatus {
   checkedAt: string | null
   /** Why the last check failed; empty after a success. */
   error: string
+  /** Reason code and parameters of error, for its translation (§3.3). */
+  errorReason?: string
+  errorParams?: ReasonParams
 }
 
 // Live updates (design §7.10, GET /api/watch).
@@ -547,6 +570,9 @@ export interface WatchTopicStatus {
   topic: string
   mode: WatchTopicMode
   reason?: string
+  /** Reason code and parameters of reason, for its translation (§3.3). */
+  reasonCode?: string
+  reasonParams?: ReasonParams
 }
 
 /** `event: change`: an object of `topic` changed in `namespace` ('' = cluster-scoped or anywhere). */

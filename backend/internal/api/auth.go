@@ -10,6 +10,7 @@ import (
 	"kubebench/internal/config"
 	"kubebench/internal/password"
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 	"kubebench/internal/store"
 )
 
@@ -18,7 +19,7 @@ const sessionCookie = "kubebench_session"
 // validatePassword enforces the password policy for new passwords.
 func validatePassword(pw string) error {
 	if err := password.Check(pw); err != nil {
-		return badRequest("the password %v", err)
+		return refuse(http.StatusBadRequest, plugin.CodeBadRequest, err)
 	}
 	return nil
 }
@@ -51,7 +52,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request, _ *call) {
 	user, err := s.store.Authenticate(body.Username, body.Password)
 	if errors.Is(err, store.ErrNotFound) {
 		s.limiter.fail(key)
-		writeErr(w, errorf(http.StatusUnauthorized, plugin.CodeUnauthenticated, "invalid username or password"))
+		writeErr(w, fail(http.StatusUnauthorized, plugin.CodeUnauthenticated, reasonInvalidCredentials, nil))
 		return
 	}
 	if err != nil {
@@ -85,8 +86,8 @@ func (s *Server) throttled(w http.ResponseWriter, key limiterKey) error {
 		return nil
 	}
 	w.Header().Set("Retry-After", strconv.Itoa(int(math.Ceil(wait.Seconds()))))
-	return errorf(http.StatusTooManyRequests, plugin.CodeRateLimited,
-		"too many failed attempts; try again in %d minutes", int(math.Ceil(wait.Minutes())))
+	return fail(http.StatusTooManyRequests, plugin.CodeRateLimited, reasonTooManyAttempts,
+		reason.Params{"minutes": int(math.Ceil(wait.Minutes()))})
 }
 
 func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request, c *call) {
@@ -126,11 +127,11 @@ func (s *Server) handleChangePassword(w http.ResponseWriter, r *http.Request, c 
 	}
 	if !ok {
 		s.limiter.fail(key)
-		writeErr(w, errorf(http.StatusForbidden, plugin.CodeForbidden, "the current password is incorrect"))
+		writeErr(w, fail(http.StatusForbidden, plugin.CodeForbidden, reasonWrongPassword, nil))
 		return
 	}
 	if body.NewPassword == body.CurrentPassword {
-		writeErr(w, badRequest("the new password must differ from the current one"))
+		writeErr(w, badRequest(reasonSamePassword, nil))
 		return
 	}
 	s.limiter.reset(key)

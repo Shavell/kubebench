@@ -62,10 +62,13 @@ type DrainResult struct {
 	Errors []string `json:"errors"`
 }
 
-// PodFailure is a pod a drain could not remove, with the reason.
+// PodFailure is a pod a drain could not remove, with the reason: the
+// Kubernetes API's refusal, or KubeBench's own explanation with its reason
+// code (§3.3).
 type PodFailure struct {
-	Pod   string `json:"pod"`
-	Error string `json:"error"`
+	Pod    string `json:"pod"`
+	Error  string `json:"error"`
+	Reason string `json:"reason,omitempty"`
 }
 
 // SkippedPod is a pod a drain left on the node on purpose.
@@ -225,7 +228,7 @@ func (e *evictionRecorder) report(res *DrainResult, pods []corev1.Pod, drainErr 
 			res.Evicted = append(res.Evicted, key)
 			continue
 		}
-		res.Failed = append(res.Failed, PodFailure{Pod: key, Error: e.reason(key)})
+		res.Failed = append(res.Failed, e.failure(key))
 		if apierrors.IsTooManyRequests(e.lastErr[key]) {
 			res.BlockedByPDB = append(res.BlockedByPDB, key)
 		}
@@ -241,13 +244,14 @@ func (e *evictionRecorder) report(res *DrainResult, pods []corev1.Pod, drainErr 
 	res.Completed = len(res.Failed) == 0 && len(res.Errors) == 0
 }
 
-func (e *evictionRecorder) reason(key string) string {
+// failure explains why the pod key is still on the node.
+func (e *evictionRecorder) failure(key string) PodFailure {
+	why := reasonNotEvicted
 	switch {
 	case e.lastErr[key] != nil:
-		return e.lastErr[key].Error()
+		return PodFailure{Pod: key, Error: e.lastErr[key].Error()}
 	case e.accepted[key]:
-		return "evicted, but the pod had not terminated when the drain ended"
-	default:
-		return "not evicted before the drain ended"
+		why = reasonNotTerminated
 	}
+	return PodFailure{Pod: key, Error: why.Text(nil), Reason: why.String()}
 }

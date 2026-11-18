@@ -29,6 +29,22 @@ those commits.
   Ingress picks one of its rules (host and path) and shows the Service
   behind it, sending the rule's host, so virtual-hosted applications work.
 
+### Changed
+
+- **Server messages in your language**: errors and explanations from the
+  server (a refused change on a read-only cluster or for a viewer, a missing
+  Prometheus, Argo CD not installed, validation errors, why live updates
+  fall back to polling, why the update check failed, why a terminal, log
+  stream or live-update stream was closed) are shown in Turkish and German
+  too. The API adds a stable `reason` code and `params` to such
+  errors; messages of the Kubernetes API itself stay as they are.
+
+### Security
+
+- The database keeps only a SHA-256 digest of each session token, so a
+  copy of it or of a backup holds no usable sessions. Existing sessions are
+  converted when the new version first starts; nobody is signed out.
+
 ## [0.6.0] - 2026-11-18
 
 First public release. It also ships everything listed under 0.5.0, which
