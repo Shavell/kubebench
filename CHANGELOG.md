@@ -16,6 +16,20 @@ those commits.
 
 ## [Unreleased]
 
+### Added
+
+- Single sign-on with OpenID Connect: "Sign in with <provider>" on the
+  sign-in screen (authorization code flow with PKCE), users created at
+  their first sign-in, and global and cluster roles re-computed from group
+  mappings at every sign-in. Local accounts keep working; the last local
+  admin is the break-glass account and cannot be removed.
+- Settings > Authentication for admins: the sign-in methods, group
+  mappings (audited) and a "test sign-in" preview of what a user would get.
+- New settings `KUBEBENCH_PUBLIC_URL`, `KUBEBENCH_AUTH_REQUIRE_GROUP`,
+  `KUBEBENCH_AUTH_GROUP_MAPPINGS` and `KUBEBENCH_OIDC_*`, with matching
+  Helm chart values (`config.publicUrl`, `identity.*`, the client secret
+  from an existing Secret).
+
 ## [0.6.0] - 2026-11-18
 
 First public release. It also ships everything listed under 0.5.0, which

@@ -98,8 +98,43 @@ data). Rows are pruned after `KUBEBENCH_AUDIT_RETENTION_DAYS` (default 90;
 - Terminals, log streams and watch streams are re-authorized at every
   heartbeat and end when the session, the assignment or the permission
   ends. Per-user limits: 10 terminals, 20 log streams, 16 watch streams.
-- There is no SSO yet; put KubeBench behind your identity-aware proxy if
-  you need one, and still use KubeBench accounts for roles.
+- Single sign-on through an OpenID Connect provider (v0.7; see below).
+
+## External identities (OIDC)
+
+With `KUBEBENCH_OIDC_*` set, users can sign in through an OpenID Connect
+provider ([configuration](configuration.md#external-identities-oidc),
+design §3.6):
+
+- **Flow.** Authorization code flow with PKCE (S256), `state` bound to the
+  browser by an HttpOnly cookie, and `nonce`. The ID token is verified
+  against the provider's discovery document and signing keys (issuer,
+  audience, expiry, nonce). TLS to the provider is always verified; add a
+  private CA with `KUBEBENCH_OIDC_CA_FILE`.
+- **Secrets.** The client secret comes from the environment, a file
+  (`KUBEBENCH_OIDC_CLIENT_SECRET_FILE`) or a Kubernetes Secret (chart
+  `identity.oidc.existingSecret`). No API returns it (Settings shows only
+  whether it is set), and it is never logged or audited.
+- **Roles from groups.** External users get their global role and cluster
+  roles from group mappings, re-computed at every sign-in; manual edits do
+  not survive the next sign-in. Map narrowly: whoever controls group
+  membership at the provider controls KubeBench admin rights.
+- **No takeover.** An external sign-in never adopts an existing account:
+  a username that belongs to a local user (or another provider's user) is
+  refused. External users have no local password.
+- **Break-glass.** The last local admin cannot be deleted or demoted, so
+  local sign-in keeps working when the provider is unavailable. Keep that
+  password in your secret store and use it only in emergencies (its
+  sign-ins are visible in the server log; external sign-ins are audited).
+- **Revocation.** There is no background sync: disabling a user at the
+  provider stops new sign-ins, while open sessions last until they expire
+  (`KUBEBENCH_SESSION_TTL`) unless the user tries to sign in again. Use a
+  short TTL with SSO, or delete the user in Users to end their sessions at
+  once.
+- **Audit and throttling.** Every external sign-in is audited
+  (`auth.signin`, with the failure class of refused ones), as is every
+  group mapping change; failed callbacks are throttled per client IP like
+  failed logins.
 
 ## Service browser
 
@@ -237,6 +272,7 @@ The server opens outbound connections only to:
 | Helm repositories and OCI registries | Only when a user adds a repository, updates it, searches it or installs/upgrades a chart from it | Do not configure remote repositories; upload `.tgz` charts instead |
 | Cloud token endpoints (AWS STS, Google, Microsoft Entra ID) | Only for EKS, GKE or AKS clusters that use the in-process token providers | Use static credentials in the kubeconfig |
 | In-cluster services | Only through the service browser, at the user's request, via the API server | Do not grant the `browse` access |
+| The OIDC provider (`KUBEBENCH_OIDC_ISSUER`) | Discovery, keys, token and userinfo requests during sign-ins, and the admins' provider status check | Leave OIDC unconfigured |
 
 The browser loads everything from KubeBench itself; the only external
 links in the UI are documentation and release pages that open when a user
