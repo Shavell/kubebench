@@ -16,6 +16,12 @@ those commits.
 
 ## [Unreleased]
 
+### Security
+
+- The database keeps only a SHA-256 digest of each session token, so a
+  copy of it or of a backup holds no usable sessions. Existing sessions are
+  converted when the new version first starts; nobody is signed out.
+
 ## [0.6.0] - 2026-11-18
 
 First public release. It also ships everything listed under 0.5.0, which

@@ -138,7 +138,7 @@ func (s *Store) SetPassword(userID int64, password string, mustChangePassword bo
 		if n, _ := res.RowsAffected(); n == 0 {
 			return ErrNotFound
 		}
-		_, err = tx.Exec(`DELETE FROM sessions WHERE user_id = ? AND token != ?`, userID, keepToken)
+		_, err = tx.Exec(`DELETE FROM sessions WHERE user_id = ? AND token_hash != ?`, userID, hashToken(keepToken))
 		return err
 	})
 }

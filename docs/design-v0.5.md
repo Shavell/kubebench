@@ -268,6 +268,10 @@ error text. Pruned per `KUBEBENCH_AUDIT_RETENTION_DAYS`.
   cookie accompanies) → `403 forbidden` too.
 - Session cookie `kubebench_session`: HttpOnly, SameSite=Lax, Secure per
   `KUBEBENCH_SECURE_COOKIES`. Expired sessions pruned hourly.
+- Session tokens (256 random bits, hex) are stored only as their SHA-256
+  digest (`sessions.token_hash`, schema v6, v0.7) and looked up by it;
+  the migration hashes the plain tokens of earlier versions in place, so
+  live sessions survive the upgrade.
 - A successful sign-in with the well-known default password `admin` sets
   `must_change_password` too, so accounts carried over from v0.4 (which had
   no forced change) cannot keep it.
