@@ -40,13 +40,29 @@
   },
   "auth": {
     "admin_required": "Diese Aktion erfordert einen Administrator",
+    "external_password": "Dieses Konto meldet sich über einen Identitätsanbieter an; sein Passwort wird dort verwaltet",
     "invalid_credentials": "Ungültiger Benutzername oder ungültiges Passwort",
+    "invalid_mapping_id": "Ungültige Zuordnungs-ID \"{{id}}\"",
+    "oidc_not_configured": "Die OIDC-Anmeldung ist nicht konfiguriert",
     "password_change_required": "Ändern Sie Ihr Passwort, um fortzufahren",
+    "preview_source": "Die Quelle muss oidc oder ldap sein",
     "same_password": "Das neue Passwort muss sich vom aktuellen unterscheiden",
     "session_ended": "Ihre Sitzung wurde beendet; melden Sie sich erneut an",
     "session_expired": "Ihre Sitzung ist abgelaufen; melden Sie sich erneut an",
     "sign_in": "Melden Sie sich an, um fortzufahren",
+    "signin": {
+      "account_disabled": "Dieses Konto ist deaktiviert",
+      "domain_not_allowed": "Mit dieser E-Mail-Domain ist keine Anmeldung möglich",
+      "invalid_credentials": "Ungültiger Benutzername oder ungültiges Passwort",
+      "invalid_request": "Die Anmeldung konnte nicht überprüft werden; versuchen Sie es erneut",
+      "invalid_username": "Der Benutzername des Kontos kann in KubeBench nicht verwendet werden",
+      "no_matching_group": "Keine Gruppe dieses Kontos gewährt Zugriff auf KubeBench",
+      "provider_error": "Der Identitätsanbieter ist nicht erreichbar",
+      "refused": "Die Anmeldung wurde abgelehnt",
+      "username_conflict": "Der Benutzername gehört zu einem anderen KubeBench-Konto"
+    },
     "too_many_attempts": "Zu viele fehlgeschlagene Versuche; versuchen Sie es in {{minutes}} Minuten erneut",
+    "unknown_source": "Unbekannte Anmeldequelle \"{{source}}\"",
     "wrong_password": "Das aktuelle Passwort ist falsch"
   },
   "cloud": {
@@ -195,6 +211,15 @@
     "not_object": "Dokument {{document}}: kein Objekt",
     "secret_annotation_placeholder": "Dokument {{document}}: Secret {{name}}: Die Annotation {{annotation}} enthält einen Platzhalter der Schwärzung; entfernen Sie die Annotation",
     "secret_placeholder": "Dokument {{document}}: Secret {{name}}: {{field}} enthält einen Platzhalter der Schwärzung statt des Werts; zeigen Sie das Secret an und verwenden Sie die echten Werte"
+  },
+  "mappings": {
+    "admin_cluster": "Eine Admin-Zuordnung gilt für alle Cluster: lassen Sie den Cluster leer",
+    "cluster_required": "Eine operator- oder viewer-Zuordnung benötigt einen Cluster",
+    "exists": "Die Gruppe \"{{group}}\" hat für diesen Cluster bereits eine Zuordnung",
+    "group_required": "Die Gruppe ist erforderlich",
+    "group_too_long": "Die Gruppe darf höchstens {{max}} Zeichen lang sein",
+    "invalid_role": "Ungültige Rolle \"{{role}}\": verwenden Sie admin, operator oder viewer",
+    "invalid_source": "Ungültige Quelle \"{{source}}\": verwenden Sie oidc, ldap oder nichts für alle Anbieter"
   },
   "metrics": {
     "needs_prometheus": "metrics-server hat keine {{metric}}-Daten; dafür wird Prometheus benötigt",
@@ -411,8 +436,8 @@
     "invalid_role": "Ungültige Rolle \"{{role}}\": verwenden Sie admin oder user",
     "invalid_username": "Ein Benutzername hat 1 bis 64 Buchstaben, Ziffern, '.', '_', '@' oder '-'",
     "last_admin": "Mindestens ein Administrator muss bleiben",
-    "last_admin_delete": "Der letzte Administrator kann nicht gelöscht werden: Machen Sie zuerst einen anderen Benutzer zum Administrator",
-    "last_admin_demote": "Der letzte Administrator kann nicht herabgestuft werden: Machen Sie zuerst einen anderen Benutzer zum Administrator",
+    "last_admin_delete": "Der letzte lokale Administrator kann nicht gelöscht werden: Machen Sie zuerst einen anderen lokalen Benutzer zum Administrator (der lokale Administrator ist das Notfallkonto)",
+    "last_admin_demote": "Der letzte lokale Administrator kann nicht herabgestuft werden: Machen Sie zuerst einen anderen lokalen Benutzer zum Administrator (der lokale Administrator ist das Notfallkonto)",
     "not_found": "Benutzer {{id}} nicht gefunden",
     "nothing_to_update": "Nichts zu aktualisieren: senden Sie role und/oder password",
     "seen_version_length": "lastSeenVersion muss 1 bis {{max}} Zeichen lang sein"

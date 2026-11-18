@@ -63,6 +63,7 @@ requests finish.
 | `internal/updates` | The update check against GitHub releases (cached 6 h, ETag revalidation, backoff) and SemVer handling of the build version (§7.11) |
 | `internal/cloud` | Provider detection (EKS, AKS, GKE, OpenShift, DOKS, LKE, OVH, k3s, RKE2, Kubernetes) and the bundled version support tables (§7.12) |
 | `internal/cloudauth` | Recognises the EKS, GKE and AKS exec stanzas in kubeconfigs, removes them and signs requests in process with AWS, Google or Azure credentials (per-cluster or the server's own identity) |
+| `internal/identity` | External identities (§3.6): the provider interfaces shared by OIDC and LDAP, failure classes, group-mapping resolution and the sign-in service that creates and updates external users; `identity/oidcauth` is the OpenID Connect provider (PKCE, discovery, JWKS), `identity/ldapauth` the LDAP / Active Directory provider (service-account search, user bind, nested groups, a small connection pool) |
 | `internal/web` | Serves the embedded frontend (`go:embed all:dist`), falling back to `index.html` for client-side routes |
 
 ### Router and access levels

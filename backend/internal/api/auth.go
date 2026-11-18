@@ -29,19 +29,30 @@ type meView struct {
 	Username           string `json:"username"`
 	Role               string `json:"role"`
 	MustChangePassword bool   `json:"mustChangePassword"`
+	// Source is where the account comes from: local, oidc or ldap (§3.6).
+	Source      string `json:"source"`
+	DisplayName string `json:"displayName"`
 }
 
 func viewMe(u *store.User) meView {
-	return meView{ID: u.ID, Username: u.Username, Role: u.Role, MustChangePassword: u.MustChangePassword}
+	return meView{ID: u.ID, Username: u.Username, Role: u.Role, MustChangePassword: u.MustChangePassword,
+		Source: u.Source, DisplayName: u.DisplayName}
 }
 
 func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request, _ *call) {
 	var body struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
+		// Source names a password provider (a directory, §3.6); empty or
+		// "local" signs in with a local account.
+		Source string `json:"source"`
 	}
 	if err := decodeJSON(w, r, &body); err != nil {
 		writeErr(w, err)
+		return
+	}
+	if body.Source != "" && body.Source != store.UserSourceLocal {
+		s.signInExternal(w, r, body.Source, body.Username, body.Password)
 		return
 	}
 	key := newLimiterKey(s.clientIP(r), body.Username)
@@ -90,13 +101,21 @@ func (s *Server) throttled(w http.ResponseWriter, key limiterKey) error {
 		reason.Params{"minutes": int(math.Ceil(wait.Minutes()))})
 }
 
+// handleLogout ends the session. For an OIDC session whose provider
+// supports RP-initiated logout, logoutUrl is where the browser goes next
+// to end the provider's session too (§3.6).
 func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request, c *call) {
+	logoutURL := s.oidcLogoutURL(r, c.user, c.token)
 	if err := s.store.DeleteSession(c.token); err != nil {
 		writeErr(w, err)
 		return
 	}
 	http.SetCookie(w, s.sessionCookie(r, "", -1))
-	writeOK(w)
+	resp := map[string]any{"ok": true}
+	if logoutURL != "" {
+		resp["logoutUrl"] = logoutURL
+	}
+	plugin.WriteJSON(w, resp)
 }
 
 // handleChangePassword sets the caller's own password (§4.2). It clears a
@@ -108,6 +127,10 @@ func (s *Server) handleChangePassword(w http.ResponseWriter, r *http.Request, c 
 	}
 	if err := decodeJSON(w, r, &body); err != nil {
 		writeErr(w, err)
+		return
+	}
+	if c.user.IsExternal() {
+		writeErr(w, errExternalPassword)
 		return
 	}
 	if err := validatePassword(body.NewPassword); err != nil {

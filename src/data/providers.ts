@@ -52,6 +52,11 @@ import type {
   ScalableKind,
   UpdateMode,
   UpdateStatus,
+  AuthSettings,
+  ExternalAuthSource,
+  GroupMapping,
+  GroupMappingInput,
+  SignInPreview,
 } from './types'
 
 /**
@@ -161,7 +166,8 @@ export interface SessionProvider {
   info(): Promise<ServerInfo>
   /** Clears `mustChangePassword`; the server revokes the user's other sessions. */
   changePassword(currentPassword: string, newPassword: string): Promise<void>
-  logout(): Promise<void>
+  /** Ends the session; `logoutUrl` ends the identity provider's session too (OIDC). */
+  logout(): Promise<{ logoutUrl?: string }>
 }
 
 export interface AuditProvider {
@@ -187,6 +193,7 @@ export interface DataProviders {
   workloadOps: WorkloadOpsProvider
   updates: UpdatesProvider
   live: LiveProvider
+  identity: IdentityProvider
 }
 
 /** Release checks and the What's new state of the signed-in user (design §7.11). */
@@ -244,4 +251,15 @@ export interface WorkloadOpsProvider {
 export interface LiveProvider {
   /** Follows changes of `topics` (1 to 32 resources) until closed. */
   watch(topics: readonly string[], handlers: WatchHandlers): WatchStream
+}
+
+/** Admin: external sign-in settings and group mappings (design §3.6). */
+export interface IdentityProvider {
+  settings(): Promise<AuthSettings>
+  listMappings(): Promise<GroupMapping[]>
+  createMapping(mapping: GroupMappingInput): Promise<void>
+  updateMapping(id: number, mapping: GroupMappingInput): Promise<void>
+  deleteMapping(id: number): Promise<void>
+  /** "Who would I be": the mapping result for a user, without signing in. `groups` undefined = look them up. */
+  preview(source: ExternalAuthSource, username: string, groups?: string[]): Promise<SignInPreview>
 }

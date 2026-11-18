@@ -3,6 +3,7 @@ import { i18n } from '@/i18n'
 import { ApiError, apiGet } from '../apiClient'
 import type {
   ActiveCluster,
+  AuthSource,
   ClusterEnvironment,
   ClusterRole,
   GlobalRole,
@@ -25,6 +26,7 @@ const bool = (value: unknown): boolean => value === true
 
 const ENVIRONMENTS: readonly ClusterEnvironment[] = ['', 'development', 'staging', 'production']
 const CLUSTER_ROLES: readonly ClusterRole[] = ['admin', 'operator', 'viewer']
+const AUTH_SOURCES: readonly AuthSource[] = ['local', 'oidc', 'ldap']
 
 function environment(value: unknown): ClusterEnvironment {
   return ENVIRONMENTS.find((env) => env === value) ?? ''
@@ -62,6 +64,7 @@ function parseServerInfo(body: unknown): ServerInfo {
     user: body.user,
     role,
     mustChangePassword: bool(body.mustChangePassword),
+    authSource: AUTH_SOURCES.find((source) => source === body.authSource) ?? 'local',
     context: str(body.context),
     server: str(body.server),
     cluster: cluster(body.cluster),

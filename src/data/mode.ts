@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import type {
   ActiveCluster,
+  AuthSource,
   GlobalRole,
   LiveCapabilities,
   ReasonParams,
@@ -37,6 +38,8 @@ export interface DataMode {
   capabilities?: LiveCapabilities
   features?: ServerFeatures
   mustChangePassword?: boolean
+  /** Where the signed-in account comes from; external accounts have no local password. */
+  authSource?: AuthSource
   /** Why no cluster runtime is available (no assignment, bad kubeconfig, …). */
   clusterError?: string
   /** Reason code and parameters of clusterError, for its translation (§3.3). */
@@ -87,6 +90,7 @@ export function dataModeFromInfo(mode: DataMode['mode'], info: ServerInfo): Data
     capabilities: info.capabilities,
     features: info.features,
     mustChangePassword: info.mustChangePassword,
+    authSource: info.authSource,
     clusterError: info.clusterError || undefined,
     clusterErrorReason: info.clusterErrorReason,
     clusterErrorParams: info.clusterErrorParams,

@@ -1,0 +1,23 @@
+# OIDC sign-in with group mappings and a CA bundle (docs/design-v0.5.md §3.6).
+config:
+  publicUrl: https://kubebench.example.com
+identity:
+  requireGroup: true
+  groupMappings:
+    - group: kubebench-admins
+      role: admin
+    - group: platform-sre
+      role: operator
+      cluster: in-cluster
+  oidc:
+    enabled: true
+    issuer: https://sso.example.com/realms/platform
+    clientId: kubebench
+    name: Company SSO
+    groupsClaim: groups
+    allowedDomains: [example.com]
+    existingSecret: kubebench-oidc
+    caBundle: |
+      -----BEGIN CERTIFICATE-----
+      MIIBszCCAVmgAwIBAgIUZXhhbXBsZS1jYS1mb3ItY2hhcnQtY2kwCgYIKoZIzj0E
+      -----END CERTIFICATE-----

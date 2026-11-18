@@ -39,6 +39,7 @@ type infoView struct {
 	User               string            `json:"user"`
 	Role               string            `json:"role"`
 	MustChangePassword bool              `json:"mustChangePassword"`
+	AuthSource         string            `json:"authSource"`
 	Context            string            `json:"context"`
 	Server             string            `json:"server"`
 	Cluster            *clusterSummary   `json:"cluster"`
@@ -67,6 +68,7 @@ func (s *Server) handleInfo(w http.ResponseWriter, r *http.Request, c *call) {
 		User:               c.user.Username,
 		Role:               c.user.Role,
 		MustChangePassword: c.user.MustChangePassword,
+		AuthSource:         c.user.Source,
 		Permissions:        permissionsFor(c.user, "", nil),
 		Features: features{
 			PathKubeconfig:       s.cfg.AllowPathKubeconfig,

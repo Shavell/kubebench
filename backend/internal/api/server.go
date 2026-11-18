@@ -51,6 +51,8 @@ type Server struct {
 	// board carries the changes of KubeBench's own data to the live-update
 	// streams of every cluster (§7.10 internal topics).
 	board *watch.Board
+	// ident is the external-identity setup (§3.6).
+	ident identityState
 }
 
 // New wires every route. plugins are the built-in backend plugins to mount
@@ -76,6 +78,7 @@ func New(cfg *config.Config, st *store.Store, manager *kube.Manager, build Build
 	slices.SortFunc(s.plugins, func(a, b plugin.Plugin) int {
 		return strings.Compare(a.Manifest().ID, b.Manifest().ID)
 	})
+	s.initIdentity()
 	s.routes()
 	return s
 }

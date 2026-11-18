@@ -40,13 +40,29 @@
   },
   "auth": {
     "admin_required": "Bu işlem için yönetici gerekir",
+    "external_password": "Bu hesap bir kimlik sağlayıcı üzerinden giriş yapar; parolası orada yönetilir",
     "invalid_credentials": "Kullanıcı adı veya parola geçersiz",
+    "invalid_mapping_id": "Geçersiz eşleme kimliği \"{{id}}\"",
+    "oidc_not_configured": "OIDC ile giriş yapılandırılmamış",
     "password_change_required": "Devam etmek için parolanızı değiştirin",
+    "preview_source": "Kaynak oidc veya ldap olmalı",
     "same_password": "Yeni parola mevcut paroladan farklı olmalı",
     "session_ended": "Oturumunuz sona erdi; yeniden giriş yapın",
     "session_expired": "Oturumunuzun süresi doldu; yeniden giriş yapın",
     "sign_in": "Devam etmek için giriş yapın",
+    "signin": {
+      "account_disabled": "Bu hesap devre dışı",
+      "domain_not_allowed": "Bu e-posta alan adıyla giriş yapılamaz",
+      "invalid_credentials": "Kullanıcı adı veya parola geçersiz",
+      "invalid_request": "Giriş doğrulanamadı; tekrar deneyin",
+      "invalid_username": "Hesabın kullanıcı adı KubeBench'te kullanılamıyor",
+      "no_matching_group": "Bu hesabın hiçbir grubu KubeBench'e erişim vermiyor",
+      "provider_error": "Kimlik sağlayıcıya ulaşılamadı",
+      "refused": "Giriş reddedildi",
+      "username_conflict": "Kullanıcı adı başka bir KubeBench hesabına ait"
+    },
     "too_many_attempts": "Çok fazla başarısız deneme; {{minutes}} dakika sonra tekrar deneyin",
+    "unknown_source": "Bilinmeyen giriş kaynağı \"{{source}}\"",
     "wrong_password": "Mevcut parola yanlış"
   },
   "cloud": {
@@ -195,6 +211,15 @@
     "not_object": "Belge {{document}}: bir nesne değil",
     "secret_annotation_placeholder": "Belge {{document}}: Secret {{name}}: {{annotation}} annotation'ı bir gizleme yer tutucusu içeriyor; annotation'ı kaldırın",
     "secret_placeholder": "Belge {{document}}: Secret {{name}}: {{field}} değeri yerine bir gizleme yer tutucusu içeriyor; Secret'ı gösterip gerçek değerleri kullanın"
+  },
+  "mappings": {
+    "admin_cluster": "Yönetici eşlemesi tüm cluster'lar için geçerlidir: cluster alanını boş bırakın",
+    "cluster_required": "Operator veya viewer eşlemesi bir cluster gerektirir",
+    "exists": "\"{{group}}\" grubunun bu cluster için zaten bir eşlemesi var",
+    "group_required": "Grup zorunludur",
+    "group_too_long": "Grup en fazla {{max}} karakter olabilir",
+    "invalid_role": "Geçersiz rol \"{{role}}\": admin, operator veya viewer kullanın",
+    "invalid_source": "Geçersiz kaynak \"{{source}}\": oidc, ldap kullanın veya tüm sağlayıcılar için boş bırakın"
   },
   "metrics": {
     "needs_prometheus": "metrics-server'da {{metric}} verisi yok; bunun için Prometheus gerekir",
@@ -411,8 +436,8 @@
     "invalid_role": "Geçersiz rol \"{{role}}\": admin veya user kullanın",
     "invalid_username": "Kullanıcı adı 1-64 harf, rakam, '.', '_', '@' veya '-' içerir",
     "last_admin": "En az bir yönetici kalmalı",
-    "last_admin_delete": "Son yönetici silinemez: önce başka bir kullanıcıyı yönetici yapın",
-    "last_admin_demote": "Son yöneticinin yetkisi düşürülemez: önce başka bir kullanıcıyı yönetici yapın",
+    "last_admin_delete": "Son yerel yönetici silinemez: önce başka bir yerel kullanıcıyı yönetici yapın (yerel yönetici acil durum hesabıdır)",
+    "last_admin_demote": "Son yerel yöneticinin yetkisi düşürülemez: önce başka bir yerel kullanıcıyı yönetici yapın (yerel yönetici acil durum hesabıdır)",
     "not_found": "{{id}} numaralı kullanıcı bulunamadı",
     "nothing_to_update": "Güncellenecek bir şey yok: role ve/veya password gönderin",
     "seen_version_length": "lastSeenVersion 1 ile {{max}} karakter arasında olmalı"

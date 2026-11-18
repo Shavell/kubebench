@@ -87,6 +87,9 @@ spec:
                   name: {{ . }}
                   key: {{ include "kubebench.secretKey" $ }}
             {{- end }}
+            {{- with include "kubebench.identityEnv" . | trim }}
+            {{- . | nindent 12 }}
+            {{- end }}
             {{- with .Values.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -130,6 +133,16 @@ spec:
               mountPath: /data
             - name: tmp
               mountPath: /tmp
+            {{- if include "kubebench.oidcCA" . }}
+            - name: oidc-ca
+              mountPath: {{ include "kubebench.oidcCADir" . }}
+              readOnly: true
+            {{- end }}
+            {{- if include "kubebench.ldapCA" . }}
+            - name: ldap-ca
+              mountPath: {{ include "kubebench.ldapCADir" . }}
+              readOnly: true
+            {{- end }}
             {{- with .Values.extraVolumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -143,6 +156,16 @@ spec:
           {{- end }}
         - name: tmp
           emptyDir: {}
+        {{- if include "kubebench.oidcCA" . }}
+        - name: oidc-ca
+          configMap:
+            name: {{ printf "%s-oidc-ca" (include "kubebench.fullname" .) }}
+        {{- end }}
+        {{- if include "kubebench.ldapCA" . }}
+        - name: ldap-ca
+          configMap:
+            name: {{ printf "%s-ldap-ca" (include "kubebench.fullname" .) }}
+        {{- end }}
         {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 8 }}
         {{- end }}

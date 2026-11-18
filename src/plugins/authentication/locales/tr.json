@@ -1,0 +1,179 @@
+{
+  "manifest": {
+    "name": "Kimlik doğrulama",
+    "description": "Giriş yöntemleri, harici kullanıcılar için grup eşlemeleri ve giriş önizlemesi"
+  },
+  "commands": {
+    "open": "Kimlik Doğrulama Ayarlarını Aç"
+  },
+  "tab": {
+    "title": "Kimlik doğrulama"
+  },
+  "page": {
+    "title": "Kimlik doğrulama",
+    "loading": "Yükleniyor…"
+  },
+  "actions": {
+    "refresh": "Yenile",
+    "edit": "Düzenle",
+    "delete": "Sil",
+    "deleteNamed": "{{group}} eşlemesini sil",
+    "cancel": "İptal"
+  },
+  "settings": {
+    "title": "Kimlik doğrulama",
+    "methods": "Giriş yöntemleri",
+    "summary": "{{methods}} · {{count}} grup eşlemesi",
+    "open": "Kimlik doğrulamayı aç",
+    "keys": {
+      "issuer": "Issuer",
+      "clientId": "İstemci kimliği",
+      "clientSecret": "İstemci gizli anahtarı",
+      "redirectUrl": "Yönlendirme URL'si",
+      "scopes": "Kapsamlar",
+      "usernameClaim": "Kullanıcı adı claim'i",
+      "groupsClaim": "Gruplar claim'i",
+      "allowedDomains": "İzin verilen e-posta alan adları",
+      "caFile": "CA paketi",
+      "publicUrl": "Genel URL",
+      "requireGroup": "Eşlenmiş grubu olmayan kullanıcılar",
+      "url": "Sunucu URL'si",
+      "directoryType": "Dizin türü",
+      "startTls": "StartTLS",
+      "insecureSkipVerify": "TLS doğrulamasını atla",
+      "bindDn": "Hizmet hesabı (bind DN)",
+      "bindPassword": "Hizmet hesabı parolası",
+      "userBaseDn": "Kullanıcı temel DN'i",
+      "userFilter": "Kullanıcı filtresi",
+      "usernameAttribute": "Kullanıcı adı özniteliği",
+      "idAttribute": "Kimlik özniteliği",
+      "groupsFrom": "Grupların kaynağı",
+      "groupBaseDn": "Grup temel DN'i",
+      "groupFilter": "Grup filtresi",
+      "groupNameAttribute": "Grup adı özniteliği",
+      "timeout": "Zaman aşımı"
+    }
+  },
+  "methods": {
+    "local": "KubeBench hesapları"
+  },
+  "sources": {
+    "any": "Tüm sağlayıcılar",
+    "local": "KubeBench hesabı",
+    "oidc": "OIDC / SSO",
+    "ldap": "LDAP / Active Directory"
+  },
+  "roles": {
+    "admin": "Yönetici",
+    "operator": "Operatör",
+    "viewer": "İzleyici",
+    "user": "Kullanıcı"
+  },
+  "providers": {
+    "title": "Giriş yöntemleri",
+    "enabled": "Etkin",
+    "reachable": "Erişilebilir",
+    "unreachable": "Erişilemiyor",
+    "secretSet": "Yapılandırılmış (hiçbir zaman gösterilmez)",
+    "secretUnset": "Ayarlanmamış (genel istemci)",
+    "notSet": "Ayarlanmamış",
+    "breakGlass": "Yerel hesaplar her zaman çalışır. Son yerel yönetici silinemez ve rolü düşürülemez; böylece kimlik sağlayıcıya ulaşılamadığında acil durum hesabı olarak kalır.",
+    "none": "Yapılandırılmış bir kimlik sağlayıcı yok. OIDC'yi KUBEBENCH_OIDC_*, LDAP veya Active Directory'yi KUBEBENCH_LDAP_* ortam değişkenleriyle yapılandırın (yapılandırma kılavuzuna bakın).",
+    "publicUrlDerived": "(istekten türetildi; KUBEBENCH_PUBLIC_URL değerini ayarlayın)",
+    "requireGroupOn": "Reddedilir (KUBEBENCH_AUTH_REQUIRE_GROUP)",
+    "requireGroupOff": "Giriş yapabilir ama hiçbir cluster'ı göremez",
+    "configHint": "Sağlayıcı ayarları sunucunun ortamından gelir ve burada değiştirilemez. Gizli değerler tarayıcıya hiçbir zaman gönderilmez.",
+    "bindPasswordUnset": "Ayarlanmadı (anonim arama)",
+    "warnings": {
+      "plaintext": "Bağlantı şifrelenmiyor: dizin parolaları ağda düz metin olarak iletiliyor. ldaps:// veya StartTLS kullanın.",
+      "tlsVerifyDisabled": "TLS sertifika doğrulaması kapalı: ağ yolundaki herkes parolaları okuyabilir. Bunun yerine CA paketini yapılandırın."
+    }
+  },
+  "mappings": {
+    "title": "Grup eşlemeleri",
+    "notice": "Eşlemeler harici bir kullanıcının her girişinde uygulanır: rolü ve cluster erişimi gruplarından yeniden hesaplanır ve Kullanıcılar'da yapılan elle değişikliklerin yerine geçer. Buradaki değişiklikler kullanıcının bir sonraki girişinde geçerli olur.",
+    "add": "Eşleme ekle",
+    "empty": "Henüz grup eşlemesi yok. Harici kullanıcılar giriş yapabilir ama hiçbir cluster'ı göremez.",
+    "globalAdmin": "Yönetici (tüm cluster'lar)",
+    "onCluster": "{{cluster}} üzerinde {{role}}",
+    "unknownCluster": "bilinmeyen cluster",
+    "unknownClusterHint": "Bu adda kayıtlı bir cluster yok. Böyle bir cluster eklenene kadar eşleme hiçbir erişim vermez.",
+    "deleted": "{{group}} eşlemesi silindi.",
+    "deleteTitle": "{{group}} eşlemesi silinsin mi?",
+    "deleteMessage": "Grubun üyeleri bu erişimi bir sonraki girişlerinde kaybeder. Mevcut oturumlar o zamana kadar erişimini korur.",
+    "columns": {
+      "group": "Grup",
+      "source": "Sağlayıcı",
+      "grants": "Verilen erişim",
+      "actions": "İşlemler"
+    }
+  },
+  "dialog": {
+    "createTitle": "Grup eşlemesi ekle",
+    "editTitle": "Grup eşlemesini düzenle",
+    "description": "Grubun üyeleri bu erişimi bir sonraki girişlerinde alır.",
+    "group": "Grup",
+    "groupHelp": "Sağlayıcının bildirdiği grup adı: bir OIDC groups claim değeri veya bir dizin grubunun adı (cn değeri; dizin DN bildirecek şekilde yapılandırıldıysa DN'i). Büyük/küçük harf yok sayılarak birebir eşleştirilir.",
+    "source": "Sağlayıcı",
+    "sourceHelp": "Eşlemeyi tek bir sağlayıcının gruplarıyla sınırlayın veya tümüne uygulayın.",
+    "role": "Verilen erişim",
+    "roleHelp": "Yöneticiler KubeBench'i yönetir ve tüm cluster'lara tam erişime sahiptir. İzleyiciler bir cluster'ı okur; operatörler ayrıca değişiklik de yapabilir.",
+    "cluster": "Cluster",
+    "clusterHelp": "Cluster'ın KubeBench'teki adı.",
+    "unknownCluster": "Bu adda kayıtlı bir cluster henüz yok; böyle bir cluster eklenene kadar eşleme hiçbir erişim vermez.",
+    "submit": "Kaydet",
+    "created": "{{group}} eşlemesi eklendi.",
+    "updated": "{{group}} eşlemesi güncellendi.",
+    "errors": {
+      "group": "Grubu girin.",
+      "cluster": "Cluster'ı seçin.",
+      "duplicate": "Bu grubun bu sağlayıcı ve cluster için zaten bir eşlemesi var."
+    }
+  },
+  "preview": {
+    "title": "Girişi test et",
+    "help": "Bir kullanıcının şu anda giriş yapsaydı ne alacağını, kullanıcı veya oturum oluşturmadan görün. Kullanıcının son girişindeki grupları (dizinler için dizindekileri) kullanmak için grupları boş bırakın.",
+    "provider": "Sağlayıcı",
+    "username": "Kullanıcı adı",
+    "groupsInput": "Gruplar (her satıra bir tane)",
+    "groupsHelp": "İsteğe bağlı.",
+    "run": "Test et",
+    "allowed": "Giriş yapabilir",
+    "refused": "Reddedilir",
+    "groups": "Gruplar",
+    "noGroups": "Grup yok",
+    "groupsFrom": {
+      "input": "(girildiği gibi)",
+      "directory": "(dizinden)",
+      "lastSignIn": "(son girişten, {{time}})",
+      "none": "(bilinmeyen kullanıcı: grup yok)"
+    },
+    "globalRole": "Genel rol",
+    "clusters": "Cluster erişimi",
+    "allClusters": "Tüm cluster'lar",
+    "noClusters": "Cluster yok",
+    "matched": "Eşlemeler",
+    "matchedCount_one": "{{count}} eşleme uygulanır",
+    "matchedCount_other": "{{count}} eşleme uygulanır",
+    "account": "Hesap",
+    "accountNew": "İlk girişte oluşturulur",
+    "accountExisting": "Mevcut hesap; girişte güncellenir",
+    "accountOther": "Kullanıcı adı başka bir hesaba ait: {{source}}",
+    "errors": {
+      "username": "Bir kullanıcı adı girin (harf, rakam, '.', '_', '@' veya '-').",
+      "login": "Giriş adını girin."
+    },
+    "loginHelp": "Kullanıcının yazdığı gibi: kullanıcı, ETKİ_ALANI\\kullanıcı veya kullanıcı@alanadı."
+  },
+  "failures": {
+    "invalid_credentials": "Kullanıcı adı veya parola hatalı ya da dizinde böyle bir kullanıcı yok.",
+    "account_disabled": "Hesap sağlayıcıda devre dışı.",
+    "domain_not_allowed": "E-posta alan adına izin verilmiyor.",
+    "no_matching_group": "Hiçbir grup bir role eşlenmemiş ve grubu olmayan kullanıcılar reddediliyor.",
+    "username_conflict": "Kullanıcı adı başka bir hesaba ait; harici girişler hiçbir zaman mevcut bir hesabı devralmaz.",
+    "invalid_username": "Kullanıcı adı KubeBench'te kullanılamıyor.",
+    "invalid_request": "Giriş doğrulanamadı.",
+    "provider_error": "Kimlik sağlayıcıya ulaşılamadı.",
+    "rate_limited": "Çok fazla başarısız deneme yapıldı."
+  }
+}

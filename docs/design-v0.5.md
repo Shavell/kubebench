@@ -97,6 +97,11 @@ cluster-to-cluster compare, port-forward, light/dark per-plugin theming.
 | `KUBEBENCH_NAMESPACE` | in a pod: the pod's namespace | The namespace KubeBench runs in; deleting a namespace of that name is refused unless forced (§7.3) |
 | `KUBEBENCH_UPDATE_MODE` | `stable` | Default update check mode (§7.11): `off` (never contacts GitHub; use it for air-gapped installs), `stable` (new releases) or `prerelease` (also prereleases). An admin's choice in Settings overrides it |
 | `KUBEBENCH_UPDATE_URL` | `https://api.github.com/repos/Shavell/kubebench/releases` | Releases endpoint the update check reads: GitHub's "list releases" JSON (a mirror or a GitHub Enterprise API works). `http` or `https` |
+| `KUBEBENCH_PUBLIC_URL` | derived from the request | v0.7: the URL users reach KubeBench at (`scheme://host[:port]`); the OIDC redirect URL is built from it (§3.6) |
+| `KUBEBENCH_AUTH_REQUIRE_GROUP` | `false` | v0.7: refuse external users whose groups grant nothing (§3.6) |
+| `KUBEBENCH_AUTH_GROUP_MAPPINGS` | — | v0.7: JSON list of group mappings seeded once (§3.6) |
+| `KUBEBENCH_OIDC_ISSUER`, `_CLIENT_ID`, `_CLIENT_SECRET` (or `_CLIENT_SECRET_FILE`), `_NAME`, `_SCOPES`, `_USERNAME_CLAIM`, `_GROUPS_CLAIM`, `_ALLOWED_DOMAINS`, `_CA_FILE` | — | v0.7: OpenID Connect sign-in (§3.6, `docs/configuration.md`) |
+| `KUBEBENCH_LDAP_URL`, `_TYPE`, `_NAME`, `_START_TLS`, `_CA_FILE`, `_INSECURE_SKIP_VERIFY`, `_BIND_DN`, `_BIND_PASSWORD` (or `_BIND_PASSWORD_FILE`), `_USER_BASE_DN`, `_USER_FILTER`, `_USERNAME_ATTRIBUTE`, `_ID_ATTRIBUTE`, `_DISPLAY_NAME_ATTRIBUTE`, `_EMAIL_ATTRIBUTE`, `_GROUPS_FROM`, `_GROUP_BASE_DN`, `_GROUP_FILTER`, `_GROUP_NAME_ATTRIBUTE`, `_TIMEOUT` | — | v0.7: LDAP / Active Directory sign-in (§3.6, `docs/configuration.md`) |
 | `KUBEBENCH_PROXY_ORIGIN` | — | v0.6: separate origin (`http(s)://host[:port]`, no path) serving the service browser's proxy unsandboxed (§7.14); unset = sandboxed on KubeBench's own origin |
 
 The backend parses these once into `internal/config.Config`; invalid values
@@ -306,7 +311,129 @@ error text. Pruned per `KUBEBENCH_AUDIT_RETENTION_DAYS`.
   `read`/`write`/`exec`/`admin` route returns `403 {"code":"password_change_required"}`;
   the `authed` routes (`/api/auth/*`, `/api/info`, …) keep working.
 - Passwords are 8 characters to 72 bytes (the bcrypt limit).
-- Cannot delete yourself or demote/delete the last admin (`409 conflict`).
+- Cannot delete yourself or demote/delete the last admin (`409 conflict`);
+  since v0.7 the last **local** admin (§3.6).
+
+### 3.6 External identities (v0.7)
+
+Users can sign in through identity providers besides local accounts:
+OpenID Connect and LDAP / Active Directory, each optional, both at once
+possible. One shared layer (`backend/internal/identity`) serves every
+provider.
+
+**Providers.** A provider authenticates a user and reports an `Identity`
+`{source, subject, username, displayName, email, groups}` (`source` =
+`oidc` | `ldap`; `subject` is stable at the provider: OIDC `sub`, the
+directory entry's ID). Redirect providers (OIDC, `identity/oidcauth`) run
+their own browser flow; password providers implement
+`identity.PasswordProvider.Authenticate(ctx, username, password)` and are
+reached through `POST /api/auth/login {"source"}`; an optional
+`identity.Lookuper.Lookup(ctx, username)` (a directory's service account)
+serves the admin preview, and an optional
+`identity.UsernameNormalizer` gives the name a login is throttled and
+audited by. Refusals are `*identity.Failure` with a class:
+`invalid_credentials`, `account_disabled`, `domain_not_allowed`,
+`no_matching_group`, `username_conflict`, `invalid_username`,
+`invalid_request`, `provider_error`, `rate_limited`. A failure that names
+the account (`Subject`) ends that account's sessions.
+
+**Users.** `users.source` is `local` | `oidc` | `ldap`; external users have
+`external_id` (the subject, unique per source), `display_name`, `email`,
+the groups of their last sign-in and no password: local sign-in, password
+changes and resets refuse them. They are created just in time at their
+first sign-in and matched by `(source, subject)` afterwards (a renamed
+user keeps their account). A username already used by another account (a
+local user, another source or subject) refuses the sign-in
+(`username_conflict`): external sign-ins never take over an account.
+
+**Group mappings** (`auth_group_mappings`, schema v7): `{group, source, role,
+cluster}` — `role` `admin` (global, no cluster) or `viewer`/`operator` on a
+cluster named in the inventory; `source` `""` applies to every provider.
+Groups match exactly, ignoring case. At **every** sign-in the user's global
+role and all cluster assignments are re-computed from the mappings and
+replace whatever an admin set manually (the UI says so); several mappings
+for a cluster grant the strongest role; names without a cluster grant
+nothing. A user whose groups grant nothing signs in and sees no cluster,
+or is refused (`no_matching_group`) with `KUBEBENCH_AUTH_REQUIRE_GROUP`.
+Admins manage mappings in Settings > Authentication (audited admin routes
+under `/api/settings/auth`, listed in `docs/api.md`); `KUBEBENCH_AUTH_GROUP_MAPPINGS` seeds them once,
+on the first start that has them (audited as `auth.mappings.seed`). The
+preview ("who would I be", `POST /api/settings/auth/preview`) resolves the
+mappings for a username without creating a user or a session.
+
+**Break-glass.** Local accounts always work. The last-admin guard counts
+only local admins, so the last local admin can be neither deleted nor
+demoted (`409`), whoever asks; external admins lose the role whenever
+their groups stop granting it.
+
+**OIDC.** Authorization code flow with PKCE (S256), `state` (also kept in
+the HttpOnly, SameSite=Lax `kubebench_oidc_state` cookie, so a callback
+only completes in the browser that started it) and `nonce`; pending
+sign-ins live in memory for 10 minutes and are taken once. Discovery and
+JWKS through `go-oidc` (retried until the provider is reachable); the ID
+token's signature, issuer, audience, expiry and nonce are verified; the
+groups claim is read from userinfo when the ID token lacks it; dotted claim
+paths read nested claims. Allowed email domains admit only verified
+addresses. The redirect URL is `KUBEBENCH_PUBLIC_URL` (or the request's
+origin, forwarded headers only with `KUBEBENCH_TRUST_PROXY`) +
+`/api/auth/oidc/callback`. Refusals redirect to `/?signInError=<class>`.
+Sign-out answers the provider's end-session URL (`logoutUrl`, with the
+session's ID token as hint) when the provider supports RP-initiated
+logout.
+
+**LDAP / Active Directory** (`identity/ldapauth`, `go-ldap`). One
+directory (`KUBEBENCH_LDAP_URL`, `ldaps://` or `ldap://` with
+`KUBEBENCH_LDAP_START_TLS`); `KUBEBENCH_LDAP_TYPE` `openldap` | `ad` picks
+the defaults below, each overridable. Sign-in:
+1. The login is normalized: trimmed, lower case, a `DOMAIN\` prefix dropped
+   (a UPN `user@domain` stays; the AD filter matches it). An empty
+   password is refused before anything is sent: a simple bind with a DN
+   and no password is an *unauthenticated* bind many directories accept.
+2. The service account (`_BIND_DN`; anonymous without one) searches
+   `_USER_BASE_DN` with `_USER_FILTER`, `%s` = the escaped login
+   (defaults `(uid=%s)`; AD `(|(sAMAccountName=%s)(userPrincipalName=%s))`).
+   No entry or more than one is `invalid_credentials`.
+3. A set ACCOUNTDISABLE bit (2) of `userAccountControl` refuses the account,
+   and its sessions end; it is reported as `account_disabled` only when the
+   password is right, `invalid_credentials` otherwise. A bind refused with
+   AD's `data 533`/`data 701` (disabled/expired) is `account_disabled` too.
+4. The password is checked by a bind as the user's DN on a connection of
+   its own (never by comparing hashes).
+5. Groups, as the service account: from the entry's `memberOf`
+   (`_GROUPS_FROM=memberOf`, the first RDN value) or a search under
+   `_GROUP_BASE_DN` (default: the user base) with `_GROUP_FILTER`, `%d` =
+   the user's DN and `%u` = its username attribute (defaults
+   `(|(member=%d)(uniqueMember=%d)(memberUid=%u))`; AD
+   `(member:1.2.840.113556.1.4.1941:=%d)`, LDAP_MATCHING_RULE_IN_CHAIN, so
+   nested groups count). A group's name is its `_GROUP_NAME_ATTRIBUTE`
+   (`cn`; `dn` reports full DNs).
+6. The identity: username = the username attribute (`uid`; AD
+   `sAMAccountName`) in lower case, subject = `_ID_ATTRIBUTE` (`entryUUID`;
+   AD `objectGUID` in its string form), display name and email.
+Connections time out after `_TIMEOUT` (10s, also the server-side search
+time limit); up to 4 idle service-account connections are reused (retired
+after 5 minutes idle, replaced once when the directory dropped them) and at
+most 8 directory operations run at once. Refused sign-ins answer the §3.3
+error body with the reason code `auth.signin.<class>`, which the sign-in
+screen translates like the failure classes of OIDC sign-ins.
+
+**Sessions.** External sign-ins get the ordinary session cookie and
+`KUBEBENCH_SESSION_TTL`. There is no background sync in v0.7: a disabled
+account loses its sessions when a sign-in attempt reports it disabled.
+
+**Security.** Secrets (the OIDC client secret, the LDAP bind password)
+come from the environment, `*_FILE` files or Kubernetes Secrets only; they
+are never returned by an API (settings report `secretSet`), logged or
+audited. TLS to the provider is verified (system roots plus
+`KUBEBENCH_OIDC_CA_FILE` / `KUBEBENCH_LDAP_CA_FILE`);
+`KUBEBENCH_LDAP_INSECURE_SKIP_VERIFY` (tests only) and an unencrypted
+`ldap://` URL are logged as warnings at startup and shown as warnings in
+Settings > Authentication. Failed callbacks and password-provider sign-ins
+count against the login limit (§3.5; callbacks per client IP, directory
+sign-ins per client IP and normalized login).
+Every external sign-in writes an audit row (`auth.signin`, target
+`user/<name>`, detail `{"source"}` or `{"source","reason":"<class>"}`), as
+does every mapping change (target `mapping/<group>`).
 
 ## 4. API changes (core)
 
@@ -340,8 +467,9 @@ route answers `409 no_cluster` instead. Without any usable cluster,
 `cluster` is `null` and `clusterError` says why.
 
 `POST /api/auth/login` and `GET /api/auth/me` return
-`{"id","username","role","mustChangePassword"}`; `GET /api/auth/me` adds
-`"lastSeenVersion"` (§7.11).
+`{"id","username","role","mustChangePassword","source","displayName"}`
+(`source` since v0.7, §3.6); `GET /api/auth/me` adds `"lastSeenVersion"`
+(§7.11). `/api/info` reports the account's source as `"authSource"` (v0.7).
 
 ### 4.2 Users & password
 

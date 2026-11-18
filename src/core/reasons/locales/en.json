@@ -40,13 +40,29 @@
   },
   "auth": {
     "admin_required": "this action needs an administrator",
+    "external_password": "this account signs in through an identity provider; its password is managed there",
     "invalid_credentials": "invalid username or password",
+    "invalid_mapping_id": "invalid mapping id \"{{id}}\"",
+    "oidc_not_configured": "OIDC sign-in is not configured",
     "password_change_required": "change your password to continue",
+    "preview_source": "source must be oidc or ldap",
     "same_password": "the new password must differ from the current one",
     "session_ended": "your session has ended; sign in again",
     "session_expired": "your session has expired; sign in again",
     "sign_in": "sign in to continue",
+    "signin": {
+      "account_disabled": "this account is disabled",
+      "domain_not_allowed": "this email domain may not sign in",
+      "invalid_credentials": "invalid username or password",
+      "invalid_request": "the sign-in could not be verified; try again",
+      "invalid_username": "the account's username cannot be used in KubeBench",
+      "no_matching_group": "no group of this account grants access to KubeBench",
+      "provider_error": "the identity provider could not be reached",
+      "refused": "the sign-in was refused",
+      "username_conflict": "the username belongs to another KubeBench account"
+    },
     "too_many_attempts": "too many failed attempts; try again in {{minutes}} minutes",
+    "unknown_source": "unknown sign-in source \"{{source}}\"",
     "wrong_password": "the current password is incorrect"
   },
   "cloud": {
@@ -195,6 +211,15 @@
     "not_object": "document {{document}}: not an object",
     "secret_annotation_placeholder": "document {{document}}: Secret {{name}}: the {{annotation}} annotation holds a redaction placeholder; remove the annotation",
     "secret_placeholder": "document {{document}}: Secret {{name}}: {{field}} holds a redaction placeholder, not its value; reveal the Secret and use the real values"
+  },
+  "mappings": {
+    "admin_cluster": "an admin mapping applies to every cluster: leave the cluster empty",
+    "cluster_required": "an operator or viewer mapping needs a cluster",
+    "exists": "group \"{{group}}\" already has a mapping for this cluster",
+    "group_required": "the group is required",
+    "group_too_long": "the group is at most {{max}} characters",
+    "invalid_role": "invalid role \"{{role}}\": use admin, operator or viewer",
+    "invalid_source": "invalid source \"{{source}}\": use oidc, ldap or nothing for every provider"
   },
   "metrics": {
     "needs_prometheus": "metrics-server has no {{metric}} data; it needs Prometheus",
@@ -411,8 +436,8 @@
     "invalid_role": "invalid role \"{{role}}\": use admin or user",
     "invalid_username": "a username is 1-64 letters, digits, '.', '_', '@' or '-'",
     "last_admin": "at least one admin must remain",
-    "last_admin_delete": "cannot delete the last admin: promote another user first",
-    "last_admin_demote": "cannot demote the last admin: promote another user first",
+    "last_admin_delete": "cannot delete the last local admin: promote another local user first (the local admin is the break-glass account)",
+    "last_admin_demote": "cannot demote the last local admin: promote another local user first (the local admin is the break-glass account)",
     "not_found": "user {{id}} not found",
     "nothing_to_update": "nothing to update: send role and/or password",
     "seen_version_length": "lastSeenVersion must be 1 to {{max}} characters"

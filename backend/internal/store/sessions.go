@@ -25,16 +25,34 @@ func hashToken(token string) string {
 // CreateSession issues a random 256-bit session token for the user and
 // stores its digest.
 func (s *Store) CreateSession(userID int64, ttl time.Duration) (string, error) {
+	return s.CreateExternalSession(userID, ttl, "")
+}
+
+// CreateExternalSession is CreateSession for a sign-in through an OIDC
+// provider, keeping its ID token to end the provider's session at sign-out
+// (RP-initiated logout, §3.6).
+func (s *Store) CreateExternalSession(userID int64, ttl time.Duration, idToken string) (string, error) {
 	raw := make([]byte, 32)
 	if _, err := rand.Read(raw); err != nil {
 		return "", err
 	}
 	token := hex.EncodeToString(raw)
 	_, err := s.db.Exec(
-		`INSERT INTO sessions (token_hash, user_id, expires_at) VALUES (?, ?, ?)`,
-		hashToken(token), userID, now().Add(ttl),
+		`INSERT INTO sessions (token_hash, user_id, expires_at, id_token) VALUES (?, ?, ?, ?)`,
+		hashToken(token), userID, now().Add(ttl), idToken,
 	)
 	return token, err
+}
+
+// SessionIDToken is the ID token a session was signed in with; empty for
+// local sign-ins and unknown tokens.
+func (s *Store) SessionIDToken(token string) (string, error) {
+	var idToken string
+	err := s.db.QueryRow(`SELECT id_token FROM sessions WHERE token_hash = ?`, hashToken(token)).Scan(&idToken)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", nil
+	}
+	return idToken, err
 }
 
 // UserBySession resolves a live session token to its user; unknown and

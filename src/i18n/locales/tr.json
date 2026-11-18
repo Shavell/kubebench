@@ -165,6 +165,25 @@
       "rateLimited": "Çok fazla başarısız deneme yapıldı. Lütfen birkaç dakika bekleyip tekrar deneyin.",
       "network": "KubeBench sunucusuna ulaşılamıyor",
       "failed": "Giriş yapılamadı"
+    },
+    "external": {
+      "signInWith": "{{name}} ile giriş yap",
+      "or": "veya KubeBench hesabıyla",
+      "account": "Hesap",
+      "localAccount": "KubeBench hesabı",
+      "failures": {
+        "invalid_credentials": "Kullanıcı adı veya parola hatalı",
+        "account_disabled": "Bu hesap devre dışı.",
+        "domain_not_allowed": "Bu e-posta alan adındaki hesaplar KubeBench'e giriş yapamaz.",
+        "no_matching_group": "Gruplarınızın hiçbiri KubeBench'e erişim vermiyor. Bir yöneticiden gruplarınızdan birini eşlemesini isteyin.",
+        "username_conflict": "Kullanıcı adınız başka bir KubeBench hesabına ait. Bir yöneticiye başvurun.",
+        "invalid_username": "Hesabınızın kullanıcı adı KubeBench'te kullanılamıyor. Bir yöneticiye başvurun.",
+        "invalid_request": "Giriş doğrulanamadı. Lütfen tekrar deneyin.",
+        "provider_error": "Kimlik sağlayıcıya ulaşılamadı veya sağlayıcı girişi reddetti.",
+        "rate_limited": "Çok fazla başarısız deneme yapıldı. Lütfen birkaç dakika bekleyip tekrar deneyin."
+      },
+      "orPassword": "veya kullanıcı adı ve parolanızla",
+      "directoryHint": "Dizin hesabınız: kullanıcı, ETKİ_ALANI\\kullanıcı veya kullanıcı@alanadı"
     }
   }
 }

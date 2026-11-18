@@ -110,8 +110,59 @@ data). Rows are pruned after `KUBEBENCH_AUDIT_RETENTION_DAYS` (default 90;
 - Terminals, log streams and watch streams are re-authorized at every
   heartbeat and end when the session, the assignment or the permission
   ends. Per-user limits: 10 terminals, 20 log streams, 16 watch streams.
-- There is no SSO yet; put KubeBench behind your identity-aware proxy if
-  you need one, and still use KubeBench accounts for roles.
+- Single sign-on through an OpenID Connect provider and sign-in with an
+  LDAP directory or Active Directory (v0.7; see below).
+
+## External identities
+
+With `KUBEBENCH_OIDC_*` set, users can sign in through an OpenID Connect
+provider, and with `KUBEBENCH_LDAP_*` with their directory account
+([configuration](configuration.md#external-identities), design §3.6):
+
+- **Flow.** Authorization code flow with PKCE (S256), `state` bound to the
+  browser by an HttpOnly cookie, and `nonce`. The ID token is verified
+  against the provider's discovery document and signing keys (issuer,
+  audience, expiry, nonce). TLS to the provider is always verified; add a
+  private CA with `KUBEBENCH_OIDC_CA_FILE`.
+- **Secrets.** The client secret comes from the environment, a file
+  (`KUBEBENCH_OIDC_CLIENT_SECRET_FILE`) or a Kubernetes Secret (chart
+  `identity.oidc.existingSecret`). No API returns it (Settings shows only
+  whether it is set), and it is never logged or audited. The same holds
+  for the LDAP bind password (`KUBEBENCH_LDAP_BIND_PASSWORD_FILE`, chart
+  `identity.ldap.existingSecret`).
+- **Directory sign-in.** The password is checked by binding as the user
+  (KubeBench never sees password hashes); empty passwords are refused
+  before the directory is contacted, since a bind without a password is an
+  unauthenticated bind many directories accept. Login names are escaped in
+  search filters, and a login matching no entry or several entries is
+  refused. Active Directory accounts with the disabled flag are refused.
+  Use `ldaps://` or StartTLS: the bind sends the user's password to the
+  directory. Certificates are verified (add a private CA with
+  `KUBEBENCH_LDAP_CA_FILE`); `KUBEBENCH_LDAP_INSECURE_SKIP_VERIFY` and plain
+  `ldap://` exist for tests and are flagged at startup and in Settings. The
+  service account only needs read access to users and groups.
+- **Roles from groups.** External users get their global role and cluster
+  roles from group mappings, re-computed at every sign-in; manual edits do
+  not survive the next sign-in. Map narrowly: whoever controls group
+  membership at the provider controls KubeBench admin rights.
+- **No takeover.** An external sign-in never adopts an existing account:
+  a username that belongs to a local user (or another provider's user) is
+  refused. External users have no local password.
+- **Break-glass.** The last local admin cannot be deleted or demoted, so
+  local sign-in keeps working when the provider is unavailable. Keep that
+  password in your secret store and use it only in emergencies (its
+  sign-ins are visible in the server log; external sign-ins are audited).
+- **Revocation.** There is no background sync: disabling a user at the
+  provider stops new sign-ins, while open sessions last until they expire
+  (`KUBEBENCH_SESSION_TTL`) unless the user tries to sign in again (a
+  directory account found disabled loses its sessions then). Use a short
+  TTL with external sign-in, or delete the user in Users to end their
+  sessions at once.
+- **Audit and throttling.** Every external sign-in is audited
+  (`auth.signin`, with the failure class of refused ones), as is every
+  group mapping change; failed callbacks are throttled per client IP like
+  failed logins, failed directory sign-ins per client IP and login name
+  (all forms of a login, such as `CORP\jdoe` and `jdoe`, share one count).
 
 ## Service browser
 
@@ -252,6 +303,7 @@ The server opens outbound connections only to:
 | Helm repositories and OCI registries | Only when a user adds a repository, updates it, searches it or installs/upgrades a chart from it | Do not configure remote repositories; upload `.tgz` charts instead |
 | Cloud token endpoints (AWS STS, Google, Microsoft Entra ID) | Only for EKS, GKE or AKS clusters that use the in-process token providers | Use static credentials in the kubeconfig |
 | In-cluster services | Only through the service browser, at the user's request, via the API server | Do not grant the `browse` access |
+| The OIDC provider (`KUBEBENCH_OIDC_ISSUER`) | Discovery, keys, token and userinfo requests during sign-ins, and the admins' provider status check | Leave OIDC unconfigured |
 
 The browser loads everything from KubeBench itself; the only external
 links in the UI are documentation and release pages that open when a user

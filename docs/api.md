@@ -132,11 +132,14 @@ Unknown `/api` paths answer `404 not_found`.
 
 | Method | Path | Level | Parameters | Answer |
 |---|---|---|---|---|
-| POST | `/api/auth/login` | public | `{"username","password"}` | `{"id","username","role","mustChangePassword"}`; sets the cookie. 10 failed attempts per client IP and username in 15 min → `429` |
-| POST | `/api/auth/logout` | authed | — | `{"ok":true}` |
-| GET | `/api/auth/me` | authed | — | `{"id","username","role","mustChangePassword","lastSeenVersion"}` |
+| POST | `/api/auth/login` | public | `{"username","password","source"?}` | `{"id","username","role","mustChangePassword","source","displayName"}`; sets the cookie. 10 failed attempts per client IP and username in 15 min → `429`. `source` names a password provider (a directory, §3.6) of `GET /api/auth/methods`; empty or `local` signs in with a local account, which external users have not. A directory takes `user`, `DOMAIN\user` or a UPN; its attempts are counted per normalized login, and a refusal carries the reason code `auth.signin.<failure class>` |
+| GET | `/api/auth/methods` | public | — | `{"local":true,"providers":[{"source":"oidc","name","type":"redirect","loginUrl":"/api/auth/oidc/login"}]}` (§3.6); password providers have `"type":"password"` |
+| GET | `/api/auth/oidc/login` | public | — | `302` to the provider (authorization code flow with PKCE, state and nonce); sets the short-lived `kubebench_oidc_state` cookie. `404` without OIDC |
+| GET | `/api/auth/oidc/callback` | public | `?code=&state=` (from the provider) | `302` to `<public URL>/` with the session cookie, or to `<public URL>/?signInError=<class>` when refused (`invalid_credentials`, `account_disabled`, `domain_not_allowed`, `no_matching_group`, `username_conflict`, `invalid_username`, `invalid_request`, `provider_error`, `rate_limited`). Failed callbacks count against the login limit per client IP; every outcome is audited (`auth.signin`) |
+| POST | `/api/auth/logout` | authed | — | `{"ok":true,"logoutUrl"?}`; `logoutUrl` (OIDC sessions, providers with RP-initiated logout) ends the provider's session and returns to KubeBench |
+| GET | `/api/auth/me` | authed | — | `{"id","username","role","mustChangePassword","source","displayName","lastSeenVersion"}` |
 | PATCH | `/api/auth/me` | authed | `{"lastSeenVersion":"0.6.0"}` (1–64 characters) | the `me` view |
-| POST | `/api/auth/password` | authed | `{"currentPassword","newPassword"}` | `{"ok":true}`; new password 8 characters to 72 bytes and different; a wrong current password is `403 forbidden` and throttled like logins; other sessions of the user end |
+| POST | `/api/auth/password` | authed | `{"currentPassword","newPassword"}` | `{"ok":true}`; new password 8 characters to 72 bytes and different; a wrong current password is `403 forbidden` and throttled like logins; other sessions of the user end. External users (`source` other than `local`) get `400` |
 | GET | `/api/info` | authed | — | server, session and active-cluster facts (below) |
 
 `GET /api/info` (§4.1) waits up to 3 s for a fresh cluster connection's
@@ -145,7 +148,7 @@ capability probe and provider detection:
 ```json
 {
   "version": "0.6.0", "commit": "abc1234",
-  "user": "alice", "role": "admin", "mustChangePassword": false,
+  "user": "alice", "role": "admin", "mustChangePassword": false, "authSource": "local",
   "context": "k3s-dev", "server": "https://10.0.0.1:6443",
   "cluster": {"id": 1, "name": "k3s-dev", "environment": "production", "readOnly": false,
               "platform": {"provider": "k3s", "cloud": "", "version": "v1.35.5+k3s1",
@@ -164,11 +167,22 @@ Without a usable cluster, `cluster` is `null` and `clusterError` says why.
 
 | Method | Path | Level | Parameters | Answer |
 |---|---|---|---|---|
-| GET | `/api/users` | admin | — | `[{"id","username","role","mustChangePassword","clusters":["name"],"assignments":[{"clusterId","cluster","role"}]}]` (`AppUser`) |
+| GET | `/api/users` | admin | — | `[{"id","username","role","mustChangePassword","clusters":["name"],"assignments":[{"clusterId","cluster","role"}],"source":"local"\|"oidc"\|"ldap","displayName","email"}]` (`AppUser`) |
 | POST | `/api/users` | admin | `{"username","password","role":"admin"\|"user"}` | `{"id"}`; the user must change the password at the first sign-in |
-| PATCH | `/api/users/{id}` | admin | `{"role"?, "password"?}` | `{"ok":true}`; a reset sets must-change and ends the user's sessions |
-| DELETE | `/api/users/{id}` | admin | — | `{"ok":true}`; not yourself, not the last admin (`409`) |
+| PATCH | `/api/users/{id}` | admin | `{"role"?, "password"?}` | `{"ok":true}`; a reset sets must-change and ends the user's sessions; external users have no password to reset (`400`), and their role and assignments are replaced at their next sign-in (§3.6) |
+| DELETE | `/api/users/{id}` | admin | — | `{"ok":true}`; not yourself, not the last local admin (`409`): it is the break-glass account |
 | PUT | `/api/users/{id}/clusters` | admin | `{"assignments":[{"clusterId","role":"viewer"\|"operator"}]}` or the v0.4 form `{"clusterIds":[…]}` (operator) | `{"ok":true}` |
+
+## Authentication settings (admin, §3.6)
+
+| Method | Path | Level | Parameters | Answer |
+|---|---|---|---|---|
+| GET | `/api/settings/auth` | admin | — | `{"publicUrl","publicUrlConfigured","requireGroup","providers":[{"source","name","settings":[{"key","value","secretSet"?}],"status":{"ok","error"},"warnings":["plaintext"\|"tlsVerifyDisabled"]}]}` (`AuthSettings`); secrets (client secret, bind password) only report `secretSet`, never their value; `status` checks the OIDC discovery document or a search of the directory's user base DN as the service account |
+| GET | `/api/settings/auth/mappings` | admin | — | `[{"id","group","source":""\|"oidc"\|"ldap","role":"admin"\|"operator"\|"viewer","cluster","clusterExists"}]` (`GroupMapping`) |
+| POST | `/api/settings/auth/mappings` | admin | `{"group","source"?,"role","cluster"?}` (a cluster for operator and viewer, none for admin) | `{"id"}`; `409` when the group (ignoring case), source and cluster repeat a mapping. Audited (target `mapping/<group>`) |
+| PUT | `/api/settings/auth/mappings/{id}` | admin | the same body | `{"ok":true}`. Audited |
+| DELETE | `/api/settings/auth/mappings/{id}` | admin | — | `{"ok":true}`. Audited |
+| POST | `/api/settings/auth/preview` | admin | `{"source":"oidc"\|"ldap","username","groups"?:[…]}` | "Who would I be" without a user or session: `{"source","username","groups","groupsFrom":"input"\|"directory"\|"lastSignIn"\|"none","admin","clusters":[{"cluster","role","exists"}],"matched":[<mapping id>],"allowed","reason","existingSource","lastSignIn"}` (`SignInPreview`). Without `groups` a directory looks the user up as its service account (it also resolves `DOMAIN\user` or a UPN to the account's username), else the groups of their last sign-in are used |
 
 ## Clusters
 
@@ -473,7 +487,10 @@ routes and the passthrough.
 
 The router writes one row per audited request: `action` is
 `"<METHOD> <route pattern>"` (for example `POST /api/deployments/scale`) or
-a named action (`exec.session`, `service.proxy`, `argocd.sync`), `target` is
+a named action (`exec.session`, `service.proxy`, `argocd.sync`; external
+sign-ins are `auth.signin` rows with `{"source"}` or
+`{"source","reason":"<failure class>"}`, written by the sign-in routes
+themselves), `target` is
 `<kind>/<namespace>/<name>`, `status` the HTTP status and `detail` a short
 JSON object or the refusal. Request bodies are never recorded. See §3.4 of
 the design for the full rules.

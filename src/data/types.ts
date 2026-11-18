@@ -67,6 +67,11 @@ export interface AppUser {
   username: string
   role: GlobalRole
   mustChangePassword: boolean
+  /** Where the account comes from (design §3.6); external users have no local password. */
+  source: AuthSource
+  /** Name and email reported by the identity provider; empty for local users. */
+  displayName: string
+  email: string
   /** Assigned cluster names (kept for v0.4 compatibility). */
   clusters: string[]
   assignments: ClusterAssignment[]
@@ -116,6 +121,8 @@ export interface ServerInfo {
   role: GlobalRole
   /** Every cluster request is refused until the user picks a new password. */
   mustChangePassword: boolean
+  /** Where the signed-in account comes from (design §3.6). */
+  authSource: AuthSource
   /** Name of the active cluster; empty when there is none. */
   context: string
   /** API server URL of the active cluster, when its runtime is up. */
@@ -626,3 +633,95 @@ export type CloudCredentials =
   | { provider: 'aws'; profile: string }
   | { provider: 'gcp'; serviceAccountJson: string }
   | { provider: 'azure'; tenantId: string; clientId: string; clientSecret: string }
+
+/** Where an account comes from (design §3.6): a local password or an identity provider. */
+export type AuthSource = 'local' | 'oidc' | 'ldap'
+/** An identity provider's source. */
+export type ExternalAuthSource = Exclude<AuthSource, 'local'>
+
+/** One way to sign in besides a local account (GET /api/auth/methods). */
+export interface SignInMethod {
+  source: ExternalAuthSource
+  name: string
+  /** `redirect`: the browser goes to `loginUrl` (OIDC); `password`: POST /api/auth/login with the source. */
+  type: 'redirect' | 'password'
+  loginUrl?: string
+}
+
+export interface SignInMethods {
+  /** Local accounts always work (the local admin is the break-glass account). */
+  local: boolean
+  providers: SignInMethod[]
+}
+
+/** One configuration value of a provider; secrets only report whether they are set. */
+export interface AuthProviderSetting {
+  key: string
+  value: string
+  secretSet?: boolean
+}
+
+/** A configured identity provider (GET /api/settings/auth). */
+export interface AuthProviderInfo {
+  source: ExternalAuthSource
+  name: string
+  settings: AuthProviderSetting[]
+  status: { ok: boolean; error: string }
+  /** Insecure settings: 'plaintext' (no TLS), 'tlsVerifyDisabled'. */
+  warnings: string[]
+}
+
+export interface AuthSettings {
+  publicUrl: string
+  publicUrlConfigured: boolean
+  requireGroup: boolean
+  providers: AuthProviderInfo[]
+}
+
+/** The role a group mapping grants: global admin, or a role on one cluster. */
+export type MappingRole = 'admin' | AssignmentRole
+
+/** A group mapping as an admin edits it. */
+export interface GroupMappingInput {
+  group: string
+  /** '' applies to every provider. */
+  source: ExternalAuthSource | ''
+  role: MappingRole
+  /** Cluster name; '' for admin. */
+  cluster: string
+}
+
+export interface GroupMapping extends GroupMappingInput {
+  id: number
+  /** False when no cluster of that name is in the inventory (it grants nothing yet). */
+  clusterExists: boolean
+}
+
+/** Why a sign-in would be or was refused (failure class). */
+export type SignInFailure =
+  | 'invalid_credentials'
+  | 'account_disabled'
+  | 'domain_not_allowed'
+  | 'no_matching_group'
+  | 'username_conflict'
+  | 'invalid_username'
+  | 'invalid_request'
+  | 'provider_error'
+  | 'rate_limited'
+
+/** "Who would I be": the result of signing a user in, computed without a session. */
+export interface SignInPreview {
+  source: ExternalAuthSource
+  username: string
+  groups: string[]
+  groupsFrom: 'input' | 'directory' | 'lastSignIn' | 'none'
+  admin: boolean
+  clusters: { cluster: string; role: AssignmentRole; exists: boolean }[]
+  /** IDs of the mappings that applied. */
+  matched: number[]
+  allowed: boolean
+  reason: SignInFailure | ''
+  /** Source of the account that already has this username; '' for none. */
+  existingSource: AuthSource | ''
+  lastSignIn: string | null
+}

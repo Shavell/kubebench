@@ -28,6 +28,23 @@ those commits.
 - **Open an Ingress in the service browser**: "Open in browser" on an
   Ingress picks one of its rules (host and path) and shows the Service
   behind it, sending the rule's host, so virtual-hosted applications work.
+- Single sign-on with OpenID Connect: "Sign in with <provider>" on the
+  sign-in screen (authorization code flow with PKCE), users created at
+  their first sign-in, and global and cluster roles re-computed from group
+  mappings at every sign-in. Local accounts keep working; the last local
+  admin is the break-glass account and cannot be removed.
+- Sign-in with an LDAP directory or Active Directory: the sign-in screen
+  offers the directory next to SSO and local accounts; users sign in as
+  `user`, `DOMAIN\user` or `user@domain`, over LDAPS or StartTLS with a
+  custom CA. Active Directory nested groups count for group mappings, and
+  disabled accounts are refused.
+- Settings > Authentication for admins: the sign-in methods, group
+  mappings (audited) and a "test sign-in" preview of what a user would get
+  (looked up in the directory for directory users).
+- New settings `KUBEBENCH_PUBLIC_URL`, `KUBEBENCH_AUTH_REQUIRE_GROUP`,
+  `KUBEBENCH_AUTH_GROUP_MAPPINGS`, `KUBEBENCH_OIDC_*` and `KUBEBENCH_LDAP_*`,
+  with matching Helm chart values (`config.publicUrl`, `identity.*`, the
+  client secret and bind password from an existing Secret).
 
 ### Changed
 

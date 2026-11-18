@@ -7,6 +7,7 @@ import { registry } from '@/core/plugin/registry'
 import type { PluginManifest } from '@/core/plugin/types'
 import { BootError } from '@/core/shell/BootError'
 import { BootSplash } from '@/core/shell/BootSplash'
+import { takeSignInFailure } from '@/core/session/signInFailure'
 import { ChangePasswordScreen } from '@/core/shell/ChangePasswordScreen'
 import { LoginScreen } from '@/core/shell/LoginScreen'
 import { Shell } from '@/core/shell/Shell'
@@ -48,7 +49,8 @@ export async function startApp(root: Root, options: StartOptions, attempt = 0): 
     const session = await openSession(mockPolicy())
     switch (session.kind) {
       case 'signIn':
-        render(<LoginScreen />)
+        // A refused OIDC sign-in comes back with its failure class in the URL.
+        render(<LoginScreen failure={takeSignInFailure()} />)
         return
       case 'failed':
         fail(session.error)

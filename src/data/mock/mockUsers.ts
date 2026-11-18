@@ -1,7 +1,7 @@
 import { reasonError } from '../reasonError'
 import type { UsersProvider } from '../providers'
 import { MIN_PASSWORD_LENGTH, passwordLength, USERNAME_PATTERN } from '../rules'
-import type { AppUser, AssignmentRole, GlobalRole } from '../types'
+import type { AppUser, AssignmentRole, AuthSource, GlobalRole } from '../types'
 import { delay, delayReject } from './delay'
 import { mockClusterNames } from './mockInventory'
 
@@ -16,6 +16,8 @@ interface StoredUser {
   role: GlobalRole
   mustChangePassword: boolean
   assignments: { clusterId: number; role: AssignmentRole }[]
+  /** External users (design §3.6): source, profile and the groups of their last sign-in. */
+  external?: { source: Exclude<AuthSource, 'local'>; displayName: string; email: string; groups: string[]; lastSignIn: string }
 }
 
 /** The mock session always belongs to this user. */
@@ -42,6 +44,34 @@ const users: StoredUser[] = [
     assignments: [{ clusterId: 1, role: 'viewer' }],
   },
   { id: 4, username: 'ops-lead', role: 'admin', mustChangePassword: false, assignments: [] },
+  {
+    id: 5,
+    username: 'jane.doe',
+    role: 'user',
+    mustChangePassword: false,
+    assignments: [{ clusterId: 3, role: 'operator' }],
+    external: {
+      source: 'oidc',
+      displayName: 'Jane Doe',
+      email: 'jane.doe@example.com',
+      groups: ['sre', 'everyone'],
+      lastSignIn: '2026-11-02T08:30:00Z',
+    },
+  },
+  {
+    id: 6,
+    username: 'm.rossi',
+    role: 'user',
+    mustChangePassword: false,
+    assignments: [{ clusterId: 2, role: 'viewer' }],
+    external: {
+      source: 'ldap',
+      displayName: 'Marco Rossi',
+      email: 'm.rossi@corp.example.com',
+      groups: ['developers', 'everyone'],
+      lastSignIn: '2026-11-05T07:45:00Z',
+    },
+  },
 ]
 
 function toAppUser(user: StoredUser, names: Map<number, string>): AppUser {
@@ -53,9 +83,22 @@ function toAppUser(user: StoredUser, names: Map<number, string>): AppUser {
     username: user.username,
     role: user.role,
     mustChangePassword: user.mustChangePassword,
+    source: user.external?.source ?? 'local',
+    displayName: user.external?.displayName ?? '',
+    email: user.external?.email ?? '',
     clusters: assignments.map((a) => a.cluster),
     assignments,
   }
+}
+
+/** The account with this username: its source and, for external users, the last sign-in. */
+export function mockAccount(
+  username: string,
+): { source: AuthSource; groups: string[]; lastSignIn: string | null } | undefined {
+  const user = users.find((u) => u.username === username)
+  if (!user) return undefined
+  if (!user.external) return { source: 'local', groups: [], lastSignIn: null }
+  return { source: user.external.source, groups: user.external.groups, lastSignIn: user.external.lastSignIn }
 }
 
 function find(id: number): StoredUser | undefined {
@@ -63,8 +106,9 @@ function find(id: number): StoredUser | undefined {
 }
 
 const notFound = (id: number) => reasonError(404, 'not_found', 'users.not_found', { id })
+/** Only local admins count: they are the break-glass accounts (design §3.6). */
 const isLastAdmin = (user: StoredUser) =>
-  user.role === 'admin' && users.filter((u) => u.role === 'admin').length === 1
+  user.role === 'admin' && !user.external && users.filter((u) => u.role === 'admin' && !u.external).length === 1
 
 export function createMockUsers(): UsersProvider {
   return {
@@ -97,6 +141,9 @@ export function createMockUsers(): UsersProvider {
       if (!user) return delayReject(notFound(id))
       if (update.role === 'user' && isLastAdmin(user)) {
         return delayReject(reasonError(409, 'conflict', 'users.last_admin_demote'))
+      }
+      if (update.password !== undefined && user.external) {
+        return delayReject(reasonError(400, 'bad_request', 'auth.external_password'))
       }
       if (update.password !== undefined && passwordLength(update.password) < MIN_PASSWORD_LENGTH) {
         return delayReject(reasonError(400, 'bad_request', 'password.too_short', { min: MIN_PASSWORD_LENGTH }))

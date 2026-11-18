@@ -65,3 +65,15 @@
   padding: 6px 2px;
   border-bottom: 1px solid var(--vscode-tree-tableColumnsBorder);
 }
+
+/* External users (design §3.6): their access follows their groups. */
+.users-access__notice {
+  margin: 0 0 4px;
+  padding: 7px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--vscode-editor-foreground);
+  background: color-mix(in srgb, var(--vscode-editorInfo-foreground) 12%, transparent);
+  border: 1px solid var(--vscode-editorInfo-foreground);
+  border-radius: 3px;
+}

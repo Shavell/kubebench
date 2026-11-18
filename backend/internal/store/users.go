@@ -17,15 +17,28 @@ type User struct {
 	Role               string `json:"role"` // RoleAdmin | RoleUser
 	ActiveClusterID    *int64 `json:"activeClusterId,omitempty"`
 	MustChangePassword bool   `json:"mustChangePassword"`
+	// Source is where the account comes from: UserSourceLocal (a password
+	// kept here) or an external identity provider (§3.6).
+	Source      string `json:"source"`
+	DisplayName string `json:"displayName"`
+	Email       string `json:"email"`
 }
 
 func (u *User) IsAdmin() bool { return u.Role == RoleAdmin }
 
-const userColumns = `id, username, role, active_cluster_id, must_change_password`
+// IsExternal reports whether the user signs in through an identity
+// provider; such users have no local password.
+func (u *User) IsExternal() bool { return u.Source != UserSourceLocal }
+
+const userColumns = `id, username, role, active_cluster_id, must_change_password, source, display_name, email`
+
+func userFields(u *User) []any {
+	return []any{&u.ID, &u.Username, &u.Role, &u.ActiveClusterID, &u.MustChangePassword, &u.Source, &u.DisplayName, &u.Email}
+}
 
 func scanUser(row interface{ Scan(...any) error }) (*User, error) {
 	var u User
-	if err := row.Scan(&u.ID, &u.Username, &u.Role, &u.ActiveClusterID, &u.MustChangePassword); err != nil {
+	if err := row.Scan(userFields(&u)...); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
 		}
@@ -88,15 +101,16 @@ func (s *Store) ListUsers() ([]User, error) {
 	return users, rows.Err()
 }
 
-// Authenticate returns the user when the password matches, ErrNotFound
-// otherwise (unknown user and wrong password are indistinguishable).
+// Authenticate returns the local user when the password matches,
+// ErrNotFound otherwise (unknown user, wrong password and an external
+// user, who has no local password, are indistinguishable).
 func (s *Store) Authenticate(username, password string) (*User, error) {
 	var hash string
 	var u User
 	err := s.db.QueryRow(
 		`SELECT `+userColumns+`, password_hash FROM users WHERE username = ?`, username,
-	).Scan(&u.ID, &u.Username, &u.Role, &u.ActiveClusterID, &u.MustChangePassword, &hash)
-	if errors.Is(err, sql.ErrNoRows) {
+	).Scan(append(userFields(&u), &hash)...)
+	if errors.Is(err, sql.ErrNoRows) || (err == nil && u.IsExternal()) {
 		_ = bcrypt.CompareHashAndPassword(dummyHash(), []byte(password))
 		return nil, ErrNotFound
 	}
@@ -151,12 +165,16 @@ func (s *Store) SetMustChangePassword(userID int64, must bool) error {
 	return err
 }
 
-// keepsAnAdmin is true unless the row being changed is the only admin.
-// Evaluated inside the UPDATE/DELETE statement, so concurrent demotions
-// cannot both pass the check.
-const keepsAnAdmin = `(role != 'admin' OR (SELECT COUNT(*) FROM users WHERE role = 'admin') > 1)`
+// keepsAnAdmin is true unless the row being changed is the only local
+// admin. Evaluated inside the UPDATE/DELETE statement, so concurrent
+// demotions cannot both pass the check. Only local admins count: they are
+// the break-glass accounts that work when the identity provider does not
+// (§3.6), and an external admin loses the role whenever the groups of
+// their next sign-in no longer grant it.
+const keepsAnAdmin = `(role != 'admin' OR source != 'local' OR
+  (SELECT COUNT(*) FROM users WHERE role = 'admin' AND source = 'local') > 1)`
 
-// SetUserRole changes a user's global role; demoting the last admin
+// SetUserRole changes a user's global role; demoting the last local admin
 // fails with ErrLastAdmin.
 func (s *Store) SetUserRole(id int64, role string) error {
 	if role != RoleAdmin && role != RoleUser {
@@ -170,7 +188,7 @@ func (s *Store) SetUserRole(id int64, role string) error {
 }
 
 // DeleteUser removes a user with their sessions and assignments; deleting
-// the last admin fails with ErrLastAdmin.
+// the last local admin fails with ErrLastAdmin.
 func (s *Store) DeleteUser(id int64) error {
 	res, err := s.db.Exec(`DELETE FROM users WHERE id = ? AND `+keepsAnAdmin, id)
 	if err != nil {
@@ -180,7 +198,7 @@ func (s *Store) DeleteUser(id int64) error {
 }
 
 // guardedChange explains a statement guarded by keepsAnAdmin that touched
-// no row: either the user does not exist or it is the last admin.
+// no row: either the user does not exist or it is the last local admin.
 func (s *Store) guardedChange(res sql.Result, id int64) error {
 	if n, err := res.RowsAffected(); err != nil || n > 0 {
 		return err

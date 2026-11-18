@@ -46,7 +46,8 @@
   color: var(--vscode-descriptionForeground);
 }
 
-.login__card input {
+.login__card input,
+.login__card select {
   padding: 6px 9px;
   font-size: 13px;
   font-family: inherit;
@@ -56,7 +57,8 @@
   border-radius: 2px;
   outline: none;
 }
-.login__card input:focus {
+.login__card input:focus,
+.login__card select:focus {
   border-color: var(--vscode-focusBorder);
 }
 
@@ -77,4 +79,77 @@
   background: color-mix(in srgb, var(--status-failed) 12%, transparent);
   border: 1px solid var(--status-failed);
   border-radius: 3px;
+}
+
+/* External sign-in (design §3.6): the provider button leads; the local
+   form below it stays for local accounts and the break-glass admin. */
+.login__provider {
+  justify-content: center;
+  gap: 8px;
+  padding: 8px;
+  font-size: 13px;
+}
+
+.login__submit--quiet {
+  color: var(--vscode-button-secondaryForeground);
+  background: var(--vscode-button-secondaryBackground);
+}
+.login__submit--quiet:hover:where(:not(:disabled)) {
+  background: var(--vscode-button-secondaryHoverBackground);
+}
+
+.login__divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}
+.login__divider::before,
+.login__divider::after {
+  content: '';
+  flex: 1;
+  border-top: 1px solid var(--vscode-panel-border);
+}
+
+/* Directory or KubeBench account: a segmented choice above the form. */
+.login__sources {
+  display: flex;
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.login__source {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 8px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--vscode-foreground);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.login__source + .login__source {
+  border-left: 1px solid var(--vscode-input-border);
+}
+.login__source:hover:where(:not(:disabled)) {
+  background: var(--vscode-list-hoverBackground);
+}
+.login__source--active,
+.login__source--active:hover:where(:not(:disabled)) {
+  color: var(--vscode-button-foreground);
+  background: var(--vscode-button-background);
+}
+.login__source:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+.login__hint {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
 }

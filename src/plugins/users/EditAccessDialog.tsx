@@ -93,6 +93,7 @@ export function EditAccessDialog({ user, clusters, onClose }: EditAccessDialogPr
         </>
       }
     >
+      {user.source !== 'local' && <p className="users-access__notice">{t('external.mappedNote')}</p>}
       <Field label={t('fields.role')} help={t('fields.roleHelp')}>
         <Select
           value={role}

@@ -1,0 +1,184 @@
+.auth__loading {
+  padding: 16px 0;
+  color: var(--vscode-descriptionForeground);
+}
+
+.auth__help {
+  margin: 0 0 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--vscode-descriptionForeground);
+}
+
+.auth__muted {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.auth__value {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  word-break: break-all;
+}
+
+/* Mapped groups override manual edits: said where admins edit mappings. */
+.auth__notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0 0 10px;
+  padding: 7px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--vscode-editor-foreground);
+  background: color-mix(in srgb, var(--vscode-editorInfo-foreground) 12%, transparent);
+  border: 1px solid var(--vscode-editorInfo-foreground);
+  border-radius: 3px;
+}
+.auth__notice .codicon {
+  margin-top: 2px;
+  color: var(--vscode-editorInfo-foreground);
+}
+
+.auth__toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.auth__actions {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.auth__grant {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.auth__warning {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--vscode-editorWarning-foreground);
+}
+
+.auth__chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.auth__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 12px;
+  background: var(--vscode-textCodeBlock-background);
+}
+
+.auth-providers {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.auth-card {
+  padding: 10px 12px;
+  background: var(--vscode-editorWidget-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+}
+
+.auth-card__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.auth-card__name {
+  font-weight: 600;
+}
+
+.auth-card__status {
+  margin-left: auto;
+}
+
+.auth-card__error {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--vscode-errorForeground);
+  word-break: break-word;
+}
+
+.auth-card > .auth__help {
+  margin: 6px 0 0;
+}
+
+.auth-card__settings {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 0;
+}
+
+.auth-card__setting {
+  display: grid;
+  grid-template-columns: minmax(120px, 200px) 1fr;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.auth-card__setting dt {
+  color: var(--vscode-descriptionForeground);
+}
+
+.auth-card__setting dd {
+  margin: 0;
+  min-width: 0;
+}
+
+.auth-providers__general {
+  margin: 0;
+  padding: 0 12px;
+}
+
+.auth-preview-form__fields {
+  display: grid;
+  grid-template-columns: minmax(140px, 200px) minmax(160px, 260px) minmax(200px, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+}
+.auth-preview-form__fields > div:last-child {
+  padding-top: 20px;
+}
+
+.auth-preview {
+  margin-top: 12px;
+}
+
+@media (max-width: 760px) {
+  .auth-preview-form__fields {
+    grid-template-columns: 1fr;
+  }
+  .auth-preview-form__fields > div:last-child {
+    padding-top: 0;
+  }
+  .auth-card__setting {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}
+
+.auth-card__warning {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--vscode-editorWarning-foreground);
+}

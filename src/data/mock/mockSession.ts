@@ -22,6 +22,7 @@ export function mockServerInfo(): ServerInfo {
     user: MOCK_USERNAME,
     role: 'admin',
     mustChangePassword: false,
+    authSource: 'local',
     context: cluster.name,
     server: cluster.server ?? '',
     cluster: {

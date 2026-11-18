@@ -126,6 +126,10 @@ func serve(cfg *config.Config) error {
 	if err := bootstrap(cfg, st); err != nil {
 		return err
 	}
+	if err := seedGroupMappings(cfg, st); err != nil {
+		return err
+	}
+	logIdentityConfig(cfg)
 
 	plugins := plugin.All()
 	if err := plugin.StartAll(ctx, cfg.DataDir, plugins); err != nil {

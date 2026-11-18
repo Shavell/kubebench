@@ -31,6 +31,24 @@ var (
 	reasonWrongPassword      = reason.Define("auth.wrong_password", "the current password is incorrect")
 	reasonSamePassword       = reason.Define("auth.same_password", "the new password must differ from the current one")
 
+	// External identities (§3.6). A refused external sign-in names its
+	// failure class (identity.Class*) as auth.signin.<class>; the cause
+	// stays in the server log, as it may describe the provider.
+	reasonUnknownSource       = reason.Define("auth.unknown_source", "unknown sign-in source \"{{source}}\"")
+	reasonOIDCOff             = reason.Define("auth.oidc_not_configured", "OIDC sign-in is not configured")
+	reasonExternalPassword    = reason.Define("auth.external_password", "this account signs in through an identity provider; its password is managed there")
+	reasonPreviewSource       = reason.Define("auth.preview_source", "source must be oidc or ldap")
+	reasonMappingID           = reason.Define("auth.invalid_mapping_id", "invalid mapping id \"{{id}}\"")
+	reasonSignInRefused       = reason.Define("auth.signin.refused", "the sign-in was refused")
+	reasonSignInCredentials   = reason.Define("auth.signin.invalid_credentials", "invalid username or password")
+	reasonSignInDisabled      = reason.Define("auth.signin.account_disabled", "this account is disabled")
+	reasonSignInDomain        = reason.Define("auth.signin.domain_not_allowed", "this email domain may not sign in")
+	reasonSignInNoGroup       = reason.Define("auth.signin.no_matching_group", "no group of this account grants access to KubeBench")
+	reasonSignInConflict      = reason.Define("auth.signin.username_conflict", "the username belongs to another KubeBench account")
+	reasonSignInUsername      = reason.Define("auth.signin.invalid_username", "the account's username cannot be used in KubeBench")
+	reasonSignInRequest       = reason.Define("auth.signin.invalid_request", "the sign-in could not be verified; try again")
+	reasonSignInProviderError = reason.Define("auth.signin.provider_error", "the identity provider could not be reached")
+
 	// Roles and the active cluster.
 	reasonReadOnly         = reason.Define("cluster.read_only", "cluster \"{{cluster}}\" is read-only; an administrator can clear the flag in the Clusters view")
 	reasonRoleNoChange     = reason.Define("role.cannot_change", "your role on cluster \"{{cluster}}\" is {{role}}, which cannot change resources")
@@ -57,8 +75,8 @@ var (
 	reasonUserID           = reason.Define("users.invalid_id", "invalid user id \"{{id}}\"")
 	reasonUserNotFound     = reason.Define("users.not_found", "user {{id}} not found")
 	reasonGlobalRole       = reason.Define("users.invalid_role", "invalid role \"{{role}}\": use admin or user")
-	reasonLastAdminDemote  = reason.Define("users.last_admin_demote", "cannot demote the last admin: promote another user first")
-	reasonLastAdminDelete  = reason.Define("users.last_admin_delete", "cannot delete the last admin: promote another user first")
+	reasonLastAdminDemote  = reason.Define("users.last_admin_demote", "cannot demote the last local admin: promote another local user first (the local admin is the break-glass account)")
+	reasonLastAdminDelete  = reason.Define("users.last_admin_delete", "cannot delete the last local admin: promote another local user first (the local admin is the break-glass account)")
 	reasonLastAdmin        = reason.Define("users.last_admin", "at least one admin must remain")
 	reasonSeenVersionLimit = reason.Define("users.seen_version_length", "lastSeenVersion must be 1 to {{max}} characters")
 

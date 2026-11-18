@@ -1,0 +1,26 @@
+# Active Directory sign-in with nested group mappings, a bind password from
+# an existing Secret and a CA bundle (docs/design-v0.5.md §3.6).
+config:
+  publicUrl: https://kubebench.example.com
+identity:
+  groupMappings:
+    - group: kubebench-admins
+      role: admin
+    - group: platform-sre
+      role: operator
+      cluster: in-cluster
+      source: ldap
+  ldap:
+    enabled: true
+    url: ldaps://dc1.corp.example.com
+    type: ad
+    name: Corp AD
+    bindDN: CN=svc-kubebench,OU=Service Accounts,DC=corp,DC=example,DC=com
+    existingSecret: kubebench-ldap
+    userBaseDN: DC=corp,DC=example,DC=com
+    groupBaseDN: OU=Groups,DC=corp,DC=example,DC=com
+    timeout: 15s
+    caBundle: |
+      -----BEGIN CERTIFICATE-----
+      MIIBszCCAVmgAwIBAgIUZXhhbXBsZS1jYS1mb3ItY2hhcnQtY2kwCgYIKoZIzj0E
+      -----END CERTIFICATE-----

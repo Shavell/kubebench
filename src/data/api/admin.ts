@@ -40,6 +40,9 @@ export function createApiUsers(): UsersProvider {
       (await apiGet<AppUser[]>('/users')).map((u) => ({
         ...u,
         mustChangePassword: u.mustChangePassword ?? false,
+        source: u.source ?? 'local',
+        displayName: u.displayName ?? '',
+        email: u.email ?? '',
         clusters: u.clusters ?? [],
         assignments: u.assignments ?? [],
       })),
@@ -65,7 +68,8 @@ export function createApiSession(): SessionProvider {
       await apiPost('/auth/password', { currentPassword, newPassword })
     },
     logout: async () => {
-      await apiPost('/auth/logout')
+      const { logoutUrl } = await apiPost<{ logoutUrl?: string }>('/auth/logout')
+      return { logoutUrl }
     },
   }
 }
