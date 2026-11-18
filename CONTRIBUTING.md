@@ -144,7 +144,21 @@ cd backend && test -z "$(gofmt -l .)" && go vet ./... && go test ./... && go bui
 ```
 
 Or `make test lint build` (`make build` builds the frontend and the
-binary). Chart, manifest, packaging and workflow changes also
+binary).
+
+The backend has Go fuzz tests (`func FuzzXxx` in `fuzz_test.go` next to
+the code that parses untrusted input: manifests, Secret redaction, the
+service proxy's paths and redirects, LDAP filters, OIDC claims, the
+release list). `go test ./...` replays their seeds and the inputs kept
+in `testdata/fuzz/`; to fuzz one target, run it on its own, e.g.
+
+```bash
+cd backend && go test -run='^$' -fuzz='^FuzzLocation$' -fuzztime=60s ./internal/svcproxy
+```
+
+A failing input is written to `testdata/fuzz/<FuzzName>/`; fix the bug
+and commit that file as a regression seed. CI fuzzes every target for
+30 s on pushes to `main` and once a week (job `fuzz`). Chart, manifest, packaging and workflow changes also
 need `make chart-lint`, `make manifests` (commit its output) and `make lint`
 (shellcheck, actionlint). UI changes should be tried in the browser, in
 demo mode and against a cluster.
