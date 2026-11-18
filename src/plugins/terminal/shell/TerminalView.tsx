@@ -1,10 +1,11 @@
 import clsx from 'clsx'
 import { useEffect, useLayoutEffect, useRef, useSyncExternalStore } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useSettingsStore } from '@/core/store/settingsStore'
+import { useDisplaySettings } from '@/core/store/displayStore'
 import { useResolvedTheme } from '@/core/theme/themeController'
 import { useDataMode } from '@/data/mode'
 import { Badge } from '@/shared/Badge'
+import { fontStack } from '@/shared/fontFamily'
 import { showContextMenu } from '@/shared/contextMenu'
 import { Select } from '@/shared/form'
 import { Icon } from '@/shared/Icon'
@@ -27,7 +28,7 @@ export function TerminalView({ session }: { session: TerminalSession }) {
   const { t } = useTranslation(NS)
   const status = useSyncExternalStore(session.subscribe, () => session.status)
   const target = session.target
-  const fontSize = useSettingsStore((s) => s.terminalFontSize)
+  const { terminalFontSize: fontSize, terminalFontFamily } = useDisplaySettings()
   const theme = useResolvedTheme()
   const mock = useDataMode().mode === 'mock'
   const containers = usePodContainers(target.namespace, target.pod, target.container)
@@ -46,8 +47,8 @@ export function TerminalView({ session }: { session: TerminalSession }) {
   }, [session])
 
   useEffect(() => {
-    session.setAppearance({ fontSize, fontFamily: monospaceFont(), theme: xtermTheme() })
-  }, [session, fontSize, theme])
+    session.setAppearance({ fontSize, fontFamily: fontStack(terminalFontFamily, monospaceFont()), theme: xtermTheme() })
+  }, [session, fontSize, terminalFontFamily, theme])
 
   const copy = () =>
     session.copySelection().then(

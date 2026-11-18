@@ -1,5 +1,6 @@
 import { useCallback, useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import { scrollTopFor, visibleRange, type RowRange } from './virtualRange'
+import { cssRect } from './zoom'
 
 /** Height of a table row before one was measured (13px text, 5px padding, border). */
 const DEFAULT_ROW_HEIGHT = 27
@@ -24,7 +25,7 @@ function scrollParent(element: HTMLElement): HTMLElement | null {
 
 function measure(table: HTMLTableElement, container: HTMLElement): Geometry {
   const headerHeight = table.tHead?.offsetHeight ?? 0
-  const tableTop = table.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop
+  const tableTop = cssRect(table).top - cssRect(container).top + container.scrollTop
   return {
     scrollTop: container.scrollTop,
     viewportHeight: container.clientHeight,
@@ -88,7 +89,7 @@ export function useVirtualRows(tableRef: RefObject<HTMLTableElement | null>, cou
   useLayoutEffect(() => {
     if (!windowed) return
     const row = tableRef.current?.tBodies[0]?.querySelector<HTMLTableRowElement>('tr[data-row-index]')
-    const height = row?.getBoundingClientRect().height
+    const height = row && cssRect(row).height
     if (height && Math.abs(height - rowHeight) > 0.5) setRowHeight(height)
   }, [windowed, count, geometry, rowHeight, tableRef])
 
@@ -103,19 +104,20 @@ export function useVirtualRows(tableRef: RefObject<HTMLTableElement | null>, cou
   const scrollToIndex = useCallback(
     (index: number) => {
       const table = tableRef.current
-      const scroller = container ?? (table ? scrollParent(table) : null)
+      // Looked up again rather than taken from state: state is never written to.
+      const scroller = table ? scrollParent(table) : null
       if (!table || !scroller) return
       const current = measure(table, scroller)
       const row = table.tBodies[0]?.querySelector<HTMLTableRowElement>(`tr[data-row-index="${index}"]`)
       // A rendered row is placed by its real position; a windowed-out one by the fixed height.
-      const height = row ? row.getBoundingClientRect().height : rowHeight
+      const height = row ? cssRect(row).height : rowHeight
       const offset = row
-        ? row.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop - index * height
+        ? cssRect(row).top - cssRect(scroller).top + scroller.scrollTop - index * height
         : current.bodyOffset
       const top = scrollTopFor(index, { ...current, bodyOffset: offset, rowHeight: height }, current.headerHeight)
       if (top !== null) scroller.scrollTop = top
     },
-    [container, rowHeight, tableRef],
+    [rowHeight, tableRef],
   )
 
   return { range, windowed, rowHeight, scrollToIndex }

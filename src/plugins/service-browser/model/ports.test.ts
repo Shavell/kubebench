@@ -71,7 +71,8 @@ describe('helpers', () => {
 
   it('maps kinds and paths', () => {
     assert.equal(browserKind('Service'), 'services')
-    assert.equal(browserKind('Ingress'), null)
+    assert.equal(browserKind('Ingress'), 'ingresses')
+    assert.equal(browserKind('ConfigMap'), null)
     assert.equal(normalizePath(' api/x?y=1 '), '/api/x?y=1')
     assert.equal(normalizePath('/'), '/')
   })

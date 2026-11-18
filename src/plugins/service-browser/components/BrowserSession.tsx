@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Unavailable } from '@/shared/Unavailable'
 import { serviceBrowserData } from '../data'
-import type { BrowserPort, BrowserTarget, ProxySession, Scheme } from '../data/types'
+import type { BrowserTarget, ProxySession } from '../data/types'
 import { NS } from '../i18n'
 import { frameLocation } from '../model/frameLocation'
 import { canGoBack, canGoForward, currentPath, goBack, goForward, startHistory, visit } from '../model/history'
+import { startPath } from '../model/ingress'
 import { targetAddress } from '../model/ports'
 import { AddressBar } from './AddressBar'
 import { SessionNotices } from './SessionNotices'
@@ -22,8 +23,8 @@ const PROXY_ORIGIN_SANDBOX = `${SANDBOX} allow-same-origin allow-modals allow-po
 
 interface BrowserSessionProps {
   target: BrowserTarget
-  ports: BrowserPort[]
-  onTargetChange: (port: number, scheme: Scheme) => void
+  /** The target's pickers for the address bar. */
+  pickers: ReactNode
 }
 
 type SessionState = { session: ProxySession; error: null } | { session: null; error: unknown } | null
@@ -31,17 +32,18 @@ type SessionState = { session: ProxySession; error: null } | { session: null; er
 /**
  * One browsing session of a target: opens it on mount, ends it on unmount,
  * and keeps the tab's own back/forward history from the documents the
- * backend saw the frame load (the frame is cross-origin).
+ * backend saw the frame load (the frame is cross-origin). An Ingress
+ * route's session starts at the rule's path.
  */
-export function BrowserSession({ target, ports, onTargetChange }: BrowserSessionProps) {
+export function BrowserSession({ target, pickers }: BrowserSessionProps) {
   const { t } = useTranslation(NS)
   const provider = serviceBrowserData()
   const [state, setState] = useState<SessionState>(null)
   const [attempt, setAttempt] = useState(0)
-  const [history, setHistory] = useState(() => startHistory('/'))
+  const [history, setHistory] = useState(() => startHistory(startPath(target.ingress?.path ?? '/')))
   // Every navigation KubeBench starts remounts the frame (n), so going to
   // the path the frame was opened with still loads it again.
-  const [frame, setFrame] = useState({ path: '/', n: 0 })
+  const [frame, setFrame] = useState(() => ({ path: currentPath(history), n: 0 }))
   // The newest navigation of the session seen at a load of the frame.
   const seen = useRef({ token: '', seq: 0 })
 
@@ -67,7 +69,7 @@ export function BrowserSession({ target, ports, onTargetChange }: BrowserSession
       if (token) provider.close(token).catch(() => undefined)
     }
     // The target's fields, not its identity, select the session.
-  }, [provider, target.kind, target.namespace, target.name, target.port, target.scheme, attempt]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [provider, target.kind, target.namespace, target.name, target.port, target.scheme, target.ingress?.name, target.ingress?.host, target.ingress?.path, attempt]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const session = state?.session ?? null
   const source = useMemo(
@@ -109,9 +111,9 @@ export function BrowserSession({ target, ports, onTargetChange }: BrowserSession
     <div className="sb-page">
       <AddressBar
         address={targetAddress(target)}
+        addressTitle={target.ingress ? t('ingress.via', { address: targetAddress(target), service: `${target.name}:${target.port}` }) : undefined}
         path={path}
-        ports={ports}
-        target={target}
+        pickers={pickers}
         canBack={canGoBack(history)}
         canForward={canGoForward(history)}
         externalUrl={external}
@@ -119,7 +121,6 @@ export function BrowserSession({ target, ports, onTargetChange }: BrowserSession
         onForward={() => show(goForward(history))}
         onReload={() => setFrame((f) => ({ path, n: f.n + 1 }))}
         onNavigate={navigate}
-        onTargetChange={onTargetChange}
       />
       {session && <SessionNotices session={session} />}
       <div className="sb-frame-host">

@@ -32,6 +32,11 @@ type Target struct {
 	Port string `json:"port"`
 	// Scheme is how the API server talks to the backend: http or https.
 	Scheme string `json:"scheme"`
+	// Host, when set, is the Host header the backend gets: the host of
+	// the Ingress rule the grant was opened for, so that a virtual-hosted
+	// application answers as it does behind its Ingress. Empty: the
+	// request keeps the API server's host.
+	Host string `json:"host,omitempty"`
 }
 
 var (
@@ -51,6 +56,8 @@ func (t Target) Validate() error {
 		return fmt.Errorf("invalid name %q", t.Name)
 	case t.Scheme != "http" && t.Scheme != "https":
 		return fmt.Errorf("scheme must be http or https, not %q", t.Scheme)
+	case t.Host != "" && (t.Kind != KindService || len(t.Host) > 253 || !dnsSubdomain.MatchString(t.Host)):
+		return fmt.Errorf("invalid host %q", t.Host)
 	}
 	if n, err := strconv.Atoi(t.Port); err == nil {
 		if n < 1 || n > 65535 {

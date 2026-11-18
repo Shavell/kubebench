@@ -1,18 +1,18 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Select } from '@/shared/form'
 import { Icon } from '@/shared/Icon'
-import type { BrowserPort, BrowserTarget, Scheme } from '../data/types'
 import { NS } from '../i18n'
-import { normalizePath, portLabel } from '../model/ports'
+import { normalizePath } from '../model/ports'
 
 interface AddressBarProps {
-  /** The target's in-cluster address, e.g. http://web.shop:80. */
+  /** The target's address, e.g. http://web.shop:80. */
   address: string
+  /** Shown on the address, e.g. the Service an Ingress route leads to. */
+  addressTitle?: string
   /** The path the frame shows. */
   path: string
-  ports: BrowserPort[]
-  target: BrowserTarget
+  /** The pickers of the target (port or Ingress route, and scheme). */
+  pickers: ReactNode
   canBack: boolean
   canForward: boolean
   /** The page's URL for a browser tab of its own; null in demo mode. */
@@ -21,10 +21,7 @@ interface AddressBarProps {
   onForward: () => void
   onReload: () => void
   onNavigate: (path: string) => void
-  onTargetChange: (port: number, scheme: Scheme) => void
 }
-
-const SCHEMES: Scheme[] = ['http', 'https']
 
 function IconButton({ icon, label, disabled, onClick }: { icon: string; label: string; disabled?: boolean; onClick: () => void }) {
   return (
@@ -34,12 +31,11 @@ function IconButton({ icon, label, disabled, onClick }: { icon: string; label: s
   )
 }
 
-/** Back, forward, reload, the in-cluster address with an editable path, the port and "open in new tab". */
+/** Back, forward, reload, the address with an editable path, the target's pickers and "open in new tab". */
 export function AddressBar(props: AddressBarProps) {
   const { t } = useTranslation(NS)
   // The path being typed; null while the bar follows the frame.
   const [draft, setDraft] = useState<string | null>(null)
-  const { target } = props
 
   return (
     <div className="sb-bar" role="toolbar" aria-label={t('toolbar.label')}>
@@ -54,7 +50,7 @@ export function AddressBar(props: AddressBarProps) {
           setDraft(null)
         }}
       >
-        <span className="sb-address__origin" title={props.address}>
+        <span className="sb-address__origin" title={props.addressTitle ?? props.address}>
           {props.address}
         </span>
         <input
@@ -69,20 +65,7 @@ export function AddressBar(props: AddressBarProps) {
           }}
         />
       </form>
-      <Select
-        className="sb-select"
-        aria-label={t('toolbar.port')}
-        value={Number(target.port)}
-        options={props.ports.map((p) => ({ value: p.port, label: portLabel(p) }))}
-        onChange={(port) => props.onTargetChange(port, props.ports.find((p) => p.port === port)?.scheme ?? 'http')}
-      />
-      <Select
-        className="sb-select"
-        aria-label={t('toolbar.scheme')}
-        value={target.scheme}
-        options={SCHEMES.map((s) => ({ value: s, label: s }))}
-        onChange={(scheme) => props.onTargetChange(Number(target.port), scheme)}
-      />
+      {props.pickers}
       <IconButton
         icon="link-external"
         label={props.externalUrl ? t('toolbar.newTab') : t('toolbar.newTabDemo')}

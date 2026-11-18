@@ -259,7 +259,7 @@ and filesystem series need Prometheus.
 | POST | `/api/exec` | exec | `?ns=&pod=&container=&cmd=` | one-shot command → `string[]` (output lines) |
 | GET | `/api/exec/ws` | exec | `?ns=&pod=&container=&command=<shell>` | WebSocket terminal (§7.1); audited once as `exec.session` |
 | GET | `/api/logs/stream` | read | `?ns=&pod=&container=&tail=&previous=&timestamps=&sinceSeconds=` or `?ns=&selector=<labels>` (≤ 10 pods) | Server-Sent Events |
-| GET | `/api/watch` | read | `?topics=pods,deployments,applications.argoproj.io` (1–32) | Server-Sent Events (§7.10) |
+| GET | `/api/watch` | read | `?topics=pods,deployments,applications.argoproj.io,kubebench:notes` (1–32) | Server-Sent Events (§7.10) |
 | GET | `/api/watch/status` | read | — | `{"subscribers","informers":[{"resource","mode","reason"?,"subscribers","idleSince"?}]}` |
 
 - **Terminal frames.** Client → server text frames
@@ -274,7 +274,10 @@ and filesystem series need Prometheus.
   a selector), `event: error`, `event: end`, and `: ping` every 15 s.
 - **Watch events.** `event: status` `{"topic","mode":"starting"|"live"|"polling","reason"?}`,
   `event: change` `{"topic","namespace"}` (batched for 500 ms), `event: end`
-  with the reason; a comment heartbeat every 25 s.
+  with the reason; a comment heartbeat every 25 s. Topics starting with
+  `kubebench:` name KubeBench's own data (`kubebench:notes`): always
+  `live`, a change has `namespace` `""` and reaches only the users who may
+  see the changed data.
 - **Limits.** Per user: 10 terminals, 20 log streams and 16 watch streams
   (`429 rate_limited` beyond that), 32 watched resource types. Streams are
   re-authorized at every heartbeat and end when the session, the assignment
@@ -286,11 +289,12 @@ and filesystem series need Prometheus.
 |---|---|---|---|---|
 | POST | `/api/proxy/services/{ns}/{name}/{port}` | browse | `?scheme=http\|https` (default `http`); `port` is a Service port number or name | `ProxySession`; audited once as `service.proxy`, target `service/<ns>/<name>:<port>` |
 | POST | `/api/proxy/pods/{ns}/{name}/{port}` | browse | as above; a port name must be a container port's | `ProxySession`; audited once as `pod.proxy` |
+| POST | `/api/proxy/ingresses/{ns}/{name}` | browse | `?host=&path=` of one rule path (both empty: the default backend), `?scheme=` | `ProxySession` for the Service port of that route, with `target.host` = the rule's host (none for a wildcard host); audited once as `ingress.proxy`, target `ingress/<ns>/<name>`, detail `{"scheme","host","path","service"}` |
 | GET | `/api/proxy/sessions/{token}` | authed | only the session that opened it | `ProxySession` with the latest `navigations` |
 | DELETE | `/api/proxy/sessions/{token}` | authed | only the session that opened it | `{"ok":true}` |
 | GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS | `/proxy/{token}/{path...}` | public (the token is the credential) | anything the proxied page sends | the page, through `/api/v1/namespaces/<ns>/<services\|pods>/<scheme>:<name>:<port>/proxy/<path>` |
 
-`ProxySession` is `{"token","base","sandboxed","readOnly","target":{"kind","namespace","name","port","scheme"},"navigations":[{"seq","location"}]}`
+`ProxySession` is `{"token","base","sandboxed","readOnly","target":{"kind","namespace","name","port","scheme","host"?},"navigations":[{"seq","location"}]}`
 (the latest 16 document loads of the frame and of the frames nested in its
 page, oldest first; `location` is the in-cluster path and query, `""` when
 longer than 4 KiB);
@@ -423,6 +427,10 @@ Limits: title 200 characters, body 64 KiB, 16 tags, 1000 notes per author
 (`409 conflict`). Shared-note changes are audited with target `note/<id>`
 and at most the object (`{"resource":"Deployment/shop/web"}`) or
 `{"pinned":true}` as detail; personal notes are not audited.
+
+Live updates: every stored change publishes the topic `kubebench:notes`
+on `GET /api/watch` — a shared note's to the streams on its cluster, a
+personal note's to its owner's streams only (on any cluster).
 
 The Topology plugin has no backend routes: it reads through the core
 routes and the passthrough.

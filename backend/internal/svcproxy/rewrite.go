@@ -20,15 +20,22 @@ type rewriter struct {
 	// apiHost is the API server's host name: backends build absolute
 	// redirects from the Host header, which names the API server.
 	apiHost string
-	// bodyPatterns are what body replaces with the base: the prefixes, each
-	// also as an absolute URL naming the API server (a backend builds
-	// absolute links from the Host header too), longest first.
-	bodyPatterns []string
+	// appHost is the Host header the backend gets instead (Target.Host),
+	// if any: its absolute redirects and links name that host.
+	appHost string
+	// replacements are what body replaces, longest first: the prefixes,
+	// each also as an absolute URL naming the API server or appHost (a
+	// backend builds absolute links from the Host header too), with the
+	// base; and absolute URLs of appHost's root with the base's root.
+	replacements []replacement
 }
+
+// replacement is one pattern of a streamed HTML body and what replaces it.
+type replacement struct{ from, to []byte }
 
 func newRewriter(base string, apiServer *url.URL, t Target) *rewriter {
 	apiPath := t.APIPath()
-	rw := &rewriter{base: base, apiHost: apiServer.Hostname()}
+	rw := &rewriter{base: base, apiHost: apiServer.Hostname(), appHost: t.Host}
 	if p := strings.TrimSuffix(apiServer.Path, "/"); p != "" {
 		rw.prefixes = append(rw.prefixes, p+apiPath)
 	}
@@ -40,15 +47,29 @@ func newRewriter(base string, apiServer *url.URL, t Target) *rewriter {
 		}
 		hosts = append(hosts, bare)
 	}
+	if t.Host != "" {
+		// The API server rewrites the backend's absolute links naming the
+		// Host it sent into links below the subresource on that host.
+		hosts = append(hosts, t.Host)
+	}
+	to := []byte(base)
 	for _, prefix := range rw.prefixes {
 		for _, host := range hosts {
 			for _, scheme := range []string{"https:", "http:", ""} {
-				rw.bodyPatterns = append(rw.bodyPatterns, scheme+"//"+host+prefix)
+				rw.replacements = append(rw.replacements, replacement{[]byte(scheme + "//" + host + prefix), to})
 			}
 		}
+		rw.replacements = append(rw.replacements, replacement{[]byte(prefix), to})
 	}
-	rw.bodyPatterns = append(rw.bodyPatterns, rw.prefixes...)
-	slices.SortStableFunc(rw.bodyPatterns, func(a, b string) int { return len(b) - len(a) })
+	if t.Host != "" {
+		// Only URLs of the host's root path ("//host/…"): "//host" alone
+		// could be the start of another host's name.
+		root := []byte(base + "/")
+		for _, scheme := range []string{"https:", "http:", ""} {
+			rw.replacements = append(rw.replacements, replacement{[]byte(scheme + "//" + t.Host + "/"), root})
+		}
+	}
+	slices.SortStableFunc(rw.replacements, func(a, b replacement) int { return len(b.from) - len(a.from) })
 	return rw
 }
 
@@ -68,17 +89,18 @@ func (rw *rewriter) mapPath(p string) string {
 
 // location rewrites a redirect target. Relative references stay as they
 // are (the browser resolves them below the base); absolute paths and
-// absolute URLs naming the API server's host, which a backend builds from
-// the Host header it got, are mapped below the base. Redirects to other
-// hosts are passed on unchanged: the proxy never follows them, the
-// browser navigates the (sandboxed) frame there.
+// absolute URLs naming the API server's host, or the Ingress host the
+// backend got (both: the Host header it got), are mapped below the base.
+// Redirects to other hosts are passed on unchanged: the proxy never
+// follows them, the browser navigates the (sandboxed) frame there.
 func (rw *rewriter) location(loc string) string {
 	u, err := url.Parse(loc)
 	if err != nil {
 		return loc
 	}
 	if u.Host != "" || u.Scheme != "" {
-		if u.Hostname() != rw.apiHost && !rw.hasPrefix(u.Path) {
+		own := u.Hostname() == rw.apiHost || (rw.appHost != "" && strings.EqualFold(u.Hostname(), rw.appHost))
+		if !own && !rw.hasPrefix(u.Path) {
 			return loc
 		}
 	} else if !strings.HasPrefix(u.Path, "/") {
@@ -122,29 +144,27 @@ func (rw *rewriter) setCookie(value, sessionCookie string) (string, bool) {
 }
 
 // body wraps an HTML body, replacing the subresource paths the API server
-// wrote into its links, and absolute URLs of them naming the API server,
-// with the base, as a stream.
+// wrote into its links, and absolute URLs of them naming the API server
+// or the Ingress host, with the base, as a stream.
 func (rw *rewriter) body(r io.ReadCloser) io.ReadCloser {
-	rr := &replacingReader{src: r, to: []byte(rw.base), keep: len(rw.bodyPatterns[0]) - 1}
+	rr := &replacingReader{src: r, replacements: rw.replacements, keep: len(rw.replacements[0].from) - 1}
 	starts := map[byte]bool{}
-	for _, p := range rw.bodyPatterns {
-		rr.patterns = append(rr.patterns, []byte(p))
-		if !starts[p[0]] {
-			starts[p[0]] = true
-			rr.starts += string(p[0])
+	for _, p := range rw.replacements {
+		if !starts[p.from[0]] {
+			starts[p.from[0]] = true
+			rr.starts += string(p.from[0])
 		}
 	}
 	return rr
 }
 
-// replacingReader replaces every occurrence of each pattern with to, the
-// earliest listed pattern winning at a position. It holds back keep bytes
-// (one less than the longest pattern) between reads, so that a pattern
-// split across reads is still found.
+// replacingReader replaces every occurrence of each pattern, the earliest
+// listed pattern winning at a position. It holds back keep bytes (one
+// less than the longest pattern) between reads, so that a pattern split
+// across reads is still found.
 type replacingReader struct {
-	src      io.ReadCloser
-	patterns [][]byte
-	to       []byte
+	src          io.ReadCloser
+	replacements []replacement
 	// starts holds the first byte of every pattern.
 	starts string
 	keep   int
@@ -187,10 +207,10 @@ func (r *replacingReader) fill() {
 		r.out.Write(r.in[i : i+j])
 		i += j
 		matched := false
-		for _, pattern := range r.patterns {
-			if bytes.HasPrefix(r.in[i:], pattern) {
-				r.out.Write(r.to)
-				i += len(pattern)
+		for _, p := range r.replacements {
+			if bytes.HasPrefix(r.in[i:], p.from) {
+				r.out.Write(p.to)
+				i += len(p.from)
 				matched = true
 				break
 			}

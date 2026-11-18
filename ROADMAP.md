@@ -69,7 +69,6 @@ and the limitations documented in [docs/security.md](docs/security.md).
 | Item | Value | Size |
 |---|---|---|
 | Port-forward for non-HTTP ports | The v0.6 service browser covers HTTP; databases and other TCP ports still need a local `kubectl port-forward` | M |
-| Open an Ingress in the service browser | Resolve a rule's backend Service and open its path, like Services and Pods today | S |
 | Exact service browser address with self-navigating nested frames | The address bar follows the page's first document load; a widget frame that navigates on its own between two page loads is taken for the page at the next load ([design §7.14](docs/design-v0.5.md#714-service-browser-core--service-browser-plugin--v06)). Knowing the page's frame for sure needs a report from inside the page itself | M |
 | Cluster compare | A/B diff of two clusters or namespaces on neat YAML, to find drift between environments | L |
 | Manifest Composer | Form wizards for common resources beyond storage, with templates | L |
@@ -111,7 +110,6 @@ and the limitations documented in [docs/security.md](docs/security.md).
 | Localized server-side reasons and errors | Unavailable reasons and error texts from the backend are English today; translate them like the UI | M |
 | More UI languages | English, Turkish and German ship today; a language is data only ([docs/i18n.md](docs/i18n.md)) | S each |
 | Smaller main bundle | Split the main chunk (over 800 kB minified) further, for a faster first load | M |
-| Interface scale and font settings | Zoom and font choices beyond the terminal font size | S |
 
 ### Distribution
 

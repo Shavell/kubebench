@@ -38,11 +38,16 @@ export function ClusterItem() {
   const { anchor, toggle, close } = useMenuAnchor()
   const [clusters, setClusters] = useState<ClusterEntry[] | null>(null)
 
-  // The inventory is read when the menu opens, not on every refresh.
+  // The inventory is read when the menu opens, not on every refresh; an
+  // opening menu shows the loading state until it arrives.
+  const [openedFor, setOpenedFor] = useState(anchor)
+  if (openedFor !== anchor) {
+    setOpenedFor(anchor)
+    if (anchor) setClusters(null)
+  }
   useEffect(() => {
     if (!anchor) return
     let cancelled = false
-    setClusters(null)
     providers.inventory.listClusters().then(
       (list) => !cancelled && setClusters(list),
       (err: unknown) => {

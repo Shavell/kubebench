@@ -273,13 +273,11 @@ function useFrozenColumnWidths<T>(
 ): number[] | null {
   const [widths, setWidths] = useState<{ columns: string; values: number[] } | null>(null)
   const columnsKey = columns.map((c) => c.key).join('\u0000')
+  // Windowing ended: forget the widths, so the next windowing measures anew.
+  if (!windowed && widths !== null) setWidths(null)
 
   useLayoutEffect(() => {
-    if (!windowed) {
-      setWidths(null)
-      return
-    }
-    if (widths?.columns === columnsKey) return
+    if (!windowed || widths?.columns === columnsKey) return
     const table = tableRef.current
     const cells = table?.tHead?.rows[0]?.cells
     if (!table || !cells || table.offsetWidth === 0) return

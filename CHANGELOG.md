@@ -16,6 +16,19 @@ those commits.
 
 ## [Unreleased]
 
+### Added
+
+- **Interface scale and fonts**: Settings → Appearance zooms the whole
+  interface (90–130%), and Settings → Editor and Terminal and logs choose
+  the font family and size of the code editors and of the terminal, exec
+  and log views. They are kept in the browser for each user.
+- **Notes live updates**: other users' changes to shared notes, and your
+  own changes in another tab, appear at once instead of when the window
+  regains focus. Personal notes are announced to their owner only.
+- **Open an Ingress in the service browser**: "Open in browser" on an
+  Ingress picks one of its rules (host and path) and shows the Service
+  behind it, sending the rule's host, so virtual-hosted applications work.
+
 ## [0.6.0] - 2026-11-18
 
 First public release. It also ships everything listed under 0.5.0, which

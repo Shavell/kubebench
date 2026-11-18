@@ -97,5 +97,6 @@ environment:
   read-only flag, environment and cloud credentials.
 
 Per-user preferences (theme, language, metrics window, auto refresh, live
-updates, keyboard shortcuts, terminal font size, namespace favourites,
-palette aliases) live in the browser's local storage.
+updates, keyboard shortcuts, interface scale, editor and terminal fonts,
+namespace favourites, palette aliases) live in the browser's local storage;
+the interface scale, the fonts and the aliases are kept per signed-in user.

@@ -80,29 +80,41 @@ func (s *Server) handleOpenProxy(kind string) handlerFunc {
 			detail["readOnly"] = true
 		}
 		c.setAudit(t.AuditTarget(), auditJSON(detail))
-		appOrigin := s.appOrigin(r)
-		if err := s.checkProxyOrigin(appOrigin); err != nil {
-			writeErr(w, err)
-			return
-		}
-		if err := checkProxyTarget(r.Context(), c.rt, t); err != nil {
-			var ae *apiError
-			if errors.As(err, &ae) {
-				writeErr(w, err)
-			} else {
-				plugin.WriteK8sError(w, err)
-			}
-			return
-		}
-		g, err := s.grants.Issue(svcproxy.Grant{
-			Session: c.token, UserID: c.user.ID, ClusterID: c.cluster.ID,
-			Target: t, FrameAncestor: appOrigin,
-		})
-		if err != nil {
-			writeErr(w, err)
-			return
-		}
-		plugin.WriteJSON(w, s.proxySessionView(g, c.cluster.ReadOnly))
+		s.issueGrant(w, r, c, t)
+	}
+}
+
+// issueGrant opens a grant for t once the target checks pass and answers
+// with the session.
+func (s *Server) issueGrant(w http.ResponseWriter, r *http.Request, c *call, t svcproxy.Target) {
+	appOrigin := s.appOrigin(r)
+	if err := s.checkProxyOrigin(appOrigin); err != nil {
+		writeErr(w, err)
+		return
+	}
+	if err := checkProxyTarget(r.Context(), c.rt, t); err != nil {
+		writeTargetErr(w, err)
+		return
+	}
+	g, err := s.grants.Issue(svcproxy.Grant{
+		Session: c.token, UserID: c.user.ID, ClusterID: c.cluster.ID,
+		Target: t, FrameAncestor: appOrigin,
+	})
+	if err != nil {
+		writeErr(w, err)
+		return
+	}
+	plugin.WriteJSON(w, s.proxySessionView(g, c.cluster.ReadOnly))
+}
+
+// writeTargetErr answers a failed target check: our own refusals as
+// they are, Kubernetes errors (not found, forbidden) as such.
+func writeTargetErr(w http.ResponseWriter, err error) {
+	var ae *apiError
+	if errors.As(err, &ae) {
+		writeErr(w, err)
+	} else {
+		plugin.WriteK8sError(w, err)
 	}
 }
 

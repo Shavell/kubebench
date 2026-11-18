@@ -16,7 +16,8 @@ import (
 const maxWatchTopics = 32
 
 // parseWatchTopics parses the comma-separated topics parameter: 1 to
-// maxWatchTopics valid topics, duplicates dropped, order kept.
+// maxWatchTopics valid topics (resources, or KubeBench-internal topics
+// such as kubebench:notes), duplicates dropped, order kept.
 func parseWatchTopics(raw string) ([]string, error) {
 	var topics []string
 	seen := map[string]bool{}
@@ -25,7 +26,7 @@ func parseWatchTopics(raw string) ([]string, error) {
 		if t == "" || seen[t] {
 			continue
 		}
-		if !watch.ValidTopic(t) {
+		if !watch.ValidTopic(t) && !watch.IsInternalTopic(t) {
 			return nil, badRequest("invalid topic %q: give a resource like pods or applications.argoproj.io", t)
 		}
 		seen[t] = true
@@ -46,12 +47,22 @@ func parseWatchTopics(raw string) ([]string, error) {
 // ones at once; "event: change" with {topic, namespace}, debounced;
 // heartbeat comments; and "event: end" with the reason when the server
 // ends the stream (the cluster connection was rebuilt, or the caller's
-// access changed), after which clients may reconnect.
+// access changed), after which clients may reconnect. Internal topics
+// (kubebench:<name>) are always live and report the changes that
+// KubeBench publishes on its board for the caller (watch.Audience).
 func (s *Server) handleWatch(w http.ResponseWriter, r *http.Request, c *call) {
 	topics, err := parseWatchTopics(r.URL.Query().Get("topics"))
 	if err != nil {
 		writeErr(w, err)
 		return
+	}
+	var resources, internal []string
+	for _, t := range topics {
+		if watch.IsInternalTopic(t) {
+			internal = append(internal, t)
+		} else {
+			resources = append(resources, t)
+		}
 	}
 	release, err := s.streamLimits.acquire(c.user.ID, kindWatch)
 	if err != nil {
@@ -59,7 +70,7 @@ func (s *Server) handleWatch(w http.ResponseWriter, r *http.Request, c *call) {
 		return
 	}
 	defer release()
-	sub, err := c.rt.Watch().Subscribe(c.user.ID, topics)
+	sub, err := c.rt.Watch().Subscribe(c.user.ID, resources)
 	switch {
 	case errors.Is(err, watch.ErrClosed):
 		writeErr(w, errorf(http.StatusServiceUnavailable, plugin.CodeCapabilityUnavailable,
@@ -73,17 +84,24 @@ func (s *Server) handleWatch(w http.ResponseWriter, r *http.Request, c *call) {
 		return
 	}
 	defer sub.Close()
+	board := s.board.Subscribe(c.user.ID, c.cluster.ID, internal)
+	defer board.Close()
 
 	sse, err := startSSE(w, s.streams.watchWriteWait)
 	defer sse.end()
 	if err != nil {
 		return // the client is gone
 	}
+	for _, t := range internal {
+		if writeEvent(sse, "status", watch.TopicStatus{Topic: t, Mode: watch.ModeLive}) != nil {
+			return
+		}
+	}
 	// A logout, a revoked assignment or the server's shutdown ends the
 	// stream too.
 	ctx, cancel := s.streamContext(r.Context())
 	defer cancel()
-	streamChanges(ctx, sse, sub, s.streams.watchTimings, func() error { return s.stillAllowed(c, accessRead) })
+	streamChanges(ctx, sse, sub, board, s.streams.watchTimings, func() error { return s.stillAllowed(c, accessRead) })
 }
 
 // watchTimings are the intervals of a watch stream.
@@ -98,11 +116,12 @@ type watchTimings struct {
 	debounce time.Duration
 }
 
-// streamChanges writes sub's statuses and changes to sse until ctx ends,
-// the client stops reading, the hub closes, check fails or the server
-// stops (ctx from streamContext; these three end with "event: end" and
-// the reason).
-func streamChanges(ctx context.Context, sse *sseWriter, sub *watch.Subscription, timings watchTimings, check func() error) {
+// streamChanges writes sub's statuses and changes, and board's changes,
+// to sse until ctx ends, the client stops reading, the hub closes, check
+// fails or the server stops (ctx from streamContext; these three end with
+// "event: end" and the reason).
+func streamChanges(ctx context.Context, sse *sseWriter, sub *watch.Subscription, board *watch.BoardSubscription,
+	timings watchTimings, check func() error) {
 	heartbeat := time.NewTicker(timings.heartbeat)
 	defer heartbeat.Stop()
 	// debounced fires once the changes collected since the first pending
@@ -142,9 +161,13 @@ func streamChanges(ctx context.Context, sse *sseWriter, sub *watch.Subscription,
 			if debounced == nil && sub.HasChanges() {
 				debounced = time.After(timings.debounce)
 			}
+		case <-board.Notify():
+			if debounced == nil {
+				debounced = time.After(timings.debounce)
+			}
 		case <-debounced:
 			debounced = nil
-			for _, ch := range sub.TakeChanges() {
+			for _, ch := range append(sub.TakeChanges(), board.TakeChanges()...) {
 				if writeEvent(sse, "change", ch) != nil {
 					return
 				}

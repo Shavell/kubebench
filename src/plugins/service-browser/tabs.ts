@@ -9,16 +9,16 @@ export const TAB_KIND = 'service-browser'
 export const ICON = 'globe'
 
 /** Kinds the "Open in browser" action applies to. */
-export const BROWSABLE_KINDS = ['Service', 'Pod']
+export const BROWSABLE_KINDS = ['Service', 'Pod', 'Ingress']
 
-/** Props of a browser tab. */
+/** Props of a browser tab: a Service or Pod (pick a port), or an Ingress (pick a route). */
 export interface BrowserTabProps {
-  kind: BrowserKind
+  kind: BrowserKind | 'ingresses'
   namespace: string
   name: string
 }
 
-/** Opens (or focuses) the browser tab of a Service or Pod, to the right of the editor area. */
+/** Opens (or focuses) the browser tab of a Service, Pod or Ingress, to the right of the editor area. */
 export function openBrowser(ref: ResourceRef): void {
   const kind = browserKind(ref.kind)
   if (!kind || !ref.namespace) return

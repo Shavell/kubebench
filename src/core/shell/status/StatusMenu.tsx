@@ -2,6 +2,7 @@ import clsx from 'clsx'
 import { useEffect, useLayoutEffect, useRef, type KeyboardEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { Icon } from '@/shared/Icon'
+import { cssRect, cssViewport } from '@/shared/zoom'
 
 export interface StatusMenuItem {
   type?: 'item'
@@ -42,10 +43,11 @@ export function StatusMenu({ anchor, label, header, entries, onClose }: StatusMe
   useLayoutEffect(() => {
     const menu = menuRef.current
     if (!menu) return
-    const rect = anchor.getBoundingClientRect()
-    const left = Math.min(rect.left, window.innerWidth - menu.offsetWidth - 4)
+    const rect = cssRect(anchor)
+    const viewport = cssViewport()
+    const left = Math.min(rect.left, viewport.width - menu.offsetWidth - 4)
     menu.style.left = `${Math.max(4, left)}px`
-    menu.style.bottom = `${window.innerHeight - rect.top + 2}px`
+    menu.style.bottom = `${viewport.height - rect.top + 2}px`
   }, [anchor, entries])
 
   // The latest onClose, so the listeners below are set up once per opening.

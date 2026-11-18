@@ -18,7 +18,8 @@
     "terminal": "Terminal ve loglar",
     "about": "Hakkında",
     "shortcuts": "Klavye kısayolları",
-    "aliases": "Komut takma adları"
+    "aliases": "Komut takma adları",
+    "editor": "Düzenleyici"
   },
   "appearance": {
     "theme": {
@@ -32,6 +33,11 @@
       "label": "Dil",
       "help": "Kullanıcı arayüzünün dili. Otomatik seçeneği tarayıcınızın dilini izler.",
       "auto": "Otomatik ({{language}})"
+    },
+    "scale": {
+      "label": "Arayüz ölçeği",
+      "help": "Tüm arayüzün yakınlaştırması; bu tarayıcıda hesabınız için saklanır.",
+      "default": "{{scale}} (varsayılan)"
     }
   },
   "data": {
@@ -65,10 +71,13 @@
     }
   },
   "terminal": {
+    "fontFamily": {
+      "label": "Yazı tipi ailesi",
+      "help": "Terminal, exec ve log görünümlerinin yazı tipi. Bir CSS yazı tipi listesi; boş bırakırsanız varsayılan kullanılır."
+    },
     "fontSize": {
       "label": "Yazı tipi boyutu",
-      "help": "Terminal, exec ve log görünümlerinin yazı tipi boyutu.",
-      "value": "{{size}} px"
+      "help": "Terminal, exec ve log görünümlerinin yazı tipi boyutu."
     }
   },
   "about": {
@@ -100,5 +109,20 @@
     "remove": "Kaldır",
     "editLabel": "{{name}} takma adını düzenle",
     "removeLabel": "{{name}} takma adını kaldır"
+  },
+  "editor": {
+    "fontFamily": {
+      "label": "Yazı tipi ailesi",
+      "help": "Kod düzenleyicilerinin (YAML, values, notlar, farklar) yazı tipi. Bir CSS yazı tipi listesi, örneğin \"JetBrains Mono\", Consolas; boş bırakırsanız varsayılan kullanılır."
+    },
+    "fontSize": {
+      "label": "Yazı tipi boyutu",
+      "help": "Kod düzenleyicilerinin yazı tipi boyutu."
+    }
+  },
+  "fonts": {
+    "invalid": "Yazı tipi adlarını virgülle ayırarak girin; harf, rakam, boşluk, nokta, tire ve alt çizgi dışında karakter içeren adları tırnak içine alın.",
+    "default": "Varsayılan eş aralıklı yazı tipi",
+    "size": "{{size}} px"
   }
 }

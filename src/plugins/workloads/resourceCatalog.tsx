@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import type { KubeObject } from '@/data/types'
-import { Badge, toneForStatus } from '@/shared/Badge'
+import { Badge } from '@/shared/Badge'
+import { toneForStatus } from '@/shared/badgeTone'
 import type { Column } from '@/shared/Table'
 import { tw } from './i18n'
 

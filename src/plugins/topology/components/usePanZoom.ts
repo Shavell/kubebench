@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, type RefObject } from 'react'
+import { cssRect, uiZoom } from '@/shared/zoom'
 
 export interface Viewport {
   x: number
@@ -51,7 +52,7 @@ export function usePanZoom(svgRef: RefObject<SVGSVGElement | null>, viewRef: Ref
 
   const zoomBy = useCallback(
     (factor: number) => {
-      const rect = svgRef.current?.getBoundingClientRect()
+      const rect = svgRef.current ? cssRect(svgRef.current) : undefined
       zoomAt(factor, (rect?.width ?? 0) / 2, (rect?.height ?? 0) / 2)
     },
     [svgRef, zoomAt],
@@ -63,7 +64,7 @@ export function usePanZoom(svgRef: RefObject<SVGSVGElement | null>, viewRef: Ref
    */
   const fit = useCallback(
     (bounds: Bounds) => {
-      const rect = svgRef.current?.getBoundingClientRect()
+      const rect = svgRef.current ? cssRect(svgRef.current) : undefined
       if (!rect || rect.width === 0 || bounds.width === 0) return
       const fitK = Math.min(
         1,
@@ -90,8 +91,9 @@ export function usePanZoom(svgRef: RefObject<SVGSVGElement | null>, viewRef: Ref
     const onWheel = (e: WheelEvent) => {
       e.preventDefault()
       if (e.ctrlKey || e.metaKey) {
-        const rect = svg.getBoundingClientRect()
-        zoomAt(Math.exp(-e.deltaY * 0.002), e.clientX - rect.left, e.clientY - rect.top)
+        const rect = cssRect(svg)
+        const zoom = uiZoom()
+        zoomAt(Math.exp(-e.deltaY * 0.002), e.clientX / zoom - rect.left, e.clientY / zoom - rect.top)
         return
       }
       const v = viewport.current
@@ -106,8 +108,10 @@ export function usePanZoom(svgRef: RefObject<SVGSVGElement | null>, viewRef: Ref
     }
     const onMove = (e: PointerEvent) => {
       if (!start || e.pointerId !== start.id) return
-      const dx = e.clientX - start.x
-      const dy = e.clientY - start.y
+      // Pointer moves are in viewport pixels; the graph is laid out in CSS pixels.
+      const zoom = uiZoom()
+      const dx = (e.clientX - start.x) / zoom
+      const dy = (e.clientY - start.y) / zoom
       if (!dragged.current) {
         if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return
         // Captured only once it is a pan, so a plain click still reaches the node under it.

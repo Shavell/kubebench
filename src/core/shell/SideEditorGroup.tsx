@@ -1,11 +1,11 @@
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
-import { registry } from '@/core/plugin/registry'
 import { useRegistryRevision } from '@/core/plugin/useRegistry'
 import { useSideGroupStore } from '@/core/store/sideGroupStore'
 import { Icon } from '@/shared/Icon'
 import { ResizeHandle } from '@/shared/ResizeHandle'
 import { showContextMenu } from '@/shared/contextMenu'
+import { TabContent } from './TabContent'
 import { tabTitle } from './tabTitle'
 import './TabStrip.css'
 import './SideEditorGroup.css'
@@ -61,14 +61,11 @@ export function SideEditorGroup() {
         ))}
       </div>
       <div className="side-group__body">
-        {tabs.map((tab) => {
-          const Renderer = registry.tabRenderer(tab.kind)
-          return (
-            <div key={tab.id} className="side-group__page" hidden={tab.id !== activeTabId}>
-              {Renderer && <Renderer tab={tab} />}
-            </div>
-          )
-        })}
+        {tabs.map((tab) => (
+          <div key={tab.id} className="side-group__page" hidden={tab.id !== activeTabId}>
+            <TabContent tab={tab} />
+          </div>
+        ))}
       </div>
     </div>
   )

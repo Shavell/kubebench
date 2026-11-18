@@ -1,7 +1,7 @@
 {
   "manifest": {
     "name": "Service Tarayıcısı",
-    "description": "Bir Service'in veya Pod'un web arayüzünü, KubeBench'in proxy'si üzerinden ve KubeBench'ten yalıtılmış olarak, düzenleyicinin yanındaki bir tarayıcıda açar."
+    "description": "Bir Service'in, Pod'un veya Ingress'in web arayüzünü, KubeBench'in proxy'si üzerinden ve KubeBench'ten yalıtılmış olarak, düzenleyicinin yanındaki bir tarayıcıda açar."
   },
   "resourceActions": {
     "open": "Tarayıcıda aç"
@@ -24,7 +24,8 @@
     "port": "Port",
     "scheme": "Şema",
     "newTab": "Yeni bir tarayıcı sekmesinde aç",
-    "newTabDemo": "Demo modunda kullanılamaz"
+    "newTabDemo": "Demo modunda kullanılamaz",
+    "route": "Ingress yolu"
   },
   "frame": {
     "title": "{{address}} sayfası"
@@ -39,5 +40,13 @@
     "title": "Demo sayfası",
     "body": "Demo modunda bağlanılacak bir cluster yok. Canlı bir cluster'da bu sekme Service'in kendi web arayüzünü gösterir.",
     "notFound": "{{what}} bulunamadı"
+  },
+  "ingress": {
+    "loading": "Ingress okunuyor…",
+    "noRoutes": "Bir Service'e giden yol yok",
+    "noRoutesHint": "Ingress'in bir Service port'una giden kuralı veya varsayılan backend'i yok; tarayıcının gösterebileceği bir şey yok.",
+    "route": "{{from}} → {{service}}:{{port}}",
+    "defaultBackend": "Varsayılan backend",
+    "via": "{{address}}; kuralın host'u ile {{service}} Service'i üzerinden erişilir. Ingress controller'ın yol yeniden yazmaları uygulanmaz."
   }
 }

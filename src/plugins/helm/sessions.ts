@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react'
+import { useCallback, useState } from 'react'
 import { create } from 'zustand'
 import { useLayoutStore } from '@/core/store/layoutStore'
 
@@ -24,10 +24,15 @@ useLayoutStore.subscribe((layout) => {
  */
 export function useTabSession<T extends object>(tabId: string, initial: () => T): [T, (patch: Partial<T>) => void] {
   const stored = useSessionStore((s) => s.sessions[tabId]) as T | undefined
-  // The component may be reused for another tab of the same kind.
-  const fallback = useRef<{ tabId: string; value: T } | null>(null)
-  if (fallback.current?.tabId !== tabId) fallback.current = { tabId, value: initial() }
-  const start = fallback.current.value
+  // The component may be reused for another tab of the same kind: a new
+  // tab id starts from its own initial value (state adjusted during render).
+  const [fallback, setFallback] = useState(() => ({ tabId, value: initial() }))
+  let current = fallback
+  if (fallback.tabId !== tabId) {
+    current = { tabId, value: initial() }
+    setFallback(current)
+  }
+  const start = current.value
   const update = useCallback(
     (patch: Partial<T>) =>
       useSessionStore.setState((s) => ({

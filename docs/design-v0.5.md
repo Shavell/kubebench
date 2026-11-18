@@ -213,7 +213,7 @@ action TEXT, target TEXT, status INTEGER, detail TEXT)`.
 Written automatically by the router for `write`/`exec`/admin mutations:
 `action` = `"<METHOD> <route pattern>"` (e.g. `POST /api/deployments/scale`)
 or an explicit action name for plugins/websockets (`exec.session`;
-`service.proxy` and `pod.proxy`, §7.14),
+`service.proxy`, `pod.proxy` and `ingress.proxy`, §7.14),
 `target` = `<kind>/<ns>/<name>` style string from query/path values,
 `status` = HTTP status, `detail` = short JSON (e.g. `{"replicas":3}`) or
 error text. Pruned per `KUBEBENCH_AUDIT_RETENTION_DAYS`.
@@ -692,6 +692,18 @@ clusters always require the name to be typed.
 `settings.theme`: `dark` | `light` | `system`; `<html data-theme>`;
 `theme.css` defines every `--vscode-*` token for both themes (Dark+ /
 Light+ palettes). Monaco follows (`vs-dark` / `vs`).
+
+**Interface scale and fonts** (v0.7): `core/store/displayStore.ts`, kept
+in local storage per signed-in user (`<mode>:<user>`, like the palette
+aliases): `uiScale` 90–130% (CSS `zoom` on `<body>`, so Monaco, which
+divides by the zoom of its ancestors below `<html>`, hit-tests correctly;
+code that mixes pointer or `getBoundingClientRect()` coordinates with CSS
+pixels converts through `shared/zoom.ts`), editor and terminal font
+family (a CSS family list, validated, put ahead of `--font-mono`) and
+size (the terminal size defaults to the browser-wide `terminalFontSize`
+of v0.6). Monaco re-measures its fonts on a change; xterm.js gets the
+family and size through `setAppearance`; log views use
+`--terminal-font-family`/`--terminal-font-size`.
 
 ### 6.8 External (runtime) plugins
 
@@ -1295,6 +1307,16 @@ start lazily and stop when unused. Frontend: scoped invalidation
   or `<resource>.<group>` (`applications.argoproj.io`); 1–32 per stream,
   lower case, duplicates dropped (else `400 bad_request`). A topic is
   resolved through discovery to the preferred version.
+- **Internal topics** (v0.7) name KubeBench's own data:
+  `kubebench:<name>` (`kubebench:notes`, §7.13), the name like a plugin
+  id. They are `live` at once and never polled; their changes are
+  published by the code that stores the data, on a server-wide board
+  (`watch.Board`; plugins call `plugin.Context.Publish(topic, audience)`
+  after the change is stored), as `{topic, namespace: ""}`, to an
+  audience: the streams on one cluster (data all its users see) or one
+  user's streams on any cluster (personal data). A stream's cluster and
+  user are those it was opened for, and its access is re-checked at
+  every heartbeat like any stream.
 - **Events**: `event: status` `{topic, mode, reason?}` with `mode`
   `starting` (informer listing), `live` or `polling` (the cluster does not
   serve the resource, the credential may not list/watch it, the cluster's
@@ -1683,12 +1705,14 @@ contain anything read from it (they are user text).
   without `global`; the note is placed on the active cluster.
 - A note id under the other visibility's path is `404`.
 
-**Live updates**: the watch hub (§7.10) serves Kubernetes topics only
-(it resolves every topic through discovery), so notes do not publish
-through it. Note queries carry no topic; they re-run after the UI's own
-changes (`refreshData()`), on auto-refresh, and whenever the browser
-window regains focus or becomes visible, which is when another user's
-change can matter.
+**Live updates** (v0.7): every stored change (create, edit, pin,
+delete) publishes the internal topic `kubebench:notes` (§7.10): a shared
+note's to the streams on its cluster, a personal note's to its owner's
+streams only, whatever cluster they watch — another user never learns
+that a personal note changed. Note queries declare the topic
+(`scope: {topics: ['kubebench:notes']}`), so other users' changes appear
+within the debounce (500 ms); an editor without unsaved edits follows
+the newer version, one with edits keeps them (saving then meets `409`).
 
 **Frontend** (`src/plugins/notes`, backend plugin `notes`):
 
@@ -1747,6 +1771,19 @@ admin or operator, whatever the read-only flag.
   (`400`). Audited **once per grant** as `service.proxy` / `pod.proxy`,
   target `service/<ns>/<name>:<port>`, detail `{"scheme","readOnly"?}`;
   refusals (viewer: `403 forbidden_role`) are audited like every refusal.
+- `POST /api/proxy/ingresses/{ns}/{name}?host=&path=&scheme=` (browse,
+  v0.7) opens a grant for the **Service port behind one Ingress route**:
+  the rule with exactly that host and path (both empty: the default
+  backend; resource backends `400`, an unknown route `400`), checked like
+  a Service grant. The grant's target gets `host`, the rule's host (none
+  for a wildcard host), which the proxy sends as the `Host` header; the
+  API server's service proxy passes it on, so virtual-hosted applications
+  answer as behind their Ingress. Absolute redirects and HTML links
+  naming that host (`http(s)://host/…`, `//host/…`) are mapped below the
+  grant like the API server's. Path rewriting by the ingress controller
+  (annotations, middlewares) does not apply: the Service is reached
+  directly. Audited once as `ingress.proxy`, target `ingress/<ns>/<name>`,
+  detail `{"scheme","host","path","service","readOnly"?}`.
 - `GET` / `DELETE /api/proxy/sessions/{token}` (authed; only the session
   that opened the grant, else `404 not_found`): the grant with its latest
   16 `navigations` `[{seq, location}]`, oldest first: every frame document
@@ -1870,8 +1907,14 @@ from each other (per-application subdomains are a possible follow-up).
   waits for them. Limitation: a nested frame that navigates on its own
   between two loads of the frame (a link inside a widget) is taken for the
   page at the next load.
-- Ingress: not in this version (follow-up: resolve a rule's backend
-  Service and open its path).
+- Ingress (v0.7): "Open in browser" on `Ingress` rows and detail pages
+  opens tab props `{kind: 'ingresses', namespace, name}`; the tab lists the
+  Ingress's routes (every rule path, then the default backend, Service
+  backends only: `model/ingress.ts`, the server's order) in a route picker
+  (`host/path → service:port`) instead of the port picker, guesses the
+  scheme from the Service port, starts at the rule's path (`/` for a
+  regular expression) and shows the rule's host as the address
+  (`https://` when the Ingress lists it under `tls`).
 - Mock: ports from the mock dataset; the frame shows a deterministic
   placeholder page (`srcdoc`) naming the address and path; "open in a new
   tab" is disabled.

@@ -29,11 +29,16 @@ function openWarnings(): void {
 /** Overview card: the cluster's most recent Warning events, newest first. */
 export function RecentWarnings() {
   const { t } = useTranslation(NS)
-  const query = useProviderQuery((p) => p.cluster.listResource('events'), [], { topics: ['events'] })
+  // Ages are relative to when the list was read.
+  const query = useProviderQuery(
+    async (p) => ({ items: await p.cluster.listResource('events'), readAt: Date.now() }),
+    [],
+    { topics: ['events'] },
+  )
 
   const { shown, total } = useMemo(() => {
-    const now = Date.now()
-    const rows = (query.data ?? []).map((o) => toEventRow(o, now))
+    const read = query.data
+    const rows = read ? read.items.map((o) => toEventRow(o, read.readAt)) : []
     const warnings = recentWarnings(rows, Infinity)
     return { shown: warnings.slice(0, LIMIT), total: warnings.length }
   }, [query.data])

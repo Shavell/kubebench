@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { UI_SCALES, useDisplaySettings } from '@/core/store/displayStore'
 import { useSettingsStore, type ThemePreference } from '@/core/store/settingsStore'
 import { useSystemTheme } from '@/core/theme/themeController'
 import {
@@ -8,16 +9,18 @@ import {
   SUPPORTED_LANGUAGES,
   type LanguagePreference,
 } from '@/i18n'
+import { formatPercent } from '@/i18n/format'
 import { Field, Select, type SelectOption } from '@/shared/form'
 import { SETTINGS_NS } from '../namespace'
 import { SettingsSection } from '../SettingsSection'
 
-/** Colour theme and UI language. */
+/** Colour theme, UI language and interface scale. */
 export function AppearanceSection() {
   const { t } = useTranslation(SETTINGS_NS)
   const theme = useSettingsStore((s) => s.theme)
   const language = useSettingsStore((s) => s.language)
   const setSetting = useSettingsStore((s) => s.set)
+  const display = useDisplaySettings()
 
   // "System" names the palette the operating system currently asks for.
   const systemTheme = useSystemTheme()
@@ -48,6 +51,16 @@ export function AppearanceSection() {
       </Field>
       <Field layout="inline" label={t('appearance.language.label')} help={t('appearance.language.help')}>
         <Select value={languageValue} options={languages} onChange={setLanguagePreference} />
+      </Field>
+      <Field layout="inline" label={t('appearance.scale.label')} help={t('appearance.scale.help')}>
+        <Select
+          value={display.uiScale}
+          options={UI_SCALES.map((scale) => ({
+            value: scale,
+            label: scale === 100 ? t('appearance.scale.default', { scale: formatPercent(1) }) : formatPercent(scale / 100),
+          }))}
+          onChange={(value) => display.set('uiScale', value)}
+        />
       </Field>
     </SettingsSection>
   )

@@ -10,6 +10,7 @@ import { useNamespacePrefs } from '@/core/store/namespacePrefsStore'
 import { useProviderQuery } from '@/data/DataContext'
 import { Checkbox } from '@/shared/form'
 import { Icon } from '@/shared/Icon'
+import { cssRect, cssViewport } from '@/shared/zoom'
 import './NamespacePicker.css'
 
 interface Entry {
@@ -76,9 +77,10 @@ export function NamespacePicker({ anchor, onClose }: NamespacePickerProps) {
   useLayoutEffect(() => {
     const panel = panelRef.current
     if (!panel) return
-    const rect = anchor.getBoundingClientRect()
-    panel.style.left = `${Math.max(4, Math.min(rect.left, window.innerWidth - panel.offsetWidth - 4))}px`
-    panel.style.bottom = `${window.innerHeight - rect.top + 2}px`
+    const rect = cssRect(anchor)
+    const viewport = cssViewport()
+    panel.style.left = `${Math.max(4, Math.min(rect.left, viewport.width - panel.offsetWidth - 4))}px`
+    panel.style.bottom = `${viewport.height - rect.top + 2}px`
   }, [anchor])
 
   const onCloseRef = useRef(onClose)

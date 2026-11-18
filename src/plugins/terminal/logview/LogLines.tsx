@@ -84,9 +84,12 @@ export function LogLines({ entries, timestamps, wrap, colorize, follow, empty }:
   )
 }
 
-/** The entries grouped by chunk; a chunk whose entries did not change keeps its array. */
+/**
+ * The entries grouped by chunk. Each render builds new arrays; `LogChunk`
+ * compares them by content (`sameChunk`), so an unchanged chunk does not
+ * re-render.
+ */
 function useChunks(entries: LogEntry[]): { id: number; entries: LogEntry[] }[] {
-  const cache = useRef(new Map<number, LogEntry[]>())
   return useMemo(() => {
     const groups = new Map<number, LogEntry[]>()
     for (const entry of entries) {
@@ -95,22 +98,19 @@ function useChunks(entries: LogEntry[]): { id: number; entries: LogEntry[] }[] {
       if (group) group.push(entry)
       else groups.set(id, [entry])
     }
-    const kept = new Map<number, LogEntry[]>()
-    const out: { id: number; entries: LogEntry[] }[] = []
-    for (const [id, group] of groups) {
-      const cached = cache.current.get(id)
-      const same =
-        cached !== undefined &&
-        cached.length === group.length &&
-        cached[0] === group[0] &&
-        cached[cached.length - 1] === group[group.length - 1]
-      const stable = same ? cached : group
-      kept.set(id, stable)
-      out.push({ id, entries: stable })
-    }
-    cache.current = kept
-    return out
+    return [...groups].map(([id, group]) => ({ id, entries: group }))
   }, [entries])
+}
+
+/**
+ * Whether two groupings of one chunk hold the same entries. Entries are
+ * immutable and numbered consecutively, so the same length, first and last
+ * entry mean the same lines.
+ */
+function sameChunk(a: { entries: LogEntry[] }, b: { entries: LogEntry[] }): boolean {
+  const x = a.entries
+  const y = b.entries
+  return x.length === y.length && x[0] === y[0] && x[x.length - 1] === y[y.length - 1]
 }
 
 const LogChunk = memo(function LogChunk({ entries }: { entries: LogEntry[] }) {
@@ -141,7 +141,7 @@ const LogChunk = memo(function LogChunk({ entries }: { entries: LogEntry[] }) {
       )}
     </div>
   )
-})
+}, sameChunk)
 
 function sourceColour(source: string): number {
   let hash = 0

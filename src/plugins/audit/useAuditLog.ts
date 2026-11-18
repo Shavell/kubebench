@@ -40,9 +40,21 @@ export function useAuditLog(filters: AuditFilters) {
   const latest = useRef(0)
 
   const { user, cluster, action } = filters
+  // New filters or a reload show the loading state from this render on.
+  const [query, setQuery] = useState({ audit, user, cluster, action, reloads })
+  if (
+    query.audit !== audit ||
+    query.user !== user ||
+    query.cluster !== cluster ||
+    query.action !== action ||
+    query.reloads !== reloads
+  ) {
+    setQuery({ audit, user, cluster, action, reloads })
+    setState((s) => ({ ...s, loading: true, error: null }))
+  }
+
   useEffect(() => {
     const request = ++latest.current
-    setState((s) => ({ ...s, loading: true, error: null }))
     audit.listAudit({ ...toQuery({ user, cluster, action }), limit: PAGE_SIZE }).then(
       (page) => {
         if (request === latest.current) setState({ ...page, loading: false, error: null })

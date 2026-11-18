@@ -7,7 +7,10 @@ export type ThemePreference = 'dark' | 'light' | 'system'
 interface SettingsState {
   /** Metrics history window shown on charts, in minutes. */
   metricsWindow: number
-  /** Font size for terminal/log views, in px. */
+  /**
+   * Browser-wide terminal/log font size of v0.6, in px; now only the default
+   * of the per-user setting in displayStore.
+   */
   terminalFontSize: number
   /** Color theme: Dark+, Light+, or follow the operating system. */
   theme: ThemePreference
