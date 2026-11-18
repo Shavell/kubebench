@@ -31,6 +31,34 @@ export function formatEndDate(endDate: string): string {
   return formatDateTime(`${endDate}T00:00:00Z`, { dateStyle: 'medium', timeZone: 'UTC' })
 }
 
+/**
+ * The version a platform is known by: the distribution's own (OpenShift
+ * 5.0.0, design §7.15) where it has one, else Kubernetes'.
+ */
+export function displayVersion(platform: ClusterPlatform): string {
+  return platform.productVersion || platform.version
+}
+
+/**
+ * OpenShift's life-cycle lines (design §7.15): the current phase with its
+ * end, and the end of Extended Update Support when it comes later. Empty
+ * for providers without phases.
+ */
+export function lifecycleLines(t: TFunction, support: VersionSupport): string[] {
+  if (!support.phase) return []
+  const end: Record<string, string | undefined> = {
+    full: support.fullSupportEnd,
+    maintenance: support.endDate,
+    eus: support.eusEnd,
+  }
+  const date = end[support.phase]
+  const lines = [date ? t(`cloud.phase.${support.phase}`, { date: formatEndDate(date) }) : t('cloud.phase.ended')]
+  if (support.eusEnd && (support.phase === 'full' || support.phase === 'maintenance')) {
+    lines.push(t('cloud.phase.eusLater', { date: formatEndDate(support.eusEnd) }))
+  }
+  return lines
+}
+
 /** "Supported until 28 Feb 2027 (upstream Kubernetes)" and the like. */
 export function supportText(t: TFunction, support: VersionSupport): string {
   const basis = support.basis ? t(`cloud.basis.${support.basis}`) : ''
@@ -46,11 +74,12 @@ export function platformTooltip(t: TFunction, platform: ClusterPlatform): string
   if (!platform.detected) {
     return [platformName(t, platform), t('cloud.notDetected')].join('\n')
   }
-  return [
-    platformName(t, platform),
-    platform.version ? t('cloud.version', { version: platform.version }) : '',
-    supportText(t, platform.support),
-  ]
+  const version = platform.productVersion
+    ? t('cloud.productVersion', { version: platform.productVersion, kubernetes: platform.version })
+    : platform.version
+      ? t('cloud.version', { version: platform.version })
+      : ''
+  return [platformName(t, platform), version, supportText(t, platform.support), ...lifecycleLines(t, platform.support)]
     .filter(Boolean)
     .join('\n')
 }

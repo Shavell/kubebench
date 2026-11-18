@@ -2,7 +2,7 @@ import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { PLATFORM_NS } from '@/core/locales'
 import type { ClusterPlatform } from '@/data/types'
-import { platformLabel, platformTooltip } from './platformText'
+import { displayVersion, platformLabel, platformTooltip } from './platformText'
 import './cloud.css'
 
 interface ProviderBadgeProps {
@@ -31,13 +31,14 @@ export function ProviderBadge({ platform, showVersion, compact }: ProviderBadgeP
         'kb-provider',
         compact && 'kb-provider--compact',
         status === 'ending-soon' && 'kb-provider--warning',
-        status === 'end-of-life' && 'kb-provider--error',
+        status === 'end-of-life' && platform.support.phase !== 'eus' && 'kb-provider--error',
+        status === 'end-of-life' && platform.support.phase === 'eus' && 'kb-provider--warning',
       )}
       title={platformTooltip(t, platform)}
       data-provider={platform.provider}
     >
       {label}
-      {showVersion && platform.version && <span className="kb-provider__version">{platform.version}</span>}
+      {showVersion && displayVersion(platform) && <span className="kb-provider__version">{displayVersion(platform)}</span>}
     </span>
   )
 }

@@ -80,6 +80,9 @@ function parseServerInfo(body: unknown): ServerInfo {
       crds: bool(capabilities.crds),
       helm: bool(capabilities.helm),
       exec: bool(capabilities.exec),
+      optionalResources: Array.isArray(capabilities.optionalResources)
+        ? capabilities.optionalResources.filter((key): key is string => typeof key === 'string')
+        : [],
     },
     features: {
       pathKubeconfig: bool(features.pathKubeconfig),

@@ -8,6 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"kubebench/internal/cloud"
+	"kubebench/internal/openshift"
 )
 
 const (
@@ -61,12 +62,12 @@ func (r *Runtime) refreshCloud() {
 	r.mu.Lock()
 	r.platform.detection, r.platform.at, r.platform.refreshing = d, time.Now(), false
 	r.mu.Unlock()
-	log.Printf("[cloud] cluster=%s provider=%s cloud=%s version=%s", r.Cluster.Name, d.Provider, d.Cloud, d.Version)
+	log.Printf("[cloud] cluster=%s provider=%s cloud=%s version=%s product=%s", r.Cluster.Name, d.Provider, d.Cloud, d.Version, d.ProductVersion)
 }
 
 // DetectCloud reads the signals and detects the provider: the API server
-// URL, its version and a sample of the nodes. A signal the credential may
-// not read (e.g. nodes) is left out.
+// URL, its version, a sample of the nodes and OpenShift's ClusterVersion.
+// A signal the credential may not read (e.g. nodes) is left out.
 func (r *Runtime) DetectCloud(ctx context.Context) cloud.Detection {
 	signals := cloud.Signals{Server: r.Config.Host}
 	if v, err := r.CS.Discovery().ServerVersion(); err == nil {
@@ -76,6 +77,12 @@ func (r *Runtime) DetectCloud(ctx context.Context) cloud.Detection {
 		for _, n := range nodes.Items {
 			signals.Nodes = append(signals.Nodes, cloud.Node{ProviderID: n.Spec.ProviderID, Labels: n.Labels})
 		}
+	}
+	// OpenShift's own version decides its support window (§7.15); other
+	// clusters answer 404 for the ClusterVersion. (Test runtimes may have
+	// no dynamic client.)
+	if r.Dyn != nil {
+		signals.OpenShiftVersion = openshift.Version(ctx, r.Dyn)
 	}
 	return cloud.Detect(signals)
 }

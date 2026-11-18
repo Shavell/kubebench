@@ -23,17 +23,19 @@ import (
 // false when only the API server URL was looked at, because the cluster's
 // runtime is not built yet: then the version is "" and support unknown.
 type platformView struct {
-	Provider string        `json:"provider"`
-	Cloud    string        `json:"cloud"`
-	Version  string        `json:"version"`
-	Support  cloud.Support `json:"support"`
-	Detected bool          `json:"detected"`
+	Provider string `json:"provider"`
+	Cloud    string `json:"cloud"`
+	Version  string `json:"version"`
+	// ProductVersion is the OpenShift version on OpenShift (§7.15).
+	ProductVersion string        `json:"productVersion,omitempty"`
+	Support        cloud.Support `json:"support"`
+	Detected       bool          `json:"detected"`
 }
 
 func newPlatformView(d cloud.Detection, detected bool, now time.Time) *platformView {
 	return &platformView{
 		Provider: d.Provider, Cloud: d.Cloud, Version: d.Version, Detected: detected,
-		Support: cloud.VersionSupport(d.Provider, d.Version, now),
+		ProductVersion: d.ProductVersion, Support: cloud.SupportOf(d, now),
 	}
 }
 

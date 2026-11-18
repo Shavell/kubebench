@@ -451,7 +451,8 @@
       "eks": "Amazon EKS standart desteği",
       "aks": "AKS desteği",
       "gke": "GKE standart desteği",
-      "kubernetes": "upstream Kubernetes desteği"
+      "kubernetes": "upstream Kubernetes desteği",
+      "openshift": "Red Hat OpenShift bakım desteği"
     },
     "version": "Sürüm {{version}}",
     "notDetected": "Henüz bağlanılmadı: yalnızca API sunucusu adresinden tanındı.",
@@ -474,7 +475,33 @@
       "endingSoon": {
         "title": "Kubernetes {{version}} için {{basis}} {{date}} tarihinde bitiyor",
         "hint": "Bu tarihten önce daha yeni bir alt sürüme yükseltmeyi planlayın."
+      },
+      "openshift": {
+        "endOfLife": {
+          "title": "OpenShift {{version}} için {{basis}} sona erdi ({{date}})",
+          "hint": "Red Hat bu sürüm için artık düzeltme yayımlamıyor. Desteklenen bir alt sürüme güncellemeyi planlayın."
+        },
+        "endOfLifeOld": {
+          "title": "OpenShift {{version}} için {{basis}} çoktan sona erdi",
+          "hint": "Red Hat bu sürüm için artık düzeltme yayımlamıyor. Desteklenen bir alt sürüme güncellemeyi planlayın."
+        },
+        "inEus": {
+          "title": "OpenShift {{version}} için {{basis}} sona erdi ({{date}})",
+          "hint": "Düzeltmeleri {{eusDate}} tarihine kadar yalnızca Extended Update Support'u olan cluster'lar alıyor. Desteklenen bir alt sürüme güncellemeyi planlayın."
+        },
+        "endingSoon": {
+          "title": "OpenShift {{version}} için {{basis}} {{date}} tarihinde bitiyor",
+          "hint": "Bu tarihten önce daha yeni bir alt sürüme güncellemeyi planlayın."
+        }
       }
+    },
+    "productVersion": "OpenShift {{version}} (Kubernetes {{kubernetes}})",
+    "phase": {
+      "full": "{{date}} tarihine kadar tam destek",
+      "maintenance": "{{date}} tarihine kadar bakım desteği",
+      "eus": "{{date}} tarihine kadar Extended Update Support (EUS aboneliğiyle)",
+      "eusLater": "Extended Update Support {{date}} tarihine kadar alınabilir",
+      "ended": "Tüm destek aşamaları sona erdi"
     }
   }
 }

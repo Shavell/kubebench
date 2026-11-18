@@ -40,19 +40,24 @@ type Node struct {
 }
 
 // Signals are the facts detection works from: the API server URL, the
-// server's gitVersion and a sample of the nodes (any of them may be empty).
+// server's gitVersion, a sample of the nodes and the OpenShift version
+// read from the ClusterVersion (any of them may be empty).
 type Signals struct {
-	Server     string
-	GitVersion string
-	Nodes      []Node
+	Server           string
+	GitVersion       string
+	Nodes            []Node
+	OpenShiftVersion string
 }
 
 // Detection is the result: Provider is always set, Cloud is "" when the
 // infrastructure is unknown, Version is the server's gitVersion.
+// ProductVersion is the distribution's own version where it has one: the
+// OpenShift version (§7.15).
 type Detection struct {
-	Provider string `json:"provider"`
-	Cloud    string `json:"cloud"`
-	Version  string `json:"version"`
+	Provider       string `json:"provider"`
+	Cloud          string `json:"cloud"`
+	Version        string `json:"version"`
+	ProductVersion string `json:"productVersion,omitempty"`
 }
 
 // managed maps the managed services to the cloud they run on.
@@ -96,7 +101,7 @@ var providerIDClouds = map[string]string{
 
 // Detect decides the provider from the signals, strongest first:
 //
-//  1. OpenShift markers (OpenShift has its own lifecycle even on a cloud,
+//  1. OpenShift markers, a ClusterVersion or a node label (OpenShift has its own lifecycle even on a cloud,
 //     e.g. ROSA or ARO);
 //  2. a managed service's API host name, gitVersion suffix (-eks-, -gke.)
 //     or node label;
@@ -116,6 +121,9 @@ func Detect(s Signals) Detection {
 		}
 	}
 	d.Provider = providerOf(s)
+	if d.Provider == ProviderOpenShift {
+		d.ProductVersion = s.OpenShiftVersion
+	}
 	if cloud, ok := managed[d.Provider]; ok {
 		d.Cloud = cloud
 	}
@@ -123,6 +131,9 @@ func Detect(s Signals) Detection {
 }
 
 func providerOf(s Signals) string {
+	if s.OpenShiftVersion != "" {
+		return ProviderOpenShift
+	}
 	for _, n := range s.Nodes {
 		if _, ok := n.Labels["node.openshift.io/os_id"]; ok {
 			return ProviderOpenShift

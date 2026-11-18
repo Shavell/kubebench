@@ -20,11 +20,30 @@ const EndingSoonWindow = 90 * 24 * time.Hour
 
 // Support is a version's support status. EndDate (YYYY-MM-DD) is the end
 // of support found in the table, "" when none applies; Basis names the
-// table: "eks", "aks", "gke" or "kubernetes" (upstream), "" for none.
+// table: "eks", "aks", "gke", "openshift" or "kubernetes" (upstream), ""
+// for none. Only the OpenShift table has phases (§7.15): Phase is the
+// current one, FullSupportEnd and EUSEnd the end of full support and of
+// Extended Update Support ("" for minors without).
 type Support struct {
-	Status  string `json:"status"`
-	EndDate string `json:"endDate"`
-	Basis   string `json:"basis"`
+	Status         string `json:"status"`
+	EndDate        string `json:"endDate"`
+	Basis          string `json:"basis"`
+	Phase          string `json:"phase,omitempty"`
+	FullSupportEnd string `json:"fullSupportEnd,omitempty"`
+	EUSEnd         string `json:"eusEnd,omitempty"`
+}
+
+// SupportOf is the support status of a detected cluster on the day of
+// now: OpenShift's from its own version (ProductVersion; unknown when it
+// could not be read), every other provider's from its Kubernetes version.
+func SupportOf(d Detection, now time.Time) Support {
+	if d.Provider == ProviderOpenShift {
+		if d.ProductVersion == "" {
+			return Support{Status: StatusUnknown}
+		}
+		return openShiftSupport(d.ProductVersion, now)
+	}
+	return VersionSupport(d.Provider, d.Version, now)
 }
 
 // supportEnds lists, per lifecycle, the date standard support of each
@@ -68,9 +87,10 @@ var supportEnds = map[string]map[string]string{
 	},
 }
 
-// basisFor is the lifecycle a provider follows. Distributions and the
-// smaller managed services track upstream; OpenShift has its own
-// lifecycle, which the table does not carry.
+// basisFor is the Kubernetes-version lifecycle a provider follows.
+// Distributions and the smaller managed services track upstream;
+// OpenShift has its own lifecycle by OpenShift version (see SupportOf),
+// so its Kubernetes version has none.
 func basisFor(provider string) string {
 	switch provider {
 	case ProviderEKS, ProviderAKS, ProviderGKE:
@@ -109,21 +129,11 @@ func VersionSupport(provider, gitVersion string, now time.Time) Support {
 			return Support{Status: StatusUnknown}
 		}
 	}
-	endDay, err := time.Parse(time.DateOnly, end)
-	if err != nil { // the table is checked by a test
+	if _, err := time.Parse(time.DateOnly, end); err != nil { // the table is checked by a test
 		return Support{Status: StatusUnknown}
 	}
 	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
-	out := Support{EndDate: end, Basis: basis}
-	switch {
-	case today.After(endDay):
-		out.Status = StatusEndOfLife
-	case endDay.Sub(today) <= EndingSoonWindow:
-		out.Status = StatusEndingSoon
-	default:
-		out.Status = StatusSupported
-	}
-	return out
+	return Support{Status: statusAt(today, end), EndDate: end, Basis: basis}
 }
 
 func parseMinor(gitVersion string) (major, minor int, ok bool) {

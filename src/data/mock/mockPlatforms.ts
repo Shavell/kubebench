@@ -31,6 +31,15 @@ const MOCK_PLATFORMS: Record<number, ClusterPlatform> = {
     support: { status: 'end-of-life', endDate: '2026-07-29', basis: 'eks' },
     detected: true,
   },
+  // ocp-lab: OpenShift's own life cycle (design §7.15)
+  4: {
+    provider: 'openshift',
+    cloud: '',
+    version: 'v1.36.5',
+    productVersion: '5.0.0',
+    support: { status: 'supported', endDate: '2028-11-30', basis: 'openshift', phase: 'full', fullSupportEnd: '2027-11-30' },
+    detected: true,
+  },
 }
 
 /** A cluster added in demo mode is never connected: nothing is known about it. */

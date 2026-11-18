@@ -451,7 +451,8 @@
       "eks": "Amazon EKS Standard Support",
       "aks": "AKS-Support",
       "gke": "GKE Standard Support",
-      "kubernetes": "Upstream-Kubernetes-Support"
+      "kubernetes": "Upstream-Kubernetes-Support",
+      "openshift": "Red-Hat-OpenShift-Maintenance-Support"
     },
     "version": "Version {{version}}",
     "notDetected": "Noch nicht verbunden: nur anhand der Adresse des API-Servers erkannt.",
@@ -474,7 +475,33 @@
       "endingSoon": {
         "title": "{{basis}} für Kubernetes {{version}} endet am {{date}}",
         "hint": "Planen Sie vorher ein Upgrade auf eine neuere Minor-Version."
+      },
+      "openshift": {
+        "endOfLife": {
+          "title": "OpenShift {{version}}: {{basis}} ist abgelaufen ({{date}})",
+          "hint": "Red Hat liefert für diese Version keine Korrekturen mehr. Planen Sie ein Update auf eine unterstützte Minor-Version."
+        },
+        "endOfLifeOld": {
+          "title": "OpenShift {{version}}: {{basis}} ist seit Langem abgelaufen",
+          "hint": "Red Hat liefert für diese Version keine Korrekturen mehr. Planen Sie ein Update auf eine unterstützte Minor-Version."
+        },
+        "inEus": {
+          "title": "OpenShift {{version}}: {{basis}} ist abgelaufen ({{date}})",
+          "hint": "Nur Cluster mit Extended Update Support erhalten noch Korrekturen, bis {{eusDate}}. Planen Sie ein Update auf eine unterstützte Minor-Version."
+        },
+        "endingSoon": {
+          "title": "{{basis}} für OpenShift {{version}} endet am {{date}}",
+          "hint": "Planen Sie vorher ein Update auf eine neuere Minor-Version."
+        }
       }
+    },
+    "productVersion": "OpenShift {{version}} (Kubernetes {{kubernetes}})",
+    "phase": {
+      "full": "Full Support bis {{date}}",
+      "maintenance": "Maintenance Support bis {{date}}",
+      "eus": "Extended Update Support bis {{date}} (mit EUS-Subscription)",
+      "eusLater": "Extended Update Support verfügbar bis {{date}}",
+      "ended": "Alle Supportphasen sind abgelaufen"
     }
   }
 }

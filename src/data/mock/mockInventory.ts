@@ -54,6 +54,15 @@ const DEFAULT_CLUSTERS: StoredCluster[] = [
     cloudAuth: 'aws',
     cloudCredentials: 'aws',
   },
+  {
+    // OpenShift (design §7.15): Routes, Projects, SCCs, builds and image streams.
+    id: 4,
+    name: 'ocp-lab',
+    kubeconfigPath: '(stored kubeconfig)',
+    active: false,
+    environment: 'staging',
+    readOnly: false,
+  },
 ]
 
 function isStoredCluster(value: unknown): value is StoredCluster {

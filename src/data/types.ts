@@ -102,6 +102,8 @@ export interface LiveCapabilities {
   crds: boolean
   helm: boolean
   exec: boolean
+  /** Catalog keys of the optional (OpenShift) resource types the cluster serves (design §7.15). */
+  optionalResources: string[]
 }
 
 export interface ServerFeatures {
@@ -611,15 +613,26 @@ export interface VersionSupport {
   status: VersionSupportStatus
   /** End of standard support (YYYY-MM-DD), empty when the table has none. */
   endDate: string
-  /** The lifecycle table used: eks, aks, gke or kubernetes (upstream); empty for none. */
+  /** The lifecycle table used: eks, aks, gke, openshift or kubernetes (upstream); empty for none. */
   basis: string
+  /** OpenShift only (design §7.15): the current life-cycle phase. */
+  phase?: OpenShiftPhase
+  /** OpenShift only: the end of full support (YYYY-MM-DD). */
+  fullSupportEnd?: string
+  /** OpenShift only: the end of Extended Update Support, for minors that have it. */
+  eusEnd?: string
 }
+
+/** Phases of an OpenShift minor version's life cycle. */
+export type OpenShiftPhase = 'full' | 'maintenance' | 'eus' | 'ended'
 
 export interface ClusterPlatform {
   provider: CloudProvider
   cloud: InfraCloud
   /** The API server's gitVersion; empty until detected. */
   version: string
+  /** The distribution's own version: OpenShift's (design §7.15); absent elsewhere. */
+  productVersion?: string
   support: VersionSupport
   /** False when only the API server URL was looked at (the cluster is not connected yet). */
   detected: boolean
