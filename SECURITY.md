@@ -7,8 +7,8 @@ release line only.
 
 | Version | Supported |
 |---|---|
-| 0.8.x | yes |
-| < 0.8 | no (0.1 to 0.4 were never released as tagged versions) |
+| 0.8.1 and later 0.8.x | yes |
+| 0.8.0 and older | no — the 0.6.0, 0.7.0 and 0.8.0 release downloads were withdrawn (known vulnerabilities, unsigned); 0.1 to 0.4 were never released as tagged versions |
 
 ## Reporting a vulnerability
 

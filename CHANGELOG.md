@@ -70,6 +70,10 @@ those commits.
 
 ## [0.8.0] - 2026-11-18
 
+_The GitHub release (its downloads) was withdrawn on 2026-11-18: its builds
+have known vulnerabilities and were not signed. The `v0.8.0` tag remains for
+the history. Use 0.8.1 or later._
+
 ### Added
 
 - **OpenShift monitoring as a metrics source**: on OpenShift the charts,
@@ -137,6 +141,10 @@ those commits.
 
 ## [0.7.0] - 2026-11-18
 
+_The GitHub release (its downloads) was withdrawn on 2026-11-18: its builds
+have known vulnerabilities and were not signed. The `v0.7.0` tag remains for
+the history. Use 0.8.1 or later._
+
 ### Added
 
 - **Interface scale and fonts**: Settings → Appearance zooms the whole
@@ -192,6 +200,10 @@ those commits.
   converted when the new version first starts; nobody is signed out.
 
 ## [0.6.0] - 2026-11-18
+
+_The GitHub release (its downloads) was withdrawn on 2026-11-18: its builds
+have known vulnerabilities and were not signed. The `v0.6.0` tag remains for
+the history. Use 0.8.1 or later._
 
 First public release. It also ships everything listed under 0.5.0, which
 was never published on its own.
