@@ -212,8 +212,9 @@ func TestCreatePVCClones(t *testing.T) {
 	}
 
 	res := decode[CreateResult](t, expect(t, e.do(http.MethodPost, "/pvcs", body("r2", sourceSnapshot, "pending", "4Gi")), http.StatusOK, ""))
-	if len(res.Warnings) != 1 || !strings.Contains(res.Warnings[0], "not ready") {
-		t.Fatalf("warnings = %v", res.Warnings)
+	if len(res.Warnings) != 1 || !strings.Contains(res.Warnings[0], "not ready") ||
+		len(res.WarningReasons) != 1 || res.WarningReasons[0].Code != "storage.snapshot_not_ready" {
+		t.Fatalf("warnings = %v %v", res.Warnings, res.WarningReasons)
 	}
 }
 

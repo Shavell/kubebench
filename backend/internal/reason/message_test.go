@@ -45,3 +45,13 @@ func TestMessageAsParameter(t *testing.T) {
 		t.Fatalf("nested reason = %s", data)
 	}
 }
+
+func TestSplit(t *testing.T) {
+	texts, refs := Split([]*Error{New(testCode, Params{"cluster": "a", "count": 1, "missing": 2})})
+	if len(texts) != 1 || texts[0] != `cluster "a" has 1 nodes, 2 unknown` || len(refs) != 1 || refs[0].Code != "test.sample" || refs[0].Params["cluster"] != "a" {
+		t.Fatalf("Split = %q %+v", texts, refs)
+	}
+	if texts, refs := Split(nil); texts != nil || refs != nil {
+		t.Fatalf("Split(nil) = %v %v", texts, refs)
+	}
+}

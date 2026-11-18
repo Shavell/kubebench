@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"sort"
 	"strings"
@@ -105,10 +104,10 @@ func (s storageClassSpec) object() *storagev1.StorageClass {
 
 // defaultWarning advises when a new default class joins existing ones:
 // the API server then gives claims without a class the newest default.
-func defaultWarning(ctx context.Context, rt *kube.Runtime) (string, error) {
+func defaultWarning(ctx context.Context, rt *kube.Runtime) (*reason.Error, error) {
 	list, err := rt.CS.StorageV1().StorageClasses().List(ctx, metav1.ListOptions{})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	var defaults []string
 	for i := range list.Items {
@@ -117,12 +116,12 @@ func defaultWarning(ctx context.Context, rt *kube.Runtime) (string, error) {
 		}
 	}
 	if len(defaults) == 0 {
-		return "", nil
+		return nil, nil
 	}
 	sort.Strings(defaults)
-	return fmt.Sprintf("already marked as default: %s. Claims without a class get the newest default; "+
-		"remove the %s annotation from the classes that should no longer be default",
-		strings.Join(defaults, ", "), defaultClassAnnotation), nil
+	return reason.New(reasonOtherDefaults, reason.Params{
+		"classes": strings.Join(defaults, ", "), "annotation": defaultClassAnnotation,
+	}), nil
 }
 
 // createStorageClass serves POST /storageclasses?dryRun=.
@@ -137,14 +136,14 @@ func createStorageClass(w http.ResponseWriter, r *http.Request, c *plugin.Contex
 		writeErr(w, err)
 		return
 	}
-	var warnings []string
+	var warnings []*reason.Error
 	if req.IsDefault {
 		warning, err := defaultWarning(r.Context(), c.Runtime)
 		if err != nil {
 			writeErr(w, err)
 			return
 		}
-		if warning != "" {
+		if warning != nil {
 			warnings = append(warnings, warning)
 		}
 	}
@@ -158,10 +157,9 @@ func createStorageClass(w http.ResponseWriter, r *http.Request, c *plugin.Contex
 		writeErr(w, err)
 		return
 	}
-	plugin.WriteJSON(w, CreateResult{
-		APIVersion: "storage.k8s.io/v1", Kind: "StorageClass", Name: created.Name,
-		DryRun: plugin.IsDryRun(r), Warnings: warnings,
-	})
+	res := CreateResult{APIVersion: "storage.k8s.io/v1", Kind: "StorageClass", Name: created.Name, DryRun: plugin.IsDryRun(r)}
+	res.Warnings, res.WarningReasons = reason.Split(warnings)
+	plugin.WriteJSON(w, res)
 }
 
 func isDefaultClass(sc *storagev1.StorageClass) bool {

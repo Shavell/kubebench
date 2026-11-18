@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { warningTexts } from '@/core/reasons'
 import { useLayoutStore } from '@/core/store/layoutStore'
 import { refreshData } from '@/data/DataContext'
 import { notify } from '@/shared/notify'
@@ -55,12 +56,12 @@ export function useWizard({
       return
     }
     if (dryRun) {
-      setStatus({ state: 'valid', yaml, warnings: result.warnings ?? [] })
+      setStatus({ state: 'valid', yaml, warnings: warningTexts(result.warnings, result.warningReasons) })
       return
     }
     const open = () => openResource(result.kind, result.namespace, result.name)
     notify.success(translate('wizard.created', { kind: result.kind, name: result.name }), {
-      detail: result.warnings?.join('\n'),
+      detail: warningTexts(result.warnings, result.warningReasons).join('\n') || undefined,
       action: { label: translate('wizard.open'), run: open },
     })
     refreshData()

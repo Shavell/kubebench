@@ -1,4 +1,5 @@
 import { dump, load, loadAll } from 'js-yaml'
+import { englishWarnings } from '@/core/reasons'
 import { ApiError } from '../apiClient'
 import { reasonError } from '../reasonError'
 import type { ClusterProvider } from '../providers'
@@ -157,7 +158,7 @@ function applyObject(manifest: Manifest, options: ApplyOptions): ApplyResult {
     }
   }
   if (!kind.namespaced && namespace) {
-    result.warnings = [`${kindName} is cluster-scoped: metadata.namespace "${namespace}" was ignored`]
+    Object.assign(result, englishWarnings([{ reason: 'apply.namespace_ignored', params: { kind: kindName, namespace } }]))
     namespace = ''
   } else if (kind.namespaced) {
     namespace ||= options.namespace || 'default'

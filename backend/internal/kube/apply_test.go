@@ -140,7 +140,7 @@ rules: []
 	if res[0].Namespace != "shop" || res[1].Namespace != "billing" || res[2].Namespace != "" {
 		t.Fatalf("namespaces = %q %q %q", res[0].Namespace, res[1].Namespace, res[2].Namespace)
 	}
-	if len(res[2].Warnings) != 1 || !strings.Contains(res[2].Warnings[0], "cluster-scoped") || res[0].Warnings != nil {
+	if len(res[2].Warnings) != 1 || res[2].Warnings[0].Code.String() != "apply.namespace_ignored" || !strings.Contains(res[2].Warnings[0].Error(), "cluster-scoped") || res[0].Warnings != nil {
 		t.Fatalf("warnings = %v / %v", res[2].Warnings, res[0].Warnings)
 	}
 	getFake(t, dyn, fakeKind(t, "ConfigMap"), "shop", "defaulted")

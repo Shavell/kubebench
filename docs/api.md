@@ -84,8 +84,10 @@ statuses (`GET /api/plugins`), live-update topic statuses (`event: status`
 of `/api/watch`) and the security report's `skipped`;
 `clusterErrorReason`/`clusterErrorParams` in `/api/info`;
 `errorReason`/`errorParams` in the update status; `warningReasons`
-(`[{"reason","params"}]`, index by index) next to the security report's
-`warnings`. Streams end with a **reason message**
+(`[{"reason","params"}]`, index by index) next to the `warnings` of the
+security report, of apply results and of the storage plugin's creates; a
+failed object of an apply has `reason`/`params` next to its `error`; a
+drain's `failed[]` has `reason` when KubeBench explains why a pod stayed. Streams end with a **reason message**
 `{"error": "<message>", "reason"?: "<code>", "params"?: {…}}`: the data of a
 log stream's `event: error` and a watch stream's `event: end`, and
 `reason`/`params` next to `message` in a terminal's error frame. A message
@@ -255,7 +257,7 @@ and filesystem series need Prometheus.
 
 | Method | Path | Level | Parameters | Answer |
 |---|---|---|---|---|
-| POST | `/api/resource/apply` | write, dry-run | `?ns=&force=&dryRun=`; body YAML or JSON, any number of documents, ≤ 4 MiB | `{"results":[{"apiVersion","kind","namespace"?,"name","action"?:"created"\|"configured"\|"unchanged","error"?,"code"?,"warnings"?}]}` (server-side apply, field manager `kubebench`) |
+| POST | `/api/resource/apply` | write, dry-run | `?ns=&force=&dryRun=`; body YAML or JSON, any number of documents, ≤ 4 MiB | `{"results":[{"apiVersion","kind","namespace"?,"name","action"?:"created"\|"configured"\|"unchanged","error"?,"code"?,"reason"?,"params"?,"warnings"?,"warningReasons"?}]}` (server-side apply, field manager `kubebench`) |
 | POST | `/api/resource/edit` | write, dry-run | `?apiVersion=&kind=` or `?key=`, `&ns=&name=&dryRun=`; body `{"original","edited"}` | as apply, one result (sent as a JSON merge patch) |
 | DELETE | `/api/resource` | write | `?apiVersion=&kind=` or `?key=`, `&ns=&name=&propagation=Background\|Foreground\|Orphan&gracePeriod=` | `{"ok":true}`; namespaces use `DELETE /api/namespaces` |
 | PATCH | `/api/resource/metadata` | write | the same object parameters; body `{"labels":{…},"annotations":{…}}` (`null` removes a key) | `{"ok":true}` |
@@ -395,7 +397,7 @@ Always available.
 | GET | `/pvs` | read | — | volume summaries |
 | GET | `/csidrivers` | read | — | CSI drivers |
 | GET | `/snapshots` | read | `?ns=` | VolumeSnapshots; `503 capability_unavailable` without the snapshot CRDs |
-| POST | `/pvcs` | write, dry-run | `{"namespace","name","storageClassName"?,"accessModes","size","volumeMode"?,"volumeName"?,"dataSource"?,"labels"?}` | `{"apiVersion","kind","namespace"?,"name","dryRun","warnings"?}` |
+| POST | `/pvcs` | write, dry-run | `{"namespace","name","storageClassName"?,"accessModes","size","volumeMode"?,"volumeName"?,"dataSource"?,"labels"?}` | `{"apiVersion","kind","namespace"?,"name","dryRun","warnings"?,"warningReasons"?}` |
 | POST | `/pvs` | write, dry-run | `{"name","capacity","accessModes",…,"hostPath"\|"nfs"\|"local"\|"csi"}` | as above |
 | POST | `/storageclasses` | write, dry-run | `{"name","provisioner",…}` | as above |
 | PATCH | `/pvcs/{ns}/{name}/resize` | write | `{"size"}` | the claim summary; `409` when not Bound or the class does not allow expansion |

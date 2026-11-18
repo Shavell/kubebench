@@ -141,6 +141,17 @@ type Ref struct {
 // Ref returns e's code and parameters as a Ref.
 func (e *Error) Ref() Ref { return Ref{Code: e.Code.String(), Params: e.Params} }
 
+// Split returns the English texts of errs and, index by index, their
+// reasons: a list of advice as a response sends it ("warnings" with
+// "warningReasons"). Both are nil for no errs.
+func Split(errs []*Error) (texts []string, refs []Ref) {
+	for _, e := range errs {
+		texts = append(texts, e.Error())
+		refs = append(refs, e.Ref())
+	}
+	return texts, refs
+}
+
 // Detail is the reason of an error that has none of its own, such as an
 // answer of the Kubernetes API: its message is shown as it is.
 var Detail = Define("error.detail", "{{detail}}")

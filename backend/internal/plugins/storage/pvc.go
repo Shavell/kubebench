@@ -124,7 +124,7 @@ func (s pvcSpec) object() *corev1.PersistentVolumeClaim {
 // checkCluster checks what the request refers to: the volume to bind and
 // the claim or snapshot to clone. It returns warnings that do not stop the
 // create.
-func (s pvcSpec) checkCluster(ctx context.Context, rt *kube.Runtime) ([]string, error) {
+func (s pvcSpec) checkCluster(ctx context.Context, rt *kube.Runtime) ([]*reason.Error, error) {
 	if s.req.VolumeName != "" {
 		return nil, s.checkVolume(ctx, rt)
 	}
@@ -155,7 +155,7 @@ func (s pvcSpec) checkCluster(ctx context.Context, rt *kube.Runtime) ([]string, 
 		}
 	}
 	if !snap.ReadyToUse {
-		return []string{"the snapshot is not ready to use yet; the claim stays Pending until it is"}, nil
+		return []*reason.Error{reason.New(reasonSnapshotNotReady, nil)}, nil
 	}
 	return nil, nil
 }
@@ -227,10 +227,12 @@ func createPVC(w http.ResponseWriter, r *http.Request, c *plugin.Context) {
 		writeErr(w, err)
 		return
 	}
-	plugin.WriteJSON(w, CreateResult{
+	res := CreateResult{
 		APIVersion: "v1", Kind: "PersistentVolumeClaim", Namespace: created.Namespace, Name: created.Name,
-		DryRun: plugin.IsDryRun(r), Warnings: warnings,
-	})
+		DryRun: plugin.IsDryRun(r),
+	}
+	res.Warnings, res.WarningReasons = reason.Split(warnings)
+	plugin.WriteJSON(w, res)
 }
 
 // requested is a claim's requested storage.

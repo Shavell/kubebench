@@ -1,9 +1,10 @@
+import { englishWarnings } from '@/core/reasons'
 import { ApiError } from '@/data/apiClient'
 import { delay, delayReject } from '@/data/mock/delay'
 import { namespaces, nodes } from '@/data/mock/mockCluster'
 import { genericMock } from '@/data/mock/mockGeneric'
 import { mulberry32 } from '@/data/mock/rng'
-import type { KubeObject } from '@/data/types'
+import type { KubeObject, ReasonRef } from '@/data/types'
 import { i18n } from '@/i18n'
 import { DEFAULT_CLASS_ANNOTATION, pvcObject, pvObject, storageClassObject, type Manifest } from '../model/build'
 import { quantityBytes } from '../model/quantity'
@@ -264,7 +265,7 @@ function store(key: string, object: Manifest, extra: Record<string, unknown>): v
   list(key).push({ ...(object as Obj), ...extra, age: '0s' })
 }
 
-function createResult(object: Manifest, dryRun: boolean, warnings?: string[]): CreateResult {
+function createResult(object: Manifest, dryRun: boolean, warnings: ReasonRef[] = []): CreateResult {
   const meta = record(object.metadata)
   return {
     apiVersion: str(object.apiVersion),
@@ -272,7 +273,7 @@ function createResult(object: Manifest, dryRun: boolean, warnings?: string[]): C
     namespace: str(meta.namespace) || undefined,
     name: str(meta.name),
     dryRun,
-    warnings,
+    ...(warnings.length ? englishWarnings(warnings) : {}),
   }
 }
 
@@ -291,7 +292,7 @@ export function createMockStorage(): StorageProvider {
         if (problem) throw problem
         if (!findNamespace(req.namespace)) throw new ApiError(404, 'kubernetes', `namespaces "${req.namespace}" not found`)
         const size = bytes(req.size)
-        const warnings: string[] = []
+        const warnings: ReasonRef[] = []
         if (req.volumeName) {
           const pv = findPv(req.volumeName)
           if (!pv) throw badRequest('volumeName', `no PersistentVolume "${req.volumeName}"`)
@@ -314,13 +315,13 @@ export function createMockStorage(): StorageProvider {
           if (snap.restoreSize && size < snap.restoreSizeBytes) {
             throw badRequest('size', `a restored claim must be at least as large as the snapshot (${snap.restoreSize})`)
           }
-          if (!snap.readyToUse) warnings.push('the snapshot is not ready to use yet; the claim stays Pending until it is')
+          if (!snap.readyToUse) warnings.push({ reason: 'storage.snapshot_not_ready' })
         }
         if (findPvc(req.namespace, req.name)) throw alreadyExists('persistentvolumeclaims', req.name)
 
         const object = pvcObject({ ...req, storageClassName: req.storageClassName ?? defaultClassName() })
         if (!options?.dryRun) provisionClaim(object, req.volumeName)
-        return createResult(object, Boolean(options?.dryRun), warnings.length ? warnings : undefined)
+        return createResult(object, Boolean(options?.dryRun), warnings)
       }),
 
     createPv: (req, options) =>
@@ -341,10 +342,10 @@ export function createMockStorage(): StorageProvider {
         if (problem) throw problem
         if (findClass(req.name)) throw alreadyExists('storageclasses.storage.k8s.io', req.name)
         const defaults = classes().filter(isDefault).map(nameOf)
-        const warnings =
+        const warnings: ReasonRef[] =
           req.isDefault && defaults.length
-            ? [`already marked as default: ${defaults.join(', ')}. Claims without a class get the newest default`]
-            : undefined
+            ? [{ reason: 'storage.other_defaults', params: { classes: defaults.join(', '), annotation: DEFAULT_CLASS_ANNOTATION } }]
+            : []
         const object = storageClassObject(req)
         if (!options?.dryRun) store('storageclasses', object, {})
         return createResult(object, Boolean(options?.dryRun), warnings)

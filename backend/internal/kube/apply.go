@@ -4,13 +4,14 @@ import (
 	"cmp"
 	"context"
 	"errors"
-	"fmt"
 
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
+
+	"kubebench/internal/reason"
 )
 
 // FieldManager is the field manager of every change KubeBench makes, with
@@ -44,8 +45,9 @@ type ApplyOptions struct {
 type ApplyResult struct {
 	APIVersion, Kind, Namespace, Name string
 	// Action is empty when Err is set.
-	Action   ApplyAction
-	Warnings []string
+	Action ApplyAction
+	// Warnings is advice that did not stop the apply.
+	Warnings []*reason.Error
 	Err      error
 }
 
@@ -69,8 +71,8 @@ func (r *Runtime) applyObject(ctx context.Context, obj *unstructured.Unstructure
 	}
 	switch {
 	case !namespaced && res.Namespace != "":
-		res.Warnings = append(res.Warnings, fmt.Sprintf(
-			"%s is cluster-scoped: metadata.namespace %q was ignored", res.Kind, res.Namespace))
+		res.Warnings = append(res.Warnings, reason.New(reasonNamespaceIgnored,
+			reason.Params{"kind": res.Kind, "namespace": res.Namespace}))
 		res.Namespace = ""
 	case namespaced && res.Namespace == "":
 		res.Namespace = cmp.Or(opts.Namespace, metav1.NamespaceDefault)

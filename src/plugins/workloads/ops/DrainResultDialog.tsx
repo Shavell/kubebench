@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { reasonText } from '@/core/reasons'
 import type { DrainResult } from '@/data/types'
 import { Badge } from '@/shared/Badge'
 import { Button } from '@/shared/Button'
@@ -62,7 +63,7 @@ export function DrainResultDialog({ result, onClose }: { result: DrainResult; on
           {pdbFailures.map((f) => (
             <li key={f.pod}>
               <code className="ops-result__pod">{f.pod}</code>
-              <span className="ops-result__detail">{f.error}</span>
+              <span className="ops-result__detail">{reasonText(f.reason, undefined, f.error)}</span>
             </li>
           ))}
         </ResultSection>
@@ -72,7 +73,7 @@ export function DrainResultDialog({ result, onClose }: { result: DrainResult; on
           {otherFailures.map((f) => (
             <li key={f.pod}>
               <code className="ops-result__pod">{f.pod}</code>
-              <span className="ops-result__detail">{f.error}</span>
+              <span className="ops-result__detail">{reasonText(f.reason, undefined, f.error)}</span>
             </li>
           ))}
         </ResultSection>

@@ -51,6 +51,8 @@ var (
 	reasonNoNode           = reason.Define("storage.no_node", "{{field}}: no node \"{{value}}\"")
 	reasonShrinkRequest    = reason.Define("storage.shrink_request", "{{field}}: must be larger than the current request ({{size}}): volumes cannot shrink")
 	reasonShrinkCapacity   = reason.Define("storage.shrink_capacity", "{{field}}: must be larger than the current capacity ({{size}})")
+	reasonSnapshotNotReady = reason.Define("storage.snapshot_not_ready", "the snapshot is not ready to use yet; the claim stays Pending until it is")
+	reasonOtherDefaults    = reason.Define("storage.other_defaults", "already marked as default: {{classes}}. Claims without a class get the newest default; remove the {{annotation}} annotation from the classes that should no longer be default")
 	reasonNotBound         = reason.Define("storage.expand_not_bound", "only a Bound claim can be expanded (it is {{phase}})")
 	reasonNoClass          = reason.Define("storage.expand_no_class", "the claim has no StorageClass, so it cannot be expanded")
 	reasonClassMissing     = reason.Define("storage.expand_class_missing", "the claim's StorageClass {{class}} does not exist")

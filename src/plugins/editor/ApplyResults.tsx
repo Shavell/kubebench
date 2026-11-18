@@ -1,4 +1,5 @@
 import { usePermission } from '@/core/permissions'
+import { reasonText, warningTexts } from '@/core/reasons'
 import type { ApplyResult } from '@/data/types'
 import { Badge, type BadgeTone } from '@/shared/Badge'
 import { Button } from '@/shared/Button'
@@ -76,8 +77,8 @@ export function ApplyResults({
                 <span className="kb-apply__object">
                   <span className="kb-apply__kind">{r.kind}</span> {objectName(r)}
                 </span>
-                {r.error && <div className="kb-apply__message">{r.error}</div>}
-                {r.warnings?.map((w) => (
+                {r.error && <div className="kb-apply__message">{reasonText(r.reason, r.params, r.error)}</div>}
+                {warningTexts(r.warnings, r.warningReasons).map((w) => (
                   <div key={w} className="kb-apply__warning">
                     <Icon name="warning" size={12} /> {w}
                   </div>

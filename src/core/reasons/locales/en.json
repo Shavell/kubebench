@@ -22,6 +22,9 @@
     "shutting_down": "the server is shutting down",
     "websocket_no_origin": "WebSocket request without an Origin rejected"
   },
+  "apply": {
+    "namespace_ignored": "{{kind}} is cluster-scoped: metadata.namespace \"{{namespace}}\" was ignored"
+  },
   "argocd": {
     "deleting_without_cascade": "application {{namespace}}/{{name}} is already being deleted without cascade",
     "discovery_failed": "cannot discover Argo CD: {{detail}}",
@@ -98,6 +101,10 @@
     "server_side_references": "the kubeconfig uses {{references}}, which this server does not allow in pasted kubeconfigs (KUBEBENCH_ALLOW_KUBECONFIG_EXEC); embed the credentials as *-data fields or a token",
     "source_required": "kubeconfig content, path or API address is required",
     "unknown_context": "context \"{{context}}\" is not in the kubeconfig"
+  },
+  "drain": {
+    "not_evicted": "not evicted before the drain ended",
+    "not_terminated": "evicted, but the pod had not terminated when the drain ended"
   },
   "edit": {
     "empty": "the edited manifest is empty",
@@ -352,12 +359,14 @@
     "node_name": "{{field}}: \"{{value}}\" is not a node name",
     "one_of": "{{field}}: \"{{value}}\" is not {{values}}",
     "one_source": "{{field}}: set exactly one of hostPath, nfs, local or csi",
+    "other_defaults": "already marked as default: {{classes}}. Claims without a class get the newest default; remove the {{annotation}} annotation from the classes that should no longer be default",
     "positive": "{{field}}: must be greater than zero",
     "quantity": "{{field}}: \"{{value}}\" is not a quantity such as 10Gi or 500M",
     "restore_size": "{{field}}: a restored claim must be at least as large as the snapshot ({{size}})",
     "rwop_combined": "{{field}}: ReadWriteOncePod cannot be combined with other access modes",
     "shrink_capacity": "{{field}}: must be larger than the current capacity ({{size}})",
     "shrink_request": "{{field}}: must be larger than the current request ({{size}}): volumes cannot shrink",
+    "snapshot_not_ready": "the snapshot is not ready to use yet; the claim stays Pending until it is",
     "source_kind": "{{field}}: \"{{kind}}\" is not {{pvc}} or {{snapshot}}",
     "too_many_labels": "{{field}}: at most {{max}} labels",
     "too_many_mount_options": "{{field}}: at most {{max}} mount options",

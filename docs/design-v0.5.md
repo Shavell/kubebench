@@ -196,7 +196,9 @@ objects explain themselves the same way: plugin `Status`
 (`reasonCode`/`reasonParams`, set by `plugin.Unavailable`), watch topic
 statuses, `/api/info` (`clusterErrorReason`/`clusterErrorParams`), the
 update status (`errorReason`/`errorParams`) and the security report
-(`skipped[].reasonCode`, `warningReasons`). Streams end with a reason
+(`skipped[].reasonCode`, `warningReasons`), apply results and storage
+creates (`warningReasons`, apply errors with `reason`/`params`) and drain
+results (`failed[].reason`). Streams end with a reason
 message `{"error", "reason"?, "params"?}` (`reason.Message`: log stream
 `event: error`, watch `event: end`, terminal error frames with
 `reason`/`params` next to `message`, §7.1, §7.10); a message can be a
@@ -804,7 +806,7 @@ and `new-resource` with `{namespace?, kind?}` (see 7.2);
     Secret whose data/stringData values or last-applied annotation are
     redaction placeholders (`redacted_secret`).
   - Otherwise every object is attempted in order and the answer is `200`:
-    `{"results":[{"apiVersion","kind","namespace"?,"name","action"?:"created|configured|unchanged","error"?,"code"?,"warnings"?}]}`.
+    `{"results":[{"apiVersion","kind","namespace"?,"name","action"?:"created|configured|unchanged","error"?,"code"?,"reason"?,"params"?,"warnings"?,"warningReasons"?}]}`.
     A failed object carries `error` and `code` instead of `action`:
     `conflict` for a server-side apply conflict with another field manager
     (applying again with `force=true` takes the fields over), `not_found`
@@ -914,7 +916,7 @@ Details settled by the implementation:
 - Drain: defaults as in the path above; `timeoutSeconds` 1–600, `gracePeriod`
   −1 (the pod's own) to 3600. It cordons first and answers `200` when the
   evictions ended: `{"node","cordoned","completed","evicted":["ns/pod"],
-  "failed":[{"pod","error"}],"blockedByPDB":["ns/pod"],"skipped":[{"pod",
+  "failed":[{"pod","error","reason"?}],"blockedByPDB":["ns/pod"],"skipped":[{"pod",
   "reason":"daemonSet"|"mirror"}],"errors":[…]}`. Pods a drain must not lose
   (no controller without `force`, emptyDir without `deleteEmptyDirData`,
   DaemonSet pods without `ignoreDaemonSets`) stop it before any eviction and
@@ -1121,8 +1123,8 @@ Bodies are validated server-side (DNS-1123 names, quantities, access modes).
   labels?, nodes?, hostPath|nfs|local|csi}`; StorageClass `{name,
   provisioner, parameters?, reclaimPolicy?, volumeBindingMode?,
   allowVolumeExpansion?, isDefault?, mountOptions?, labels?}`. They answer
-  `{apiVersion, kind, namespace?, name, dryRun, warnings?}`; each create
-  route is `write` + DryRunnable. References are checked before the create
+  `{apiVersion, kind, namespace?, name, dryRun, warnings?,
+  warningReasons?}`; each create route is `write` + DryRunnable. References are checked before the create
   (`400`): the PV to bind must be Available and fit (class, size, modes,
   volume mode); a clone or restore must be at least as large as its source.
   A PV's `nodes` must exist; its required node affinity matches their

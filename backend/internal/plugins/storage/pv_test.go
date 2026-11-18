@@ -131,8 +131,9 @@ func TestCreateStorageClass(t *testing.T) {
 		"reclaimPolicy": "Retain", "volumeBindingMode": "WaitForFirstConsumer", "allowVolumeExpansion": true, "isDefault": true,
 	}
 	res := decode[CreateResult](t, expect(t, e.do(http.MethodPost, "/storageclasses", body), http.StatusOK, ""))
-	if len(res.Warnings) != 1 || !strings.Contains(res.Warnings[0], "old-default") {
-		t.Fatalf("warnings = %v", res.Warnings)
+	if len(res.Warnings) != 1 || !strings.Contains(res.Warnings[0], "old-default") ||
+		len(res.WarningReasons) != 1 || res.WarningReasons[0].Params["classes"] != "old-default" {
+		t.Fatalf("warnings = %v %v", res.Warnings, res.WarningReasons)
 	}
 	sc, err := e.cs.StorageV1().StorageClasses().Get(context.Background(), "gp3", metav1.GetOptions{})
 	if err != nil {

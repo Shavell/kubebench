@@ -102,6 +102,8 @@ type CreateResult struct {
 	Name       string   `json:"name"`
 	DryRun     bool     `json:"dryRun"`
 	Warnings   []string `json:"warnings,omitempty"`
+	// WarningReasons explain Warnings, index by index, for translation.
+	WarningReasons []reason.Ref `json:"warningReasons,omitempty"`
 }
 
 // auditCreate names the created object in the router's row for the request:

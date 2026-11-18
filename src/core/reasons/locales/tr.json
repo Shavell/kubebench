@@ -22,6 +22,9 @@
     "shutting_down": "Sunucu kapanıyor",
     "websocket_no_origin": "Origin başlığı olmayan WebSocket isteği reddedildi"
   },
+  "apply": {
+    "namespace_ignored": "{{kind}} cluster kapsamlıdır: metadata.namespace \"{{namespace}}\" yok sayıldı"
+  },
   "argocd": {
     "deleting_without_cascade": "{{namespace}}/{{name}} uygulaması zaten cascade olmadan siliniyor",
     "discovery_failed": "Argo CD bulunamadı: {{detail}}",
@@ -98,6 +101,10 @@
     "server_side_references": "Kubeconfig {{references}} kullanıyor; bu sunucu yapıştırılan kubeconfig'lerde buna izin vermiyor (KUBEBENCH_ALLOW_KUBECONFIG_EXEC). Kimlik bilgilerini *-data alanları veya bir token olarak gömün",
     "source_required": "Kubeconfig içeriği, yolu veya API adresi zorunludur",
     "unknown_context": "\"{{context}}\" context'i kubeconfig'de yok"
+  },
+  "drain": {
+    "not_evicted": "Drain bitmeden tahliye edilmedi",
+    "not_terminated": "Tahliye edildi, ancak drain bittiğinde Pod henüz sonlanmamıştı"
   },
   "edit": {
     "empty": "Düzenlenen manifest boş",
@@ -352,12 +359,14 @@
     "node_name": "{{field}}: \"{{value}}\" bir node adı değil",
     "one_of": "{{field}}: \"{{value}}\" şunlardan biri değil: {{values}}",
     "one_source": "{{field}}: hostPath, nfs, local veya csi'den tam olarak birini ayarlayın",
+    "other_defaults": "Zaten varsayılan olarak işaretli: {{classes}}. Sınıf belirtmeyen claim'ler en yeni varsayılanı alır; artık varsayılan olmaması gereken sınıflardan {{annotation}} annotation'ını kaldırın",
     "positive": "{{field}}: sıfırdan büyük olmalı",
     "quantity": "{{field}}: \"{{value}}\" 10Gi veya 500M gibi bir miktar değil",
     "restore_size": "{{field}}: geri yüklenen bir claim en az snapshot kadar büyük olmalı ({{size}})",
     "rwop_combined": "{{field}}: ReadWriteOncePod başka erişim modlarıyla birleştirilemez",
     "shrink_capacity": "{{field}}: mevcut kapasiteden ({{size}}) büyük olmalı",
     "shrink_request": "{{field}}: mevcut istekten ({{size}}) büyük olmalı: volume'lar küçültülemez",
+    "snapshot_not_ready": "Snapshot henüz kullanıma hazır değil; hazır olana kadar claim Pending durumunda kalır",
     "source_kind": "{{field}}: \"{{kind}}\", {{pvc}} veya {{snapshot}} değil",
     "too_many_labels": "{{field}}: en fazla {{max}} label",
     "too_many_mount_options": "{{field}}: en fazla {{max}} bağlama seçeneği",

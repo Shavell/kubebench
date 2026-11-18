@@ -22,6 +22,9 @@
     "shutting_down": "Der Server wird heruntergefahren",
     "websocket_no_origin": "WebSocket-Anfrage ohne Origin abgelehnt"
   },
+  "apply": {
+    "namespace_ignored": "{{kind}} ist clusterweit: metadata.namespace \"{{namespace}}\" wurde ignoriert"
+  },
   "argocd": {
     "deleting_without_cascade": "Die Anwendung {{namespace}}/{{name}} wird bereits ohne Cascade gelöscht",
     "discovery_failed": "Argo CD kann nicht ermittelt werden: {{detail}}",
@@ -98,6 +101,10 @@
     "server_side_references": "Die kubeconfig verwendet {{references}}, was dieser Server in eingefügten kubeconfigs nicht erlaubt (KUBEBENCH_ALLOW_KUBECONFIG_EXEC); betten Sie die Anmeldedaten als *-data-Felder oder Token ein",
     "source_required": "kubeconfig-Inhalt, Pfad oder API-Adresse ist erforderlich",
     "unknown_context": "Der Context \"{{context}}\" ist nicht in der kubeconfig"
+  },
+  "drain": {
+    "not_evicted": "Vor dem Ende des Drains nicht verdrängt",
+    "not_terminated": "Verdrängt, aber der Pod war beim Ende des Drains noch nicht beendet"
   },
   "edit": {
     "empty": "Das bearbeitete Manifest ist leer",
@@ -352,12 +359,14 @@
     "node_name": "{{field}}: \"{{value}}\" ist kein Node-Name",
     "one_of": "{{field}}: \"{{value}}\" ist keiner dieser Werte: {{values}}",
     "one_source": "{{field}}: Setzen Sie genau eines von hostPath, nfs, local oder csi",
+    "other_defaults": "Bereits als Standard markiert: {{classes}}. Claims ohne Klasse erhalten den neuesten Standard; entfernen Sie die Annotation {{annotation}} von den Klassen, die nicht mehr Standard sein sollen",
     "positive": "{{field}}: muss größer als null sein",
     "quantity": "{{field}}: \"{{value}}\" ist keine Menge wie 10Gi oder 500M",
     "restore_size": "{{field}}: Ein wiederhergestellter Claim muss mindestens so groß wie der Snapshot sein ({{size}})",
     "rwop_combined": "{{field}}: ReadWriteOncePod kann nicht mit anderen Zugriffsmodi kombiniert werden",
     "shrink_capacity": "{{field}}: muss größer als die aktuelle Kapazität sein ({{size}})",
     "shrink_request": "{{field}}: muss größer als die aktuelle Anforderung sein ({{size}}): Volumes können nicht schrumpfen",
+    "snapshot_not_ready": "Der Snapshot ist noch nicht einsatzbereit; der Claim bleibt Pending, bis er es ist",
     "source_kind": "{{field}}: \"{{kind}}\" ist weder {{pvc}} noch {{snapshot}}",
     "too_many_labels": "{{field}}: höchstens {{max}} Labels",
     "too_many_mount_options": "{{field}}: höchstens {{max}} Mount-Optionen",

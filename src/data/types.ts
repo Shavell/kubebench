@@ -3,6 +3,12 @@
 /** Parameters of a server reason code (design §3.3), e.g. `{"cluster": "prod"}`. */
 export type ReasonParams = Record<string, unknown>
 
+/** A server reason code with its parameters, e.g. one of a response's `warningReasons`. */
+export interface ReasonRef {
+  reason: string
+  params?: ReasonParams
+}
+
 export interface K8sNode {
   name: string
   roles: string[]
@@ -390,8 +396,13 @@ export interface ApplyResult {
    * `not_found` a kind the cluster does not serve.
    */
   code?: string
+  /** Reason code and parameters of `error` when KubeBench explains it itself (§3.3). */
+  reason?: string
+  params?: ReasonParams
   /** E.g. that the namespace of a cluster-scoped object was ignored. */
   warnings?: string[]
+  /** The reasons of `warnings`, index by index. */
+  warningReasons?: ReasonRef[]
 }
 
 export interface ApplyOptions {
@@ -452,8 +463,8 @@ export interface DrainResult {
   /** Every Pod that had to leave the node is gone. */
   completed: boolean
   evicted: string[]
-  /** Pods that should have left but are still there. */
-  failed: { pod: string; error: string }[]
+  /** Pods that should have left but are still there; `reason` translates KubeBench's own `error` (§3.3). */
+  failed: { pod: string; error: string; reason?: string }[]
   /** The failed Pods a PodDisruptionBudget kept on the node. */
   blockedByPDB: string[]
   /** Pods a drain leaves alone. */

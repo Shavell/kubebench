@@ -1,6 +1,6 @@
 import { i18n, registerTranslations } from '@/i18n'
 import { localeBundles } from '@/i18n/bundles'
-import type { ReasonParams } from '@/data/types'
+import type { ReasonParams, ReasonRef } from '@/data/types'
 import { localizeReason, type ReasonMessage, type ReasonTranslator } from './localize'
 
 export { isReasonMessage, type ReasonMessage } from './localize'
@@ -43,6 +43,19 @@ export function reasonText(
 /** The server's English text of a reason, e.g. as a mock's error message. */
 export function englishReason(code: string, params?: ReasonParams): string {
   return localizeReason(translator('en'), code, params, code)
+}
+
+/**
+ * A response's advice in the UI language: `warnings` (the server's English
+ * texts) translated by `warningReasons`, index by index.
+ */
+export function warningTexts(warnings: readonly string[] | undefined, reasons?: readonly ReasonRef[]): string[] {
+  return (warnings ?? []).map((text, i) => reasonText(reasons?.[i]?.reason, reasons?.[i]?.params, text))
+}
+
+/** The server's warnings for `reasons` in English, e.g. as a mock's response. */
+export function englishWarnings(reasons: ReasonRef[]): { warnings: string[]; warningReasons: ReasonRef[] } {
+  return { warnings: reasons.map((r) => englishReason(r.reason, r.params)), warningReasons: reasons }
 }
 
 /** A ReasonMessage (e.g. why the server ended a stream) in the UI language. */

@@ -29,16 +29,21 @@ import (
 const maxManifestBytes = 4 << 20
 
 // applyResult is one object of the apply response (src/data/types.ts
-// ApplyResult). A failed object has error and code instead of action.
+// ApplyResult). A failed object has error and code instead of action,
+// with reason and params when KubeBench explains the error itself;
+// warningReasons explain warnings index by index (§3.3).
 type applyResult struct {
-	APIVersion string   `json:"apiVersion"`
-	Kind       string   `json:"kind"`
-	Namespace  string   `json:"namespace,omitempty"`
-	Name       string   `json:"name"`
-	Action     string   `json:"action,omitempty"`
-	Error      string   `json:"error,omitempty"`
-	Code       string   `json:"code,omitempty"`
-	Warnings   []string `json:"warnings,omitempty"`
+	APIVersion     string        `json:"apiVersion"`
+	Kind           string        `json:"kind"`
+	Namespace      string        `json:"namespace,omitempty"`
+	Name           string        `json:"name"`
+	Action         string        `json:"action,omitempty"`
+	Error          string        `json:"error,omitempty"`
+	Code           string        `json:"code,omitempty"`
+	Reason         string        `json:"reason,omitempty"`
+	Params         reason.Params `json:"params,omitempty"`
+	Warnings       []string      `json:"warnings,omitempty"`
+	WarningReasons []reason.Ref  `json:"warningReasons,omitempty"`
 }
 
 // handleApply applies the YAML or JSON manifests in the body. Requests
@@ -174,10 +179,12 @@ func writeManifestErr(w http.ResponseWriter, err error) {
 func toApplyResult(res kube.ApplyResult) applyResult {
 	out := applyResult{
 		APIVersion: res.APIVersion, Kind: res.Kind, Namespace: res.Namespace, Name: res.Name,
-		Action: string(res.Action), Warnings: res.Warnings,
+		Action: string(res.Action),
 	}
+	out.Warnings, out.WarningReasons = reason.Split(res.Warnings)
 	if res.Err != nil {
-		out.Error, out.Code = res.Err.Error(), applyErrorCode(res.Err)
+		why := reason.MessageOf(res.Err)
+		out.Error, out.Code, out.Reason, out.Params = why.Text, applyErrorCode(res.Err), why.Code, why.Params
 	}
 	return out
 }
