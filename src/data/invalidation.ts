@@ -13,8 +13,9 @@ export interface QueryScope {
   /**
    * The resources the query reads, as watch topics: a resource name
    * (`pods`, `deployments`) or `<resource>.<group>` for one of a group
-   * (`applications.argoproj.io`). Without topics a query re-runs on
-   * refreshData() and auto-refresh only.
+   * (`applications.argoproj.io`), or a KubeBench-internal topic
+   * (`kubebench:notes`). Without topics a query re-runs on refreshData()
+   * and auto-refresh only.
    */
   topics?: readonly string[]
   /** The one namespace the query reads; absent = all namespaces (or cluster-scoped). */

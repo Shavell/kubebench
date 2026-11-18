@@ -47,7 +47,7 @@ func (pr pluginRouter) Handle(method, path string, a plugin.Access, h plugin.Han
 	pr.s.register(method+" /api/plugins/"+pr.id+path, level, pr.p, func(w http.ResponseWriter, r *http.Request, c *call) {
 		h(w, r, &plugin.Context{
 			Runtime: c.rt, User: c.user, Role: c.role, Store: pr.s.store, KV: kv,
-			Audit: pr.s.auditFunc(c), SetAudit: c.setAudit,
+			Audit: pr.s.auditFunc(c), SetAudit: c.setAudit, Publish: pr.s.board.Publish,
 		})
 	})
 }

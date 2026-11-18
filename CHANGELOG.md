@@ -22,6 +22,9 @@ those commits.
   interface (90–130%), and Settings → Editor and Terminal and logs choose
   the font family and size of the code editors and of the terminal, exec
   and log views. They are kept in the browser for each user.
+- **Notes live updates**: other users' changes to shared notes, and your
+  own changes in another tab, appear at once instead of when the window
+  regains focus. Personal notes are announced to their owner only.
 
 ## [0.6.0] - 2026-11-18
 

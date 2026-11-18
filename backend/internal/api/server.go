@@ -17,6 +17,7 @@ import (
 	"kubebench/internal/store"
 	"kubebench/internal/svcproxy"
 	"kubebench/internal/updates"
+	"kubebench/internal/watch"
 )
 
 // BuildInfo identifies the running binary (§1).
@@ -46,6 +47,9 @@ type Server struct {
 	life *lifecycle
 	// grants are the service browser's open sessions (§7.14).
 	grants *svcproxy.Grants
+	// board carries the changes of KubeBench's own data to the live-update
+	// streams of every cluster (§7.10 internal topics).
+	board *watch.Board
 }
 
 // New wires every route. plugins are the built-in backend plugins to mount
@@ -66,6 +70,7 @@ func New(cfg *config.Config, st *store.Store, manager *kube.Manager, build Build
 		updates:      updates.New(updates.Options{URL: cfg.UpdateURL, Version: build.Version}),
 		life:         newLifecycle(),
 		grants:       svcproxy.NewGrants(time.Now),
+		board:        watch.NewBoard(),
 	}
 	slices.SortFunc(s.plugins, func(a, b plugin.Plugin) int {
 		return strings.Compare(a.Manifest().ID, b.Manifest().ID)

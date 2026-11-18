@@ -1307,6 +1307,16 @@ start lazily and stop when unused. Frontend: scoped invalidation
   or `<resource>.<group>` (`applications.argoproj.io`); 1–32 per stream,
   lower case, duplicates dropped (else `400 bad_request`). A topic is
   resolved through discovery to the preferred version.
+- **Internal topics** (v0.7) name KubeBench's own data:
+  `kubebench:<name>` (`kubebench:notes`, §7.13), the name like a plugin
+  id. They are `live` at once and never polled; their changes are
+  published by the code that stores the data, on a server-wide board
+  (`watch.Board`; plugins call `plugin.Context.Publish(topic, audience)`
+  after the change is stored), as `{topic, namespace: ""}`, to an
+  audience: the streams on one cluster (data all its users see) or one
+  user's streams on any cluster (personal data). A stream's cluster and
+  user are those it was opened for, and its access is re-checked at
+  every heartbeat like any stream.
 - **Events**: `event: status` `{topic, mode, reason?}` with `mode`
   `starting` (informer listing), `live` or `polling` (the cluster does not
   serve the resource, the credential may not list/watch it, the cluster's
@@ -1695,12 +1705,14 @@ contain anything read from it (they are user text).
   without `global`; the note is placed on the active cluster.
 - A note id under the other visibility's path is `404`.
 
-**Live updates**: the watch hub (§7.10) serves Kubernetes topics only
-(it resolves every topic through discovery), so notes do not publish
-through it. Note queries carry no topic; they re-run after the UI's own
-changes (`refreshData()`), on auto-refresh, and whenever the browser
-window regains focus or becomes visible, which is when another user's
-change can matter.
+**Live updates** (v0.7): every stored change (create, edit, pin,
+delete) publishes the internal topic `kubebench:notes` (§7.10): a shared
+note's to the streams on its cluster, a personal note's to its owner's
+streams only, whatever cluster they watch — another user never learns
+that a personal note changed. Note queries declare the topic
+(`scope: {topics: ['kubebench:notes']}`), so other users' changes appear
+within the debounce (500 ms); an editor without unsaved edits follows
+the newer version, one with edits keeps them (saving then meets `409`).
 
 **Frontend** (`src/plugins/notes`, backend plugin `notes`):
 

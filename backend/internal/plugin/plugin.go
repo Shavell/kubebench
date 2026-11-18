@@ -15,6 +15,7 @@ import (
 
 	"kubebench/internal/kube"
 	"kubebench/internal/store"
+	"kubebench/internal/watch"
 )
 
 // Access is the permission a plugin route requires (§3.2).
@@ -92,6 +93,12 @@ type Context struct {
 	// not audited it does nothing. Never pass secrets: request bodies are
 	// not recorded for a reason (§3.4).
 	SetAudit func(target, detail string)
+	// Publish tells the live-update streams (§7.10) that KubeBench data of
+	// an internal topic ("kubebench:<name>", watch.IsInternalTopic)
+	// changed, for the subscribers of audience only: the users of a
+	// cluster for data they all see, or one user for personal data. Call
+	// it after the change is stored. Nil in tests that do not set it.
+	Publish func(topic string, audience watch.Audience)
 }
 
 // KV is a plugin-scoped persistent key/value store.

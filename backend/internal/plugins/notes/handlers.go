@@ -9,6 +9,7 @@ import (
 
 	"kubebench/internal/plugin"
 	"kubebench/internal/store"
+	"kubebench/internal/watch"
 )
 
 // filter is what the caller may see: their own personal notes and the
@@ -191,6 +192,24 @@ func audit(c *plugin.Context, id int64, detail map[string]any) {
 	c.SetAudit("note/"+strconv.FormatInt(id, 10), d)
 }
 
+// Topic is the live-update topic of notes (§7.13): a change to a shared
+// note reaches the streams of its cluster's users, a change to a personal
+// note only its owner's streams.
+const Topic = "kubebench:notes"
+
+// publish announces a change to n on the live-update streams that may see it.
+func publish(c *plugin.Context, n *store.Note) {
+	if c.Publish == nil {
+		return
+	}
+	switch {
+	case n.Visibility == personal && n.OwnerID != nil:
+		c.Publish(Topic, watch.Audience{UserID: *n.OwnerID})
+	case n.Visibility == shared && n.ClusterID != nil:
+		c.Publish(Topic, watch.Audience{ClusterID: *n.ClusterID})
+	}
+}
+
 func objectDetail(n *store.Note) map[string]any {
 	o := n.Object
 	if o == nil {
@@ -251,6 +270,7 @@ func createNote(visibility string) plugin.HandlerFunc {
 			return
 		}
 		audit(c, id, objectDetail(&n))
+		publish(c, &n)
 		respond(w, c, id)
 	}
 }
@@ -287,6 +307,7 @@ func updateNote(visibility string) plugin.HandlerFunc {
 			writeErr(w, err)
 			return
 		}
+		publish(c, n)
 		respond(w, c, n.ID)
 	}
 }
@@ -314,6 +335,7 @@ func pinNote(visibility string) plugin.HandlerFunc {
 			writeErr(w, err)
 			return
 		}
+		publish(c, n)
 		respond(w, c, n.ID)
 	}
 }
@@ -337,6 +359,7 @@ func deleteNote(visibility string) plugin.HandlerFunc {
 			writeErr(w, err)
 			return
 		}
+		publish(c, n)
 		plugin.WriteJSON(w, map[string]any{"deleted": n.ID})
 	}
 }

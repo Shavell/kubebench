@@ -150,6 +150,12 @@ The contract:
 - **Audit**: write/exec/admin requests are audited automatically. Refine the
   row once the body is read with `c.SetAudit(target, detail)` (never
   secrets); add extra rows with `c.Audit(action, target, detail)`.
+- **Live updates of plugin data** (v0.7): after storing a change to
+  KubeBench-side data, call `c.Publish("kubebench:<name>", audience)` with
+  `watch.Audience{ClusterID: …}` (every user of that cluster may see it) or
+  `watch.Audience{UserID: …}` (personal data). The frontend queries that
+  read the data declare `scope: {topics: ['kubebench:<name>']}` and re-run
+  when the live-update stream reports it.
 - **Errors**: `plugin.WriteError(w, status, code, err)` with the codes of
   [api.md](api.md#errors), and `plugin.WriteK8sError(w, err)` for errors from
   the cluster.
