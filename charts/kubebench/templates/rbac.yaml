@@ -109,4 +109,23 @@ subjects:
   - kind: ServiceAccount
     name: {{ include "kubebench.serviceAccountName" . }}
     namespace: {{ .Release.Namespace }}
+{{- if and (include "kubebench.openshift" .) .Values.openshift.monitoring.clusterMonitoringView (ne $preset "cluster-admin") }}
+---
+# OpenShift monitoring's kube-rbac-proxy admits only this role (or more) to
+# the Thanos Querier that KubeBench reads metrics from.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ $name }}-monitoring
+  labels:
+    {{- include "kubebench.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-monitoring-view
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "kubebench.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}
 {{- end }}

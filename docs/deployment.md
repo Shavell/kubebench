@@ -148,12 +148,14 @@ unprivileged UID on the node; the pin becomes `restricted-v3`). Do not
 switch an existing release: the database on the volume is owned by the
 project UID, which the user namespace cannot write.
 
-**Monitoring.** Node and pod usage comes from `metrics.k8s.io`, which
-OpenShift's monitoring stack serves (`openshift-monitoring/metrics-server`)
-and the `cluster-admin` and `read-only` presets can read. KubeBench reaches
-a Prometheus through the API server's service proxy, which does not forward
-credentials, so OpenShift's `prometheus-k8s` and `thanos-querier` (port
-9091, behind `kube-rbac-proxy`) are not used as a history source.
+**Monitoring.** KubeBench reads metrics from the cluster monitoring's
+Thanos Querier ([OpenShift monitoring](#openshift-monitoring)), with
+OpenShift's own metrics-server (`metrics.k8s.io`) as the fallback. The
+chart binds the `cluster-monitoring-view` ClusterRole that Thanos'
+kube-rbac-proxy requires when the RBAC preset is not `cluster-admin`
+(`openshift.monitoring.clusterMonitoringView`), and its NetworkPolicy
+allows egress to the `thanos-querier` pods on port 9091
+(`openshift.monitoring`).
 
 ## Virtual machines
 
@@ -404,8 +406,11 @@ connects directly:
 The query carries the bearer token of the cluster's credential (the
 ServiceAccount token in a pod; a kubeconfig with client certificates
 only cannot be used). Thanos' kube-rbac-proxy admits it only with the
-`cluster-monitoring-view` ClusterRole. The `cluster-admin` preset has it;
-with `rbac.preset=read-only` (or a custom ClusterRole) bind it:
+`cluster-monitoring-view` ClusterRole. The `cluster-admin` preset has it,
+and in OpenShift mode the Helm chart binds it for the other presets
+(`openshift.monitoring.clusterMonitoringView`, on by default). For other
+installations (the plain manifests with a read-only ClusterRole, a
+kubeconfig ServiceAccount) bind it:
 
 ```yaml
 apiVersion: rbac.authorization.k8s.io/v1

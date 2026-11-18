@@ -109,7 +109,7 @@ clusters are enforced on top of it).
 | `rbac.preset` | ClusterRole | Use it for |
 |---|---|---|
 | `cluster-admin` (default) | the built-in `cluster-admin` | the full workbench: changes, shells, Helm, CRDs |
-| `read-only` | chart-defined: `get`/`list`/`watch` on every built-in API group except Secrets, plus `pods/log`, `services/proxy` `get` (Prometheus), `metrics.k8s.io`, and the `argoproj.io`, `snapshot.storage.k8s.io`, `gateway.networking.k8s.io` CRD groups; on OpenShift also the `*.openshift.io` groups of [OpenShift](#openshift) | browsing and troubleshooting; no exec, no changes, no Secrets, no Helm releases (they are Secrets) |
+| `read-only` | chart-defined: `get`/`list`/`watch` on every built-in API group except Secrets, plus `pods/log`, `services/proxy` `get` (Prometheus), `metrics.k8s.io`, and the `argoproj.io`, `snapshot.storage.k8s.io`, `gateway.networking.k8s.io` CRD groups; on OpenShift also the `*.openshift.io` groups and `cluster-monitoring-view` of [OpenShift](#openshift) | browsing and troubleshooting; no exec, no changes, no Secrets, no Helm releases (they are Secrets) |
 | `custom` | chart-defined from `rbac.rules` | anything in between |
 
 Make more CRD groups readable with the read-only preset through
@@ -220,8 +220,15 @@ In OpenShift mode the chart
   streams except their `secrets` and `layers` subresources; no preset
   grants `use` on an SCC. Routes can embed a TLS key (`spec.tls.key`) and
   are readable like the other objects;
+- binds the `cluster-monitoring-view` ClusterRole to the ServiceAccount
+  when the preset is not `cluster-admin`, so KubeBench can read metrics
+  from the cluster monitoring's Thanos Querier
+  (`openshift.monitoring.clusterMonitoringView`; `false` leaves metrics to
+  metrics-server);
 - points the NetworkPolicy's DNS rule at `openshift-dns` on ports 53 and
-  5353 (`openshift.dns`, replacing `networkPolicy.dns`).
+  5353 (`openshift.dns`, replacing `networkPolicy.dns`) and allows egress
+  to the `thanos-querier` pods in `openshift-monitoring` on port 9091
+  (`openshift.monitoring`).
 
 Offline renders (`helm template`, Argo CD, Flux) cannot detect OpenShift:
 set `openshift.enabled=true`. `openshift.enabled=false` renders the plain
@@ -387,6 +394,8 @@ kubectl -n kubebench delete pvc/kubebench-data secret/kubebench-auth
 | `openshift.enabled` | `auto` | OpenShift mode: `auto` (the Route and SCC APIs exist at install time), `true` or `false` ([OpenShift](#openshift)). |
 | `openshift.requiredSCC` | `""` | SCC the pod is pinned to; empty = `restricted-v2`, or `restricted-v3` with `hostUsers: false`. |
 | `openshift.dns` | `openshift-dns`, `dns-default` pods, ports `[53, 5353]` | DNS rule of the NetworkPolicy in OpenShift mode (`namespaceSelector`, `podSelector`, `ports`). |
+| `openshift.monitoring.clusterMonitoringView` | `true` | Bind `cluster-monitoring-view` (needed to read OpenShift monitoring) when `rbac.preset` is not `cluster-admin`. |
+| `openshift.monitoring` | `openshift-monitoring`, `thanos-query` pods, ports `[9091]` | Thanos Querier egress rule of the NetworkPolicy in OpenShift mode (`namespaceSelector`, `podSelector`, `ports`). |
 | `route.enabled` | `false` | Create a Route (OpenShift mode only). |
 | `route.host` | `""` | Route host; empty = `<fullname>-<namespace>.<apps domain>`. |
 | `route.path` | `""` | Path prefix (not with passthrough). |

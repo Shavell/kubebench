@@ -361,8 +361,8 @@ hostUsers: null
 # OpenShift support. In OpenShift mode the chart leaves runAsUser, runAsGroup
 # and fsGroup out of the security contexts so that the SCC assigns them from
 # the project's ranges, pins the pod to a restricted SCC, can render a Route,
-# lets the read-only preset read the OpenShift API groups, and points the
-# NetworkPolicy's DNS rule at openshift-dns.
+# lets the read-only preset read the OpenShift API groups and the cluster
+# monitoring, and points the NetworkPolicy's DNS rule at openshift-dns.
 openshift:
   # auto: when the cluster serves route.openshift.io/v1 and
   # security.openshift.io/v1 (helm install/upgrade; an offline helm template
@@ -384,3 +384,18 @@ openshift:
       matchLabels:
         dns.operator.openshift.io/daemonset-dns: default
     ports: [53, 5353]
+  # OpenShift cluster monitoring, which KubeBench prefers to metrics-server
+  # for charts and history (Thanos Querier on port 9091, behind
+  # kube-rbac-proxy). clusterMonitoringView binds the cluster-monitoring-view
+  # ClusterRole to the ServiceAccount when the preset is not cluster-admin,
+  # since kube-rbac-proxy admits nothing less; false: metrics come from
+  # metrics-server only. The NetworkPolicy allows egress to the pods below.
+  monitoring:
+    clusterMonitoringView: true
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: openshift-monitoring
+    podSelector:
+      matchLabels:
+        app.kubernetes.io/name: thanos-query
+    ports: [9091]

@@ -85,6 +85,21 @@ spec:
             {{- toYaml $dns.namespaceSelector | nindent 12 }}
           podSelector:
             {{- toYaml $dns.podSelector | nindent 12 }}
+    {{- if include "kubebench.openshift" . }}
+    {{- with .Values.openshift.monitoring }}
+    # OpenShift monitoring (Thanos Querier)
+    - ports:
+        {{- range uniq .ports }}
+        - port: {{ . }}
+          protocol: TCP
+        {{- end }}
+      to:
+        - namespaceSelector:
+            {{- toYaml .namespaceSelector | nindent 12 }}
+          podSelector:
+            {{- toYaml .podSelector | nindent 12 }}
+    {{- end }}
+    {{- end }}
     {{- with $np.extraEgressCIDRs }}
     - to:
         {{- range . }}

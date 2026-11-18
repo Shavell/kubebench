@@ -32,8 +32,9 @@ those commits.
   grants. `route.enabled` adds a Route (edge, reencrypt with a service CA
   certificate, or passthrough), the `read-only` preset reads the OpenShift
   API groups (Routes, Projects, DeploymentConfigs, Builds, ImageStreams,
-  SCCs; no SCC `use`), and the NetworkPolicy reaches OpenShift's DNS on
-  port 5353. `hostUsers: false` runs the pod in a user namespace
+  SCCs; no SCC `use`) and gets `cluster-monitoring-view` for OpenShift
+  monitoring, and the NetworkPolicy reaches OpenShift's DNS on port 5353
+  and the Thanos Querier on port 9091. `hostUsers: false` runs the pod in a user namespace
   (`restricted-v3`). Plain manifests for OpenShift with a Route ship as
   `kubebench-openshift.yaml`; see the OpenShift section in
   docs/deployment.md.

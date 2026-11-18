@@ -355,6 +355,19 @@
             "podSelector": { "type": "object" },
             "ports": { "$ref": "#/definitions/portList" }
           }
+        },
+        "monitoring": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "clusterMonitoringView": {
+              "type": "boolean",
+              "description": "Bind the cluster-monitoring-view ClusterRole when the RBAC preset is not cluster-admin."
+            },
+            "namespaceSelector": { "type": "object" },
+            "podSelector": { "type": "object" },
+            "ports": { "$ref": "#/definitions/portList" }
+          }
         }
       }
     }
