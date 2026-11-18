@@ -45,7 +45,8 @@ func parseWatchTopics(raw string) ([]string, error) {
 // Server-Sent Events (§7.10): "event: status" with a topic's mode (live,
 // starting or polling with the reason) whenever it changes, the first
 // ones at once; "event: change" with {topic, namespace}, debounced;
-// heartbeat comments; and "event: end" with the reason when the server
+// heartbeat comments; and "event: end" with the reason (a reason.Message)
+// when the server
 // ends the stream (the cluster connection was rebuilt, or the caller's
 // access changed), after which clients may reconnect.
 func (s *Server) handleWatch(w http.ResponseWriter, r *http.Request, c *call) {
@@ -109,23 +110,20 @@ func streamChanges(ctx context.Context, sse *sseWriter, sub *watch.Subscription,
 	// debounced fires once the changes collected since the first pending
 	// one are due; nil while none are pending.
 	var debounced <-chan time.Time
-	end := func(reason string) {
-		_ = sse.event("end", reason)
-		_ = sse.flush()
-	}
+	end := func(why error) { _ = sse.explain("end", why) }
 	for {
 		select {
 		case <-ctx.Done():
 			if shuttingDown(ctx) {
-				end(errShuttingDown.Error())
+				end(errShuttingDown)
 			}
 			return
 		case <-sub.Done():
-			end("the cluster connection was rebuilt")
+			end(reason.New(reasonWatchRebuilt, nil))
 			return
 		case <-heartbeat.C:
 			if err := check(); err != nil {
-				end(endedMessage(err))
+				end(accessEnded(err))
 				return
 			}
 			if sse.comment("ping") != nil || sse.flush() != nil {

@@ -1,7 +1,9 @@
 import { i18n, registerTranslations } from '@/i18n'
 import { localeBundles } from '@/i18n/bundles'
 import type { ReasonParams } from '@/data/types'
-import { localizeReason, type ReasonTranslator } from './localize'
+import { localizeReason, type ReasonMessage, type ReasonTranslator } from './localize'
+
+export { isReasonMessage, type ReasonMessage } from './localize'
 
 /**
  * Translations of the backend's reason codes (design §3.3): every
@@ -43,3 +45,7 @@ export function englishReason(code: string, params?: ReasonParams): string {
   return localizeReason(translator('en'), code, params, code)
 }
 
+/** A ReasonMessage (e.g. why the server ended a stream) in the UI language. */
+export function reasonMessageText(message: ReasonMessage): string {
+  return reasonText(message.reason, message.params, message.error)
+}

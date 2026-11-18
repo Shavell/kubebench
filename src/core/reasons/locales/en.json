@@ -372,11 +372,13 @@
     "volume_reserved": "{{field}}: PersistentVolume \"{{name}}\" is reserved for {{claim}}"
   },
   "streams": {
+    "closed": "the session was closed: {{cause}}",
     "too_many_logs": "you have {{max}} log streams open, the most at once; close one first",
     "too_many_terminals": "you have {{max}} terminals open, the most at once; close one first",
     "too_many_watches": "you have {{max}} live-update streams open, the most at once; close one first"
   },
   "terminal": {
+    "idle": "the session was closed after {{duration}} without input",
     "invalid_shell": "command must be one of the shells {{shells}}",
     "websocket_required": "this endpoint needs a WebSocket connection"
   },
@@ -409,6 +411,7 @@
     "cannot_resolve": "cannot resolve {{topic}}: {{detail}}",
     "cannot_watch": "{{resource}} cannot be watched: {{detail}}",
     "closed": "the cluster connection was closed",
+    "connection_rebuilt": "the cluster connection was rebuilt",
     "denied": "the cluster credential may not list and watch {{resource}}",
     "invalid_topic": "invalid topic \"{{topic}}\": give a resource like pods or applications.argoproj.io",
     "not_served": "the cluster does not serve {{topic}}",

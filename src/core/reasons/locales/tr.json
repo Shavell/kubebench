@@ -372,11 +372,13 @@
     "volume_reserved": "{{field}}: \"{{name}}\" PersistentVolume'u {{claim}} için ayrılmış"
   },
   "streams": {
+    "closed": "Oturum kapatıldı: {{cause}}",
     "too_many_logs": "{{max}} log akışınız açık, aynı anda açılabilecek en fazla sayı bu; önce birini kapatın",
     "too_many_terminals": "{{max}} terminaliniz açık, aynı anda açılabilecek en fazla sayı bu; önce birini kapatın",
     "too_many_watches": "{{max}} canlı güncelleme akışınız açık, aynı anda açılabilecek en fazla sayı bu; önce birini kapatın"
   },
   "terminal": {
+    "idle": "{{duration}} boyunca giriş yapılmadığı için oturum kapatıldı",
     "invalid_shell": "command şu kabuklardan biri olmalı: {{shells}}",
     "websocket_required": "Bu uç nokta bir WebSocket bağlantısı gerektirir"
   },
@@ -409,6 +411,7 @@
     "cannot_resolve": "{{topic}} çözümlenemiyor: {{detail}}",
     "cannot_watch": "{{resource}} izlenemiyor: {{detail}}",
     "closed": "Cluster bağlantısı kapandı",
+    "connection_rebuilt": "Cluster bağlantısı yeniden kuruldu",
     "denied": "Cluster kimlik bilgisi {{resource}} kaynağını listeleyip izleyemiyor",
     "invalid_topic": "Geçersiz konu \"{{topic}}\": pods veya applications.argoproj.io gibi bir kaynak belirtin",
     "not_served": "Cluster {{topic}} kaynağını sunmuyor",

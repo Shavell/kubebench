@@ -5,6 +5,7 @@ import { localizeReason, reasonParamText, type ReasonTranslator } from './locali
 const strings: Record<string, string> = {
   'cluster.read_only': '"{{cluster}}" cluster\'ı salt okunur',
   'field.range': '{{field}} {{min}} ile {{max}} arasında olmalı',
+  'streams.closed': 'Oturum kapatıldı: {{cause}}',
 }
 
 const translator: ReasonTranslator = {
@@ -32,4 +33,17 @@ test('unknown and missing codes fall back to the English message', () => {
 test('parameter values become text', () => {
   assert.deepEqual(reasonParamText({ a: 'x', b: 3, c: true, d: null }), { a: 'x', b: '3', c: 'true', d: 'null' })
   assert.deepEqual(reasonParamText(undefined), {})
+})
+
+test('a nested reason is translated in place, an unknown one shows its English text', () => {
+  const cause = { error: 'cluster "prod" is read-only', reason: 'cluster.read_only', params: { cluster: 'prod' } }
+  assert.equal(
+    localizeReason(translator, 'streams.closed', { cause }, 'the session was closed: …'),
+    'Oturum kapatıldı: "prod" cluster\'ı salt okunur',
+  )
+  assert.equal(
+    localizeReason(translator, 'streams.closed', { cause: { error: 'pods is forbidden' } }, 'x'),
+    'Oturum kapatıldı: pods is forbidden',
+  )
+  assert.deepEqual(reasonParamText({ cause }), { cause: 'cluster "prod" is read-only' })
 })

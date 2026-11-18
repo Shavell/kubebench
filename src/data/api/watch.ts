@@ -2,6 +2,7 @@ import { ApiError, apiRefusal, apiUrl } from '../apiClient'
 import type { LiveProvider } from '../providers'
 import type { WatchHandlers, WatchStream } from '../streams'
 import type { WatchChange, WatchTopicStatus } from '../types'
+import { streamReasonText } from './streamReason'
 
 /**
  * Follows GET /api/watch with an EventSource. Like the log stream, the
@@ -32,7 +33,7 @@ function watch(topics: readonly string[], handlers: WatchHandlers): WatchStream 
   source.addEventListener('end', (event) => {
     if (finished) return
     finish()
-    handlers.onEnd(String(event.data))
+    handlers.onEnd(streamReasonText(String(event.data)))
   })
   source.addEventListener('error', () => {
     if (finished) return

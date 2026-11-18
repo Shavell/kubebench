@@ -196,7 +196,12 @@ objects explain themselves the same way: plugin `Status`
 (`reasonCode`/`reasonParams`, set by `plugin.Unavailable`), watch topic
 statuses, `/api/info` (`clusterErrorReason`/`clusterErrorParams`), the
 update status (`errorReason`/`errorParams`) and the security report
-(`skipped[].reasonCode`, `warningReasons`).
+(`skipped[].reasonCode`, `warningReasons`). Streams end with a reason
+message `{"error", "reason"?, "params"?}` (`reason.Message`: log stream
+`event: error`, watch `event: end`, terminal error frames with
+`reason`/`params` next to `message`, §7.1, §7.10); a message can be a
+parameter of another reason (`{{cause}}` of `streams.closed`), which the UI
+translates in place.
 Codes used across the API: `unauthenticated`, `session_expired`,
 `forbidden`, `forbidden_role`, `cluster_read_only`, `admin_required`,
 `no_cluster`, `not_found`, `bad_request`, `conflict`, `rate_limited`,
@@ -744,15 +749,16 @@ and `new-resource` with `{namespace?, kind?}` (see 7.2);
   `exec.session` at start) — WebSocket. Client→server text frames
   `{"type":"input","data":"…"}` / `{"type":"resize","cols":N,"rows":N}`;
   server→client **binary** frames = terminal output, text frames
-  `{"type":"exit","code":N}` / `{"type":"error","message":"…"}`.
+  `{"type":"exit","code":N}` / `{"type":"error","message":"…"}` (plus
+  `reason`/`params`, §3.3).
   TTY + stdin; default command tries `bash` then `sh`. Uses client-go
   `remotecommand` (WebSocket executor with SPDY fallback) and a
   `TerminalSizeQueue`. Origin checked; 30 s ping; idle timeout 30 min.
 - `GET /api/logs/stream?ns=&pod=&container=&tail=&previous=&timestamps=&sinceSeconds=`
   (read) — Server-Sent Events: first `event: pods` with
   `{"pods":["<pod>/<container>"],"total":N}` (followed containers, matching
-  pods), then `data:` one log line per event, `event: error`, `event: end`,
-  `: ping` every 15 s. Also `?selector=<labelSelector>` (≤10 pods, lines
+  pods), then `data:` one log line per event, `event: error` (a reason
+  message, §3.3), `event: end`, `: ping` every 15 s. Also `?selector=<labelSelector>` (≤10 pods, lines
   prefixed `[pod/container]`). Failures before the stream starts are JSON
   errors (§3.3).
 - Both are authorized when they start and checked again at every ping
@@ -760,8 +766,9 @@ and `new-resource` with `{namespace?, kind?}` (see 7.2);
   change, user deleted), a password change is due, the cluster is removed,
   the caller's assignment is gone or, for a terminal, the role or the
   cluster's read-only flag no longer allows exec, the terminal ends with
-  `{"type":"error","message":"the session was closed: …"}` and the log
-  stream with `event: error` carrying the same text. Switching the active
+  `{"type":"error","message":"the session was closed: …"}` (reason
+  `streams.closed` with the refusal as `cause`) and the log stream with
+  `event: error` carrying the same reason message. Switching the active
   cluster does not end them. A user may have at most 10 terminals and 20
   log streams open; more are refused with `429 rate_limited` before the
   upgrade or stream starts. A log stream whose client stops reading ends
@@ -769,9 +776,9 @@ and `new-resource` with `{namespace?, kind?}` (see 7.2);
 - When the server shuts down (SIGINT/SIGTERM) it ends them before the
   HTTP server's graceful shutdown (10 s): every terminal is hung up like
   an idle one (Ctrl+C, Ctrl+D, then cut after 5 s) and ends with
-  `{"type":"error","message":"the server is shutting down"}`, log streams
-  end with `event: error` and watch streams (§7.10) with `event: end`,
-  both carrying that text. The server waits for the terminals within the
+  `{"type":"error","message":"the server is shutting down"}` (reason
+  `api.shutting_down`), log streams end with `event: error` and watch
+  streams (§7.10) with `event: end`, both carrying that reason message. The server waits for the terminals within the
   grace period; new terminals are refused with `503`.
 - UI: xterm.js terminal (`@xterm/xterm` + fit addon), multiple sessions as
   sub-tabs in the bottom Terminal panel, container picker, reconnect;
@@ -1323,7 +1330,8 @@ start lazily and stop when unused. Frontend: scoped invalidation
   `reason` says which) — the first
   ones at once, then on every change; `event: change` `{topic, namespace}`
   collected for 500 ms (`namespace` `""` = cluster-scoped, or anywhere
-  after more than 256 pending changes); `event: end` with the reason when
+  after more than 256 pending changes); `event: end` with the reason (a
+  reason message, §3.3) when
   the server ends the stream: the cluster's runtime was rebuilt or removed,
   the caller's session/assignment ended (checked every heartbeat, like
   log streams) or the server shuts down (§7.1). Clients may reconnect after `end`.

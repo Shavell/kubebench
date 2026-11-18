@@ -129,5 +129,7 @@ func (l *streamLimiter) acquire(user int64, kind streamKind) (release func(), er
 	}, nil
 }
 
-// endedMessage is what a stream tells its client when stillAllowed ended it.
-func endedMessage(err error) string { return "the session was closed: " + err.Error() }
+// accessEnded is why a stream ends when stillAllowed refused it with err.
+func accessEnded(err error) error {
+	return reason.Wrap(err, reasonStreamClosed, reason.Params{"cause": reason.MessageOf(err)})
+}

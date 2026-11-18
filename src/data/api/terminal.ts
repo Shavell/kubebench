@@ -1,3 +1,5 @@
+import { reasonMessageText } from '@/core/reasons'
+import type { ReasonParams } from '../types'
 import { apiUrl } from '../apiClient'
 import type { TerminalConnection, TerminalHandlers, TerminalTarget } from '../streams'
 
@@ -7,7 +9,10 @@ import type { TerminalConnection, TerminalHandlers, TerminalTarget } from '../st
  */
 const INPUT_CHUNK = 8192
 
-type ServerMessage = { type: 'exit'; code: number } | { type: 'error'; message: string }
+/** An error frame explains KubeBench's own reasons with a reason code and parameters (§3.3). */
+type ServerMessage =
+  | { type: 'exit'; code: number }
+  | { type: 'error'; message: string; reason?: string; params?: ReasonParams }
 
 const isHighSurrogate = (code: number) => code >= 0xd800 && code <= 0xdbff
 
@@ -50,7 +55,9 @@ export function openTerminal(target: TerminalTarget, handlers: TerminalHandlers)
       return // not part of the protocol
     }
     if (message.type === 'exit') handlers.onExit(Number(message.code))
-    else if (message.type === 'error') handlers.onError(String(message.message))
+    else if (message.type === 'error') {
+      handlers.onError(reasonMessageText({ error: String(message.message), reason: message.reason, params: message.params }))
+    }
   }
   socket.onclose = () => {
     if (!cancelled) handlers.onClose({ opened })

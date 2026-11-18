@@ -46,7 +46,7 @@ func TestTerminalEndsWhenAccessIsRevoked(t *testing.T) {
 				t.Fatal(err)
 			}
 			msg := readEnd(t, conn)
-			if msg["type"] != "error" || !strings.Contains(fmt.Sprint(msg["message"]), "the session was closed") {
+			if msg["type"] != "error" || !strings.Contains(fmt.Sprint(msg["message"]), "the session was closed") || msg["reason"] != "streams.closed" {
 				t.Fatalf("final message = %v, want the session closed", msg)
 			}
 			select {
@@ -117,7 +117,10 @@ func TestStreamLogsEndsWhenCheckFails(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("the stream outlived the caller's access")
 	}
-	if !strings.HasSuffix(w.String(), "event: error\ndata: the session was closed: you no longer have access to cluster \"test\"\n\n") {
+	// The reason names the refusal as its cause, for the UI to translate.
+	want := `{"error":"the session was closed: you no longer have access to cluster \"test\"","reason":"streams.closed",` +
+		`"params":{"cause":{"error":"you no longer have access to cluster \"test\"","reason":"cluster.access_lost","params":{"cluster":"test"}}}}`
+	if !strings.HasSuffix(w.String(), "event: error\ndata: "+want+"\n\n") {
 		t.Fatalf("stream = %q, want it to end with the reason", w.String())
 	}
 	if _, err := logW.Write([]byte("more\n")); err == nil {

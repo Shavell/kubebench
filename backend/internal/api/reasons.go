@@ -110,6 +110,9 @@ var (
 	reasonTooManyLogs      = reason.Define("streams.too_many_logs", "you have {{max}} log streams open, the most at once; close one first")
 	reasonTooManyTerminals = reason.Define("streams.too_many_terminals", "you have {{max}} terminals open, the most at once; close one first")
 	reasonTooManyWatches   = reason.Define("streams.too_many_watches", "you have {{max}} live-update streams open, the most at once; close one first")
+	reasonStreamClosed     = reason.Define("streams.closed", "the session was closed: {{cause}}")
+	reasonTerminalIdle     = reason.Define("terminal.idle", "the session was closed after {{duration}} without input")
+	reasonWatchRebuilt     = reason.Define("watch.connection_rebuilt", "the cluster connection was rebuilt")
 	reasonTopic            = reason.Define("watch.invalid_topic", "invalid topic \"{{topic}}\": give a resource like pods or applications.argoproj.io")
 	reasonTooManyTopics    = reason.Define("watch.too_many_topics", "at most {{max}} topics per stream")
 

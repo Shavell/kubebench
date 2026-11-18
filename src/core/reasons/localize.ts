@@ -11,11 +11,38 @@ export interface ReasonTranslator {
   translate: (code: string, params: Record<string, string>) => string
 }
 
-/** Parameter values as text: numbers and strings as they are, anything else as JSON. */
-export function reasonParamText(params: Record<string, unknown> | null | undefined): Record<string, string> {
+/**
+ * An explanation on its own (the server's reason.Message): the English text
+ * with the reason code and parameters, if it has them. Streams end with one,
+ * and it can be the parameter of another reason (`{{cause}}`).
+ */
+export interface ReasonMessage {
+  error: string
+  reason?: string
+  params?: Record<string, unknown>
+}
+
+/** Whether value is a ReasonMessage. */
+export function isReasonMessage(value: unknown): value is ReasonMessage {
+  return typeof value === 'object' && value !== null && typeof (value as { error?: unknown }).error === 'string'
+}
+
+/**
+ * Parameter values as text: numbers and strings as they are, a nested
+ * ReasonMessage translated with `translator` when given (else its English
+ * text), anything else as JSON.
+ */
+export function reasonParamText(
+  params: Record<string, unknown> | null | undefined,
+  translator?: ReasonTranslator,
+): Record<string, string> {
   const out: Record<string, string> = {}
   for (const [name, value] of Object.entries(params ?? {})) {
-    out[name] = typeof value === 'string' ? value : typeof value === 'number' ? String(value) : JSON.stringify(value)
+    if (typeof value === 'string') out[name] = value
+    else if (typeof value === 'number') out[name] = String(value)
+    else if (isReasonMessage(value)) {
+      out[name] = translator ? localizeReason(translator, value.reason, value.params, value.error) : value.error
+    } else out[name] = JSON.stringify(value)
   }
   return out
 }
@@ -32,5 +59,5 @@ export function localizeReason(
   fallback: string,
 ): string {
   if (!code || !translator.has(code)) return fallback
-  return translator.translate(code, reasonParamText(params))
+  return translator.translate(code, reasonParamText(params, translator))
 }

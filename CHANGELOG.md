@@ -21,8 +21,9 @@ those commits.
 - **Server messages in your language**: errors and explanations from the
   server (a refused change on a read-only cluster or for a viewer, a missing
   Prometheus, Argo CD not installed, validation errors, why live updates
-  fall back to polling, why the update check failed) are shown in Turkish
-  and German too. The API adds a stable `reason` code and `params` to such
+  fall back to polling, why the update check failed, why a terminal, log
+  stream or live-update stream was closed) are shown in Turkish and German
+  too. The API adds a stable `reason` code and `params` to such
   errors; messages of the Kubernetes API itself stay as they are.
 
 ### Security

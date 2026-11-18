@@ -372,11 +372,13 @@
     "volume_reserved": "{{field}}: Das PersistentVolume \"{{name}}\" ist für {{claim}} reserviert"
   },
   "streams": {
+    "closed": "Die Sitzung wurde beendet: {{cause}}",
     "too_many_logs": "Sie haben {{max}} Log-Streams offen, das Maximum; schließen Sie zuerst einen",
     "too_many_terminals": "Sie haben {{max}} Terminals offen, das Maximum; schließen Sie zuerst eines",
     "too_many_watches": "Sie haben {{max}} Live-Update-Streams offen, das Maximum; schließen Sie zuerst einen"
   },
   "terminal": {
+    "idle": "Die Sitzung wurde nach {{duration}} ohne Eingabe beendet",
     "invalid_shell": "command muss eine dieser Shells sein: {{shells}}",
     "websocket_required": "Dieser Endpunkt braucht eine WebSocket-Verbindung"
   },
@@ -409,6 +411,7 @@
     "cannot_resolve": "{{topic}} kann nicht aufgelöst werden: {{detail}}",
     "cannot_watch": "{{resource}} können nicht beobachtet werden: {{detail}}",
     "closed": "Die Verbindung zum Cluster wurde geschlossen",
+    "connection_rebuilt": "Die Verbindung zum Cluster wurde neu aufgebaut",
     "denied": "Die Anmeldedaten des Clusters dürfen {{resource}} nicht auflisten und beobachten",
     "invalid_topic": "Ungültiges Thema \"{{topic}}\": nennen Sie eine Ressource wie pods oder applications.argoproj.io",
     "not_served": "Der Cluster stellt {{topic}} nicht bereit",

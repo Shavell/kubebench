@@ -7,11 +7,12 @@ import (
 	"sync"
 
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 )
 
 // errShuttingDown is why the server ends a stream or terminal itself when
-// it stops; clients see its text.
-var errShuttingDown = errors.New("the server is shutting down")
+// it stops; clients see its reason.
+var errShuttingDown = reason.New(reasonShuttingDown, nil)
 
 // lifecycle ends the long-lived connections when the server stops.
 // http.Server.Shutdown waits for SSE handlers, which never return on their

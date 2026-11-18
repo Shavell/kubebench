@@ -446,7 +446,7 @@ func TestTerminalIdleTimeoutAndPing(t *testing.T) {
 	})
 	started := time.Now()
 	msg := readEnd(t, conn)
-	if msg["type"] != "error" || !strings.Contains(fmt.Sprint(msg["message"]), "without input") {
+	if msg["type"] != "error" || !strings.Contains(fmt.Sprint(msg["message"]), "without input") || msg["reason"] != "terminal.idle" {
 		t.Fatalf("final message = %v, want the idle timeout", msg)
 	}
 	if elapsed := time.Since(started); elapsed < 450*time.Millisecond {

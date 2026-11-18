@@ -232,8 +232,7 @@ func streamLogs(ctx context.Context, sse *sseWriter, feeds []logFeed, matched in
 		if !shuttingDown(ctx) {
 			return false
 		}
-		_ = sse.event("error", errShuttingDown.Error())
-		_ = sse.flush()
+		_ = sse.explain("error", errShuttingDown)
 		return true
 	}
 	ticker := time.NewTicker(heartbeat)
@@ -246,8 +245,7 @@ func streamLogs(ctx context.Context, sse *sseWriter, feeds []logFeed, matched in
 		case <-ticker.C:
 			if check != nil {
 				if err := check(); err != nil {
-					_ = sse.event("error", endedMessage(err))
-					_ = sse.flush()
+					_ = sse.explain("error", accessEnded(err))
 					return
 				}
 			}
@@ -288,7 +286,7 @@ func (f logFeed) run(ctx context.Context, events chan<- logEvent) {
 	prefix := f.prefix()
 	body, err := f.open(ctx)
 	if err != nil {
-		send(logEvent{name: "error", data: prefix + err.Error()})
+		send(feedError(prefix, err))
 		return
 	}
 	defer body.Close()
@@ -300,8 +298,16 @@ func (f logFeed) run(ctx context.Context, events chan<- logEvent) {
 		return send(logEvent{data: prefix + line})
 	})
 	if err != nil && ctx.Err() == nil {
-		send(logEvent{name: "error", data: prefix + err.Error()})
+		send(feedError(prefix, err))
 	}
+}
+
+// feedError is the "error" event of a log that failed: its message (from
+// the cluster, untranslated) as a reason.Message, like the stream's own
+// errors.
+func feedError(prefix string, err error) logEvent {
+	data, _ := json.Marshal(reason.Message{Text: prefix + err.Error()})
+	return logEvent{name: "error", data: string(data)}
 }
 
 // readLines calls emit with every line of r, without its line break and

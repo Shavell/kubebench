@@ -85,8 +85,14 @@ of `/api/watch`) and the security report's `skipped`;
 `clusterErrorReason`/`clusterErrorParams` in `/api/info`;
 `errorReason`/`errorParams` in the update status; `warningReasons`
 (`[{"reason","params"}]`, index by index) next to the security report's
-`warnings`. `backend/internal/api/reasons_test.go` fails when a code the
-server defines lacks a string in a UI language.
+`warnings`. Streams end with a **reason message**
+`{"error": "<message>", "reason"?: "<code>", "params"?: {…}}`: the data of a
+log stream's `event: error` and a watch stream's `event: end`, and
+`reason`/`params` next to `message` in a terminal's error frame. A message
+can be a parameter itself, translated in place, e.g. `streams.closed`
+("the session was closed: {{cause}}") with the refusal that ended the
+stream as `cause`. `backend/internal/api/reasons_test.go` fails when a code
+the server defines lacks a string in a UI language.
 
 Codes:
 
@@ -290,16 +296,17 @@ and filesystem series need Prometheus.
 - **Terminal frames.** Client → server text frames
   `{"type":"input","data":"…"}` and `{"type":"resize","cols":N,"rows":N}`;
   server → client binary frames carry terminal output, text frames
-  `{"type":"exit","code":N}` and `{"type":"error","message":"…"}`. Without
+  `{"type":"exit","code":N}` and `{"type":"error","message":"…","reason"?,"params"?}`. Without
   `command` the server runs `bash`, falling back to `sh`; `command` may only
   name an interactive shell (`sh`, `bash`, `ash`, `dash`, `zsh` and their
   usual paths). 30 s ping, 30 min idle timeout.
 - **Log stream events.** `event: pods` `{"pods":["<pod>/<container>"],"total":N}`
   first, then one `data:` line per log line (prefixed `[pod/container]` with
-  a selector), `event: error`, `event: end`, and `: ping` every 15 s.
+  a selector), `event: error` with a reason message (a failing log, or why
+  the server ended the stream), `event: end`, and `: ping` every 15 s.
 - **Watch events.** `event: status` `{"topic","mode":"starting"|"live"|"polling","reason"?}`,
   `event: change` `{"topic","namespace"}` (batched for 500 ms), `event: end`
-  with the reason; a comment heartbeat every 25 s.
+  with a reason message; a comment heartbeat every 25 s.
 - **Limits.** Per user: 10 terminals, 20 log streams and 16 watch streams
   (`429 rate_limited` beyond that), 32 watched resource types. Streams are
   re-authorized at every heartbeat and end when the session, the assignment

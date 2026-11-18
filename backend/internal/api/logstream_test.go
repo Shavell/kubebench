@@ -182,7 +182,7 @@ func TestLogStreamErrorsBeforeTheStream(t *testing.T) {
 	// Selector streams report a failing pod inside the stream.
 	rec = e.do(http.MethodGet, "/api/logs/stream?ns=default&selector=app%3Dapi&previous=true", "alice", nil)
 	got := events(rec.Body.String())
-	if len(got) != 3 || !strings.HasPrefix(got[1], "event: error\ndata: [api-1/app] ") || !strings.Contains(got[1], "previous terminated container") {
+	if len(got) != 3 || !strings.HasPrefix(got[1], "event: error\ndata: {\"error\":\"[api-1/app] ") || !strings.Contains(got[1], "previous terminated container") {
 		t.Fatalf("events = %q", got)
 	}
 }
@@ -291,12 +291,12 @@ func TestStreamLogsReportsFailingLogs(t *testing.T) {
 
 	want := []string{
 		"event: pods\ndata: {\"pods\":[\"a/app\"],\"total\":1}",
-		"event: error\ndata: [a/app] container \"app\" in pod \"a\" is waiting to start: ContainerCreating",
+		`event: error` + "\n" + `data: {"error":"[a/app] container \"app\" in pod \"a\" is waiting to start: ContainerCreating"}`,
 		"event: end\ndata: ",
 		"event: pods\ndata: {\"pods\":[\"b/app\"],\"total\":1}",
 		"data: [b/app] one",
 		"data: [b/app] two",
-		"event: error\ndata: [b/app] unexpected EOF",
+		"event: error\ndata: {\"error\":\"[b/app] unexpected EOF\"}",
 		"event: end\ndata: ",
 	}
 	if got := events(w.String()); !slices.Equal(got, want) {
