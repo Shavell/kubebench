@@ -149,6 +149,11 @@ need `make chart-lint`, `make manifests` (commit its output) and `make lint`
 (shellcheck, actionlint). UI changes should be tried in the browser, in
 demo mode and against a cluster.
 
+Pull requests run the same checks in GitHub Actions (CI, CodeQL, Trivy,
+dependency review; see [docs/releasing.md](docs/releasing.md#continuous-integration)),
+and `main` accepts a merge only when they pass. Workflows pin every action
+by commit SHA with the version as a comment; Dependabot keeps both current.
+
 ## Commits
 
 Use [Conventional Commits](https://www.conventionalcommits.org/):

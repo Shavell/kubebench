@@ -7,8 +7,8 @@ release line only.
 
 | Version | Supported |
 |---|---|
-| 0.5.x | yes |
-| < 0.5 | no (never released as tagged versions) |
+| 0.8.x | yes |
+| < 0.8 | no (0.1 to 0.4 were never released as tagged versions) |
 
 ## Reporting a vulnerability
 
@@ -63,3 +63,42 @@ disclose the issue.
 
 The full threat model and a hardening checklist for operators are in
 [docs/security.md](docs/security.md).
+
+## How the code and the releases are checked
+
+- **Scanning on every push to `main` and every pull request**: CodeQL
+  (`security-extended`, Go and TypeScript), govulncheck for the Go server
+  and its toolchain, `npm audit` of the runtime npm dependencies, Trivy
+  (misconfigurations of the Dockerfile, the Helm chart and the manifests;
+  vulnerabilities in `go.mod` and `package-lock.json`) and dependency
+  review of pull requests. CodeQL and govulncheck also run weekly, and so
+  does a Trivy scan of the latest release image. Findings appear in the
+  repository's **Security > Code scanning**.
+- **OpenSSF Scorecard** rates the repository's supply-chain practices
+  weekly: [scorecard.dev](https://scorecard.dev/viewer/?uri=github.com/Shavell/kubebench).
+- **Repository settings**: secret scanning with push protection,
+  Dependabot alerts and security updates, and weekly Dependabot version
+  updates (npm, Go modules, GitHub Actions pinned by commit SHA, Docker base
+  images). `main` is protected and needs the CI checks to pass.
+- **Signed releases** (from 0.8.1 on): SPDX SBOMs for every archive and
+  package, a keyless cosign signature of `checksums.txt`, a cosign
+  signature of the container image, and GitHub build provenance
+  attestations for the binaries, packages, chart, manifests, installer,
+  offline bundle and image. Verify a download before you install it:
+
+  ```bash
+  cosign verify-blob --bundle checksums.txt.sigstore.json \
+    --certificate-identity-regexp '^https://github\.com/Shavell/kubebench/\.github/workflows/release\.yml@refs/(heads|tags)/' \
+    --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+    checksums.txt
+  sha256sum --check --ignore-missing checksums.txt
+
+  cosign verify ghcr.io/shavell/kubebench:<version> \
+    --certificate-identity-regexp '^https://github\.com/Shavell/kubebench/\.github/workflows/release\.yml@refs/(heads|tags)/' \
+    --certificate-oidc-issuer https://token.actions.githubusercontent.com
+
+  gh attestation verify kubebench_<version>_linux_amd64.tar.gz --repo Shavell/kubebench
+  gh attestation verify oci://ghcr.io/shavell/kubebench:<version> --repo Shavell/kubebench
+  ```
+
+  [docs/releasing.md](docs/releasing.md#verifying-a-release) has the details.

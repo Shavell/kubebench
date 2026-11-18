@@ -16,6 +16,32 @@ those commits.
 
 ## [Unreleased]
 
+### Added
+
+- **Verifiable releases**: every archive and package comes with an SPDX
+  SBOM (`<file>.sbom.json`), `checksums.txt` is signed keylessly with
+  cosign (`checksums.txt.sigstore.json`), the container image is signed
+  with cosign, and the binaries, packages, chart, manifests, installer,
+  offline bundle and image have GitHub build provenance attestations.
+  `cosign verify-blob`, `cosign verify` and `gh attestation verify` check
+  them; the commands are in `SECURITY.md` and `docs/releasing.md`.
+
+### Security
+
+- The binaries and `.deb`/`.rpm` packages are built with Go 1.27.4, like
+  the container image. 0.8.0's binaries and packages were built with Go
+  1.26.5, whose standard library has known vulnerabilities (among them in
+  `net/http`, `crypto/tls` and `crypto/x509`). The 0.8.0 image already
+  used Go 1.27.
+- go-jose 4.1.6 (CVE-2026-116587, denial of service through crafted RSA
+  keys in a JWK set, and two smaller fixes). govulncheck finds the affected
+  code unreachable from KubeBench; the update keeps image scans clean.
+- The YAML editor's bundled DOMPurify (through Monaco) is 3.4.18, which
+  fixes several sanitizer bypasses.
+- Every push and pull request is scanned with CodeQL, govulncheck,
+  `npm audit`, Trivy and dependency review; OpenSSF Scorecard rates the
+  repository weekly.
+
 ## [0.8.0] - 2026-11-18
 
 ### Added

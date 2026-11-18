@@ -63,23 +63,30 @@ with:
 
 The workflow checks versions and the CHANGELOG (`scripts/check-release.sh`),
 runs `make test`, tags, builds the frontend, runs GoReleaser (binaries,
-archives, `.deb`/`.rpm`, `checksums.txt`, a **draft** release whose notes are
-the CHANGELOG section), attaches the chart `.tgz`, the manifests and
-`install.sh`, builds the image tarballs and the offline bundle and uploads
-them to the draft. Review the draft on GitHub, then publish it: only
-published releases are visible to `install.sh` ("latest") and to users.
+archives, `.deb`/`.rpm`, an SPDX SBOM per archive and package,
+`checksums.txt` and its keyless cosign signature, a **draft** release whose
+notes are the CHANGELOG section), attaches the chart `.tgz`, the manifests
+and `install.sh`, builds the image tarballs and the offline bundle, uploads
+them to the draft and records build provenance attestations for all of
+them. With `push_image`, the pushed image is signed with cosign and gets
+an attestation in the registry too. Review the draft on GitHub, then
+publish it: only published releases are visible to `install.sh` ("latest")
+and to users.
 
 The other manual workflows:
 
-- **CI**: frontend, backend, chart, packaging config, shell scripts, workflows.
 - **Container image**: build (and optionally push) an image for any ref, tag and platforms.
 - **Helm chart**: lint, package and optionally push the chart.
-- **CodeQL**: static analysis for Go and TypeScript.
 
 ### 3. Or release from a workstation
 
-Needs Go, Node 24, Helm, GoReleaser v2, Docker with buildx, and a GitHub
-token with `contents: write` in `GITHUB_TOKEN`:
+Needs Go, Node 24, Helm, GoReleaser v2, syft, cosign, Docker with buildx,
+and a GitHub token with `contents: write` in `GITHUB_TOKEN`. cosign signs
+`checksums.txt` keylessly with the identity you confirm in the browser,
+not the release workflow's, so verify such a release with
+`--certificate-identity <your e-mail>` and
+`--certificate-oidc-issuer <your provider>`; it gets no build provenance
+attestations:
 
 ```bash
 scripts/check-release.sh 0.8.0 && make test
@@ -108,8 +115,10 @@ gh release upload v0.8.0 build/extra/kubebench-offline-0.8.0.tar.gz{,.sha256}
 
 ### Dry runs
 
-`make snapshot` runs the whole GoReleaser pipeline without a tag or
-publishing (output in `build/release/`), `make deb` builds only the
+`make snapshot` runs the whole GoReleaser pipeline without a tag,
+publishing, signing or SBOMs (output in `build/release/`; `goreleaser
+release --snapshot --clean --skip=sign` adds the SBOMs when syft is
+installed), `make deb` builds only the
 packages, and `make offline-bundle` assembles a bundle from that output.
 
 ## What a release contains
@@ -118,10 +127,12 @@ packages, and `make offline-bundle` assembles a bundle from that output.
 |---|---|
 | `kubebench_<v>_{linux,darwin}_{amd64,arm64}.tar.gz`, `kubebench_<v>_windows_amd64.zip` (binary, LICENSE, README, CHANGELOG, `install.sh`, systemd unit, env file) | GoReleaser |
 | `kubebench_<v>_{amd64,arm64}.deb`, `kubebench-<v>-1.{x86_64,aarch64}.rpm` (license in `/usr/share/doc/kubebench/copyright` or `/usr/share/licenses/kubebench/LICENSE`) | GoReleaser (nfpm) |
-| `checksums.txt` (SHA-256 of the archives and packages) | GoReleaser |
+| `<archive or package>.sbom.json` (SPDX SBOM) | GoReleaser (syft) |
+| `checksums.txt` (SHA-256 of the archives, packages and SBOMs), `checksums.txt.sigstore.json` (keyless cosign signature) | GoReleaser (cosign) |
+| build provenance attestations of the binaries, archives, packages, SBOMs, chart, manifests, `install.sh`, offline bundle and image | release workflow (`actions/attest-build-provenance`) |
 | `kubebench-<v>.tgz` (Helm chart), `kubebench.yaml` (manifests), `install.sh` | release workflow, via `build/extra/` |
 | `kubebench-offline-<v>.tar.gz` + `.sha256` | `scripts/offline-bundle.sh` |
-| `ghcr.io/shavell/kubebench:<v>` (linux/amd64, linux/arm64, SBOM and provenance) | release workflow (`push_image`) |
+| `ghcr.io/shavell/kubebench:<v>` (linux/amd64, linux/arm64, BuildKit SBOM and provenance, cosign signature, GitHub attestation) | release workflow (`push_image`) |
 | `oci://ghcr.io/shavell/charts/kubebench:<v>` | release workflow (`push_chart`) |
 
 Every artifact carries the GPL-3.0 text: the archives and the offline
@@ -129,21 +140,91 @@ bundle as `LICENSE`, the packages as noted above, the image as `/LICENSE`
 and the chart as `charts/kubebench/LICENSE` (a copy that
 `scripts/check-release.sh` compares with the repository's).
 
-## Turning CI on
+## Verifying a release
 
-All workflows run only on `workflow_dispatch` for now. Each has its future
-triggers commented out right below `on:`; uncomment them to activate:
+Every release made by the Release workflow can be checked against the
+workflow that built it. The examples use `0.8.1`; download the files into
+one directory first (`gh release download v0.8.1 --repo Shavell/kubebench`).
 
-| Workflow | Trigger to uncomment |
-|---|---|
-| `ci.yml` | `push` to `main`/`release/**`, `pull_request` |
-| `codeql.yml` | `push`, `pull_request`, weekly `schedule` |
-| `docker-image.yml` | `push` to `main` (then consider `push: true` for a rolling `main` tag) |
-| `helm-chart.yml` | `push` with `paths: charts/**, deploy/**` |
-| `release.yml` | `push` of `v*` tags: the version then comes from the tag, and `push_image`/`push_chart` are off unless you change their conditions |
+`checksums.txt` is signed keylessly with cosign. Once its signature is
+verified, `sha256sum` verifies everything it lists (archives, packages,
+SBOMs):
 
+```bash
+cosign verify-blob \
+  --bundle checksums.txt.sigstore.json \
+  --certificate-identity-regexp '^https://github\.com/Shavell/kubebench/\.github/workflows/release\.yml@refs/(heads|tags)/' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  checksums.txt
+sha256sum --check --ignore-missing checksums.txt
+```
+
+The container image is signed with cosign:
+
+```bash
+cosign verify ghcr.io/shavell/kubebench:0.8.1 \
+  --certificate-identity-regexp '^https://github\.com/Shavell/kubebench/\.github/workflows/release\.yml@refs/(heads|tags)/' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+```
+
+Build provenance attestations (SLSA provenance, signed through Sigstore)
+cover the binaries, archives, packages, SBOMs, chart, manifests,
+`install.sh`, the offline bundle and the image:
+
+```bash
+gh attestation verify kubebench_0.8.1_linux_amd64.tar.gz --repo Shavell/kubebench
+gh attestation verify kubebench-offline-0.8.1.tar.gz --repo Shavell/kubebench
+gh attestation verify oci://ghcr.io/shavell/kubebench:0.8.1 --repo Shavell/kubebench
+```
+
+Add `--signer-workflow Shavell/kubebench/.github/workflows/release.yml` to
+insist on the release workflow. Releases up to 0.8.0 have only
+`checksums.txt`, without a signature, SBOMs or attestations.
+
+## Continuous integration
+
+What runs by itself, on GitHub-hosted runners and frugally:
+documentation-only changes (`**/*.md`, `docs/**`) start neither CI, CodeQL
+nor Trivy; a newer push cancels the running workflow of the same branch or
+pull request; scheduled runs are weekly, on Mondays.
+
+| Workflow | Runs on | What it does |
+|---|---|---|
+| `ci.yml` (CI) | push to `main`, pull requests; weekly (`vulncheck` only) | jobs `frontend` (oxlint, tsc, build, i18n, tests), `backend` (gofmt, vet, race tests, build), `vulncheck` (govulncheck; `npm audit --omit=dev --audit-level=high`), `chart` (Helm 3 and Helm 4 lint, kubeconform, rendered manifests current), `packaging` (`goreleaser check`, Dockerfile check), `scripts` (shellcheck), `workflows` (actionlint) |
+| `codeql.yml` (CodeQL) | push to `main`, pull requests, weekly | `security-extended` queries for Go and TypeScript |
+| `trivy.yml` (Trivy) | push to `main`, pull requests: job `trivy (repo)`; weekly: job `trivy (image)` | repo: misconfigurations of the Dockerfile, the chart and `deploy/`, and vulnerabilities in `backend/go.mod` and `package-lock.json` (CRITICAL and HIGH reported, only CRITICAL misconfigurations fail); image: the image of the latest published release |
+| `dependency-review.yml` | pull requests | fails when a pull request adds a runtime dependency with a high or critical advisory |
+| `scorecard.yml` (Scorecard) | push to `main`, weekly, branch protection changes | [OpenSSF Scorecard](https://scorecard.dev/viewer/?uri=github.com/Shavell/kubebench), published for the README badge |
+
+CodeQL, Trivy and Scorecard report to **Security > Code scanning**.
+
+Manual only (`workflow_dispatch`), because they publish: **Release**,
+**Container image** and **Helm chart**. Every workflow above can be
+started by hand from the Actions tab as well.
+
+The required status checks of `main` are job names: `frontend`, `backend`,
+`vulncheck`, `chart`, `packaging`, `scripts`, `workflows`, `trivy (repo)`
+and `dependency-review`. Renaming a job means updating the branch
+protection in the same change. Because documentation-only pull requests do
+not start CI or Trivy, their required checks never report; such a pull
+request needs an administrator to merge it, or a change outside the
+ignored paths.
+
+Accepted Trivy findings go into `.trivyignore`, each with its reason (there
+are none). Known MEDIUM findings, below the reported severities:
+`KSV-0111` (the chart's default `rbac.preset: cluster-admin`, which the full
+workbench needs; `read-only` and `custom` exist, see
+[security](security.md)) and `KSV-0125` (`ghcr.io` is not on Trivy's list of
+trusted registries).
+
+CI, CodeQL and the release build with the Go toolchain of the `toolchain`
+line in `backend/go.mod` (`actions/setup-go` reads it), kept equal to the
+Dockerfile's `golang` image. govulncheck reports the standard library
+advisories of that toolchain: bump the line and the image when it fails.
+
+Actions are pinned by full commit SHA with the version as a comment
+(`uses: actions/checkout@<sha> # v7.0.1`); Dependabot updates both.
 Dependabot (`.github/dependabot.yml`) opens grouped weekly update pull
-requests for npm, Go modules, GitHub Actions and the Dockerfile base images
-as soon as the file is on the default branch; it does not depend on the
-workflow triggers. Once CI runs on pull requests, protect `main` with the CI
-jobs as required checks.
+requests for npm, Go modules, GitHub Actions and the Dockerfile base
+images. Dependabot alerts and security updates, secret scanning and push
+protection are enabled on the repository.

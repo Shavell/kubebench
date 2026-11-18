@@ -2292,8 +2292,11 @@ serve none of it.
   .deb/.rpm, container image tarballs (amd64/arm64), Helm chart `.tgz`,
   manifests, `install.sh`, checksums, README.
 - **Container image** `ghcr.io/shavell/kubebench:<version>` (multi-arch).
-- **GitHub Actions**: `ci.yml`, `release.yml`, `docker-image.yml`,
-  `helm-chart.yml`, `codeql.yml` — all `on: workflow_dispatch` only, with
-  the push/PR triggers present but commented out.
+- **GitHub Actions**: `ci.yml`, `codeql.yml`, `trivy.yml`, `scorecard.yml`
+  and `dependency-review.yml` run on pushes to `main`, pull requests and
+  weekly schedules; `release.yml`, `docker-image.yml` and `helm-chart.yml`
+  stay `on: workflow_dispatch` only. Releases carry SBOMs, a keyless cosign
+  signature of `checksums.txt` and build provenance attestations
+  (`docs/releasing.md`).
 - **Dependabot**: npm, gomod (`/backend`), github-actions, docker; weekly,
   grouped.

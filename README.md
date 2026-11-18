@@ -1,5 +1,16 @@
 # KubeBench
 
+[![Release](https://img.shields.io/github/v/release/Shavell/kubebench?sort=semver)](https://github.com/Shavell/kubebench/releases/latest)
+[![License: GPL-3.0](https://img.shields.io/github/license/Shavell/kubebench)](LICENSE)
+[![Go](https://img.shields.io/github/go-mod/go-version/Shavell/kubebench?filename=backend%2Fgo.mod)](backend/go.mod)
+[![Container image](https://img.shields.io/badge/image-ghcr.io%2Fshavell%2Fkubebench-blue?logo=docker&logoColor=white)](https://github.com/Shavell/kubebench/pkgs/container/kubebench)
+[![Helm chart](https://img.shields.io/badge/helm-oci%3A%2F%2Fghcr.io%2Fshavell%2Fcharts-0F1689?logo=helm&logoColor=white)](https://github.com/Shavell/kubebench/pkgs/container/charts%2Fkubebench)
+<br>
+[![CI](https://github.com/Shavell/kubebench/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Shavell/kubebench/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/Shavell/kubebench/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/Shavell/kubebench/actions/workflows/codeql.yml)
+[![Trivy](https://github.com/Shavell/kubebench/actions/workflows/trivy.yml/badge.svg?branch=main)](https://github.com/Shavell/kubebench/actions/workflows/trivy.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Shavell/kubebench/badge)](https://scorecard.dev/viewer/?uri=github.com/Shavell/kubebench)
+
 KubeBench is a VS Code-style workbench for Kubernetes that runs in the
 browser: an activity bar, a tabbed editor area, a bottom panel with
 terminals and logs, a command palette and a status bar, with a module for
