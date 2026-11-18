@@ -188,6 +188,47 @@ jobs:
           shellcheck --version
           shellcheck install.sh scripts/*.sh packaging/scripts/*.sh
 
+  # Go fuzz tests (func FuzzXxx in backend/**/*_test.go), each for a short
+  # while, on pushes to main and on the weekly run; not on pull requests,
+  # to keep them fast, so this is not a required check. go test -run in the
+  # backend job already replays every seed and testdata/fuzz input. A
+  # failing input is printed in the log; add it to the target's
+  # testdata/fuzz/<FuzzName>/ to keep it as a regression seed.
+  fuzz:
+    name: fuzz
+    if: github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: Fuzz each target for 30s
+        run: |
+          failed=0
+          while IFS= read -r file; do
+            dir="./$(dirname "$file")"
+            while IFS= read -r target; do
+              echo "::group::$dir $target"
+              if ! go test -run='^$' -fuzz="^${target}\$" -fuzztime=30s "$dir" </dev/null; then
+                echo "::error::$target ($dir) failed"
+                failed=1
+              fi
+              echo "::endgroup::"
+            done < <(grep -o '^func Fuzz[A-Za-z0-9_]*' "$file" | cut -d' ' -f2)
+          done < <(grep -rl --include='*_test.go' '^func Fuzz' . | sort)
+          if [[ "$failed" != 0 ]]; then
+            find . -path '*/testdata/fuzz/*' -newer go.mod -type f -print -exec cat {} \;
+          fi
+          exit "$failed"
+
   workflows:
     name: workflows
     if: github.event_name != 'schedule'

@@ -209,7 +209,7 @@ pull request; scheduled runs are weekly, on Mondays.
 
 | Workflow | Runs on | What it does |
 |---|---|---|
-| `ci.yml` (CI) | push to `main`, pull requests; weekly (`vulncheck` only) | jobs `frontend` (oxlint, tsc, build, i18n, tests), `backend` (gofmt, vet, race tests, build), `vulncheck` (govulncheck; `npm audit --omit=dev --audit-level=high`), `chart` (Helm 3 and Helm 4 lint, kubeconform, rendered manifests current), `packaging` (`goreleaser check`, Dockerfile check), `scripts` (shellcheck), `workflows` (actionlint) |
+| `ci.yml` (CI) | push to `main`, pull requests; weekly (`vulncheck` and `fuzz` only) | jobs `frontend` (oxlint, tsc, build, i18n, tests), `backend` (gofmt, vet, race tests, build), `vulncheck` (govulncheck; `npm audit --omit=dev --audit-level=high`), `chart` (Helm 3 and Helm 4 lint, kubeconform, rendered manifests current), `packaging` (`goreleaser check`, Dockerfile check), `scripts` (shellcheck), `workflows` (actionlint), `fuzz` (every Go fuzz target for 30 s; push to `main` and weekly only, not a required check) |
 | `codeql.yml` (CodeQL) | push to `main`, pull requests, weekly | `security-extended` queries for Go and TypeScript |
 | `trivy.yml` (Trivy) | push to `main`, pull requests: job `trivy (repo)`; weekly: job `trivy (image)` | repo: misconfigurations of the Dockerfile, the chart and `deploy/`, and vulnerabilities in `backend/go.mod` and `package-lock.json` (CRITICAL and HIGH reported, only CRITICAL misconfigurations fail); image: the image of the latest published release |
 | `dependency-review.yml` | pull requests | fails when a pull request adds a runtime dependency with a high or critical advisory |
