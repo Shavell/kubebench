@@ -2,7 +2,7 @@
 #
 # Build metadata comes from git: VERSION from scripts/version.sh, COMMIT and
 # DATE from the checked-out commit. Override any of them on the command line,
-# e.g. `make build VERSION=0.8.0`.
+# e.g. `make build VERSION=0.8.1`.
 
 SHELL := bash
 .SHELLFLAGS := -Eeuo pipefail -c
@@ -113,7 +113,7 @@ deb: ## Build snapshot .deb and .rpm packages into build/release/
 offline-bundle: ## Assemble the offline bundle from build/release/ (IMAGE_TARS="a.tar b.tar")
 	scripts/offline-bundle.sh $(foreach tar,$(IMAGE_TARS),--image-tar $(tar))
 
-release-check: ## Check versions, CHANGELOG and manifests for a release (make release-check VERSION=0.8.0)
+release-check: ## Check versions, CHANGELOG and manifests for a release (make release-check VERSION=0.8.1)
 	scripts/check-release.sh '$(VERSION)'
 
 clean: ## Remove bin/, build/, dist/ and the embedded frontend copy
