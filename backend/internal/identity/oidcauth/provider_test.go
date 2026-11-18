@@ -129,8 +129,12 @@ func TestAllowedDomains(t *testing.T) {
 		class  string
 	}{
 		{map[string]any{"email": "a@example.com", "email_verified": true}, ""},
-		{map[string]any{"email": "a@EXAMPLE.com"}, ""},
+		{map[string]any{"email": "a@EXAMPLE.com", "email_verified": true}, ""},
+		{map[string]any{"email": "a@example.com", "email_verified": "True"}, ""},
+		{map[string]any{"email": "a@example.com"}, identity.ClassDomainNotAllowed},
 		{map[string]any{"email": "a@example.com", "email_verified": false}, identity.ClassDomainNotAllowed},
+		{map[string]any{"email": "a@example.com", "email_verified": "false"}, identity.ClassDomainNotAllowed},
+		{map[string]any{"email": "a@example.com", "email_verified": 1}, identity.ClassDomainNotAllowed},
 		{map[string]any{"email": "a@evil.test", "email_verified": true}, identity.ClassDomainNotAllowed},
 		{map[string]any{}, identity.ClassDomainNotAllowed},
 	}

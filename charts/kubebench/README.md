@@ -264,7 +264,7 @@ kubectl -n kubebench delete pvc/kubebench-data secret/kubebench-auth
 | `identity.oidc.name` | `SSO` | Shown as "Sign in with <name>". |
 | `identity.oidc.scopes` | `[openid, profile, email]` | Requested scopes. |
 | `identity.oidc.usernameClaim` / `groupsClaim` | `preferred_username` / `groups` | Claims for the username and groups (a dotted path such as `realm_access.roles` works). |
-| `identity.oidc.allowedDomains` | `[]` | Admit only verified emails of these domains. |
+| `identity.oidc.allowedDomains` | `[]` | Admit only verified emails of these domains (`email_verified` must be true; a missing claim is refused). |
 | `identity.oidc.existingSecret` / `existingSecretKey` | `""` / `client-secret` | Secret with the client secret. |
 | `identity.oidc.clientSecret` | `""` | Client secret stored in a chart Secret (also in the Helm release history; prefer `existingSecret`). Both empty: public client. |
 | `identity.oidc.caBundle` | `""` | PEM CA bundle for the provider's TLS certificate, mounted from a ConfigMap. |

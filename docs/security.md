@@ -123,7 +123,10 @@ provider, and with `KUBEBENCH_LDAP_*` with their directory account
   browser by an HttpOnly cookie, and `nonce`. The ID token is verified
   against the provider's discovery document and signing keys (issuer,
   audience, expiry, nonce). TLS to the provider is always verified; add a
-  private CA with `KUBEBENCH_OIDC_CA_FILE`.
+  private CA with `KUBEBENCH_OIDC_CA_FILE`. With
+  `KUBEBENCH_OIDC_ALLOWED_DOMAINS`, only addresses the provider marks
+  verified (`email_verified` true) get in; a token without the claim is
+  refused rather than trusted.
 - **Secrets.** The client secret comes from the environment, a file
   (`KUBEBENCH_OIDC_CLIENT_SECRET_FILE`) or a Kubernetes Secret (chart
   `identity.oidc.existingSecret`). No API returns it (Settings shows only

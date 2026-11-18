@@ -85,7 +85,8 @@ identity:
     usernameClaim: preferred_username
     # A claim name or a dotted path, e.g. realm_access.roles.
     groupsClaim: groups
-    # Admit only verified email addresses of these domains (empty: any).
+    # Admit only verified email addresses of these domains (empty: any);
+    # the token must carry email_verified true, a missing claim is refused.
     allowedDomains: []
     # The client secret is passed from a Secret: existingSecret (key
     # existingSecretKey), or a Secret the chart creates from clientSecret

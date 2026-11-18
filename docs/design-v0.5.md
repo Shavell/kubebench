@@ -374,7 +374,8 @@ JWKS through `go-oidc` (retried until the provider is reachable); the ID
 token's signature, issuer, audience, expiry and nonce are verified; the
 groups claim is read from userinfo when the ID token lacks it; dotted claim
 paths read nested claims. Allowed email domains admit only verified
-addresses. The redirect URL is `KUBEBENCH_PUBLIC_URL` (or the request's
+addresses: `email_verified` must be `true` (or the string `"true"`); a
+missing or other value is `domain_not_allowed`. The redirect URL is `KUBEBENCH_PUBLIC_URL` (or the request's
 origin, forwarded headers only with `KUBEBENCH_TRUST_PROXY`) +
 `/api/auth/oidc/callback`. Refusals redirect to `/?signInError=<class>`.
 Sign-out answers the provider's end-session URL (`logoutUrl`, with the

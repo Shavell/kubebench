@@ -250,7 +250,7 @@ func identityFromClaims(cfg config.OIDCConfig, subject string, claims map[string
 
 // checkDomain admits only verified email addresses of the allowed domains.
 func checkDomain(allowed []string, email string, claims map[string]any) *identity.Failure {
-	if verified, ok := claims["email_verified"].(bool); ok && !verified {
+	if !emailVerified(claims) {
 		return identity.Fail(identity.ClassDomainNotAllowed, "the email address %q is not verified", email)
 	}
 	_, domain, ok := strings.Cut(email, "@")
@@ -263,6 +263,21 @@ func checkDomain(allowed []string, email string, claims map[string]any) *identit
 		}
 	}
 	return identity.Fail(identity.ClassDomainNotAllowed, "the email domain %q is not allowed", domain)
+}
+
+// emailVerified reports whether the provider asserts that the email address
+// is verified: email_verified is the boolean true or, as some providers
+// send it, the string "true". A missing claim (Entra ID never sends one)
+// or any other value is not a verification.
+func emailVerified(claims map[string]any) bool {
+	switch v := claims["email_verified"].(type) {
+	case bool:
+		return v
+	case string:
+		return strings.EqualFold(strings.TrimSpace(v), "true")
+	default:
+		return false
+	}
 }
 
 // lookupClaim finds a claim by name or, failing that, by dotted path

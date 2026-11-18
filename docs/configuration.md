@@ -39,7 +39,7 @@ exits with status 2. Values are trimmed; an empty value counts as unset.
 | `KUBEBENCH_OIDC_SCOPES` | `openid profile email` | Requested scopes (comma or space separated; `openid` is always added) |
 | `KUBEBENCH_OIDC_USERNAME_CLAIM` | `preferred_username` | Claim holding the KubeBench username (1–64 letters, digits, `.`, `_`, `@`, `-`) |
 | `KUBEBENCH_OIDC_GROUPS_CLAIM` | `groups` | Claim holding the groups; a dotted path (`realm_access.roles`) reads nested claims. Read from userinfo when the ID token lacks it |
-| `KUBEBENCH_OIDC_ALLOWED_DOMAINS` | unset | Admit only verified email addresses of these domains (comma separated) |
+| `KUBEBENCH_OIDC_ALLOWED_DOMAINS` | unset | Admit only verified email addresses of these domains (comma separated): the token must carry `email_verified` as `true` (or the string `"true"`); a missing claim is refused, so providers that never send it (Entra ID) cannot use this setting |
 | `KUBEBENCH_OIDC_CA_FILE` | unset | PEM CA bundle trusted for the provider's TLS certificate, in addition to the system roots (TLS verification is always on) |
 | `KUBEBENCH_LDAP_URL` | unset | `ldaps://host[:port]` or `ldap://host[:port]` of the directory; setting it turns on directory sign-in ([LDAP and Active Directory](#ldap-and-active-directory)) |
 | `KUBEBENCH_LDAP_TYPE` | `openldap` | `openldap` or `ad`; picks the defaults of the filters and attributes below |

@@ -54,7 +54,7 @@ type OIDCConfig struct {
 	// Name is shown on the sign-in button ("Sign in with <Name>").
 	Name string
 	// AllowedDomains, when set, admit only verified email addresses of
-	// these domains.
+	// these domains (email_verified true; a missing claim is refused).
 	AllowedDomains []string
 	// CAFile is a PEM bundle trusted for the provider's TLS certificate,
 	// in addition to the system roots.
