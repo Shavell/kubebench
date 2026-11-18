@@ -21,6 +21,7 @@ export function DataSection() {
   const { data: sources } = useProviderQuery((p) => p.metrics.listSources(), [])
   const prometheus = sources?.find((s) => s.id === 'prometheus')
   const prometheusMissing = prometheus?.available === false
+  const metricsServerMissing = sources?.find((s) => s.id === 'metrics-server')?.available === false
 
   // Depends on whether Prometheus was discovered; unknown while loading.
   const sourceHelp = () => {
@@ -38,7 +39,10 @@ export function DataSection() {
       label: prometheusMissing ? t('data.metricsSource.prometheusUnavailable') : t('data.metricsSource.prometheus'),
       disabled: prometheusMissing,
     },
-    { value: 'metrics-server', label: t('data.metricsSource.metricsServer') },
+    {
+      value: 'metrics-server',
+      label: metricsServerMissing ? t('data.metricsSource.metricsServerUnavailable') : t('data.metricsSource.metricsServer'),
+    },
   ]
 
   return (

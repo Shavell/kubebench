@@ -287,6 +287,59 @@ On a VM, the instance profile, the VM's service account or its managed
 identity serve the same purpose; environment variables go into
 `/etc/kubebench/kubebench.env`.
 
+## Metrics sources
+
+Charts, the overview and the status bar read CPU and memory from the
+metrics API (`metrics.k8s.io`, metrics-server) and, when one is found,
+everything (also network and filesystem, with history) from Prometheus.
+When neither has a value KubeBench says why (e.g. "this cluster does not
+serve the metrics API") instead of showing zeros.
+
+### OpenShift monitoring
+
+On OpenShift, KubeBench queries the cluster monitoring's Thanos Querier
+(`openshift-monitoring/thanos-querier`) and prefers it to metrics-server.
+The API server's service proxy does not pass KubeBench's token on, so it
+connects directly:
+
+- **In a pod** (the `in-cluster` cluster): `https://thanos-querier.openshift-monitoring.svc:9091`,
+  verified with the service CA OpenShift mounts into every pod
+  (`/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt`).
+- **Outside the cluster**: the `thanos-querier` Route, verified with the
+  system roots plus the default ingress CA
+  (`openshift-config-managed/default-ingress-cert`, when readable).
+  `KUBEBENCH_OPENSHIFT_MONITORING_ADDRESS` connects elsewhere when the
+  Route's host does not resolve from the server, and
+  `KUBEBENCH_OPENSHIFT_MONITORING_INSECURE=true` skips the certificate
+  check ([configuration](configuration.md#variables)).
+
+The query carries the bearer token of the cluster's credential (the
+ServiceAccount token in a pod; a kubeconfig with client certificates
+only cannot be used). Thanos' kube-rbac-proxy admits it only with the
+`cluster-monitoring-view` ClusterRole. The `cluster-admin` preset has it;
+with `rbac.preset=read-only` (or a custom ClusterRole) bind it:
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kubebench-cluster-monitoring-view
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-monitoring-view
+subjects:
+  - kind: ServiceAccount
+    name: kubebench        # the release's ServiceAccount
+    namespace: kubebench   # the release namespace
+```
+
+(`oc adm policy add-cluster-role-to-user cluster-monitoring-view -z kubebench -n kubebench`
+does the same.) Without it, Settings > Data and the Metrics sidebar show
+"OpenShift monitoring refused KubeBench's credential", and KubeBench uses
+metrics-server (OpenShift's own, in `openshift-monitoring`) where it has
+data.
+
 ## Configuration
 
 KubeBench reads its configuration from the environment once at startup

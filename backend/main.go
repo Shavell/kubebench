@@ -137,7 +137,10 @@ func serve(cfg *config.Config) error {
 	}
 
 	build := api.BuildInfo{Version: version, Commit: commit, Date: date}
-	apiServer := api.New(cfg, st, kube.NewManager(), build, plugins)
+	apiServer := api.New(cfg, st, kube.NewManagerFor(kube.Options{Monitoring: kube.MonitoringOptions{
+		Address:            cfg.Monitoring.Address,
+		InsecureSkipVerify: cfg.Monitoring.InsecureSkipVerify,
+	}}), build, plugins)
 	spa, embedded := web.Handler()
 	if embedded {
 		log.Printf("[web] serving the embedded frontend")

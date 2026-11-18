@@ -229,6 +229,13 @@ The frontend `ApiError` exposes `status` and `code`.
   answer `503 capability_unavailable`. So does a metric series
   whose Prometheus query fails, with the reason: only `source=auto` falls
   back to metrics-server, and only for CPU and memory, the metrics it has.
+  metrics-server counts as available only while the sampler's latest
+  scrape of `metrics.k8s.io` measured nodes; otherwise its series answer
+  `503 capability_unavailable` with the reason, and the overview's and
+  allocation's usage values are `null` with `usageUnavailable` (live mode
+  never reports an unmeasured use as 0). On OpenShift, Prometheus is the
+  monitoring stack's Thanos Querier, queried with the cluster credential's
+  token (v0.8; docs/deployment.md#openshift-monitoring).
   The metrics endpoints wait (≤3 s) for a fresh runtime's capability probe
   and Prometheus discovery, like `/api/info` (§4.1). Helm is a plugin
   (§7.4): without access to the release Secrets it answers

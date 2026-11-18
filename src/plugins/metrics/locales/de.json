@@ -17,7 +17,9 @@
   },
   "statusBar": {
     "usage": "CPU {{cpu}} · RAM {{memory}}",
-    "tooltip": "Ressourcennutzung des Clusters (metrics-server)"
+    "tooltip": "Ressourcennutzung des Clusters",
+    "unavailable": "Keine Metriken",
+    "unavailableTooltip": "Die Ressourcennutzung des Clusters wird nicht gemessen: {{reason}}"
   },
   "overview": {
     "title": "Clusterübersicht",
@@ -52,7 +54,8 @@
       "count_one": "{{value}} Warnung",
       "count_other": "{{value}} Warnungen",
       "viewAll": "Alle anzeigen"
-    }
+    },
+    "usageUnavailable": "CPU- und Speichernutzung werden nicht gemessen"
   },
   "node": {
     "title": "Node-Metriken · {{node}}",

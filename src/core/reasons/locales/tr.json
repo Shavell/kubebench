@@ -225,7 +225,20 @@
     "needs_prometheus": "metrics-server'da {{metric}} verisi yok; bunun için Prometheus gerekir",
     "no_prometheus": "Bu cluster'da Prometheus bulunamadı",
     "pod_metric": "\"{{metric}}\" metriği pod'lar için kullanılamıyor",
-    "prometheus_failed": "Prometheus {{location}} sorgusu başarısız oldu: {{detail}}"
+    "prometheus_failed": "Prometheus {{location}} sorgusu başarısız oldu: {{detail}}",
+    "api_missing": "Bu cluster metrics API'sini (metrics.k8s.io) sunmuyor; metrics-server'ı kurun veya cluster izlemeyi etkinleştirin",
+    "api_unavailable": "Metrics API'si (APIService {{apiservice}}) kullanılamıyor: {{detail}}",
+    "api_forbidden": "KubeBench'in metrics API'sini okuma izni yok: {{detail}}",
+    "api_failed": "Metrics API'si okunamadı: {{detail}}",
+    "api_empty": "Metrics API'si henüz hiçbir node metriği bildirmiyor",
+    "not_sampled": "Metrics API'si henüz okunmadı; birazdan yeniden deneyin",
+    "node_capacity": "Kapasiteleri için node'lar listelenemedi: {{detail}}",
+    "prometheus_usage_failed": "metrics-server'da veri yok ve Prometheus {{location}} sorgusu başarısız oldu: {{detail}}",
+    "thanos_no_token": "OpenShift izleme bir bearer token gerektirir, ancak \"{{cluster}}\" cluster'ının kimlik bilgisinde token yok (istemci sertifikaları thanos-querier Route'undan geçmez)",
+    "thanos_no_route": "KubeBench cluster dışında çalışıyor ve openshift-monitoring'deki thanos-querier Route'unu okuyamıyor: {{detail}}",
+    "thanos_no_service_ca": "Service CA paketi {{file}} okunamıyor: {{detail}}",
+    "thanos_forbidden": "OpenShift izleme ({{url}}) KubeBench'in kimlik bilgisini reddetti: {{detail}}; KubeBench'i cluster-monitoring-view ClusterRole'üne bağlayın",
+    "thanos_failed": "OpenShift izleme ({{url}}) bir sorguya yanıt vermedi: {{detail}}"
   },
   "namespace": {
     "invalid_labels": "{{detail}}",

@@ -256,7 +256,7 @@ to 60. Series answer `MetricPoint[]`.
 
 | Method | Path | Parameters | Answer |
 |---|---|---|---|
-| GET | `/api/metrics/sources` | — | `{"metricsServer":{"available"},"prometheus":{"available","location"}}` |
+| GET | `/api/metrics/sources` | — | `{"metricsServer":{"available","location","unavailable"?},"prometheus":{"available","location","unavailable"?}}` |
 | GET | `/api/metrics/overview` | — | `ClusterStats` |
 | GET | `/api/metrics/allocation` | — | `ClusterAllocation` |
 | GET | `/api/metrics/cluster` | `?metric=cpu\|memory\|network\|fs&minutes=&source=` | series |
@@ -266,6 +266,22 @@ to 60. Series answer `MetricPoint[]`.
 A failing Prometheus query is reported as `503 capability_unavailable`;
 only `source=auto` falls back to metrics-server, for CPU and memory. Network
 and filesystem series need Prometheus.
+
+metrics-server is `available` only while the sampler's latest scrape of
+the metrics API (`metrics.k8s.io`) measured nodes; otherwise its series
+answer `503 capability_unavailable` with the reason (`metrics.api_missing`:
+the API is not served; `metrics.api_unavailable`: its APIService is not
+Available, with the condition's message; `metrics.api_forbidden`,
+`metrics.api_failed`, `metrics.api_empty`, `metrics.not_sampled`). An
+unavailable source carries that reason as `unavailable: {"error",
+"reason", "params"}`; Prometheus says `metrics.no_prometheus`, or why
+OpenShift monitoring cannot be used (`metrics.thanos_*`).
+
+`ClusterStats.cpuUsagePercent`/`memoryUsagePercent` and
+`ClusterAllocation.{cpu,memory}.usage` come from the newest metrics-server
+sample, else from Prometheus' current values; when neither has them they
+are `null` (never `0`) and `usageUnavailable` explains why. The other
+fields (counts, capacity, requests, limits) are always present.
 
 ## Editing (§7.2)
 

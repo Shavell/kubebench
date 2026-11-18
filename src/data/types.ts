@@ -209,6 +209,8 @@ export interface MetricsSourceInfo {
   name: string
   available: boolean
   detail?: string
+  /** Why an unavailable source has no data. */
+  unavailable?: UnavailableReason
 }
 
 export interface ClusterEntry {
@@ -352,12 +354,22 @@ export interface ResourceAllocation {
   allocatable: number
   requests: number
   limits: number
-  usage: number
+  /** Measured use; null when no metrics source has a value (never a made-up 0). */
+  usage: number | null
 }
 
 export interface ClusterAllocation {
   cpu: ResourceAllocation
   memory: ResourceAllocation
+  /** Why `usage` is null. */
+  usageUnavailable?: UnavailableReason
+}
+
+/** Why a value is unknown: the server's reason.Message (design §3.3). */
+export interface UnavailableReason {
+  error: string
+  reason?: string
+  params?: ReasonParams
 }
 
 export interface ClusterStats {
@@ -366,10 +378,13 @@ export interface ClusterStats {
   podCount: number
   runningPods: number
   namespaceCount: number
-  cpuUsagePercent: number
-  memoryUsagePercent: number
+  /** Null when no metrics source measured the use; see usageUnavailable. */
+  cpuUsagePercent: number | null
+  memoryUsagePercent: number | null
   cpuCapacityCores: number
   memoryCapacityGi: number
+  /** Why the usage percentages are null. */
+  usageUnavailable?: UnavailableReason
 }
 
 // --- Resource editing (design §7.2) ---------------------------------------

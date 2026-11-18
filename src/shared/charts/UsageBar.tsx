@@ -4,7 +4,8 @@ import './charts.css'
 
 interface UsageBarProps {
   label: string
-  value: number
+  /** null: not measured — shown as "—" with an empty bar, never as 0. */
+  value: number | null
   total: number
   /** Already translated unit label, e.g. "cores" or "GiB". */
   unit: string
@@ -14,17 +15,17 @@ interface UsageBarProps {
 /** Horizontal allocation bar: "label — value / total unit · pct". */
 export function UsageBar({ label, value, total, unit, color }: UsageBarProps) {
   const { t } = useTranslation()
-  const fraction = total > 0 ? value / total : 0
+  const fraction = value !== null && total > 0 ? value / total : 0
   return (
     <div className="kb-usagebar">
       <div className="kb-usagebar__head">
         <span>{label}</span>
         <span className="kb-usagebar__value">
           {t('charts.usage', {
-            value: formatNumber(value),
+            value: value === null ? '—' : formatNumber(value),
             total: formatNumber(total),
             unit,
-            percent: formatPercent(fraction),
+            percent: value === null ? '—' : formatPercent(fraction),
           })}
         </span>
       </div>

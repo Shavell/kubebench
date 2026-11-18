@@ -16,6 +16,25 @@ those commits.
 
 ## [Unreleased]
 
+### Added
+
+- **OpenShift monitoring as a metrics source**: on OpenShift the charts,
+  the overview and the status bar read from the cluster monitoring's Thanos
+  Querier (with KubeBench's own token; it needs the
+  `cluster-monitoring-view` ClusterRole), including network and filesystem
+  series. Node charts also find OpenShift's node-exporter series, the disk
+  chart reads RHCOS' root filesystem, and pod CPU and memory no longer count
+  the pod cgroup twice.
+
+### Fixed
+
+- **No made-up metrics**: a cluster without a working metrics API no
+  longer reports metrics-server as available and 0% CPU and memory use.
+  The overview, the allocation bars and the status bar show "—" / "No
+  metrics" with the reason (e.g. the metrics API is not served, or its
+  APIService is not available), and the charts show why they are empty.
+  Nodes and pods that were not measured have no points instead of zeros.
+
 ## [0.7.0] - 2026-11-18
 
 ### Added

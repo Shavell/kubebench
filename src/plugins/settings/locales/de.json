@@ -50,7 +50,8 @@
       "auto": "Automatisch (Prometheus bevorzugen)",
       "prometheus": "Prometheus",
       "prometheusUnavailable": "Prometheus (nicht verfügbar)",
-      "metricsServer": "metrics-server"
+      "metricsServer": "metrics-server",
+      "metricsServerUnavailable": "metrics-server (nicht verfügbar)"
     },
     "metricsWindow": {
       "label": "Metrikzeitraum",

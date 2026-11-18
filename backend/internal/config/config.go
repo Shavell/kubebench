@@ -87,6 +87,8 @@ type Config struct {
 	PublicURL string
 	// Auth configures external identities (§3.6, v0.7).
 	Auth AuthConfig
+	// Monitoring configures how OpenShift monitoring is reached (v0.8).
+	Monitoring MonitoringConfig
 }
 
 // DefaultUpdateURL lists the releases of KubeBench's GitHub repository.
@@ -195,6 +197,7 @@ func FromEnv(lookup func(string) (string, bool), inCluster bool) (*Config, error
 
 	c.PublicURL = p.origin("KUBEBENCH_PUBLIC_URL", "https://kubebench.example.com")
 	c.Auth = p.auth()
+	c.Monitoring = p.monitoring()
 
 	if len(p.errs) > 0 {
 		return nil, errors.Join(p.errs...)

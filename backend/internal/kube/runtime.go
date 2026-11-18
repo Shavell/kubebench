@@ -26,6 +26,7 @@ import (
 
 	"kubebench/internal/cloud"
 	"kubebench/internal/cloudauth"
+	"kubebench/internal/reason"
 	"kubebench/internal/store"
 	"kubebench/internal/watch"
 )
@@ -48,6 +49,7 @@ type Runtime struct {
 	Metrics metricsv.Interface
 	Sampler *Sampler
 
+	opts      Options
 	watch     *watch.Hub // live updates (§7.10); see Watch
 	discovery discovery.CachedDiscoveryInterface
 	mapper    *restmapper.DeferredDiscoveryRESTMapper
@@ -55,7 +57,12 @@ type Runtime struct {
 	lastReset time.Time     // when retryOnNoMatch last refreshed discovery
 	probed    chan struct{} // closed once the capability probe finished
 	promDone  chan struct{} // closed once Prometheus discovery finished
-	closeOnce sync.Once
+	promOnce  sync.Once     // closes promDone
+	stop      chan struct{} // closed by Close; ends Prometheus rediscovery
+	// promLogged is the last "no Prometheus" outcome findProm logged; only
+	// findProm (one goroutine) uses it.
+	promLogged string
+	closeOnce  sync.Once
 
 	rawOnce   sync.Once // builds rawClient for RawGet on first use
 	rawClient *http.Client
@@ -68,13 +75,19 @@ type Runtime struct {
 
 	mu       sync.RWMutex
 	prom     *PromSource
+	promErr  error // why OpenShift monitoring is unusable, when prom is nil
 	caps     Capabilities
 	platform cloudState // see Cloud
 }
 
+// Options are the server-wide settings every Runtime shares.
+type Options struct {
+	Monitoring MonitoringOptions
+}
+
 // newRuntime connects to cluster and starts its background work: the
 // metrics sampler, Prometheus discovery and the capability probe.
-func newRuntime(cluster store.Cluster) (*Runtime, error) {
+func newRuntime(cluster store.Cluster, opts Options) (*Runtime, error) {
 	config, err := restConfigFor(&cluster)
 	if err != nil {
 		return nil, err
@@ -90,8 +103,9 @@ func newRuntime(cluster store.Cluster) (*Runtime, error) {
 		return nil, err
 	}
 	rt := assemble(cluster, config, cs, dyn, metrics)
+	rt.opts = opts
 	rt.Sampler.start()
-	go rt.discoverProm()
+	go rt.watchProm(rt.stop)
 	go rt.probeCapabilities()
 	go rt.detectCloudOnce()
 	return rt, nil
@@ -123,13 +137,16 @@ func clientsFor(config *rest.Config) (kubernetes.Interface, dynamic.Interface, m
 // clients. It starts no background work: the capability probe counts as
 // finished with no capabilities, Prometheus discovery as finished without
 // one, cloud detection as finished with nothing recognised (see
-// DetectCloudForTest), the sampler stays empty, Metrics is nil, and Config points
-// at an unreachable host. Tests that need metrics or RawGet set Metrics or
+// DetectCloudForTest), the sampler as having found no metrics API,
+// Metrics is nil, and Config points at an unreachable host. Tests that
+// need metrics set Metrics and call SampleForTest; tests of RawGet set
 // Config before using the runtime.
 func NewRuntimeForTest(cluster store.Cluster, cs kubernetes.Interface, dyn dynamic.Interface) *Runtime {
 	rt := assemble(cluster, &rest.Config{Host: "https://kubebench.invalid"}, cs, dyn, nil)
 	close(rt.probed)
-	close(rt.promDone)
+	rt.promOnce.Do(func() { close(rt.promDone) })
+	rt.Sampler.status = reason.New(reasonMetricsMissing, nil)
+	rt.Sampler.scrapedOnce.Do(func() { close(rt.Sampler.scraped) })
 	rt.platform.detection, rt.platform.at = cloud.Detection{Provider: cloud.ProviderKubernetes}, time.Now()
 	close(rt.platform.done)
 	return rt
@@ -159,9 +176,21 @@ func (r *Runtime) ProbeForTest() (finish func(Capabilities)) {
 // SetPromForTest makes Prom() return a Prometheus at the given Service,
 // queried through the clientset's service proxy, as discovery would.
 func (r *Runtime) SetPromForTest(namespace, service, port string) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.prom = &PromSource{rt: r, Namespace: namespace, Service: service, Port: port}
+	r.setProm(r.proxiedProm(namespace, service, port), nil)
+}
+
+// DiscoverPromForTest runs Prometheus discovery again with opts, as a
+// fresh runtime does in the background, and waits for it.
+func (r *Runtime) DiscoverPromForTest(opts Options) {
+	r.opts = opts
+	r.findProm()
+}
+
+// SampleForTest scrapes Metrics once at now, as the sampler does every
+// interval.
+func (r *Runtime) SampleForTest(ctx context.Context, now time.Time) {
+	sm, err := r.Sampler.scrape(ctx, now)
+	r.Sampler.record(sm, err)
 }
 
 func assemble(cluster store.Cluster, config *rest.Config, cs kubernetes.Interface,
@@ -177,6 +206,7 @@ func assemble(cluster store.Cluster, config *rest.Config, cs kubernetes.Interfac
 		mapper:    restmapper.NewDeferredDiscoveryRESTMapper(cached),
 		probed:    make(chan struct{}),
 		promDone:  make(chan struct{}),
+		stop:      make(chan struct{}),
 		platform:  cloudState{done: make(chan struct{})},
 	}
 	rt.Sampler = newSampler(rt)
@@ -189,6 +219,7 @@ func assemble(cluster store.Cluster, config *rest.Config, cs kubernetes.Interfac
 // working for requests still holding the runtime.
 func (r *Runtime) Close() {
 	r.closeOnce.Do(func() {
+		close(r.stop)
 		r.Sampler.Stop()
 		r.watch.Close()
 	})
@@ -200,6 +231,15 @@ func (r *Runtime) Prom() *PromSource {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return r.prom
+}
+
+// PromProblem explains why discovery found no Prometheus although the
+// cluster has OpenShift monitoring (e.g. KubeBench lacks
+// cluster-monitoring-view); nil otherwise.
+func (r *Runtime) PromProblem() error {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.promErr
 }
 
 // Caps returns the probed capabilities; all false until WaitProbed returns.

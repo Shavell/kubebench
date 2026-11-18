@@ -50,7 +50,8 @@
       "auto": "Automatic (prefer Prometheus)",
       "prometheus": "Prometheus",
       "prometheusUnavailable": "Prometheus (unavailable)",
-      "metricsServer": "metrics-server"
+      "metricsServer": "metrics-server",
+      "metricsServerUnavailable": "metrics-server (unavailable)"
     },
     "metricsWindow": {
       "label": "Metrics window",
