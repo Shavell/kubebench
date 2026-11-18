@@ -73,6 +73,50 @@
           "type": "string",
           "pattern": "^(https?://[^/?#@]+/?)?$",
           "description": "Origin (scheme://host[:port]) serving the service browser's proxy; empty = none."
+        },
+        "publicUrl": {
+          "type": "string",
+          "pattern": "^(https?://[^/?#@]+/?)?$",
+          "description": "URL users reach KubeBench at (scheme://host[:port]); empty = derived from each request."
+        }
+      }
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requireGroup": { "type": "boolean" },
+        "groupMappings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["group", "role"],
+            "properties": {
+              "group": { "type": "string", "minLength": 1 },
+              "role": { "enum": ["admin", "operator", "viewer"] },
+              "cluster": { "type": "string" },
+              "source": { "enum": ["", "oidc", "ldap"] }
+            }
+          }
+        },
+        "oidc": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "issuer": { "type": "string", "pattern": "^(https?://.+)?$" },
+            "clientId": { "type": "string" },
+            "name": { "type": "string", "minLength": 1 },
+            "scopes": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+            "usernameClaim": { "type": "string", "minLength": 1 },
+            "groupsClaim": { "type": "string", "minLength": 1 },
+            "allowedDomains": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+            "clientSecret": { "type": "string" },
+            "existingSecret": { "type": "string" },
+            "existingSecretKey": { "type": "string", "minLength": 1 },
+            "caBundle": { "type": "string" }
+          }
         }
       }
     },

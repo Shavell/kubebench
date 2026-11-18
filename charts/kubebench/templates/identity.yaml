@@ -1,0 +1,26 @@
+{{- with .Values.identity.oidc }}
+{{- if and .enabled .clientSecret (not .existingSecret) }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "kubebench.oidcSecretName" $ }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "kubebench.labels" $ | nindent 4 }}
+type: Opaque
+data:
+  client-secret: {{ .clientSecret | b64enc | quote }}
+{{- end }}
+{{- if include "kubebench.oidcCA" $ }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ printf "%s-oidc-ca" (include "kubebench.fullname" $) }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "kubebench.labels" $ | nindent 4 }}
+data:
+  ca.crt: {{ .caBundle | quote }}
+{{- end }}
+{{- end }}

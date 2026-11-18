@@ -57,6 +57,46 @@ config:
   # ports and reach subdomains; KubeBench refuses such an origin). Empty:
   # pages run sandboxed on KubeBench's origin.
   proxyOrigin: ""
+  # KUBEBENCH_PUBLIC_URL: the URL users reach KubeBench at (scheme://host[:port],
+  # no path). The OIDC redirect URL is <publicUrl>/api/auth/oidc/callback.
+  # Empty: derived from each request (behind the ingress from X-Forwarded-*).
+  publicUrl: ""
+
+# External identities (docs/design-v0.5.md §3.6): users sign in through an
+# identity provider and get their roles from group mappings at every sign-in.
+# Local accounts keep working; the last local admin is the break-glass account.
+identity:
+  # KUBEBENCH_AUTH_REQUIRE_GROUP: refuse users whose groups grant nothing
+  # (false: they sign in and see no cluster).
+  requireGroup: false
+  # KUBEBENCH_AUTH_GROUP_MAPPINGS, seeded on the first start that has them;
+  # admins manage them in Settings > Authentication afterwards. Entries:
+  # {group, role: admin|operator|viewer, cluster (for operator and viewer),
+  # source: "" (any provider), oidc or ldap}.
+  groupMappings: []
+  oidc:
+    enabled: false
+    # KUBEBENCH_OIDC_ISSUER, e.g. https://sso.example.com/realms/platform
+    issuer: ""
+    clientId: ""
+    # Shown as "Sign in with <name>".
+    name: SSO
+    scopes: [openid, profile, email]
+    usernameClaim: preferred_username
+    # A claim name or a dotted path, e.g. realm_access.roles.
+    groupsClaim: groups
+    # Admit only verified email addresses of these domains (empty: any).
+    allowedDomains: []
+    # The client secret is passed from a Secret: existingSecret (key
+    # existingSecretKey), or a Secret the chart creates from clientSecret
+    # (which then also ends up in the Helm release history). Both empty: a
+    # public client (PKCE only).
+    clientSecret: ""
+    existingSecret: ""
+    existingSecretKey: client-secret
+    # PEM CA bundle trusted for the provider's TLS certificate besides the
+    # system roots; mounted from a ConfigMap at /etc/kubebench/oidc-ca/ca.crt.
+    caBundle: ""
 
 # Additional container environment, e.g. [{name: KUBEBENCH_PLUGINS_DIR, value: /plugins}].
 # Entries listed here override the variables the chart sets.

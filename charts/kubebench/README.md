@@ -51,6 +51,36 @@ password lives in the database.
 without `auth.existingSecret` gets a new random value on every render; use
 `auth.existingSecret` with Argo CD or Flux.
 
+## Single sign-on (OIDC)
+
+Users can sign in through an OpenID Connect provider (Keycloak, Entra ID,
+Okta, Dex, …) besides local accounts. External users are created at their
+first sign-in; their global role and cluster roles come from group mappings
+and are re-computed at every sign-in. The last local admin always stays as
+the break-glass account. Register a confidential client with the redirect
+URL `<config.publicUrl>/api/auth/oidc/callback`, then:
+
+```yaml
+config:
+  publicUrl: https://kubebench.example.com
+identity:
+  groupMappings:
+    - {group: kubebench-admins, role: admin}
+    - {group: platform-sre, role: operator, cluster: in-cluster}
+  oidc:
+    enabled: true
+    issuer: https://sso.example.com/realms/platform
+    clientId: kubebench
+    name: Company SSO
+    existingSecret: kubebench-oidc   # key client-secret
+```
+
+The mappings are seeded on the first start that has them; admins manage
+them in Settings > Authentication afterwards. With `networkPolicy.enabled`,
+allow egress to the provider (`networkPolicy.extraEgressCIDRs`). See
+[configuration](../../docs/configuration.md#external-identities-oidc) for
+every setting.
+
 ## RBAC presets
 
 KubeBench acts on this cluster with its ServiceAccount, so the binding
@@ -208,6 +238,18 @@ kubectl -n kubebench delete pvc/kubebench-data secret/kubebench-auth
 | `config.allowAmbientCloudIdentity` | `false` | `KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY`: pasted EKS, GKE and AKS kubeconfigs may sign in with the pod's own cloud identity (workload identity). Every admin can then obtain its token ([security](../../docs/security.md#cloud-identities-eks-aks-gke)). |
 | `config.updateMode` | `stable` | `KUBEBENCH_UPDATE_MODE`: check GitHub for new releases (`stable`, `prerelease`) or never (`off`, for air-gapped clusters). Admins can change it in Settings. |
 | `config.proxyOrigin` | `""` | `KUBEBENCH_PROXY_ORIGIN`: a separate origin (e.g. `https://kubebench-proxy.example.net`) where the service browser shows in-cluster web pages unsandboxed; add its host to `ingress.hosts`. Use a host on another domain than KubeBench's (not its host on another port, not a subdomain: KubeBench refuses those). Empty: pages run sandboxed on KubeBench's origin. |
+| `config.publicUrl` | `""` | `KUBEBENCH_PUBLIC_URL`: the URL users reach KubeBench at; the OIDC redirect URL is built from it. Empty: derived from each request. |
+| `identity.requireGroup` | `false` | `KUBEBENCH_AUTH_REQUIRE_GROUP`: refuse external users whose groups grant nothing (otherwise they sign in and see no cluster). |
+| `identity.groupMappings` | `[]` | `KUBEBENCH_AUTH_GROUP_MAPPINGS`, seeded on first start: `{group, role: admin\|operator\|viewer, cluster, source}`. |
+| `identity.oidc.enabled` | `false` | Sign-in with an OIDC provider ([Single sign-on](#single-sign-on-oidc)). |
+| `identity.oidc.issuer` / `clientId` | `""` | `KUBEBENCH_OIDC_ISSUER`, `KUBEBENCH_OIDC_CLIENT_ID` (required when enabled). |
+| `identity.oidc.name` | `SSO` | Shown as "Sign in with <name>". |
+| `identity.oidc.scopes` | `[openid, profile, email]` | Requested scopes. |
+| `identity.oidc.usernameClaim` / `groupsClaim` | `preferred_username` / `groups` | Claims for the username and groups (a dotted path such as `realm_access.roles` works). |
+| `identity.oidc.allowedDomains` | `[]` | Admit only verified emails of these domains. |
+| `identity.oidc.existingSecret` / `existingSecretKey` | `""` / `client-secret` | Secret with the client secret. |
+| `identity.oidc.clientSecret` | `""` | Client secret stored in a chart Secret (also in the Helm release history; prefer `existingSecret`). Both empty: public client. |
+| `identity.oidc.caBundle` | `""` | PEM CA bundle for the provider's TLS certificate, mounted from a ConfigMap. |
 | `extraEnv` | `[]` | Extra container env entries; they override the chart's variables. |
 | `extraEnvFrom` | `[]` | Extra `envFrom` sources. |
 | `serviceAccount.create` | `true` | Create the ServiceAccount. |
