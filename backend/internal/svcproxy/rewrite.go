@@ -199,6 +199,7 @@ type replacingReader struct {
 	keep   int
 
 	in  []byte // read, not yet scanned
+	buf []byte // the buffer reads go to, reused
 	out bytes.Buffer
 	eof bool
 	err error
@@ -215,9 +216,11 @@ func (r *replacingReader) Read(p []byte) (int, error) {
 }
 
 func (r *replacingReader) fill() {
-	buf := make([]byte, 32*1024)
-	n, err := r.src.Read(buf)
-	r.in = append(r.in, buf[:n]...)
+	if r.buf == nil {
+		r.buf = make([]byte, 32*1024)
+	}
+	n, err := r.src.Read(r.buf)
+	r.in = append(r.in, r.buf[:n]...)
 	if err != nil {
 		r.eof, r.err = true, err
 	}
