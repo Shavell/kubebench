@@ -73,6 +73,11 @@
   position: absolute;
   inset: 4px 0 0 8px;
 }
+/* Inside it, the element xterm.js opens into; TerminalSession cancels the
+   interface scale on it (zoom), so pointer positions map to the right cells. */
+.kb-terminal__unzoomed {
+  height: 100%;
+}
 .kb-terminal__screen .xterm {
   height: 100%;
 }

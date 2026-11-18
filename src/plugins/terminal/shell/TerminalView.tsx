@@ -28,7 +28,7 @@ export function TerminalView({ session }: { session: TerminalSession }) {
   const { t } = useTranslation(NS)
   const status = useSyncExternalStore(session.subscribe, () => session.status)
   const target = session.target
-  const { terminalFontSize: fontSize, terminalFontFamily } = useDisplaySettings()
+  const { terminalFontSize: fontSize, terminalFontFamily, uiScale } = useDisplaySettings()
   const theme = useResolvedTheme()
   const mock = useDataMode().mode === 'mock'
   const containers = usePodContainers(target.namespace, target.pod, target.container)
@@ -47,8 +47,13 @@ export function TerminalView({ session }: { session: TerminalSession }) {
   }, [session])
 
   useEffect(() => {
-    session.setAppearance({ fontSize, fontFamily: fontStack(terminalFontFamily, monospaceFont()), theme: xtermTheme() })
-  }, [session, fontSize, terminalFontFamily, theme])
+    session.setAppearance({
+      fontSize,
+      fontFamily: fontStack(terminalFontFamily, monospaceFont()),
+      theme: xtermTheme(),
+      scale: uiScale / 100,
+    })
+  }, [session, fontSize, terminalFontFamily, theme, uiScale])
 
   const copy = () =>
     session.copySelection().then(

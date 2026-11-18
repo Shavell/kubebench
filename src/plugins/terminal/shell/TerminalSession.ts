@@ -2,6 +2,7 @@ import type { FitAddon } from '@xterm/addon-fit'
 import type { ITheme, Terminal } from '@xterm/xterm'
 import type { ClusterProvider } from '@/data/providers'
 import type { TerminalConnection, TerminalTarget } from '@/data/streams'
+import { screenZoom, xtermOptions } from './scale'
 import { loadXterm } from './xterm'
 
 /** Where a session stands; the toolbar shows it with its reason. */
@@ -22,7 +23,10 @@ export interface TerminalAppearance {
   fontSize: number
   fontFamily: string
   theme: ITheme
+  /** The interface scale (CSS zoom of <body>; 1 = 100%). */
+  scale: number
 }
+
 
 const IS_MAC = /Mac|iPhone|iPad/.test(navigator.userAgent)
 
@@ -34,8 +38,10 @@ const IS_MAC = /Mac|iPhone|iPad/.test(navigator.userAgent)
  */
 export class TerminalSession {
   readonly id: string
-  /** The element xterm.js renders into. */
+  /** The element views place in their layout. */
   readonly host: HTMLDivElement
+  /** The element xterm.js renders into, inside host, undoing the interface scale. */
+  private readonly screen: HTMLDivElement
   private targetValue: TerminalTarget
   private statusValue: TerminalStatus = { state: 'loading' }
   private readonly provider: ClusterProvider
@@ -53,6 +59,9 @@ export class TerminalSession {
     this.provider = provider
     this.host = document.createElement('div')
     this.host.className = 'kb-terminal__screen'
+    this.screen = document.createElement('div')
+    this.screen.className = 'kb-terminal__unzoomed'
+    this.host.appendChild(this.screen)
     void this.load()
   }
 
@@ -91,11 +100,15 @@ export class TerminalSession {
 
   setAppearance(appearance: TerminalAppearance): void {
     this.appearance = appearance
+    this.applyScale(appearance.scale)
     if (!this.term) return
-    this.term.options.fontSize = appearance.fontSize
-    this.term.options.fontFamily = appearance.fontFamily
-    this.term.options.theme = appearance.theme
+    Object.assign(this.term.options, xtermOptions(appearance))
     this.fitToHost()
+  }
+
+  /** Cancels the interface scale on the screen (see screenZoom). */
+  private applyScale(scale: number): void {
+    this.screen.style.zoom = screenZoom(scale)
   }
 
   /** Starts over: a new connection, a clean screen and, optionally, another container. */
@@ -163,7 +176,11 @@ export class TerminalSession {
       return
     }
     if (this.disposed) return
-    const term = new xterm.Terminal({ cursorBlink: true, scrollback: 5000, ...this.appearance })
+    const term = new xterm.Terminal({
+      cursorBlink: true,
+      scrollback: 5000,
+      ...(this.appearance && xtermOptions(this.appearance)),
+    })
     this.fit = new xterm.FitAddon()
     term.loadAddon(this.fit)
     term.onData((data) => this.connection?.input(data))
@@ -181,7 +198,7 @@ export class TerminalSession {
    */
   private openScreen(): void {
     if (!this.term || this.opened || !this.host.isConnected) return
-    this.term.open(this.host)
+    this.term.open(this.screen)
     this.opened = true
   }
 

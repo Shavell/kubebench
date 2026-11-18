@@ -5,7 +5,9 @@
  * `offsetWidth`, `scrollTop` and friends are in the page's own CSS pixels,
  * which are `zoom` viewport pixels each. Code that mixes the two converts
  * with these helpers. (Monaco divides by the zoom of the elements between
- * it and the root, which is why it is set on <body>, not <html>.)
+ * it and the root, which is why it is set on <body>, not <html>. xterm.js
+ * does not, so the terminal cancels the zoom on its screen and scales its
+ * font instead.)
  */
 
 /** The interface scale in effect (1 = 100%). */

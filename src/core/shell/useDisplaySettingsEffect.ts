@@ -7,7 +7,9 @@ import { fontStack } from '@/shared/fontFamily'
  * the scale as CSS `zoom` of <body> (everything, dialogs and menus
  * included, scales together; see shared/zoom.ts), the terminal font as the
  * `--terminal-font-*` tokens of the log views. Monaco and xterm.js read
- * their fonts themselves (they paint on canvases).
+ * their fonts themselves (they paint on canvases); xterm.js does not
+ * handle zoom, so its screen cancels the scale and enlarges its font
+ * instead (terminal plugin, TerminalSession).
  */
 export function useDisplaySettingsEffect(): void {
   const { uiScale, terminalFontFamily, terminalFontSize } = useDisplaySettings()

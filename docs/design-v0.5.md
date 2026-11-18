@@ -867,7 +867,10 @@ pixels converts through `shared/zoom.ts`), editor and terminal font
 family (a CSS family list, validated, put ahead of `--font-mono`) and
 size (the terminal size defaults to the browser-wide `terminalFontSize`
 of v0.6). Monaco re-measures its fonts on a change; xterm.js gets the
-family and size through `setAppearance`; log views use
+family and size through `setAppearance`. xterm.js maps pointer positions
+to cells without regard to zoom, so the element it opens into cancels the
+scale (`zoom: 1/scale`) and its font size is multiplied by the scale
+instead (`terminal/shell/scale.ts`); log views use
 `--terminal-font-family`/`--terminal-font-size`.
 
 ### 6.8 External (runtime) plugins
