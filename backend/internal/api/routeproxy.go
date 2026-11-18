@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -33,10 +34,14 @@ type openShiftRoute struct {
 
 // routeServicePort is the port of svc a Route's targetPort selects, the
 // way the OpenShift router picks endpoints: a name is a Service port name
-// (or, failing that, a named targetPort), a number the Service port's
-// targetPort (or, failing that, its port). Without a targetPort the router
-// uses every port; the browser takes the first. "" when none matches.
-func routeServicePort(svc *corev1.Service, target *intstr.IntOrString) string {
+// (or, failing that, a named targetPort); a number is an endpoint's port,
+// so the Service port whose numeric targetPort it is, else the Service
+// port whose endpoints listen on it (a named targetPort resolved to that
+// container port; endpoints lists the Service's EndpointSlices and is
+// called only then), else, as a last resort, the Service port itself.
+// Without a targetPort the router uses every port; the browser takes the
+// first. "" when none matches.
+func routeServicePort(svc *corev1.Service, target *intstr.IntOrString, endpoints func() []discoveryv1.EndpointSlice) string {
 	ports := svc.Spec.Ports
 	if len(ports) == 0 {
 		return ""
@@ -47,30 +52,53 @@ func routeServicePort(svc *corev1.Service, target *intstr.IntOrString) string {
 		}
 		return strconv.Itoa(int(p.Port))
 	}
-	if target == nil || (target.Type == intstr.String && target.StrVal == "") || (target.Type == intstr.Int && target.IntVal == 0) {
-		return portOf(ports[0])
-	}
-	for _, match := range []func(corev1.ServicePort) bool{
-		func(p corev1.ServicePort) bool {
-			if target.Type == intstr.String {
-				return p.Name == target.StrVal
-			}
-			return p.TargetPort.Type == intstr.Int && p.TargetPort.IntVal == target.IntVal
-		},
-		func(p corev1.ServicePort) bool {
-			if target.Type == intstr.String {
-				return p.TargetPort.Type == intstr.String && p.TargetPort.StrVal == target.StrVal
-			}
-			return p.Port == target.IntVal
-		},
-	} {
+	find := func(match func(corev1.ServicePort) bool) string {
 		for _, p := range ports {
 			if match(p) {
 				return portOf(p)
 			}
 		}
+		return ""
 	}
-	return ""
+	switch {
+	case target == nil || (target.Type == intstr.String && target.StrVal == "") || (target.Type == intstr.Int && target.IntVal == 0):
+		return portOf(ports[0])
+	case target.Type == intstr.String:
+		if port := find(func(p corev1.ServicePort) bool { return p.Name == target.StrVal }); port != "" {
+			return port
+		}
+		return find(func(p corev1.ServicePort) bool {
+			return p.TargetPort.Type == intstr.String && p.TargetPort.StrVal == target.StrVal
+		})
+	}
+	if port := find(func(p corev1.ServicePort) bool {
+		return p.TargetPort.Type == intstr.Int && p.TargetPort.IntVal == target.IntVal
+	}); port != "" {
+		return port
+	}
+	if name, ok := endpointPortName(endpoints(), target.IntVal); ok {
+		if port := find(func(p corev1.ServicePort) bool { return p.Name == name }); port != "" {
+			return port
+		}
+	}
+	return find(func(p corev1.ServicePort) bool { return p.Port == target.IntVal })
+}
+
+// endpointPortName is the name of the endpoint port numbered port in
+// slices: the name of the Service port it serves ("" for a Service's only,
+// unnamed port).
+func endpointPortName(slices []discoveryv1.EndpointSlice, port int32) (string, bool) {
+	for _, slice := range slices {
+		for _, p := range slice.Ports {
+			if p.Port != nil && *p.Port == port {
+				if p.Name == nil {
+					return "", true
+				}
+				return *p.Name, true
+			}
+		}
+	}
+	return "", false
 }
 
 // handleOpenRouteProxy opens a grant for the Service port behind an
@@ -115,7 +143,16 @@ func (s *Server) handleOpenRouteProxy(w http.ResponseWriter, r *http.Request, c 
 	if route.Spec.Port != nil {
 		target = &route.Spec.Port.TargetPort
 	}
-	port := routeServicePort(svc, target)
+	endpoints := func() []discoveryv1.EndpointSlice {
+		// Without readable EndpointSlices the Service's own ports decide.
+		list, err := c.rt.CS.DiscoveryV1().EndpointSlices(ns).List(r.Context(),
+			metav1.ListOptions{LabelSelector: discoveryv1.LabelServiceName + "=" + svc.Name})
+		if err != nil {
+			return nil
+		}
+		return list.Items
+	}
+	port := routeServicePort(svc, target, endpoints)
 	if port == "" {
 		wanted := ""
 		if target != nil {

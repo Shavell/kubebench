@@ -2183,8 +2183,11 @@ cluster serves the API group, so other clusters see no change.
 detail `{"scheme","host","path","service","readOnly"?}`) opens a grant for
 the Service port behind a Route, read through the dynamic client: the
 targetPort as the router resolves it (a name is a Service port name, then
-a named target port; a number the Service port's target port, then its
-port; none: the first port), the Route's host as the grant's `host`. A
+a named target port; a number is an endpoint port: the Service port's
+numeric target port, then the Service port whose EndpointSlice ports
+(label `kubernetes.io/service-name`) have that number, e.g. a container
+port behind a named target port, then the Service port itself; none: the
+first port), the Route's host as the grant's `host`. A
 Route to something other than a Service (`proxy.route_not_service`) or
 without a matching port (`proxy.route_no_port`) is `400`. The router
 itself (TLS termination, rewrites) is not involved. "Open in browser" on

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -39,6 +40,12 @@ func TestRouteServicePort(t *testing.T) {
 		{Name: "metrics", Port: 9090, TargetPort: intstr.FromString("prom")},
 		{Port: 443, TargetPort: intstr.FromInt32(8443)},
 	}}}
+	// The metrics port's named targetPort "prom" is container port 9100.
+	endpoints := func() []discoveryv1.EndpointSlice {
+		return []discoveryv1.EndpointSlice{{Ports: []discoveryv1.EndpointPort{
+			{Name: ptr("http"), Port: ptr(int32(8080))}, {Name: ptr("metrics"), Port: ptr(int32(9100))},
+		}}}
+	}
 	str, num := intstr.FromString, intstr.FromInt32
 	tests := []struct {
 		name   string
@@ -49,12 +56,14 @@ func TestRouteServicePort(t *testing.T) {
 		{"service port name", ptr(str("metrics")), "metrics"},
 		{"named targetPort", ptr(str("prom")), "metrics"},
 		{"number is the targetPort", ptr(num(8443)), "443"},
+		{"number is an endpoint port behind a named targetPort", ptr(num(9100)), "metrics"},
 		{"number falls back to the port", ptr(num(9090)), "metrics"},
 		{"no match", ptr(str("grpc")), ""},
+		{"no numeric match", ptr(num(7000)), ""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := routeServicePort(svc, tt.target); got != tt.want {
+			if got := routeServicePort(svc, tt.target, endpoints); got != tt.want {
 				t.Fatalf("routeServicePort = %q, want %q", got, tt.want)
 			}
 		})
@@ -108,6 +117,44 @@ func TestOpenRouteProxy(t *testing.T) {
 	if d := rows[0].Detail; rows[0].Status != http.StatusOK || !strings.Contains(d, `"service":"web:http"`) ||
 		!strings.Contains(d, `"host":"web-default.apps.example.com"`) {
 		t.Fatalf("grant row = %+v", rows[0])
+	}
+}
+
+// A Route whose numeric targetPort is the container port behind a named
+// Service targetPort opens like the router serves it: by the endpoint
+// port, read from the Service's EndpointSlices.
+func TestOpenRouteProxyByEndpointPort(t *testing.T) {
+	e, _ := proxyEnv(t, nil)
+	ctx := context.Background()
+	if _, err := e.cs.CoreV1().Services("default").Create(ctx, &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{Name: "kb", Namespace: "default"},
+		Spec:       corev1.ServiceSpec{Ports: []corev1.ServicePort{{Name: "http", Port: 80, TargetPort: intstr.FromString("http")}}},
+	}, metav1.CreateOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	for _, slice := range []discoveryv1.EndpointSlice{
+		{ObjectMeta: metav1.ObjectMeta{Name: "kb-x1", Namespace: "default", Labels: map[string]string{discoveryv1.LabelServiceName: "kb"}},
+			Ports: []discoveryv1.EndpointPort{{Name: ptr("http"), Port: ptr(int32(9876))}}},
+		// Another Service's slice with the same port number does not count.
+		{ObjectMeta: metav1.ObjectMeta{Name: "web-x1", Namespace: "default", Labels: map[string]string{discoveryv1.LabelServiceName: "web"}},
+			Ports: []discoveryv1.EndpointPort{{Name: ptr("metrics"), Port: ptr(int32(9000))}}},
+	} {
+		if _, err := e.cs.DiscoveryV1().EndpointSlices("default").Create(ctx, &slice, metav1.CreateOptions{}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	e.createRoute("num", map[string]any{"host": "kb.apps.example.com", "to": map[string]any{"kind": "Service", "name": "kb"},
+		"port": map[string]any{"targetPort": int64(9876)}})
+	e.createRoute("foreign", map[string]any{"host": "kb2.apps.example.com", "to": map[string]any{"kind": "Service", "name": "kb"},
+		"port": map[string]any{"targetPort": int64(9000)}})
+
+	if s := e.openProxy("alice", "/api/proxy/routes/default/num"); s.Target.Name != "kb" || s.Target.Port != "http" {
+		t.Fatalf("session = %+v", s)
+	}
+	body := decode[plugin.ErrorBody](t, expectRec(t, e.do(http.MethodPost, "/api/proxy/routes/default/foreign", "alice", nil),
+		http.StatusBadRequest, plugin.CodeBadRequest))
+	if body.Reason != "proxy.route_no_port" || body.Params["port"] != "9000" {
+		t.Fatalf("a port of another Service's endpoints: %+v", body)
 	}
 }
 
