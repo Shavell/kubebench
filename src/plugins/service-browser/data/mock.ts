@@ -2,7 +2,9 @@ import { currentPermissions } from '@/core/permissions'
 import { ApiError } from '@/data/apiClient'
 import { delay, delayReject } from '@/data/mock/delay'
 import { pods, services } from '@/data/mock/mockCluster'
+import { genericMock } from '@/data/mock/mockGeneric'
 import { translate } from '../i18n'
+import { ingressRoutes } from '../model/ingress'
 import { parsePortList, targetAddress } from '../model/ports'
 import type { ServiceBrowserProvider } from './provider'
 import type { ProxySession } from './types'
@@ -39,6 +41,10 @@ export function createMockServiceBrowser(): ServiceBrowserProvider {
       const pod = pods.find((p) => p.namespace === namespace && p.name === name)
       if (!pod) return notFound(`${namespace}/${name}`)
       return delay(pod.containers.flatMap((c) => (c.ports ? parsePortList(c.ports) : [])))
+    },
+    listIngressRoutes: (namespace, name) => {
+      const ingress = (genericMock.ingresses ?? []).find((i) => i.metadata?.namespace === namespace && i.metadata?.name === name)
+      return ingress ? delay(ingressRoutes(ingress)) : notFound(`${namespace}/${name}`)
     },
     open: (target) => {
       opened += 1

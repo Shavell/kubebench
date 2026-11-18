@@ -95,6 +95,7 @@ func (s *Server) routes() {
 	// requests authorize with the grant's token in their URL.
 	s.handle("POST /api/proxy/services/{ns}/{name}/{port}", accessBrowse, s.handleOpenProxy(svcproxy.KindService))
 	s.handle("POST /api/proxy/pods/{ns}/{name}/{port}", accessBrowse, s.handleOpenProxy(svcproxy.KindPod))
+	s.handle("POST /api/proxy/ingresses/{ns}/{name}", accessBrowse, s.handleOpenIngressProxy)
 	s.handle("GET /api/proxy/sessions/{token}", accessAuthed, s.handleProxySession)
 	s.handle("DELETE /api/proxy/sessions/{token}", accessAuthed, s.handleCloseProxySession)
 	s.handle("GET /proxy/{token}", accessPublic, s.handleProxyRoot)
@@ -120,6 +121,7 @@ var auditKinds = map[string]string{
 	// Service browser (§7.14).
 	"POST /api/proxy/services/{ns}/{name}/{port}": "service",
 	"POST /api/proxy/pods/{ns}/{name}/{port}":     "pod",
+	"POST /api/proxy/ingresses/{ns}/{name}":       "ingress",
 }
 
 // auditActions names the audit action of routes that record a named action
@@ -130,4 +132,5 @@ var auditActions = map[string]string{
 	// A browsing session, not each request it makes (§7.14).
 	"POST /api/proxy/services/{ns}/{name}/{port}": "service.proxy",
 	"POST /api/proxy/pods/{ns}/{name}/{port}":     "pod.proxy",
+	"POST /api/proxy/ingresses/{ns}/{name}":       "ingress.proxy",
 }

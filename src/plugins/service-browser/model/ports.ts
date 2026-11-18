@@ -74,18 +74,26 @@ export function portLabel(port: BrowserPort): string {
 }
 
 /**
- * The in-cluster address of a target, as the address bar shows it: a
- * Service by its DNS name (`http://web.shop:80`), a Pod by name.
+ * The address of a target, as the address bar shows it: a Service by its
+ * in-cluster DNS name (`http://web.shop:80`), a Pod by name; opened
+ * through an Ingress, the rule's host (`https://shop.example.com`, https
+ * when the Ingress terminates TLS for it) unless it has none or a
+ * wildcard one.
  */
 export function targetAddress(target: BrowserTarget): string {
+  const route = target.ingress
+  if (route && route.host !== '' && !route.host.startsWith('*.')) {
+    return `${route.tls ? 'https' : 'http'}://${route.host}`
+  }
   const host = target.kind === 'services' ? `${target.name}.${target.namespace}` : target.name
   return `${target.scheme}://${host}:${target.port}`
 }
 
 /** The API kind (resource) of a Kubernetes kind the browser opens. */
-export function browserKind(kind: string): BrowserKind | null {
+export function browserKind(kind: string): BrowserKind | 'ingresses' | null {
   if (kind === 'Service') return 'services'
   if (kind === 'Pod') return 'pods'
+  if (kind === 'Ingress') return 'ingresses'
   return null
 }
 

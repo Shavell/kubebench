@@ -213,7 +213,7 @@ action TEXT, target TEXT, status INTEGER, detail TEXT)`.
 Written automatically by the router for `write`/`exec`/admin mutations:
 `action` = `"<METHOD> <route pattern>"` (e.g. `POST /api/deployments/scale`)
 or an explicit action name for plugins/websockets (`exec.session`;
-`service.proxy` and `pod.proxy`, §7.14),
+`service.proxy`, `pod.proxy` and `ingress.proxy`, §7.14),
 `target` = `<kind>/<ns>/<name>` style string from query/path values,
 `status` = HTTP status, `detail` = short JSON (e.g. `{"replicas":3}`) or
 error text. Pruned per `KUBEBENCH_AUDIT_RETENTION_DAYS`.
@@ -1771,6 +1771,19 @@ admin or operator, whatever the read-only flag.
   (`400`). Audited **once per grant** as `service.proxy` / `pod.proxy`,
   target `service/<ns>/<name>:<port>`, detail `{"scheme","readOnly"?}`;
   refusals (viewer: `403 forbidden_role`) are audited like every refusal.
+- `POST /api/proxy/ingresses/{ns}/{name}?host=&path=&scheme=` (browse,
+  v0.7) opens a grant for the **Service port behind one Ingress route**:
+  the rule with exactly that host and path (both empty: the default
+  backend; resource backends `400`, an unknown route `400`), checked like
+  a Service grant. The grant's target gets `host`, the rule's host (none
+  for a wildcard host), which the proxy sends as the `Host` header; the
+  API server's service proxy passes it on, so virtual-hosted applications
+  answer as behind their Ingress. Absolute redirects and HTML links
+  naming that host (`http(s)://host/…`, `//host/…`) are mapped below the
+  grant like the API server's. Path rewriting by the ingress controller
+  (annotations, middlewares) does not apply: the Service is reached
+  directly. Audited once as `ingress.proxy`, target `ingress/<ns>/<name>`,
+  detail `{"scheme","host","path","service","readOnly"?}`.
 - `GET` / `DELETE /api/proxy/sessions/{token}` (authed; only the session
   that opened the grant, else `404 not_found`): the grant with its latest
   16 `navigations` `[{seq, location}]`, oldest first: every frame document
@@ -1894,8 +1907,14 @@ from each other (per-application subdomains are a possible follow-up).
   waits for them. Limitation: a nested frame that navigates on its own
   between two loads of the frame (a link inside a widget) is taken for the
   page at the next load.
-- Ingress: not in this version (follow-up: resolve a rule's backend
-  Service and open its path).
+- Ingress (v0.7): "Open in browser" on `Ingress` rows and detail pages
+  opens tab props `{kind: 'ingresses', namespace, name}`; the tab lists the
+  Ingress's routes (every rule path, then the default backend, Service
+  backends only: `model/ingress.ts`, the server's order) in a route picker
+  (`host/path → service:port`) instead of the port picker, guesses the
+  scheme from the Service port, starts at the rule's path (`/` for a
+  regular expression) and shows the rule's host as the address
+  (`https://` when the Ingress lists it under `tls`).
 - Mock: ports from the mock dataset; the frame shows a deterministic
   placeholder page (`srcdoc`) naming the address and path; "open in a new
   tab" is disabled.

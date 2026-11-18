@@ -115,8 +115,11 @@ interfaces of in-cluster applications that trust it, so:
   upgrades are refused: a web terminal or database console sends its
   commands over a WebSocket, which no method rule sees.
 - **Audit.** Opening a page writes one row, `service.proxy` (or
-  `pod.proxy`) with target `service/<ns>/<name>:<port>`; the requests the
-  page then makes are not recorded one by one.
+  `pod.proxy`, or `ingress.proxy` with target `ingress/<ns>/<name>` and
+  the rule's host, path and Service) with target
+  `service/<ns>/<name>:<port>`; the requests the page then makes are not
+  recorded one by one. An Ingress page gets the rule's host as its `Host`
+  header and nothing else from the Ingress: it is the same Service grant.
 - **Credential.** Opening returns a grant: 256 random bits in the URL,
   `/proxy/<token>/…`. Proxied requests are authorized by that token alone,
   never by the session cookie; each one checks again that the session that

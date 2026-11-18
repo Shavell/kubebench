@@ -1,7 +1,7 @@
 {
   "manifest": {
     "name": "Service Browser",
-    "description": "Opens the web interface of a Service or Pod in a browser next to the editor, through KubeBench's proxy, isolated from KubeBench."
+    "description": "Opens the web interface of a Service, Pod or Ingress in a browser next to the editor, through KubeBench's proxy, isolated from KubeBench."
   },
   "resourceActions": {
     "open": "Open in browser"
@@ -24,7 +24,8 @@
     "port": "Port",
     "scheme": "Scheme",
     "newTab": "Open in a new browser tab",
-    "newTabDemo": "Not available in demo mode"
+    "newTabDemo": "Not available in demo mode",
+    "route": "Ingress route"
   },
   "frame": {
     "title": "Page of {{address}}"
@@ -39,5 +40,13 @@
     "title": "Demo page",
     "body": "Demo mode has no cluster to connect to. With a live cluster this tab shows the service's own web interface.",
     "notFound": "{{what}} was not found"
+  },
+  "ingress": {
+    "loading": "Reading the Ingress…",
+    "noRoutes": "No route to a Service",
+    "noRoutesHint": "The Ingress has no rule or default backend that leads to a Service port, so there is nothing a browser can show.",
+    "route": "{{from}} → {{service}}:{{port}}",
+    "defaultBackend": "Default backend",
+    "via": "{{address}}, reached through Service {{service}} with the rule's host. Path rewrites of the ingress controller do not apply."
   }
 }

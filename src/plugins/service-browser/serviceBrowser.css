@@ -81,6 +81,9 @@
   width: auto;
   max-width: 140px;
 }
+.sb-select--route {
+  max-width: 280px;
+}
 
 .sb-notice {
   display: flex;

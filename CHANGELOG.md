@@ -25,6 +25,9 @@ those commits.
 - **Notes live updates**: other users' changes to shared notes, and your
   own changes in another tab, appear at once instead of when the window
   regains focus. Personal notes are announced to their owner only.
+- **Open an Ingress in the service browser**: "Open in browser" on an
+  Ingress picks one of its rules (host and path) and shows the Service
+  behind it, sending the rule's host, so virtual-hosted applications work.
 
 ## [0.6.0] - 2026-11-18
 

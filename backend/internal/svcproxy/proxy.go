@@ -84,7 +84,9 @@ func Serve(w http.ResponseWriter, r *http.Request, req Request) {
 		FlushInterval: 50 * time.Millisecond,
 		Rewrite: func(pr *httputil.ProxyRequest) {
 			pr.Out.URL = upstreamURL(req.APIServer, req.Grant.Target, req.Path, r.URL.RawQuery)
-			pr.Out.Host = ""
+			// The API server's proxy passes the Host header on to the
+			// backend: an Ingress rule's host, or the API server's own.
+			pr.Out.Host = req.Grant.Target.Host
 			filterRequestHeaders(pr.Out.Header, req.SessionCookie)
 		},
 		ModifyResponse: func(resp *http.Response) error {

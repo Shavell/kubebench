@@ -1,7 +1,7 @@
 {
   "manifest": {
     "name": "Service-Browser",
-    "description": "Öffnet die Weboberfläche eines Service oder Pod in einem Browser neben dem Editor, über den Proxy von KubeBench und von KubeBench isoliert."
+    "description": "Öffnet die Weboberfläche eines Service, Pod oder Ingress in einem Browser neben dem Editor, über den Proxy von KubeBench und von KubeBench isoliert."
   },
   "resourceActions": {
     "open": "Im Browser öffnen"
@@ -24,7 +24,8 @@
     "port": "Port",
     "scheme": "Schema",
     "newTab": "In einem neuen Browser-Tab öffnen",
-    "newTabDemo": "Im Demo-Modus nicht verfügbar"
+    "newTabDemo": "Im Demo-Modus nicht verfügbar",
+    "route": "Ingress-Route"
   },
   "frame": {
     "title": "Seite von {{address}}"
@@ -39,5 +40,13 @@
     "title": "Demo-Seite",
     "body": "Im Demo-Modus gibt es keinen Cluster, mit dem verbunden werden kann. Mit einem echten Cluster zeigt dieser Tab die Weboberfläche des Service.",
     "notFound": "{{what}} wurde nicht gefunden"
+  },
+  "ingress": {
+    "loading": "Ingress wird gelesen…",
+    "noRoutes": "Keine Route zu einem Service",
+    "noRoutesHint": "Das Ingress hat keine Regel und kein Standard-Backend, die zu einem Service-Port führen, ein Browser kann also nichts anzeigen.",
+    "route": "{{from}} → {{service}}:{{port}}",
+    "defaultBackend": "Standard-Backend",
+    "via": "{{address}}, erreicht über den Service {{service}} mit dem Host der Regel. Pfadumschreibungen des Ingress-Controllers gelten nicht."
   }
 }
