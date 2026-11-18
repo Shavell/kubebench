@@ -1,51 +1,10 @@
 import { useEffect, useLayoutEffect, useRef } from 'react'
-import { create } from 'zustand'
 import clsx from 'clsx'
 import { Icon } from './Icon'
+import { useContextMenuStore } from './contextMenu'
 import './contextMenu.css'
 
 const ITEM_SELECTOR = '.ctx-menu__item:not(:disabled)'
-
-export type ContextMenuItem =
-  | {
-      type?: 'item'
-      label: string
-      icon?: string
-      danger?: boolean
-      disabled?: boolean
-      /** Tooltip, e.g. why a disabled item cannot be used. */
-      title?: string
-      onClick: () => void
-    }
-  | { type: 'separator' }
-
-interface ContextMenuState {
-  open: boolean
-  x: number
-  y: number
-  items: ContextMenuItem[]
-  close: () => void
-}
-
-const useContextMenuStore = create<ContextMenuState>((set) => ({
-  open: false,
-  x: 0,
-  y: 0,
-  items: [],
-  close: () => set({ open: false }),
-}))
-
-/**
- * Open a custom context menu at the mouse position. Call from any
- * onContextMenu handler:
- *
- *   onContextMenu={(e) => showContextMenu(e, [{label: "Close", onClick: ...}])}
- */
-export function showContextMenu(e: React.MouseEvent, items: ContextMenuItem[]): void {
-  e.preventDefault()
-  e.stopPropagation()
-  useContextMenuStore.setState({ open: true, x: e.clientX, y: e.clientY, items })
-}
 
 /** Mounted once by the shell; renders the currently open menu, if any. */
 export function ContextMenuHost() {

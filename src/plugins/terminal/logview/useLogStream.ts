@@ -55,6 +55,16 @@ export function useLogStream(params: LogStreamParams): LogStreamState {
   const seq = useRef(0)
   const key = JSON.stringify(params)
 
+  // A new stream (other params, a reconnect or other providers) starts from
+  // an empty view; reset while rendering, before the effect opens it.
+  const [streamOf, setStreamOf] = useState({ providers, key, generation })
+  if (streamOf.providers !== providers || streamOf.key !== key || streamOf.generation !== generation) {
+    setStreamOf({ providers, key, generation })
+    setEntries([])
+    setSources({ containers: [], matched: 0 })
+    setStatus({ state: 'connecting' })
+  }
+
   useEffect(() => {
     const request = JSON.parse(key) as LogStreamParams
     const prefixed = Boolean(request.selector)
@@ -68,9 +78,6 @@ export function useLogStream(params: LogStreamParams): LogStreamState {
     let attempt = 0
     let pending: LogEntry[] = []
     let frame = 0
-
-    setEntries([])
-    setSources({ containers: [], matched: 0 })
 
     const flush = () => {
       frame = 0
@@ -89,7 +96,8 @@ export function useLogStream(params: LogStreamParams): LogStreamState {
     }
 
     const connect = (resume: boolean) => {
-      setStatus({ state: 'connecting' })
+      // The first connect starts from the 'connecting' state set on render.
+      if (resume) setStatus({ state: 'connecting' })
       const oldest = Math.min(...lastMillis.values())
       const since =
         resume && Number.isFinite(oldest)

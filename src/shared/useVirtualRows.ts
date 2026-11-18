@@ -103,7 +103,8 @@ export function useVirtualRows(tableRef: RefObject<HTMLTableElement | null>, cou
   const scrollToIndex = useCallback(
     (index: number) => {
       const table = tableRef.current
-      const scroller = container ?? (table ? scrollParent(table) : null)
+      // Looked up again rather than taken from state: state is never written to.
+      const scroller = table ? scrollParent(table) : null
       if (!table || !scroller) return
       const current = measure(table, scroller)
       const row = table.tBodies[0]?.querySelector<HTMLTableRowElement>(`tr[data-row-index="${index}"]`)
@@ -115,7 +116,7 @@ export function useVirtualRows(tableRef: RefObject<HTMLTableElement | null>, cou
       const top = scrollTopFor(index, { ...current, bodyOffset: offset, rowHeight: height }, current.headerHeight)
       if (top !== null) scroller.scrollTop = top
     },
-    [container, rowHeight, tableRef],
+    [rowHeight, tableRef],
   )
 
   return { range, windowed, rowHeight, scrollToIndex }

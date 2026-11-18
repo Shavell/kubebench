@@ -48,15 +48,16 @@ export function EventsListPage({ tab }: { tab: TabDescriptor }) {
 
   const nsFilter = listNamespace(localNs, globalNamespace)
   const { data: namespaces } = useProviderQuery((p) => p.cluster.listNamespaces(), [], { topics: ['namespaces'] })
-  const query = useProviderQuery((p) => p.cluster.listResource(KEY, nsFilter), [nsFilter], {
-    topics: [KEY],
-    namespace: nsFilter,
-  })
-
   // Ages are relative to when the list was read.
+  const query = useProviderQuery(
+    async (p) => ({ items: await p.cluster.listResource(KEY, nsFilter), readAt: Date.now() }),
+    [nsFilter],
+    { topics: [KEY], namespace: nsFilter },
+  )
+
   const all = useMemo(() => {
-    const now = Date.now()
-    return (query.data ?? []).map((o) => toEventRow(o, now)).sort(byLastSeen)
+    const read = query.data
+    return read ? read.items.map((o) => toEventRow(o, read.readAt)).sort(byLastSeen) : []
   }, [query.data])
 
   const label = resourceLabel(KEY)

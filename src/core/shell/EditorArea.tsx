@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { registry } from '@/core/plugin/registry'
 import { useRegistryRevision } from '@/core/plugin/useRegistry'
 import { useLayoutStore } from '@/core/store/layoutStore'
+import { TabContent } from './TabContent'
 import { TabStrip } from './TabStrip'
 import { Icon } from '@/shared/Icon'
 import './EditorArea.css'
@@ -14,15 +15,14 @@ export function EditorArea() {
   const activeTabId = useLayoutStore((s) => s.activeTabId)
 
   const activeTab = tabs.find((x) => x.id === activeTabId) ?? null
-  const Renderer = activeTab ? registry.tabRenderer(activeTab.kind) : null
 
   return (
     <div className="editor-area">
       {tabs.length > 0 && <TabStrip />}
       <div className="editor-area__body">
-        {activeTab && Renderer ? (
+        {activeTab && registry.tabRenderer(activeTab.kind) ? (
           // Keyed by tab: two tabs of one kind (Pods, Pods · shop) keep no state of each other.
-          <Renderer key={activeTab.id} tab={activeTab} />
+          <TabContent key={activeTab.id} tab={activeTab} />
         ) : (
           <div className="editor-area__watermark">
             <Icon name="dashboard" size={72} />
