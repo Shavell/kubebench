@@ -36,7 +36,10 @@ those commits.
   domains admit only addresses the provider marks verified. Sign-ins in
   progress are kept in the browser, sealed by the server, so a flood of
   started sign-ins cannot break other users' sign-ins, and callbacks that
-  never reached the provider do not count against the login limit.
+  never reached the provider do not count against the login limit. An
+  external username that differs from an existing account's only in case
+  (`Admin` next to the local `admin`) is refused, and new local users
+  cannot be such a variant either.
 - Sign-in with an LDAP directory or Active Directory: the sign-in screen
   offers the directory next to SSO and local accounts; users sign in as
   `user`, `DOMAIN\user` or `user@domain`, over LDAPS or StartTLS with a

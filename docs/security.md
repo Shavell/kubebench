@@ -154,7 +154,10 @@ provider, and with `KUBEBENCH_LDAP_*` with their directory account
   membership at the provider controls KubeBench admin rights.
 - **No takeover.** An external sign-in never adopts an existing account:
   a username that belongs to a local user (or another provider's user) is
-  refused. External users have no local password.
+  refused, compared ignoring case, so an external `Admin` cannot appear
+  next to the local `admin` in the Users list and the audit log. New local
+  users cannot differ from an existing name only in case either. External
+  users have no local password.
 - **Break-glass.** The last local admin cannot be deleted or demoted, so
   local sign-in keeps working when the provider is unavailable. Keep that
   password in your secret store and use it only in emergencies (its

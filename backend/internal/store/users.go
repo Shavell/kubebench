@@ -65,17 +65,29 @@ func (s *Store) CountUsers() (int, error) {
 	return n, err
 }
 
+// CreateUser adds a local user. A name that differs from an existing one
+// only in case is taken too (ErrConflict), so no two accounts can pass for
+// each other in the Users list and the audit log.
 func (s *Store) CreateUser(username, password, role string, mustChangePassword bool) (int64, error) {
 	hash, err := hashPassword(password)
 	if err != nil {
 		return 0, err
 	}
 	res, err := s.db.Exec(
-		`INSERT INTO users (username, password_hash, role, must_change_password) VALUES (?, ?, ?, ?)`,
-		username, hash, role, boolInt(mustChangePassword),
+		`INSERT INTO users (username, password_hash, role, must_change_password)
+		 SELECT ?, ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = ? COLLATE NOCASE)`,
+		username, hash, role, boolInt(mustChangePassword), username,
 	)
+	params := reason.Params{"name": username}
 	if err != nil {
-		return 0, conflictErr(err, reasonUserExists, reason.Params{"name": username})
+		return 0, conflictErr(err, reasonUserExists, params)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	if n == 0 {
+		return 0, reason.Wrap(ErrConflict, reasonUserExists, params)
 	}
 	return res.LastInsertId()
 }

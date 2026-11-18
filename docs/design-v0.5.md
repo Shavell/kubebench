@@ -343,8 +343,12 @@ the groups of their last sign-in and no password: local sign-in, password
 changes and resets refuse them. They are created just in time at their
 first sign-in and matched by `(source, subject)` afterwards (a renamed
 user keeps their account). A username already used by another account (a
-local user, another source or subject) refuses the sign-in
-(`username_conflict`): external sign-ins never take over an account.
+local user, another source or subject), compared ignoring ASCII case,
+refuses the sign-in (`username_conflict`): external sign-ins never take
+over an account nor appear beside it as a case variant (`Admin` next to
+the local `admin`). Creating a local user whose name differs from an
+existing one only in case is a `409` too. The preview looks names up the
+same way.
 
 **Group mappings** (`auth_group_mappings`, schema v7): `{group, source, role,
 cluster}` — `role` `admin` (global, no cluster) or `viewer`/`operator` on a

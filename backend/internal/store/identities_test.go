@@ -73,6 +73,40 @@ func TestSignInExternalNeverTakesOverAnAccount(t *testing.T) {
 	}
 }
 
+// Usernames that differ only in case name the same account: an external
+// "Admin" never appears next to the local "admin", and no new local
+// account can be created as a case variant of another.
+func TestUsernamesConflictIgnoringCase(t *testing.T) {
+	s, _ := openTemp(t)
+	if _, err := s.CreateUser("admin", "password-1", RoleAdmin, false); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"Admin", "ADMIN"} {
+		if _, err := s.SignInExternal(ExternalAccount{Source: UserSourceOIDC, Subject: "x", Username: name, Role: RoleAdmin}); !errors.Is(err, ErrUsernameTaken) {
+			t.Fatalf("external %q: %v", name, err)
+		}
+		if _, err := s.CreateUser(name, "password-1", RoleUser, false); !errors.Is(err, ErrConflict) {
+			t.Fatalf("local %q: %v", name, err)
+		}
+	}
+	// An external account whose provider changes the case of its name
+	// keeps its account.
+	carol, err := s.SignInExternal(ExternalAccount{Source: UserSourceOIDC, Subject: "c", Username: "carol", Role: RoleUser})
+	if err != nil {
+		t.Fatal(err)
+	}
+	again, err := s.SignInExternal(ExternalAccount{Source: UserSourceOIDC, Subject: "c", Username: "Carol", Role: RoleUser})
+	if err != nil || again.ID != carol.ID || again.Username != "Carol" {
+		t.Fatalf("renamed = %+v, %v", again, err)
+	}
+	if u, err := s.UserByUsername("ADMIN"); err != nil || u.Username != "admin" {
+		t.Fatalf("UserByUsername = %+v, %v", u, err)
+	}
+	if u, err := s.ExternalUserByUsername("CAROL"); err != nil || u.ID != carol.ID {
+		t.Fatalf("ExternalUserByUsername = %+v, %v", u, err)
+	}
+}
+
 func TestExternalUsersHaveNoPassword(t *testing.T) {
 	s, _ := openTemp(t)
 	if _, err := s.SignInExternal(ExternalAccount{Source: UserSourceLDAP, Subject: "cn=a", Username: "alice", Role: RoleUser}); err != nil {

@@ -9,8 +9,10 @@ import (
 )
 
 // ErrUsernameTaken refuses an external sign-in whose username belongs to
-// another account: a local user, or a user of another source or subject.
-// External accounts never take over an existing one (§3.6).
+// another account, ignoring case: a local user, or a user of another source
+// or subject. External accounts never take over an existing one (§3.6),
+// nor sit next to it under a case variant of its name ("Admin" beside the
+// local "admin").
 var ErrUsernameTaken = errors.New("the username belongs to another account")
 
 // ExternalAccount is a user of an identity provider as of one sign-in,
@@ -40,7 +42,7 @@ type ExternalUser struct {
 // replaces its global role and cluster assignments with the ones its
 // groups grant: mappings win over manual edits for such users. Accounts
 // are matched by source and subject; a username already used by another
-// account fails with ErrUsernameTaken.
+// account, in any case, fails with ErrUsernameTaken.
 func (s *Store) SignInExternal(a ExternalAccount) (*User, error) {
 	if !ValidExternalSource(a.Source) || a.Subject == "" || a.Username == "" {
 		return nil, fmt.Errorf("invalid external account %s/%q", a.Source, a.Subject)
@@ -59,17 +61,19 @@ func (s *Store) SignInExternal(a ExternalAccount) (*User, error) {
 	}
 	var id int64
 	err = s.withTx(func(tx *sql.Tx) error {
-		var owner int64
-		err := tx.QueryRow(`SELECT id FROM users WHERE username = ?`, a.Username).Scan(&owner)
+		err := tx.QueryRow(`SELECT id FROM users WHERE source = ? AND external_id = ?`, a.Source, a.Subject).Scan(&id)
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return err
 		}
-		err = tx.QueryRow(`SELECT id FROM users WHERE source = ? AND external_id = ?`, a.Source, a.Subject).Scan(&id)
-		switch {
-		case errors.Is(err, sql.ErrNoRows):
-			if owner != 0 {
-				return ErrUsernameTaken
-			}
+		var taken bool
+		if err := tx.QueryRow(`SELECT EXISTS (SELECT 1 FROM users WHERE username = ? COLLATE NOCASE AND id != ?)`,
+			a.Username, id).Scan(&taken); err != nil {
+			return err
+		}
+		if taken {
+			return ErrUsernameTaken
+		}
+		if id == 0 {
 			// No password: the empty hash never matches, and Authenticate
 			// refuses external users before comparing.
 			res, err := tx.Exec(
@@ -84,12 +88,7 @@ func (s *Store) SignInExternal(a ExternalAccount) (*User, error) {
 			if id, err = res.LastInsertId(); err != nil {
 				return err
 			}
-		case err != nil:
-			return err
-		default:
-			if owner != 0 && owner != id {
-				return ErrUsernameTaken
-			}
+		} else {
 			_, err := tx.Exec(
 				`UPDATE users SET username = ?, role = ?, display_name = ?, email = ?, external_groups = ?,
 				                  last_sign_in = ?, must_change_password = 0
@@ -128,13 +127,15 @@ func replaceAssignmentsByName(tx *sql.Tx, userID int64, roles map[string]string)
 }
 
 // ExternalUserByUsername returns an external user with the groups of
-// their last sign-in; local users and unknown names yield ErrNotFound.
+// their last sign-in, matching the name ignoring case (an exact match
+// first); local users and unknown names yield ErrNotFound.
 func (s *Store) ExternalUserByUsername(username string) (*ExternalUser, error) {
 	var u ExternalUser
 	var groups string
 	err := s.db.QueryRow(
-		`SELECT `+userColumns+`, external_groups, last_sign_in FROM users WHERE username = ? AND source != 'local'`,
-		username,
+		`SELECT `+userColumns+`, external_groups, last_sign_in FROM users WHERE username = ? COLLATE NOCASE AND source != 'local'
+		 ORDER BY username = ? DESC LIMIT 1`,
+		username, username,
 	).Scan(append(userFields(&u.User), &groups, &u.LastSignIn)...)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
@@ -148,9 +149,12 @@ func (s *Store) ExternalUserByUsername(username string) (*ExternalUser, error) {
 	return &u, nil
 }
 
-// UserByUsername returns any user by name.
+// UserByUsername returns any user by name, ignoring case (an exact match
+// first): the account a sign-in under that name would conflict with.
 func (s *Store) UserByUsername(username string) (*User, error) {
-	return scanUser(s.db.QueryRow(`SELECT `+userColumns+` FROM users WHERE username = ?`, username))
+	return scanUser(s.db.QueryRow(
+		`SELECT `+userColumns+` FROM users WHERE username = ? COLLATE NOCASE ORDER BY username = ? DESC LIMIT 1`,
+		username, username))
 }
 
 // RevokeExternalSessions ends every session of the external user with this

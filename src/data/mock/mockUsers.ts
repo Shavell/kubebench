@@ -124,7 +124,7 @@ export function createMockUsers(): UsersProvider {
       if (passwordLength(password) < MIN_PASSWORD_LENGTH) {
         return delayReject(reasonError(400, 'bad_request', 'password.too_short', { min: MIN_PASSWORD_LENGTH }))
       }
-      if (users.some((u) => u.username === username)) {
+      if (users.some((u) => u.username.toLowerCase() === username.toLowerCase())) {
         return delayReject(reasonError(409, 'conflict', 'users.exists', { name: username }))
       }
       users.push({

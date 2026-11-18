@@ -226,8 +226,9 @@ How external users behave:
 - Without a granting group they sign in and see no cluster, or are refused
   with `KUBEBENCH_AUTH_REQUIRE_GROUP=true`.
 - A username that belongs to another account (a local user, or a user of
-  another provider) is refused; an external sign-in never takes over an
-  account.
+  another provider), in any letter case, is refused; an external sign-in
+  never takes over an account or sits next to it as `Admin` beside the
+  local `admin`.
 - Sessions use the session cookie and `KUBEBENCH_SESSION_TTL`. There is no
   background sync: a user disabled or removed from groups at the provider
   keeps the current session until it expires or they sign in again (a

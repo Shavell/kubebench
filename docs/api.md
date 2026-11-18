@@ -168,7 +168,7 @@ Without a usable cluster, `cluster` is `null` and `clusterError` says why.
 | Method | Path | Level | Parameters | Answer |
 |---|---|---|---|---|
 | GET | `/api/users` | admin | — | `[{"id","username","role","mustChangePassword","clusters":["name"],"assignments":[{"clusterId","cluster","role"}],"source":"local"\|"oidc"\|"ldap","displayName","email"}]` (`AppUser`) |
-| POST | `/api/users` | admin | `{"username","password","role":"admin"\|"user"}` | `{"id"}`; the user must change the password at the first sign-in |
+| POST | `/api/users` | admin | `{"username","password","role":"admin"\|"user"}` | `{"id"}`; the user must change the password at the first sign-in. `409` (`users.exists`) when the name is taken, ignoring case |
 | PATCH | `/api/users/{id}` | admin | `{"role"?, "password"?}` | `{"ok":true}`; a reset sets must-change and ends the user's sessions; external users have no password to reset (`400`), and their role and assignments are replaced at their next sign-in (§3.6) |
 | DELETE | `/api/users/{id}` | admin | — | `{"ok":true}`; not yourself, not the last local admin (`409`): it is the break-glass account |
 | PUT | `/api/users/{id}/clusters` | admin | `{"assignments":[{"clusterId","role":"viewer"\|"operator"}]}` or the v0.4 form `{"clusterIds":[…]}` (operator) | `{"ok":true}` |
