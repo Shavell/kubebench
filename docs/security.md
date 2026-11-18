@@ -98,13 +98,14 @@ data). Rows are pruned after `KUBEBENCH_AUDIT_RETENTION_DAYS` (default 90;
 - Terminals, log streams and watch streams are re-authorized at every
   heartbeat and end when the session, the assignment or the permission
   ends. Per-user limits: 10 terminals, 20 log streams, 16 watch streams.
-- Single sign-on through an OpenID Connect provider (v0.7; see below).
+- Single sign-on through an OpenID Connect provider and sign-in with an
+  LDAP directory or Active Directory (v0.7; see below).
 
-## External identities (OIDC)
+## External identities
 
 With `KUBEBENCH_OIDC_*` set, users can sign in through an OpenID Connect
-provider ([configuration](configuration.md#external-identities-oidc),
-design §3.6):
+provider, and with `KUBEBENCH_LDAP_*` with their directory account
+([configuration](configuration.md#external-identities), design §3.6):
 
 - **Flow.** Authorization code flow with PKCE (S256), `state` bound to the
   browser by an HttpOnly cookie, and `nonce`. The ID token is verified
@@ -114,7 +115,20 @@ design §3.6):
 - **Secrets.** The client secret comes from the environment, a file
   (`KUBEBENCH_OIDC_CLIENT_SECRET_FILE`) or a Kubernetes Secret (chart
   `identity.oidc.existingSecret`). No API returns it (Settings shows only
-  whether it is set), and it is never logged or audited.
+  whether it is set), and it is never logged or audited. The same holds
+  for the LDAP bind password (`KUBEBENCH_LDAP_BIND_PASSWORD_FILE`, chart
+  `identity.ldap.existingSecret`).
+- **Directory sign-in.** The password is checked by binding as the user
+  (KubeBench never sees password hashes); empty passwords are refused
+  before the directory is contacted, since a bind without a password is an
+  unauthenticated bind many directories accept. Login names are escaped in
+  search filters, and a login matching no entry or several entries is
+  refused. Active Directory accounts with the disabled flag are refused.
+  Use `ldaps://` or StartTLS: the bind sends the user's password to the
+  directory. Certificates are verified (add a private CA with
+  `KUBEBENCH_LDAP_CA_FILE`); `KUBEBENCH_LDAP_INSECURE_SKIP_VERIFY` and plain
+  `ldap://` exist for tests and are flagged at startup and in Settings. The
+  service account only needs read access to users and groups.
 - **Roles from groups.** External users get their global role and cluster
   roles from group mappings, re-computed at every sign-in; manual edits do
   not survive the next sign-in. Map narrowly: whoever controls group
@@ -128,13 +142,15 @@ design §3.6):
   sign-ins are visible in the server log; external sign-ins are audited).
 - **Revocation.** There is no background sync: disabling a user at the
   provider stops new sign-ins, while open sessions last until they expire
-  (`KUBEBENCH_SESSION_TTL`) unless the user tries to sign in again. Use a
-  short TTL with SSO, or delete the user in Users to end their sessions at
-  once.
+  (`KUBEBENCH_SESSION_TTL`) unless the user tries to sign in again (a
+  directory account found disabled loses its sessions then). Use a short
+  TTL with external sign-in, or delete the user in Users to end their
+  sessions at once.
 - **Audit and throttling.** Every external sign-in is audited
   (`auth.signin`, with the failure class of refused ones), as is every
   group mapping change; failed callbacks are throttled per client IP like
-  failed logins.
+  failed logins, failed directory sign-ins per client IP and login name
+  (all forms of a login, such as `CORP\jdoe` and `jdoe`, share one count).
 
 ## Service browser
 

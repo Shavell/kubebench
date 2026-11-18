@@ -99,7 +99,7 @@ Unknown `/api` paths answer `404 not_found`.
 
 | Method | Path | Level | Parameters | Answer |
 |---|---|---|---|---|
-| POST | `/api/auth/login` | public | `{"username","password","source"?}` | `{"id","username","role","mustChangePassword","source","displayName"}`; sets the cookie. 10 failed attempts per client IP and username in 15 min → `429`. `source` names a password provider (a directory, §3.6) of `GET /api/auth/methods`; empty or `local` signs in with a local account, which external users have not |
+| POST | `/api/auth/login` | public | `{"username","password","source"?}` | `{"id","username","role","mustChangePassword","source","displayName"}`; sets the cookie. 10 failed attempts per client IP and username in 15 min → `429`. `source` names a password provider (a directory, §3.6) of `GET /api/auth/methods`; empty or `local` signs in with a local account, which external users have not. A directory takes `user`, `DOMAIN\user` or a UPN; its attempts are counted per normalized login, and a refusal adds `"reason":"<failure class>"` to the error body |
 | GET | `/api/auth/methods` | public | — | `{"local":true,"providers":[{"source":"oidc","name","type":"redirect","loginUrl":"/api/auth/oidc/login"}]}` (§3.6); password providers have `"type":"password"` |
 | GET | `/api/auth/oidc/login` | public | — | `302` to the provider (authorization code flow with PKCE, state and nonce); sets the short-lived `kubebench_oidc_state` cookie. `404` without OIDC |
 | GET | `/api/auth/oidc/callback` | public | `?code=&state=` (from the provider) | `302` to `<public URL>/` with the session cookie, or to `<public URL>/?signInError=<class>` when refused (`invalid_credentials`, `account_disabled`, `domain_not_allowed`, `no_matching_group`, `username_conflict`, `invalid_username`, `invalid_request`, `provider_error`, `rate_limited`). Failed callbacks count against the login limit per client IP; every outcome is audited (`auth.signin`) |
@@ -144,12 +144,12 @@ Without a usable cluster, `cluster` is `null` and `clusterError` says why.
 
 | Method | Path | Level | Parameters | Answer |
 |---|---|---|---|---|
-| GET | `/api/settings/auth` | admin | — | `{"publicUrl","publicUrlConfigured","requireGroup","providers":[{"source","name","settings":[{"key","value","secretSet"?}],"status":{"ok","error"}}]}` (`AuthSettings`); secrets only report `secretSet`, never their value; `status` checks the provider's discovery document |
+| GET | `/api/settings/auth` | admin | — | `{"publicUrl","publicUrlConfigured","requireGroup","providers":[{"source","name","settings":[{"key","value","secretSet"?}],"status":{"ok","error"},"warnings":["plaintext"\|"tlsVerifyDisabled"]}]}` (`AuthSettings`); secrets (client secret, bind password) only report `secretSet`, never their value; `status` checks the OIDC discovery document or a search of the directory's user base DN as the service account |
 | GET | `/api/settings/auth/mappings` | admin | — | `[{"id","group","source":""\|"oidc"\|"ldap","role":"admin"\|"operator"\|"viewer","cluster","clusterExists"}]` (`GroupMapping`) |
 | POST | `/api/settings/auth/mappings` | admin | `{"group","source"?,"role","cluster"?}` (a cluster for operator and viewer, none for admin) | `{"id"}`; `409` when the group (ignoring case), source and cluster repeat a mapping. Audited (target `mapping/<group>`) |
 | PUT | `/api/settings/auth/mappings/{id}` | admin | the same body | `{"ok":true}`. Audited |
 | DELETE | `/api/settings/auth/mappings/{id}` | admin | — | `{"ok":true}`. Audited |
-| POST | `/api/settings/auth/preview` | admin | `{"source":"oidc"\|"ldap","username","groups"?:[…]}` | "Who would I be" without a user or session: `{"source","username","groups","groupsFrom":"input"\|"directory"\|"lastSignIn"\|"none","admin","clusters":[{"cluster","role","exists"}],"matched":[<mapping id>],"allowed","reason","existingSource","lastSignIn"}` (`SignInPreview`). Without `groups` a directory looks the user up, else the groups of their last sign-in are used |
+| POST | `/api/settings/auth/preview` | admin | `{"source":"oidc"\|"ldap","username","groups"?:[…]}` | "Who would I be" without a user or session: `{"source","username","groups","groupsFrom":"input"\|"directory"\|"lastSignIn"\|"none","admin","clusters":[{"cluster","role","exists"}],"matched":[<mapping id>],"allowed","reason","existingSource","lastSignIn"}` (`SignInPreview`). Without `groups` a directory looks the user up as its service account (it also resolves `DOMAIN\user` or a UPN to the account's username), else the groups of their last sign-in are used |
 
 ## Clusters
 

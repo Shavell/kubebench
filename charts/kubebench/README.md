@@ -51,14 +51,15 @@ password lives in the database.
 without `auth.existingSecret` gets a new random value on every render; use
 `auth.existingSecret` with Argo CD or Flux.
 
-## Single sign-on (OIDC)
+## Single sign-on (OIDC) and LDAP
 
 Users can sign in through an OpenID Connect provider (Keycloak, Entra ID,
-Okta, Dex, …) besides local accounts. External users are created at their
-first sign-in; their global role and cluster roles come from group mappings
-and are re-computed at every sign-in. The last local admin always stays as
-the break-glass account. Register a confidential client with the redirect
-URL `<config.publicUrl>/api/auth/oidc/callback`, then:
+Okta, Dex, …) or an LDAP directory / Active Directory besides local
+accounts. External users are created at their first sign-in; their global
+role and cluster roles come from group mappings and are re-computed at every
+sign-in. The last local admin always stays as the break-glass account. For
+OIDC, register a confidential client with the redirect URL
+`<config.publicUrl>/api/auth/oidc/callback`, then:
 
 ```yaml
 config:
@@ -75,10 +76,27 @@ identity:
     existingSecret: kubebench-oidc   # key client-secret
 ```
 
+Sign-in with LDAP or Active Directory (alone or next to OIDC) takes a
+service account that may read users and groups:
+
+```yaml
+identity:
+  ldap:
+    enabled: true
+    url: ldaps://dc1.corp.example.com
+    type: ad                          # or openldap
+    bindDN: CN=svc-kubebench,OU=Service Accounts,DC=corp,DC=example,DC=com
+    existingSecret: kubebench-ldap    # key bind-password
+    userBaseDN: DC=corp,DC=example,DC=com
+    caBundle: |                       # a private CA, mounted from a ConfigMap
+      -----BEGIN CERTIFICATE-----
+      ...
+```
+
 The mappings are seeded on the first start that has them; admins manage
 them in Settings > Authentication afterwards. With `networkPolicy.enabled`,
-allow egress to the provider (`networkPolicy.extraEgressCIDRs`). See
-[configuration](../../docs/configuration.md#external-identities-oidc) for
+allow egress to the provider or directory (`networkPolicy.extraEgressCIDRs`). See
+[configuration](../../docs/configuration.md#external-identities) for
 every setting.
 
 ## RBAC presets

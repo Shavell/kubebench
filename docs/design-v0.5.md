@@ -101,6 +101,7 @@ cluster-to-cluster compare, port-forward, light/dark per-plugin theming.
 | `KUBEBENCH_AUTH_REQUIRE_GROUP` | `false` | v0.7: refuse external users whose groups grant nothing (§3.6) |
 | `KUBEBENCH_AUTH_GROUP_MAPPINGS` | — | v0.7: JSON list of group mappings seeded once (§3.6) |
 | `KUBEBENCH_OIDC_ISSUER`, `_CLIENT_ID`, `_CLIENT_SECRET` (or `_CLIENT_SECRET_FILE`), `_NAME`, `_SCOPES`, `_USERNAME_CLAIM`, `_GROUPS_CLAIM`, `_ALLOWED_DOMAINS`, `_CA_FILE` | — | v0.7: OpenID Connect sign-in (§3.6, `docs/configuration.md`) |
+| `KUBEBENCH_LDAP_URL`, `_TYPE`, `_NAME`, `_START_TLS`, `_CA_FILE`, `_INSECURE_SKIP_VERIFY`, `_BIND_DN`, `_BIND_PASSWORD` (or `_BIND_PASSWORD_FILE`), `_USER_BASE_DN`, `_USER_FILTER`, `_USERNAME_ATTRIBUTE`, `_ID_ATTRIBUTE`, `_DISPLAY_NAME_ATTRIBUTE`, `_EMAIL_ATTRIBUTE`, `_GROUPS_FROM`, `_GROUP_BASE_DN`, `_GROUP_FILTER`, `_GROUP_NAME_ATTRIBUTE`, `_TIMEOUT` | — | v0.7: LDAP / Active Directory sign-in (§3.6, `docs/configuration.md`) |
 | `KUBEBENCH_PROXY_ORIGIN` | — | v0.6: separate origin (`http(s)://host[:port]`, no path) serving the service browser's proxy unsandboxed (§7.14); unset = sandboxed on KubeBench's own origin |
 
 The backend parses these once into `internal/config.Config`; invalid values
@@ -288,9 +289,10 @@ error text. Pruned per `KUBEBENCH_AUDIT_RETENTION_DAYS`.
 
 ### 3.6 External identities (v0.7)
 
-Users can sign in through an identity provider besides local accounts:
-OpenID Connect now, LDAP/Active Directory next. One shared layer
-(`backend/internal/identity`) serves every provider.
+Users can sign in through identity providers besides local accounts:
+OpenID Connect and LDAP / Active Directory, each optional, both at once
+possible. One shared layer (`backend/internal/identity`) serves every
+provider.
 
 **Providers.** A provider authenticates a user and reports an `Identity`
 `{source, subject, username, displayName, email, groups}` (`source` =
@@ -300,7 +302,9 @@ their own browser flow; password providers implement
 `identity.PasswordProvider.Authenticate(ctx, username, password)` and are
 reached through `POST /api/auth/login {"source"}`; an optional
 `identity.Lookuper.Lookup(ctx, username)` (a directory's service account)
-serves the admin preview. Refusals are `*identity.Failure` with a class:
+serves the admin preview, and an optional
+`identity.UsernameNormalizer` gives the name a login is throttled and
+audited by. Refusals are `*identity.Failure` with a class:
 `invalid_credentials`, `account_disabled`, `domain_not_allowed`,
 `no_matching_group`, `username_conflict`, `invalid_username`,
 `invalid_request`, `provider_error`, `rate_limited`. A failure that names
@@ -350,16 +354,55 @@ Sign-out answers the provider's end-session URL (`logoutUrl`, with the
 session's ID token as hint) when the provider supports RP-initiated
 logout.
 
+**LDAP / Active Directory** (`identity/ldapauth`, `go-ldap`). One
+directory (`KUBEBENCH_LDAP_URL`, `ldaps://` or `ldap://` with
+`KUBEBENCH_LDAP_START_TLS`); `KUBEBENCH_LDAP_TYPE` `openldap` | `ad` picks
+the defaults below, each overridable. Sign-in:
+1. The login is normalized: trimmed, lower case, a `DOMAIN\` prefix dropped
+   (a UPN `user@domain` stays; the AD filter matches it). An empty
+   password is refused before anything is sent: a simple bind with a DN
+   and no password is an *unauthenticated* bind many directories accept.
+2. The service account (`_BIND_DN`; anonymous without one) searches
+   `_USER_BASE_DN` with `_USER_FILTER`, `%s` = the escaped login
+   (defaults `(uid=%s)`; AD `(|(sAMAccountName=%s)(userPrincipalName=%s))`).
+   No entry or more than one is `invalid_credentials`.
+3. A set ACCOUNTDISABLE bit (2) of `userAccountControl` refuses the account,
+   and its sessions end; it is reported as `account_disabled` only when the
+   password is right, `invalid_credentials` otherwise. A bind refused with
+   AD's `data 533`/`data 701` (disabled/expired) is `account_disabled` too.
+4. The password is checked by a bind as the user's DN on a connection of
+   its own (never by comparing hashes).
+5. Groups, as the service account: from the entry's `memberOf`
+   (`_GROUPS_FROM=memberOf`, the first RDN value) or a search under
+   `_GROUP_BASE_DN` (default: the user base) with `_GROUP_FILTER`, `%d` =
+   the user's DN and `%u` = its username attribute (defaults
+   `(|(member=%d)(uniqueMember=%d)(memberUid=%u))`; AD
+   `(member:1.2.840.113556.1.4.1941:=%d)`, LDAP_MATCHING_RULE_IN_CHAIN, so
+   nested groups count). A group's name is its `_GROUP_NAME_ATTRIBUTE`
+   (`cn`; `dn` reports full DNs).
+6. The identity: username = the username attribute (`uid`; AD
+   `sAMAccountName`) in lower case, subject = `_ID_ATTRIBUTE` (`entryUUID`;
+   AD `objectGUID` in its string form), display name and email.
+Connections time out after `_TIMEOUT` (10s, also the server-side search
+time limit); up to 4 idle service-account connections are reused (retired
+after 5 minutes idle, replaced once when the directory dropped them) and at
+most 8 directory operations run at once. Refused sign-ins answer the §3.3
+error body plus `"reason": "<class>"` for the sign-in screen.
+
 **Sessions.** External sign-ins get the ordinary session cookie and
 `KUBEBENCH_SESSION_TTL`. There is no background sync in v0.7: a disabled
 account loses its sessions when a sign-in attempt reports it disabled.
 
-**Security.** Secrets (the OIDC client secret; later the LDAP bind
-password) come from the environment, `*_FILE` files or Kubernetes Secrets
-only; they are never returned by an API (settings report `secretSet`),
-logged or audited. TLS to the provider is always verified (system roots
-plus `KUBEBENCH_OIDC_CA_FILE`). Failed callbacks and password-provider
-sign-ins count against the login limit (§3.5; callbacks per client IP).
+**Security.** Secrets (the OIDC client secret, the LDAP bind password)
+come from the environment, `*_FILE` files or Kubernetes Secrets only; they
+are never returned by an API (settings report `secretSet`), logged or
+audited. TLS to the provider is verified (system roots plus
+`KUBEBENCH_OIDC_CA_FILE` / `KUBEBENCH_LDAP_CA_FILE`);
+`KUBEBENCH_LDAP_INSECURE_SKIP_VERIFY` (tests only) and an unencrypted
+`ldap://` URL are logged as warnings at startup and shown as warnings in
+Settings > Authentication. Failed callbacks and password-provider sign-ins
+count against the login limit (§3.5; callbacks per client IP, directory
+sign-ins per client IP and normalized login).
 Every external sign-in writes an audit row (`auth.signin`, target
 `user/<name>`, detail `{"source"}` or `{"source","reason":"<class>"}`), as
 does every mapping change (target `mapping/<group>`).
