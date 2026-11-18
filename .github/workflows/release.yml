@@ -127,6 +127,7 @@ jobs:
           mkdir -p build/extra
           helm package charts/kubebench --destination build/extra
           cp deploy/kubernetes/kubebench.yaml install.sh build/extra/
+          cp deploy/openshift/kubebench.yaml build/extra/kubebench-openshift.yaml
 
       # --skip=before: the frontend was built above, without the token in its
       # environment; GoReleaser's `make embed` hook would rebuild it with one.

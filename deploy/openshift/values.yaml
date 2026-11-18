@@ -1,0 +1,21 @@
+# Chart values behind deploy/openshift/kubebench.yaml (scripts/render-manifests.sh).
+# Everything not listed here keeps the chart default.
+
+auth:
+  # No password Secret in a file meant to be committed and shared: the server
+  # bootstraps admin/admin and forces a password change at the first sign-in.
+  createSecret: false
+
+persistence:
+  # helm.sh/resource-policy means nothing to oc/kubectl; see README.md for
+  # how to uninstall without deleting the data volume.
+  keep: false
+
+# Rendered offline, so OpenShift mode is forced: no fixed UIDs (the SCC
+# assigns them), the pod pinned to restricted-v2.
+openshift:
+  enabled: true
+
+# An edge Route on the router's generated host (<name>-<namespace>.<apps domain>).
+route:
+  enabled: true

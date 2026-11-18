@@ -8,7 +8,8 @@
 #     install.sh          VM installer (install.sh --offline <this bundle>)
 #     SHA256SUMS          checksums of every file in the bundle
 #     packages/           Linux archives, .deb/.rpm and their checksums.txt
-#     kubernetes/         Helm chart .tgz and plain manifests (kubebench.yaml)
+#     kubernetes/         Helm chart .tgz and plain manifests (kubebench.yaml,
+#                         kubebench-openshift.yaml)
 #     images/             container image tarballs given with --image-tar
 #
 # Usage: scripts/offline-bundle.sh [options] [version]
@@ -93,6 +94,8 @@ else
 fi
 chart_file="$(basename "$(find "$stage/kubernetes" -name '*.tgz' -print -quit)")"
 "$root/scripts/render-manifests.sh" --version "$version" --output "$stage/kubernetes/kubebench.yaml"
+"$root/scripts/render-manifests.sh" --variant openshift --version "$version" \
+  --output "$stage/kubernetes/kubebench-openshift.yaml"
 
 image_files=()
 if ((${#image_tars[@]})); then
@@ -197,6 +200,7 @@ Read the generated admin password with the command printed by Helm (NOTES).
 # with a private registry, rewrite the image first:
 #   sed -i 's#ghcr.io/shavell/kubebench#registry.example.internal/kubebench#' kubernetes/kubebench.yaml
 kubectl apply -f kubernetes/kubebench.yaml
+# OpenShift: oc apply -f kubernetes/kubebench-openshift.yaml (with a Route)
 kubectl -n kubebench set env deployment/kubebench KUBEBENCH_UPDATE_MODE=off
 \`\`\`
 
