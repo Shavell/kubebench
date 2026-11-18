@@ -1,7 +1,9 @@
 package api
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -387,8 +389,8 @@ func (fakeDirectory) Authenticate(_ context.Context, username, password string) 
 }
 
 func directoryLogin(user, password string) *http.Request {
-	body := `{"source":"ldap","username":"` + user + `","password":"` + password + `"}`
-	req := httptest.NewRequest(http.MethodPost, "/api/auth/login", strings.NewReader(body))
+	body, _ := json.Marshal(map[string]string{"source": "ldap", "username": user, "password": password})
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	return req
 }

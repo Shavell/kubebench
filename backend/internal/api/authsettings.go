@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"kubebench/internal/identity"
+	"kubebench/internal/identity/ldapauth"
 	"kubebench/internal/plugin"
 	"kubebench/internal/store"
 )
@@ -38,6 +39,8 @@ type providerView struct {
 	Name     string            `json:"name"`
 	Settings []providerSetting `json:"settings"`
 	Status   providerStatus    `json:"status"`
+	// Warnings name insecure settings (plaintext, tlsVerifyDisabled).
+	Warnings []string `json:"warnings"`
 }
 
 type authSettingsView struct {
@@ -57,6 +60,9 @@ func (s *Server) handleAuthSettings(w http.ResponseWriter, r *http.Request, _ *c
 	}
 	if p := s.ident.oidc; p != nil {
 		view.Providers = append(view.Providers, s.oidcView(r))
+	}
+	if p, ok := s.ident.passwords[store.UserSourceLDAP].(*ldapauth.Provider); ok {
+		view.Providers = append(view.Providers, ldapView(r.Context(), p))
 	}
 	plugin.WriteJSON(w, view)
 }
@@ -79,6 +85,7 @@ func (s *Server) oidcView(r *http.Request) providerView {
 			{Key: "allowedDomains", Value: strings.Join(cfg.AllowedDomains, ", ")},
 			{Key: "caFile", Value: cfg.CAFile},
 		},
+		Warnings: []string{},
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), providerCheckTimeout)
 	defer cancel()
@@ -249,11 +256,15 @@ func (s *Server) handlePreviewSignIn(w http.ResponseWriter, r *http.Request, c *
 		return
 	}
 	body.Username = strings.TrimSpace(body.Username)
-	c.setAudit("user/"+body.Username, auditJSON(map[string]string{"source": body.Source}))
 	if !store.ValidExternalSource(body.Source) {
+		c.setAudit("user/"+body.Username, auditJSON(map[string]string{"source": body.Source}))
 		writeErr(w, badRequest("source must be oidc or ldap"))
 		return
 	}
+	if p, ok := s.ident.passwords[body.Source]; ok {
+		body.Username = normalizeLogin(p, body.Username)
+	}
+	c.setAudit("user/"+body.Username, auditJSON(map[string]string{"source": body.Source}))
 	var groups []string
 	if body.Groups != nil {
 		groups = []string{}

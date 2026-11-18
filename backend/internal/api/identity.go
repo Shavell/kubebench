@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"errors"
 	"log"
 	"maps"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"kubebench/internal/identity"
+	"kubebench/internal/identity/ldapauth"
 	"kubebench/internal/identity/oidcauth"
 	"kubebench/internal/plugin"
 	"kubebench/internal/store"
@@ -32,7 +34,7 @@ type identityState struct {
 
 // initIdentity sets up the configured providers. A provider that cannot be
 // built (its CA bundle vanished since the configuration was checked) is
-// logged and left out; local sign-in keeps working.
+// logged and left out; local sign-in and the other providers keep working.
 func (s *Server) initIdentity() {
 	s.ident = identityState{
 		service:   identity.NewService(s.store, s.cfg.Auth.RequireGroup),
@@ -40,12 +42,18 @@ func (s *Server) initIdentity() {
 		passwords: map[string]identity.PasswordProvider{},
 	}
 	if cfg := s.cfg.Auth.OIDC; cfg != nil {
-		p, err := oidcauth.New(*cfg)
-		if err != nil {
+		if p, err := oidcauth.New(*cfg); err != nil {
 			log.Printf("[auth] OIDC sign-in is disabled: %v", err)
-			return
+		} else {
+			s.ident.oidc = p
 		}
-		s.ident.oidc = p
+	}
+	if cfg := s.cfg.Auth.LDAP; cfg != nil {
+		if p, err := ldapauth.New(*cfg); err != nil {
+			log.Printf("[auth] directory sign-in is disabled: %v", err)
+		} else {
+			s.ident.passwords[p.Source()] = p
+		}
 	}
 }
 
@@ -90,13 +98,15 @@ func (s *Server) handleAuthMethods(w http.ResponseWriter, _ *http.Request, _ *ca
 
 // signInExternal authenticates through a password provider for
 // POST /api/auth/login {"source": …}. Failures count against the login
-// limit like local ones.
+// limit like local ones, by the provider's normalized name so the forms
+// of one account (DOMAIN\user, User, user) share their attempts.
 func (s *Server) signInExternal(w http.ResponseWriter, r *http.Request, source, username, password string) {
 	p, ok := s.ident.passwords[source]
 	if !ok {
 		writeErr(w, badRequest("unknown sign-in source %q", source))
 		return
 	}
+	username = normalizeLogin(p, username)
 	key := newLimiterKey(s.clientIP(r), source+"\x00"+username)
 	if err := s.throttled(w, key); err != nil {
 		s.auditSignIn(source, username, http.StatusTooManyRequests, identity.ClassRateLimited)
@@ -108,7 +118,7 @@ func (s *Server) signInExternal(w http.ResponseWriter, r *http.Request, source, 
 		s.limiter.fail(key)
 		status, apiErr := signInError(err)
 		s.auditSignIn(source, username, status, identity.ClassOf(err))
-		writeErr(w, apiErr)
+		writeSignInRefusal(w, apiErr, identity.ClassOf(err))
 		return
 	}
 	s.limiter.reset(key)
@@ -120,6 +130,14 @@ func (s *Server) signInExternal(w http.ResponseWriter, r *http.Request, source, 
 	s.auditSignIn(source, user.Username, http.StatusOK, "")
 	http.SetCookie(w, s.sessionCookie(r, token, int(s.cfg.SessionTTL.Seconds())))
 	plugin.WriteJSON(w, viewMe(user))
+}
+
+// normalizeLogin is the name provider p searches a login by.
+func normalizeLogin(p identity.Provider, login string) string {
+	if n, ok := p.(identity.UsernameNormalizer); ok {
+		return n.NormalizeUsername(login)
+	}
+	return strings.TrimSpace(login)
 }
 
 func (s *Server) authenticateExternal(r *http.Request, p identity.PasswordProvider, username, password string) (*store.User, error) {
@@ -162,6 +180,26 @@ func signInError(err error) (int, error) {
 		msg = "the sign-in was refused"
 	}
 	return http.StatusForbidden, errorf(http.StatusForbidden, plugin.CodeForbidden, "%s", msg)
+}
+
+// signInRefusal is the §3.3 error body of a refused password sign-in plus
+// its failure class, which the sign-in screen translates (OIDC sign-ins
+// carry the class in the signInError query parameter instead).
+type signInRefusal struct {
+	plugin.ErrorBody
+	Reason string `json:"reason"`
+}
+
+func writeSignInRefusal(w http.ResponseWriter, err error, class string) {
+	ae, ok := errors.AsType[*apiError](err)
+	if !ok {
+		writeErr(w, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.WriteHeader(ae.status)
+	_ = json.NewEncoder(w).Encode(signInRefusal{ErrorBody: plugin.ErrorBody{Error: ae.msg, Code: ae.code}, Reason: class})
 }
 
 // Audit action of external sign-ins.
