@@ -117,7 +117,7 @@ var (
 	reasonNoObjects        = reason.Define("editing.no_objects", "the request contains no objects")
 	reasonNamespaceDelete  = reason.Define("editing.namespace_delete", "Namespaces are deleted with DELETE /api/namespaces, which protects the system namespaces")
 	reasonNothingToChange  = reason.Define("editing.nothing_to_change", "nothing to change: name labels or annotations")
-	reasonRedactedMetadata = reason.Define("editing.annotation_placeholder", "a value is a redaction placeholder; it would replace the real value of the Secret's annotation")
+	reasonRedactedMetadata = reason.Define("editing.annotation_placeholder", "a value is a redaction placeholder; it would replace the real value of the annotation")
 	reasonTaintsRequired   = reason.Define("nodes.taints_required", "taints is required; send [] to remove every taint")
 	reasonPodOrSelector    = reason.Define("logs.pod_or_selector", "give either pod or selector")
 	reasonSelector         = reason.Define("logs.invalid_selector", "invalid selector: {{detail}}")

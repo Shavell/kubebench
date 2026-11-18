@@ -123,6 +123,8 @@
     "not_terminated": "Tahliye edildi, ancak drain bittiğinde Pod henüz sonlanmamıştı"
   },
   "edit": {
+    "credential_annotation_placeholder": "{{kind}} {{name}}: {{annotation}} annotation'ı bir gizleme yer tutucusu içeriyor; annotation'ı kaldırın",
+    "credential_placeholder": "{{kind}} {{name}}: {{field}} bir gizleme yer tutucusuna ayarlanmış; değeri korumak için onu ve onu içeren listeyi değiştirmeyin veya gerçek değeri girin",
     "empty": "Düzenlenen manifest boş",
     "invalid_yaml": "Düzenlenen manifest geçerli bir YAML veya JSON değil: {{detail}}",
     "not_object": "Düzenlenen manifest bir nesne değil",
@@ -137,7 +139,7 @@
     "several_documents": "Düzenlenen manifest birden fazla belge içeriyor; bir seferde tek bir nesne düzenleyin"
   },
   "editing": {
-    "annotation_placeholder": "Bir değer gizleme yer tutucusu; Secret'ın annotation'ının gerçek değerinin yerine geçerdi",
+    "annotation_placeholder": "Bir değer gizleme yer tutucusu; annotation'ın gerçek değerinin yerine geçerdi",
     "namespace_delete": "Namespace'ler, sistem namespace'lerini koruyan DELETE /api/namespaces ile silinir",
     "no_objects": "İstek hiç nesne içermiyor",
     "nothing_to_change": "Değiştirilecek bir şey yok: label veya annotation belirtin",
@@ -205,6 +207,8 @@
   },
   "manifest": {
     "api_version_required": "Belge {{document}}: apiVersion zorunludur",
+    "credential_annotation_placeholder": "Belge {{document}}: {{kind}} {{name}}: {{annotation}} annotation'ı bir gizleme yer tutucusu içeriyor; annotation'ı kaldırın",
+    "credential_placeholder": "Belge {{document}}: {{kind}} {{name}}: {{field}} değeri yerine bir gizleme yer tutucusu içeriyor; gerçek değeri kullanın",
     "invalid_yaml": "Belge {{document}}: geçerli bir YAML veya JSON değil: {{detail}}",
     "kind_required": "Belge {{document}}: kind zorunludur",
     "name_required": "Belge {{document}}: {{kind}}: metadata.name zorunludur (server-side apply ad üretemez)",

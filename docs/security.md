@@ -61,11 +61,15 @@ state before any handler or cluster call ([api.md](api.md#access-levels)).
 - Secret values are **redacted on every read path**: lists, single objects,
   YAML, Helm release manifests (also dry-run and upgrade diffs), and
   kubectl's `last-applied-configuration` annotation, which repeats them.
+  The credentials other kinds hold in their own fields are redacted the
+  same way: an OpenShift Route's TLS private key (`spec.tls.key`) and the
+  inline webhook secrets of BuildConfigs and Builds. Applying or editing
+  a redaction placeholder back into them is refused.
 - Revealing values is a separate `exec` route, audited, answered with
   `Cache-Control: no-store`; the UI keeps them in the dialog only.
 - Helm release values often contain credentials, so reading them needs
-  `exec` and is audited. Dry runs of apply/edit that touch a Secret are
-  treated like the change itself (write, audited), because their outcome
+  `exec` and is audited. Dry runs of apply/edit that touch a Secret (or a
+  Route, BuildConfig or Build) are treated like the change itself (write, audited), because their outcome
   would confirm guessed values.
 - The `/api/k8s` passthrough used by external plugins refuses Secrets,
   watches, and the `proxy`, `exec`, `attach` and `portforward`

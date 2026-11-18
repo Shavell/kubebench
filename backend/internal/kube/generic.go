@@ -13,7 +13,8 @@ import (
 
 // ListGeneric lists any catalog resource via the dynamic client and
 // returns the raw objects (the frontend renders columns from them).
-// Secret data values are redacted; keys are kept.
+// Secret data values and the credentials of the credential kinds (a
+// Route's TLS key, webhook secrets) are redacted; keys are kept.
 func (r *Runtime) ListGeneric(ctx context.Context, key, namespace string) ([]map[string]any, error) {
 	rt, ok := Catalog[key]
 	if !ok {
@@ -41,15 +42,14 @@ func (r *Runtime) ListGeneric(ctx context.Context, key, namespace string) ([]map
 		if meta, ok := obj["metadata"].(map[string]any); ok {
 			delete(meta, "managedFields")
 		}
-		if key == "secrets" {
-			redactSecret(obj)
-		}
+		redactObject(rt.GVR.GroupResource(), obj)
 		out = append(out, obj)
 	}
 	return out, nil
 }
 
-// GetGeneric fetches one catalog object (used for the detail view).
+// GetGeneric fetches one catalog object (used for the detail view),
+// redacted like ListGeneric.
 func (r *Runtime) GetGeneric(ctx context.Context, key, namespace, name string) (map[string]any, error) {
 	rt, ok := Catalog[key]
 	if !ok {
@@ -68,9 +68,7 @@ func (r *Runtime) GetGeneric(ctx context.Context, key, namespace, name string) (
 	if meta, ok := obj.Object["metadata"].(map[string]any); ok {
 		delete(meta, "managedFields")
 	}
-	if key == "secrets" {
-		redactSecret(obj.Object)
-	}
+	redactObject(rt.GVR.GroupResource(), obj.Object)
 	return obj.Object, nil
 }
 
@@ -102,19 +100,8 @@ func redactSecret(obj map[string]any) {
 			}
 		}
 	}
-	if meta, ok := obj["metadata"].(map[string]any); ok {
-		if annotations, ok := meta["annotations"].(map[string]any); ok {
-			if _, found := annotations[lastAppliedAnnotation]; found {
-				annotations[lastAppliedAnnotation] = redactedValue
-			}
-		}
-	}
+	redactLastApplied(obj)
 }
-
-// RedactSecret is redactSecret for content read outside the runtime's
-// clients, e.g. the Secrets in a Helm release's rendered manifest: obj is
-// a Secret's content (data, stringData, metadata), changed in place.
-func RedactSecret(obj map[string]any) { redactSecret(obj) }
 
 // IsRedacted reports whether s is one of redactSecret's markers ("<12
 // bytes, redacted>", "<redacted>") rather than a real value. A base64

@@ -75,7 +75,7 @@ func ParseManifests(data []byte) ([]*unstructured.Unstructured, error) {
 		}
 		found, err := documentObjects(content)
 		if err != nil {
-			return nil, manifestError(doc, err, err.Code == reasonManifestRedacted || err.Code == reasonManifestAnnotation)
+			return nil, manifestError(doc, err, redactionRefusal(err.Code))
 		}
 		objects = append(objects, found...)
 	}
@@ -110,9 +110,18 @@ func documentObjects(content map[string]any) ([]*unstructured.Unstructured, *rea
 	return objects, nil
 }
 
+// redactionRefusal reports whether code refuses a redaction placeholder.
+func redactionRefusal(code reason.Code) bool {
+	switch code {
+	case reasonManifestRedacted, reasonManifestAnnotation, reasonManifestCredential, reasonManifestCredentialAnnotation:
+		return true
+	}
+	return false
+}
+
 // checkManifest refuses objects server-side apply cannot address, and
-// Secrets whose values are redaction placeholders: applying those would
-// replace the real values with the placeholders.
+// Secrets and credential kinds whose values are redaction placeholders:
+// applying those would replace the real values with the placeholders.
 func checkManifest(obj *unstructured.Unstructured) *reason.Error {
 	switch {
 	case obj.GetAPIVersion() == "":
@@ -121,6 +130,9 @@ func checkManifest(obj *unstructured.Unstructured) *reason.Error {
 		return reason.New(reasonManifestKind, reason.Params{})
 	case obj.GetName() == "":
 		return reason.New(reasonManifestName, reason.Params{"kind": obj.GetKind()})
+	}
+	if ck, ok := credentialKindByKind(obj.GetAPIVersion(), obj.GetKind()); ok {
+		return checkCredentialManifest(ck, obj)
 	}
 	if obj.GetAPIVersion() != "v1" || obj.GetKind() != "Secret" {
 		return nil
@@ -135,6 +147,17 @@ func checkManifest(obj *unstructured.Unstructured) *reason.Error {
 	}
 	if IsRedacted(obj.GetAnnotations()[lastAppliedAnnotation]) {
 		return reason.New(reasonManifestAnnotation, reason.Params{"name": obj.GetName(), "annotation": lastAppliedAnnotation})
+	}
+	return nil
+}
+
+// checkCredentialManifest is checkManifest for a credential kind.
+func checkCredentialManifest(ck credentialKind, obj *unstructured.Unstructured) *reason.Error {
+	if field, found := ck.placeholder(obj.Object); found {
+		return reason.New(reasonManifestCredential, reason.Params{"kind": ck.kind, "name": obj.GetName(), "field": field})
+	}
+	if IsRedacted(obj.GetAnnotations()[lastAppliedAnnotation]) {
+		return reason.New(reasonManifestCredentialAnnotation, reason.Params{"kind": ck.kind, "name": obj.GetName(), "annotation": lastAppliedAnnotation})
 	}
 	return nil
 }

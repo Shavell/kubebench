@@ -122,6 +122,21 @@ func TestParseManifestsRefusals(t *testing.T) {
 			"apiVersion: v1\nkind: Secret\nmetadata:\n  name: db\n  annotations: {kubectl.kubernetes.io/last-applied-configuration: <redacted>}\n",
 			1, "kubectl.kubernetes.io/last-applied-configuration annotation", true,
 		},
+		{
+			"redacted Route TLS key",
+			"apiVersion: route.openshift.io/v1\nkind: Route\nmetadata: {name: web}\nspec:\n  tls: {termination: edge, key: \"<1704 bytes, redacted>\"}\n",
+			1, "Route web: spec.tls.key holds a redaction placeholder", true,
+		},
+		{
+			"redacted BuildConfig webhook secret",
+			"apiVersion: build.openshift.io/v1\nkind: BuildConfig\nmetadata: {name: api}\nspec:\n  triggers:\n  - {type: ConfigChange}\n  - {type: GitHub, github: {secret: \"<12 bytes, redacted>\"}}\n",
+			1, "BuildConfig api: spec.triggers[1].github.secret", true,
+		},
+		{
+			"redacted Route last-applied annotation",
+			"apiVersion: route.openshift.io/v1\nkind: Route\nmetadata:\n  name: web\n  annotations: {kubectl.kubernetes.io/last-applied-configuration: <redacted>}\n",
+			1, "Route web: the kubectl.kubernetes.io/last-applied-configuration annotation", true,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := ParseManifests([]byte(tc.text))

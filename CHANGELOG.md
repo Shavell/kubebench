@@ -44,7 +44,9 @@ those commits.
   Projects next to Namespaces, with columns of their own (Route host,
   TLS termination and admission, build phase and duration, …), conditions
   on the detail pages and Route → Service edges in the topology. Other
-  clusters do not show them.
+  clusters do not show them. A Route's TLS private key and the webhook
+  secrets of BuildConfigs and Builds are hidden like Secret values,
+  in Helm release manifests too.
 - **Open a Route in the service browser**: "Open in browser" on a Route
   opens the Service behind it with the Route's host, and "Open route URL"
   opens its public address.

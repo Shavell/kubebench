@@ -47,6 +47,18 @@ metadata:
   name: not-core
 spec:
   value: visible
+---
+# Source: app/templates/route.yaml
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: app
+spec:
+  host: app.apps.example.com
+  tls:
+    termination: edge
+    certificate: PUBLIC-CERT
+    key: hunter2-private-key
 `
 	got := redactManifest(manifest)
 	if strings.Contains(got, "hunter2") || strings.Contains(got, "aHVudGVyMg==") {
@@ -60,11 +72,14 @@ spec:
 		"key: <7 bytes, redacted>",
 		"kubectl.kubernetes.io/last-applied-configuration: <redacted>",
 		"value: visible",
+		"# Source: app/templates/route.yaml\n",
+		"certificate: PUBLIC-CERT",
+		"key: <19 bytes, redacted>",
 	} {
 		contains(t, "redacted manifest", got, want)
 	}
-	if n := strings.Count(got, "\n---\n") + 1; n != 4 {
-		t.Fatalf("%d documents after redaction, want 4:\n%s", n, got)
+	if n := strings.Count(got, "\n---\n") + 1; n != 5 {
+		t.Fatalf("%d documents after redaction, want 5:\n%s", n, got)
 	}
 
 	if plain := "apiVersion: v1\nkind: ConfigMap\n"; redactManifest(plain) != plain {

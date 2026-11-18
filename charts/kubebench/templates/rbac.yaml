@@ -68,7 +68,9 @@ rules:
     verbs: [get, list, watch]
 {{- if include "kubebench.openshift" . }}
   # OpenShift API groups (config.openshift.io tells the OpenShift version).
-  # get/list/watch never include "use", so no SCC is granted.
+  # get/list/watch never include "use", so no SCC is granted. Like
+  # OpenShift's view role this reads Routes' TLS keys and BuildConfigs'
+  # inline webhook secrets, which KubeBench redacts on every read.
   - apiGroups:
       - apps.openshift.io
       - build.openshift.io

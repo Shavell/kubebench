@@ -4,6 +4,7 @@ import { ApiError } from '../apiClient'
 import { reasonError } from '../reasonError'
 import type { ClusterProvider } from '../providers'
 import type { ApplyOptions, ApplyResult, KubeObject, MetadataPatch, ObjectRef } from '../types'
+import { credentialFields, credentialPlaceholder } from './credentials'
 import { delay, delayReject } from './delay'
 import { namespaces } from './mockCluster'
 import { findKind, type MockKind } from './mockKinds'
@@ -106,6 +107,15 @@ function manifestProblem(obj: Manifest): ManifestProblem | null {
   if (typeof obj.apiVersion !== 'string' || !obj.apiVersion) return { reason: 'manifest.api_version_required' }
   if (typeof obj.kind !== 'string' || !obj.kind) return { reason: 'manifest.kind_required' }
   if (typeof meta.name !== 'string' || !meta.name) return { reason: 'manifest.name_required', params: { kind: obj.kind } }
+  const credentials = credentialFields(obj.apiVersion, obj.kind)
+  if (credentials) {
+    const field = credentialPlaceholder(credentials, obj)
+    if (field) return { code: 'redacted_secret', reason: 'manifest.credential_placeholder', params: { kind: obj.kind, name: meta.name, field } }
+    if (isRedacted(stringMap(meta.annotations)[LAST_APPLIED] ?? '')) {
+      return { code: 'redacted_secret', reason: 'manifest.credential_annotation_placeholder', params: { kind: obj.kind, name: meta.name, annotation: LAST_APPLIED } }
+    }
+    return null
+  }
   if (obj.apiVersion !== 'v1' || obj.kind !== 'Secret') return null
   for (const field of ['data', 'stringData']) {
     const key = Object.keys(stringMap(obj[field]))
@@ -235,8 +245,17 @@ function parseEdited(text: string, which: keyof typeof EDIT_REASONS, ref: Object
   return obj
 }
 
-/** Like the backend's checkPatchValues: no placeholder may become a Secret value. */
+/** Like the backend's checkPatchValues: no placeholder may become a Secret value or a credential. */
 function checkPatchValues(ref: ObjectRef, patch: Manifest): void {
+  const credentials = credentialFields(ref.apiVersion, ref.kind)
+  if (credentials) {
+    const field = credentialPlaceholder(credentials, patch)
+    if (field) throw reasonError(400, 'redacted_secret', 'edit.credential_placeholder', { kind: ref.kind, name: ref.name, field })
+    if (isRedacted(stringMap(metadataOf(patch).annotations)[LAST_APPLIED] ?? '')) {
+      throw reasonError(400, 'redacted_secret', 'edit.credential_annotation_placeholder', { kind: ref.kind, name: ref.name, annotation: LAST_APPLIED })
+    }
+    return
+  }
   if (ref.apiVersion !== 'v1' || ref.kind !== 'Secret') return
   for (const field of ['data', 'stringData']) {
     const values = stringMap(patch[field])
@@ -287,7 +306,8 @@ function patchObject(ref: ObjectRef, patch: MetadataPatch): void {
   if (values.length === 0) throw reasonError(400, 'bad_request', 'editing.nothing_to_change')
   const manifest = readObject(kind, namespace, ref.name)
   if (!manifest) throw notFound(kind, ref.name)
-  if (kind.kind === 'Secret' && values.some((v) => typeof v === 'string' && isRedacted(v))) {
+  const holdsCredentials = kind.kind === 'Secret' || credentialFields(kind.apiVersion, kind.kind) !== undefined
+  if (holdsCredentials && values.some((v) => typeof v === 'string' && isRedacted(v))) {
     throw reasonError(400, 'redacted_secret', 'editing.annotation_placeholder')
   }
   const meta = metadataOf(manifest)

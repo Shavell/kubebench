@@ -123,6 +123,8 @@
     "not_terminated": "Verdrängt, aber der Pod war beim Ende des Drains noch nicht beendet"
   },
   "edit": {
+    "credential_annotation_placeholder": "{{kind}} {{name}}: Die Annotation {{annotation}} enthält einen Platzhalter der Schwärzung; entfernen Sie die Annotation",
+    "credential_placeholder": "{{kind}} {{name}}: {{field}} ist auf einen Platzhalter der Schwärzung gesetzt; lassen Sie ihn und die Liste, die ihn enthält, unverändert, um den Wert zu behalten, oder geben Sie den echten Wert ein",
     "empty": "Das bearbeitete Manifest ist leer",
     "invalid_yaml": "Das bearbeitete Manifest ist kein gültiges YAML oder JSON: {{detail}}",
     "not_object": "Das bearbeitete Manifest ist kein Objekt",
@@ -137,7 +139,7 @@
     "several_documents": "Das bearbeitete Manifest enthält mehr als ein Dokument; bearbeiten Sie jeweils ein Objekt"
   },
   "editing": {
-    "annotation_placeholder": "Ein Wert ist ein Platzhalter der Schwärzung; er würde den echten Wert der Annotation des Secrets ersetzen",
+    "annotation_placeholder": "Ein Wert ist ein Platzhalter der Schwärzung; er würde den echten Wert der Annotation ersetzen",
     "namespace_delete": "Namespaces werden mit DELETE /api/namespaces gelöscht, das die System-Namespaces schützt",
     "no_objects": "Die Anfrage enthält keine Objekte",
     "nothing_to_change": "Nichts zu ändern: nennen Sie Labels oder Annotations",
@@ -205,6 +207,8 @@
   },
   "manifest": {
     "api_version_required": "Dokument {{document}}: apiVersion ist erforderlich",
+    "credential_annotation_placeholder": "Dokument {{document}}: {{kind}} {{name}}: Die Annotation {{annotation}} enthält einen Platzhalter der Schwärzung; entfernen Sie die Annotation",
+    "credential_placeholder": "Dokument {{document}}: {{kind}} {{name}}: {{field}} enthält einen Platzhalter der Schwärzung statt des Werts; verwenden Sie den echten Wert",
     "invalid_yaml": "Dokument {{document}}: kein gültiges YAML oder JSON: {{detail}}",
     "kind_required": "Dokument {{document}}: kind ist erforderlich",
     "name_required": "Dokument {{document}}: {{kind}}: metadata.name ist erforderlich (Server-Side Apply kann keine Namen erzeugen)",

@@ -78,16 +78,14 @@ func isSecrets(gvr schema.GroupVersionResource) bool {
 	return gvr.Group == "" && gvr.Resource == "secrets"
 }
 
-// getObject fetches the object as unstructured content, Secret values
-// redacted.
+// getObject fetches the object as unstructured content, Secret values and
+// credentials redacted (redactObject).
 func (r *Runtime) getObject(ctx context.Context, o Object) (map[string]any, error) {
 	obj, err := r.client(o).Get(ctx, o.Name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
-	if isSecrets(o.Resource) {
-		redactSecret(obj.Object)
-	}
+	redactObject(o.Resource.GroupResource(), obj.Object)
 	return obj.Object, nil
 }
 
@@ -100,7 +98,8 @@ type ObjectRef struct {
 }
 
 // ObjectYAML renders one object as YAML without managedFields; neat also
-// drops what Neat strips. Secret values are always redacted.
+// drops what Neat strips. Secret values and credentials are always
+// redacted.
 func (r *Runtime) ObjectYAML(ctx context.Context, ref ObjectRef, neat bool) (string, error) {
 	var obj map[string]any
 	var err error

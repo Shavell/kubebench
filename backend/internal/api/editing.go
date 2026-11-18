@@ -141,7 +141,7 @@ func (s *Server) handleEdit(w http.ResponseWriter, r *http.Request, c *call) {
 		return
 	}
 	dryRun := plugin.IsDryRun(r)
-	if dryRun && obj.Resource.GroupResource() == secretsResource {
+	if dryRun && kube.HoldsCredentials(obj.Resource.GroupResource()) {
 		var done func()
 		w, done, err = s.secretDryRun(w, r, c, "POST /api/resource/edit")
 		defer done()
@@ -213,20 +213,21 @@ func applyAuditTarget(results []kube.ApplyResult) string {
 	return target
 }
 
-// touchesSecrets reports whether any of objects is a core Secret.
+// touchesSecrets reports whether any of objects is a core Secret or a
+// credential kind (kube.HoldsCredentials).
 func touchesSecrets(rt *kube.Runtime, objects []*unstructured.Unstructured) bool {
 	for _, obj := range objects {
-		if gvr, _, err := rt.ResolveKind(obj.GetAPIVersion(), obj.GetKind()); err == nil && gvr.GroupResource() == secretsResource {
+		if gvr, _, err := rt.ResolveKind(obj.GetAPIVersion(), obj.GetKind()); err == nil && kube.HoldsCredentials(gvr.GroupResource()) {
 			return true
 		}
 	}
 	return false
 }
 
-// secretDryRun treats a dry run that touches a Secret like the change
-// itself: it needs write access and is audited. A dry run tells whether
-// the object would change, so a viewer, who sees Secret values only
-// redacted, could otherwise confirm guessed values one unaudited dry run
+// secretDryRun treats a dry run that touches a Secret (or a credential
+// kind) like the change itself: it needs write access and is audited. A
+// dry run tells whether the object would change, so a viewer, who sees
+// Secret values only redacted, could otherwise confirm guessed values one unaudited dry run
 // at a time (an "unchanged" result means the guess is right). The handler
 // answers through the returned writer and calls done when it returns; err
 // is the denial, which the row records once the handler writes it.
@@ -319,17 +320,14 @@ func (s *Server) handlePatchMetadata(w http.ResponseWriter, r *http.Request, c *
 	// Values are not recorded: annotations may hold anything.
 	c.setAudit(obj.Target(), "")
 	c.setAuditItems(map[string]any{}, "keys", changedKeys(patch))
-	if obj.Resource.GroupResource() == secretsResource && holdsRedacted(patch) {
+	if kube.HoldsCredentials(obj.Resource.GroupResource()) && holdsRedacted(patch) {
 		writeErr(w, fail(http.StatusBadRequest, plugin.CodeRedactedSecret, reasonRedactedMetadata, nil))
 		return
 	}
 	respondOK(w, c.rt.PatchMetadata(r.Context(), obj, patch))
 }
 
-var (
-	namespacesResource = schema.GroupResource{Resource: "namespaces"}
-	secretsResource    = schema.GroupResource{Resource: "secrets"}
-)
+var namespacesResource = schema.GroupResource{Resource: "namespaces"}
 
 func holdsRedacted(patch kube.MetadataPatch) bool {
 	for _, values := range []map[string]*string{patch.Labels, patch.Annotations} {

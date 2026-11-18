@@ -176,7 +176,8 @@ on routes that opt in (core flag `allowDryRun`, plugin flag
 `plugin.DryRunnable`) and whose handlers then really perform a dry run
 (`plugin.IsDryRun(r)`). The relaxation is per route because a handler that
 ignored `dryRun` would otherwise let a viewer mutate.
-One exception: a dry run that touches a core Secret (apply, edit) needs
+One exception: a dry run that touches a core Secret or a kind holding
+credentials (§7.15: Route, BuildConfig, Build; apply, edit) needs
 `write` and is audited like the change itself (detail `"dryRun":true`),
 because its result (`unchanged` or not) would let a viewer, who sees
 Secret values only redacted, confirm guessed values. Helm install and
@@ -541,7 +542,8 @@ route answers `409 no_cluster` instead. Without any usable cluster,
   `sinceSeconds`.
 - Secret values are redacted on every read route (`/api/resource`,
   `/api/resource/get`, `/api/yaml`): `data`, `stringData` and kubectl's
-  `last-applied-configuration` annotation, which repeats them.
+  `last-applied-configuration` annotation, which repeats them. So are the
+  credentials of the OpenShift kinds that hold them inline (§7.15).
 
 ### 4.5 Kubernetes read passthrough (for external plugins)
 
@@ -964,7 +966,8 @@ and `new-resource` with `{namespace?, kind?}` (see 7.2);
     document is not valid YAML/JSON or lacks apiVersion, kind or
     metadata.name (`bad_request`, the message names the document), or is a
     Secret whose data/stringData values or last-applied annotation are
-    redaction placeholders (`redacted_secret`).
+    redaction placeholders, or a Route, BuildConfig or Build whose
+    credentials (§7.15) or last-applied annotation are (`redacted_secret`).
   - Otherwise every object is attempted in order and the answer is `200`:
     `{"results":[{"apiVersion","kind","namespace"?,"name","action"?:"created|configured|unchanged","error"?,"code"?,"reason"?,"params"?,"warnings"?,"warningReasons"?}]}`.
     A failed object carries `error` and `code` instead of `action`:
@@ -988,7 +991,8 @@ and `new-resource` with `{namespace?, kind?}` (see 7.2);
   be the named object (apiVersion, kind, name; the namespace may be
   omitted), else `400 bad_request`. Redaction placeholders left unchanged
   are not part of the patch, so a Secret's labels can be edited without
-  revealing it; a value changed to a placeholder is `400 redacted_secret`.
+  revealing it; a value changed to a placeholder is `400 redacted_secret`,
+  likewise for the credentials of §7.15's kinds.
   Answers like apply with one result (`configured` or `unchanged`; nothing
   is sent without changes); audit target `<kind>/<ns>/<name>`, detail the
   outcome count.
@@ -1011,8 +1015,8 @@ and `new-resource` with `{namespace?, kind?}` (see 7.2);
 - `PATCH /api/resource/metadata?apiVersion=&kind=` or `?key=` `&ns=&name=`
   (write), body `{"labels":{…},"annotations":{…}}`: a JSON merge patch, a
   null value removes the key. The audit detail lists the changed keys,
-  never values. A Secret's labels or annotations cannot be set to a
-  redaction placeholder (`redacted_secret`).
+  never values. The labels or annotations of a Secret, Route, BuildConfig
+  or Build cannot be set to a redaction placeholder (`redacted_secret`).
 - `POST /api/secrets/reveal?ns=&name=` (exec) → the Secret with its values
   (`data`, base64; managedFields stripped), `Cache-Control: no-store`. It
   has its own route because the access level belongs to the route: a
@@ -1174,7 +1178,8 @@ Shapes (they match `src/plugins/helm/data/types.ts`):
   runs return the current revision's manifest as `currentManifest` for
   the diff.
 - Every manifest returned (release manifests of any revision, install and
-  upgrade answers, `currentManifest`) shows core Secrets redacted like
+  upgrade answers, `currentManifest`) shows core Secrets (and the
+  credentials of §7.15's Routes, BuildConfigs and Builds) redacted like
   every other read path (§3.1: `data`/`stringData` values become
   `<N bytes, redacted>`, the last-applied annotation `<redacted>`; a
   redacted Secret is re-serialized with sorted keys, other documents are
@@ -2155,6 +2160,20 @@ cluster serves the API group, so other clusters see no change.
   `builds.build.openshift.io`: `config.openshift.io` has `builds` and
   `projects` too); ImageStreamTags, which cannot be watched, follow their
   ImageStreams.
+- **Credentials** (`kube/credentials.go`): a Route's TLS private key
+  (`spec.tls.key`), a BuildConfig's inline webhook secrets
+  (`spec.triggers[].github|generic|gitlab|bitbucket.secret`) and a Build's
+  (`spec.triggeredBy[].githubWebHook|genericWebHook|gitlabWebHook|bitbucketWebHook.secret`)
+  are redacted like Secret values on every read path (`/api/resource`,
+  `/api/resource/get`, `/api/yaml`, Helm manifests), with the
+  last-applied annotation; there is no reveal route for them. Apply, edit
+  and metadata writes refuse their placeholders (`400 redacted_secret`,
+  `manifest.credential_placeholder`, `edit.credential_placeholder`, the
+  `*_annotation_placeholder` codes, `editing.annotation_placeholder`); a
+  merge patch replaces lists whole, so an edit that changes a BuildConfig's
+  trigger list while a secret in it is redacted is refused. Dry runs that
+  touch these kinds need write access and are audited, like Secret dry
+  runs (§3.2).
 - Topology (§7.9): Route → Service edges (`spec.to` and
   `alternateBackends` of kind Service), Routes in the Ingress column with
   the Ingress status rules; "Show topology" on Routes.

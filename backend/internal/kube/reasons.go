@@ -55,4 +55,9 @@ var (
 	reasonOriginalOther      = reason.Define("edit.original_other_object", "the original manifest describes {{kind}} {{name}}, not the edited {{edited}}; create other objects with New resource")
 	reasonEditRedacted       = reason.Define("edit.secret_placeholder", "Secret {{name}}: {{field}} is set to a redaction placeholder; leave the placeholder unchanged to keep the value, or enter the real value")
 	reasonEditAnnotation     = reason.Define("edit.secret_annotation_placeholder", "Secret {{name}}: the {{annotation}} annotation holds a redaction placeholder; remove the annotation")
+	// The credential kinds' (credentials.go) counterparts of the Secret refusals.
+	reasonManifestCredential           = reason.Define("manifest.credential_placeholder", "document {{document}}: {{kind}} {{name}}: {{field}} holds a redaction placeholder, not its value; use the real value")
+	reasonManifestCredentialAnnotation = reason.Define("manifest.credential_annotation_placeholder", "document {{document}}: {{kind}} {{name}}: the {{annotation}} annotation holds a redaction placeholder; remove the annotation")
+	reasonEditCredential               = reason.Define("edit.credential_placeholder", "{{kind}} {{name}}: {{field}} is set to a redaction placeholder; leave it and the list holding it unchanged to keep the value, or enter the real value")
+	reasonEditCredentialAnnotation     = reason.Define("edit.credential_annotation_placeholder", "{{kind}} {{name}}: the {{annotation}} annotation holds a redaction placeholder; remove the annotation")
 )

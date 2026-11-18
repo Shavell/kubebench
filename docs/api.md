@@ -115,7 +115,7 @@ Codes:
 | `plugin_disabled` | 404 | the backend plugin is disabled |
 | `plugin_unavailable` | 503 | the plugin's Detect says it cannot work on this cluster |
 | `capability_unavailable` | 503 | the cluster lacks what the route needs (e.g. Prometheus), with the reason |
-| `redacted_secret` | 400 | a Secret still holds redaction placeholders |
+| `redacted_secret` | 400 | a Secret (or a Route, BuildConfig or Build credential) still holds redaction placeholders |
 | `kubernetes` | the API server's status | an error from the cluster; its `401` becomes `502` |
 | `internal` | 500 | a KubeBench-side failure |
 
@@ -254,7 +254,10 @@ All `read` unless stated.
 
 Secret values are redacted on every read route: `data` and `stringData`
 values and kubectl's `last-applied-configuration` annotation. Revealing them
-is `POST /api/secrets/reveal`.
+is `POST /api/secrets/reveal`. The credentials of OpenShift kinds are
+redacted the same way and cannot be revealed: a Route's `spec.tls.key`,
+the `secret` of a BuildConfig's `spec.triggers[].github|generic|gitlab|bitbucket`
+and of a Build's `spec.triggeredBy[].*WebHook` (§7.15).
 
 ### Kubernetes read passthrough
 
@@ -407,7 +410,7 @@ Available when the credential can list the Helm release Secrets.
 | GET | `/releases` | read | `?ns=` | `[{"name","namespace","chart","chartVersion","appVersion","revision","status","updated","description"}]` |
 | GET | `/releases/{ns}/{name}` | read | — | release + `firstDeployed`, `notes`, `chartInfo`, `hooks`, `history` |
 | GET | `/releases/{ns}/{name}/values` | **exec** | `?all=&revision=` | `{"values":"<yaml>"}` (values often hold credentials) |
-| GET | `/releases/{ns}/{name}/manifest` | read | `?revision=` | `{"revision","manifest"}` (Secrets redacted) |
+| GET | `/releases/{ns}/{name}/manifest` | read | `?revision=` | `{"revision","manifest"}` (Secrets and Route/BuildConfig/Build credentials redacted) |
 | POST | `/releases/{ns}/{name}/rollback` | write | `{"revision"}` (0 = previous) | `{"release"}` |
 | POST | `/releases/{ns}/{name}/upgrade` | write | `{"chart"?, "values", "reuseValues", "dryRun"}` | `{"manifest","notes","currentManifest"}` |
 | DELETE | `/releases/{ns}/{name}` | write | `?keepHistory=` | `{"ok":true,"release"}` |

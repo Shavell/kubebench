@@ -71,7 +71,8 @@ export const openShiftMock: Record<string, KubeObject[]> = {
         path: '/api/cart',
         to: { kind: 'Service', name: 'shop-cart', weight: 100 },
         port: { targetPort: 8080 },
-        tls: { termination: 'edge' },
+        // Its own certificate; reads show the private key redacted, as the backend does.
+        tls: { termination: 'edge', certificate: '-----BEGIN CERTIFICATE-----\nMIIDmock\n-----END CERTIFICATE-----\n', key: '<1704 bytes, redacted>' },
       },
       status: admitted('shop-frontend-shop.apps.ocp-lab.example.com'),
     }),
@@ -131,7 +132,7 @@ export const openShiftMock: Record<string, KubeObject[]> = {
         source: { type: 'Git', git: { uri: 'https://github.com/example/shop-api.git', ref: 'main' } },
         strategy: { type: 'Docker' },
         output: { to: { kind: 'ImageStreamTag', name: 'shop-api:latest' } },
-        triggers: [{ type: 'ConfigChange' }],
+        triggers: [{ type: 'ConfigChange' }, { type: 'GitHub', github: { secret: '<20 bytes, redacted>' } }],
       },
       status: { lastVersion: 3 },
     }),

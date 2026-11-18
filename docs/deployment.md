@@ -96,7 +96,10 @@ authenticated user may use:
 - **RBAC.** The `read-only` preset also reads the `route`, `project`,
   `apps`, `build`, `image`, `security` and `config` `.openshift.io` groups
   (not `imagestreams/secrets` or `imagestreams/layers`). No preset grants
-  `use` on an SCC.
+  `use` on an SCC. Like OpenShift's own `view` role, it can read the TLS
+  private keys of Routes and the inline webhook secrets of BuildConfigs;
+  KubeBench never shows them to its users (they are redacted on every
+  read).
 - **NetworkPolicy.** The DNS rule targets the `dns-default` pods in
   `openshift-dns` on ports 53 and 5353 (OVN-Kubernetes evaluates egress
   after the Service's 53 → 5353 translation); the API server Service and

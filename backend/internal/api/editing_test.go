@@ -26,9 +26,15 @@ import (
 // through a dynamic client with server-side apply semantics.
 func editingEnv(t *testing.T, objects ...*unstructured.Unstructured) (*testEnv, *dynamicfake.FakeDynamicClient) {
 	t.Helper()
+	return editingEnvWith(t, kubetest.Kinds, objects...)
+}
+
+// editingEnvWith is editingEnv for a cluster serving kinds.
+func editingEnvWith(t *testing.T, kinds []kubetest.Kind, objects ...*unstructured.Unstructured) (*testEnv, *dynamicfake.FakeDynamicClient) {
+	t.Helper()
 	e := newTestEnv(t, nil)
-	e.cs.Fake.Resources = kubetest.Resources(kubetest.Kinds)
-	dyn := kubetest.NewDynamic(kubetest.Kinds, objects...)
+	e.cs.Fake.Resources = kubetest.Resources(kinds)
+	dyn := kubetest.NewDynamic(kinds, objects...)
 	e.srv.manager = kube.NewManagerWith(func(c store.Cluster) (*kube.Runtime, error) {
 		return kube.NewRuntimeForTest(c, e.cs, dyn), nil
 	})

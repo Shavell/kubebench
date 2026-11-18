@@ -172,9 +172,14 @@ func mergePatch(from, to map[string]any) map[string]any {
 }
 
 // checkPatchValues refuses a patch that would write a redaction
-// placeholder into a Secret: as a value, or as kubectl's last-applied
-// annotation, which repeats the values.
+// placeholder into a Secret or a credential kind's credential: as a value,
+// or as kubectl's last-applied annotation, which repeats the values. A
+// merge patch replaces lists whole, so a changed list holding a redacted
+// credential (a BuildConfig's triggers) is refused too.
 func checkPatchValues(o Object, patch map[string]any) error {
+	if ck, ok := credentialKindOf(o.Resource.GroupResource()); ok {
+		return checkCredentialPatch(ck, o, patch)
+	}
 	if !isSecrets(o.Resource) {
 		return nil
 	}
@@ -192,6 +197,21 @@ func checkPatchValues(o Object, patch map[string]any) error {
 	if s, ok := annotations[lastAppliedAnnotation].(string); ok && IsRedacted(s) {
 		return &EditError{Redacted: true, Code: reasonEditAnnotation,
 			Params: reason.Params{"name": o.Name, "annotation": lastAppliedAnnotation}}
+	}
+	return nil
+}
+
+// checkCredentialPatch is checkPatchValues for a credential kind.
+func checkCredentialPatch(ck credentialKind, o Object, patch map[string]any) error {
+	if field, found := ck.placeholder(patch); found {
+		return &EditError{Redacted: true, Code: reasonEditCredential,
+			Params: reason.Params{"kind": ck.kind, "name": o.Name, "field": field}}
+	}
+	meta, _ := patch["metadata"].(map[string]any)
+	annotations, _ := meta["annotations"].(map[string]any)
+	if s, ok := annotations[lastAppliedAnnotation].(string); ok && IsRedacted(s) {
+		return &EditError{Redacted: true, Code: reasonEditCredentialAnnotation,
+			Params: reason.Params{"kind": ck.kind, "name": o.Name, "annotation": lastAppliedAnnotation}}
 	}
 	return nil
 }

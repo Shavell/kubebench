@@ -123,6 +123,8 @@
     "not_terminated": "evicted, but the pod had not terminated when the drain ended"
   },
   "edit": {
+    "credential_annotation_placeholder": "{{kind}} {{name}}: the {{annotation}} annotation holds a redaction placeholder; remove the annotation",
+    "credential_placeholder": "{{kind}} {{name}}: {{field}} is set to a redaction placeholder; leave it and the list holding it unchanged to keep the value, or enter the real value",
     "empty": "the edited manifest is empty",
     "invalid_yaml": "the edited manifest is not valid YAML or JSON: {{detail}}",
     "not_object": "the edited manifest is not an object",
@@ -137,7 +139,7 @@
     "several_documents": "the edited manifest holds more than one document; edit one object at a time"
   },
   "editing": {
-    "annotation_placeholder": "a value is a redaction placeholder; it would replace the real value of the Secret's annotation",
+    "annotation_placeholder": "a value is a redaction placeholder; it would replace the real value of the annotation",
     "namespace_delete": "Namespaces are deleted with DELETE /api/namespaces, which protects the system namespaces",
     "no_objects": "the request contains no objects",
     "nothing_to_change": "nothing to change: name labels or annotations",
@@ -205,6 +207,8 @@
   },
   "manifest": {
     "api_version_required": "document {{document}}: apiVersion is required",
+    "credential_annotation_placeholder": "document {{document}}: {{kind}} {{name}}: the {{annotation}} annotation holds a redaction placeholder; remove the annotation",
+    "credential_placeholder": "document {{document}}: {{kind}} {{name}}: {{field}} holds a redaction placeholder, not its value; use the real value",
     "invalid_yaml": "document {{document}}: not valid YAML or JSON: {{detail}}",
     "kind_required": "document {{document}}: kind is required",
     "name_required": "document {{document}}: {{kind}}: metadata.name is required (server-side apply cannot generate names)",
