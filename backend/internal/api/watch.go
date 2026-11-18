@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 	"kubebench/internal/watch"
 )
 
@@ -26,16 +27,16 @@ func parseWatchTopics(raw string) ([]string, error) {
 			continue
 		}
 		if !watch.ValidTopic(t) {
-			return nil, badRequest("invalid topic %q: give a resource like pods or applications.argoproj.io", t)
+			return nil, badRequest(reasonTopic, reason.Params{"topic": t})
 		}
 		seen[t] = true
 		topics = append(topics, t)
 	}
 	if len(topics) == 0 {
-		return nil, badRequest("topics is required")
+		return nil, badRequest(reason.FieldRequired, reason.Params{"field": "topics"})
 	}
 	if len(topics) > maxWatchTopics {
-		return nil, badRequest("at most %d topics per stream", maxWatchTopics)
+		return nil, badRequest(reasonTooManyTopics, reason.Params{"max": maxWatchTopics})
 	}
 	return topics, nil
 }
@@ -62,11 +63,11 @@ func (s *Server) handleWatch(w http.ResponseWriter, r *http.Request, c *call) {
 	sub, err := c.rt.Watch().Subscribe(c.user.ID, topics)
 	switch {
 	case errors.Is(err, watch.ErrClosed):
-		writeErr(w, errorf(http.StatusServiceUnavailable, plugin.CodeCapabilityUnavailable,
-			"the connection to cluster %q is being rebuilt; try again", c.cluster.Name))
+		writeErr(w, fail(http.StatusServiceUnavailable, plugin.CodeCapabilityUnavailable, reasonRebuilding,
+			reason.Params{"cluster": c.cluster.Name}))
 		return
 	case errors.Is(err, watch.ErrTooManySubscribers):
-		writeErr(w, errorf(http.StatusTooManyRequests, plugin.CodeRateLimited, "%v", err))
+		writeErr(w, refuse(http.StatusTooManyRequests, plugin.CodeRateLimited, err))
 		return
 	case err != nil:
 		writeErr(w, err)

@@ -13,6 +13,7 @@ import (
 
 	"kubebench/internal/kube"
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 )
 
 // Annotations marking the default StorageClass (the beta one is still
@@ -52,11 +53,11 @@ func (req StorageClassRequest) validate() (storageClassSpec, error) {
 		return s, err
 	}
 	if len(req.Parameters) > maxParameters {
-		return s, invalidf("parameters", "at most %d parameters", maxParameters)
+		return s, invalidField("parameters", reasonTooManyParams, reason.Params{"max": maxParameters})
 	}
 	for key := range req.Parameters {
 		if key == "" {
-			return s, invalidf("parameters", "keys cannot be empty")
+			return s, invalidField("parameters", reasonEmptyKeys, nil)
 		}
 	}
 	switch p := corev1.PersistentVolumeReclaimPolicy(req.ReclaimPolicy); p {
@@ -65,7 +66,7 @@ func (req StorageClassRequest) validate() (storageClassSpec, error) {
 	case corev1.PersistentVolumeReclaimDelete, corev1.PersistentVolumeReclaimRetain:
 		s.reclaim = p
 	default:
-		return s, invalidf("reclaimPolicy", "%q is not Delete or Retain", req.ReclaimPolicy)
+		return s, invalidField("reclaimPolicy", reasonOneOf, reason.Params{"value": string(req.ReclaimPolicy), "values": "Delete, Retain"})
 	}
 	switch m := storagev1.VolumeBindingMode(req.VolumeBindingMode); m {
 	case "":
@@ -73,7 +74,7 @@ func (req StorageClassRequest) validate() (storageClassSpec, error) {
 	case storagev1.VolumeBindingImmediate, storagev1.VolumeBindingWaitForFirstConsumer:
 		s.binding = m
 	default:
-		return s, invalidf("volumeBindingMode", "%q is not Immediate or WaitForFirstConsumer", req.VolumeBindingMode)
+		return s, invalidField("volumeBindingMode", reasonOneOf, reason.Params{"value": string(req.VolumeBindingMode), "values": "Immediate, WaitForFirstConsumer"})
 	}
 	if err := mountOptions("mountOptions", req.MountOptions); err != nil {
 		return s, err

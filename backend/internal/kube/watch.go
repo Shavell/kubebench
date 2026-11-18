@@ -1,11 +1,10 @@
 package kube
 
 import (
-	"fmt"
-
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
+	"kubebench/internal/reason"
 	"kubebench/internal/watch"
 )
 
@@ -30,7 +29,7 @@ func (r *Runtime) resolveTopic(topic string) (schema.GroupVersionResource, error
 		return gvr, &watch.NotServedError{Topic: topic}
 	}
 	if err != nil {
-		return gvr, fmt.Errorf("cannot resolve %s: %v", topic, err)
+		return gvr, reason.Wrap(err, reasonCannotResolve, reason.Params{"topic": topic, "detail": err.Error()})
 	}
 	return gvr, nil
 }

@@ -2,10 +2,11 @@ package cloudauth
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"regexp"
 	"strings"
+
+	"kubebench/internal/reason"
 )
 
 // Credentials are per-cluster cloud credentials an admin supplies, stored
@@ -46,7 +47,7 @@ func (c *Credentials) Validate() error {
 		&c.Profile, &c.ServiceAccountJSON, &c.TenantID, &c.ClientID, &c.ClientSecret} {
 		*f = strings.TrimSpace(*f)
 		if len(*f) > maxField {
-			return errors.New("a credential field is longer than 16 KiB")
+			return reason.New(reasonFieldTooLong, nil)
 		}
 	}
 	aws := c.AccessKeyID + c.SecretAccessKey + c.SessionToken + c.Profile
@@ -55,27 +56,27 @@ func (c *Credentials) Validate() error {
 	switch c.Provider {
 	case AWS:
 		if gcp+azure != "" {
-			return errors.New("AWS credentials take an access key or a profile only")
+			return reason.New(reasonAWSOnly, nil)
 		}
 		return c.validateAWS()
 	case GCP:
 		if aws+azure != "" {
-			return errors.New("GCP credentials take a service-account key only")
+			return reason.New(reasonGCPOnly, nil)
 		}
 		return validateServiceAccount(c.ServiceAccountJSON)
 	case Azure:
 		if aws+gcp != "" {
-			return errors.New("Azure credentials take a tenant id, client id and client secret only")
+			return reason.New(reasonAzureOnly, nil)
 		}
 		if !guidPattern.MatchString(c.TenantID) || !guidPattern.MatchString(c.ClientID) {
-			return errors.New("the Azure tenant id and client id are GUIDs")
+			return reason.New(reasonAzureGUIDs, nil)
 		}
 		if c.ClientSecret == "" {
-			return errors.New("the Azure client secret is required")
+			return reason.New(reasonAzureSecret, nil)
 		}
 		return nil
 	default:
-		return fmt.Errorf("unknown credential provider %q: use aws, gcp or azure", c.Provider)
+		return reason.New(reasonUnknownProvider, reason.Params{"provider": c.Provider})
 	}
 }
 
@@ -83,13 +84,13 @@ func (c *Credentials) validateAWS() error {
 	keys := c.AccessKeyID != "" || c.SecretAccessKey != "" || c.SessionToken != ""
 	switch {
 	case keys && c.Profile != "":
-		return errors.New("give either an AWS access key or a profile, not both")
+		return reason.New(reasonAWSKeyAndProfile, nil)
 	case keys && (c.AccessKeyID == "" || c.SecretAccessKey == ""):
-		return errors.New("an AWS access key needs both the key id and the secret")
+		return reason.New(reasonAWSKeyIncomplete, nil)
 	case !keys && c.Profile == "":
-		return errors.New("give an AWS access key or a profile")
+		return reason.New(reasonAWSMissing, nil)
 	case c.Profile != "" && !profilePattern.MatchString(c.Profile):
-		return errors.New("invalid AWS profile name")
+		return reason.New(reasonAWSProfile, nil)
 	}
 	return nil
 }
@@ -104,13 +105,13 @@ func validateServiceAccount(raw string) error {
 		PrivateKey  string `json:"private_key"`
 	}
 	if err := json.Unmarshal([]byte(raw), &key); err != nil {
-		return errors.New("the GCP service-account key is not valid JSON")
+		return reason.New(reasonGCPJSON, nil)
 	}
 	if key.Type != "service_account" {
-		return fmt.Errorf("the GCP key has type %q; only service_account keys are accepted", key.Type)
+		return reason.New(reasonGCPType, reason.Params{"type": key.Type})
 	}
 	if key.ClientEmail == "" || !strings.Contains(key.PrivateKey, "PRIVATE KEY") {
-		return errors.New("the GCP service-account key lacks client_email or private_key")
+		return reason.New(reasonGCPFields, nil)
 	}
 	return nil
 }

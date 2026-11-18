@@ -2,7 +2,6 @@ package kube
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -10,13 +9,21 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"sigs.k8s.io/yaml"
+
+	"kubebench/internal/reason"
 )
 
 // RequestError is a problem with what the caller asked for, found before
 // anything was sent to the cluster (the API reports it as 400 bad_request).
-type RequestError struct{ Reason string }
+type RequestError struct {
+	Code   reason.Code
+	Params reason.Params
+}
 
-func (e *RequestError) Error() string { return e.Reason }
+func (e *RequestError) Error() string { return e.Code.Text(e.Params) }
+
+// Reason implements reason.Reasoned.
+func (e *RequestError) Reason() (reason.Code, reason.Params) { return e.Code, e.Params }
 
 // Object is one object of any kind, mapped to its REST resource by
 // ResolveObject.
@@ -52,7 +59,7 @@ func (r *Runtime) ResolveObject(apiVersion, kind, namespace, name string) (Objec
 	case !namespaced:
 		obj.Namespace = ""
 	case namespace == "":
-		return Object{}, &RequestError{Reason: fmt.Sprintf("%s is a namespaced kind: name its namespace", kind)}
+		return Object{}, &RequestError{Code: reasonNamespacedKind, Params: reason.Params{"kind": kind}}
 	}
 	return obj, nil
 }

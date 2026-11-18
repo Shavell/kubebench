@@ -19,6 +19,8 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
+
+	"kubebench/internal/reason"
 )
 
 const (
@@ -53,8 +55,20 @@ type Status struct {
 	// CheckedAt is the time of the last successful check.
 	CheckedAt *time.Time `json:"checkedAt"`
 	// Error is why the last check failed; empty after a success.
-	Error string `json:"error"`
+	// ErrorReason and ErrorParams let the UI translate it (§3.3).
+	Error       string        `json:"error"`
+	ErrorReason string        `json:"errorReason,omitempty"`
+	ErrorParams reason.Params `json:"errorParams,omitempty"`
 }
+
+// Reasons of a failed check.
+var (
+	reasonRequest     = reason.Define("updates.request_failed", "cannot build the request: {{detail}}")
+	reasonUnreachable = reason.Define("updates.unreachable", "cannot reach {{host}}: {{detail}}")
+	reasonUnexpected  = reason.Define("updates.unexpected_response", "unexpected response from {{host}}: {{detail}}")
+	reasonRateLimited = reason.Define("updates.rate_limited", "{{host}} rate limit exceeded; the next check is after {{time}}")
+	reasonHTTPStatus  = reason.Define("updates.http_status", "{{host}} answered {{status}}{{detail}}")
+)
 
 // Options configure a Checker.
 type Options struct {
@@ -93,9 +107,9 @@ type Checker struct {
 	mu        sync.Mutex // guards the fields below
 	releases  []release  // newest first
 	etag      string
-	checkedAt time.Time // zero until a check succeeded
-	lastError string
-	next      time.Time // when a lazy check is due
+	checkedAt time.Time     // zero until a check succeeded
+	lastError *reason.Error // why the last check failed; nil after a success
+	next      time.Time     // when a lazy check is due
 }
 
 // New returns a Checker; it makes no request until one is asked for.
@@ -157,7 +171,7 @@ func (c *Checker) refresh(ctx context.Context, force bool) {
 func (c *Checker) fetch(ctx context.Context) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.url, nil)
 	if err != nil {
-		c.failed(err.Error(), failureRetry)
+		c.failed(reason.New(reasonRequest, reason.Params{"detail": err.Error()}), failureRetry)
 		return
 	}
 	req.Header.Set("Accept", "application/vnd.github+json")
@@ -171,7 +185,7 @@ func (c *Checker) fetch(ctx context.Context) {
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		c.failed(fmt.Sprintf("cannot reach %s: %v", req.URL.Host, transportError(err)), failureRetry)
+		c.failed(reason.New(reasonUnreachable, reason.Params{"host": req.URL.Host, "detail": transportError(err).Error()}), failureRetry)
 		return
 	}
 	defer resp.Body.Close()
@@ -180,7 +194,7 @@ func (c *Checker) fetch(ctx context.Context) {
 	case resp.StatusCode == http.StatusOK:
 		releases, err := decodeReleases(io.LimitReader(resp.Body, maxBody+1))
 		if err != nil {
-			c.failed(fmt.Sprintf("unexpected response from %s: %v", req.URL.Host, err), failureRetry)
+			c.failed(reason.New(reasonUnexpected, reason.Params{"host": req.URL.Host, "detail": err.Error()}), failureRetry)
 			return
 		}
 		c.succeeded(releases, resp.Header.Get("ETag"), true)
@@ -191,11 +205,12 @@ func (c *Checker) fetch(ctx context.Context) {
 		c.succeeded([]release{}, "", true)
 	default:
 		if wait, limited := rateLimited(resp, c.now()); limited {
-			c.failed(fmt.Sprintf("%s rate limit exceeded; the next check is after %s",
-				req.URL.Host, c.now().Add(wait).UTC().Format("15:04 UTC")), wait)
+			c.failed(reason.New(reasonRateLimited, reason.Params{
+				"host": req.URL.Host, "time": c.now().Add(wait).UTC().Format("15:04 UTC")}), wait)
 			return
 		}
-		c.failed(fmt.Sprintf("%s answered %s%s", req.URL.Host, resp.Status, serverMessage(resp.Body)), failureRetry)
+		c.failed(reason.New(reasonHTTPStatus, reason.Params{
+			"host": req.URL.Host, "status": resp.Status, "detail": serverMessage(resp.Body)}), failureRetry)
 	}
 }
 
@@ -208,15 +223,15 @@ func (c *Checker) succeeded(releases []release, etag string, replace bool) {
 		c.releases, c.etag = releases, etag
 	}
 	c.checkedAt = c.now()
-	c.lastError = ""
+	c.lastError = nil
 	c.next = c.checkedAt.Add(cacheTTL)
 }
 
 // failed records a failed check, keeping the last good result.
-func (c *Checker) failed(reason string, retryIn time.Duration) {
+func (c *Checker) failed(why *reason.Error, retryIn time.Duration) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.lastError = reason
+	c.lastError = why
 	c.next = c.now().Add(retryIn)
 }
 
@@ -230,7 +245,9 @@ func (c *Checker) status(mode Mode) Status {
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	s.Error = c.lastError
+	if c.lastError != nil {
+		s.Error, s.ErrorReason, s.ErrorParams = c.lastError.Error(), c.lastError.Code.String(), c.lastError.Params
+	}
 	if !c.checkedAt.IsZero() {
 		checked := c.checkedAt.UTC()
 		s.CheckedAt = &checked

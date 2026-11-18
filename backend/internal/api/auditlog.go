@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 	"kubebench/internal/store"
 )
 
@@ -76,7 +77,7 @@ func intParam(raw string, fallback, lowest int) (int, error) {
 	}
 	n, err := strconv.Atoi(raw)
 	if err != nil || n < lowest {
-		return 0, badRequest("%q is not a valid number (at least %d)", raw, lowest)
+		return 0, badRequest(reasonInvalidNumber, reason.Params{"value": raw, "min": lowest})
 	}
 	return n, nil
 }

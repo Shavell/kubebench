@@ -9,6 +9,8 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+
+	"kubebench/internal/reason"
 )
 
 // Machine-readable error codes (docs/design-v0.5.md §3.3). The frontend
@@ -37,10 +39,15 @@ const (
 	CodeInternal = "internal"
 )
 
-// ErrorBody is the JSON shape of every error response.
+// ErrorBody is the JSON shape of every error response. Reason and Params
+// are set when KubeBench itself explains the error (a reason.Reasoned
+// error): the UI shows the reason's translation and falls back to Error,
+// the English text.
 type ErrorBody struct {
-	Error string `json:"error"`
-	Code  string `json:"code"`
+	Error  string        `json:"error"`
+	Code   string        `json:"code"`
+	Reason string        `json:"reason,omitempty"`
+	Params reason.Params `json:"params,omitempty"`
 }
 
 // WriteJSON writes v as a 200 JSON response. v is encoded before anything
@@ -55,20 +62,25 @@ func WriteJSON(w http.ResponseWriter, v any) {
 	_, _ = w.Write(append(body, '\n'))
 }
 
-// WriteError writes {"error": err.Error(), "code": code} with status; a nil
-// err uses the status text. Server errors are logged.
+// WriteError writes {"error": err.Error(), "code": code} with status, plus
+// "reason" and "params" when err carries a reason (reason.Of); a nil err
+// uses the status text. Server errors are logged.
 func WriteError(w http.ResponseWriter, status int, code string, err error) {
-	msg := http.StatusText(status)
+	body := ErrorBody{Error: http.StatusText(status), Code: code}
 	if err != nil {
-		msg = err.Error()
+		body.Error = err.Error()
 	}
+	if rc, params, ok := reason.Of(err); ok {
+		body.Reason, body.Params = rc.String(), params
+	}
+	msg := body.Error
 	if status >= http.StatusInternalServerError {
 		log.Printf("[api] %d %s: %s", status, code, msg)
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(ErrorBody{Error: msg, Code: code})
+	_ = json.NewEncoder(w).Encode(body)
 }
 
 // WriteK8sError reports a client-go error with code "kubernetes". Kubernetes

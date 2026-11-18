@@ -18,6 +18,7 @@ import (
 
 	"kubebench/internal/kube"
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 )
 
 // Resource editing (docs/design-v0.5.md §7.2): server-side apply with dry
@@ -63,11 +64,11 @@ func (s *Server) handleApply(w http.ResponseWriter, r *http.Request, c *call) {
 	if err != nil {
 		var tooLarge *http.MaxBytesError
 		if errors.As(err, &tooLarge) {
-			writeErr(w, errorf(http.StatusRequestEntityTooLarge, plugin.CodeBadRequest,
-				"the manifests exceed %d MiB", maxManifestBytes>>20))
+			writeErr(w, fail(http.StatusRequestEntityTooLarge, plugin.CodeBadRequest, reasonManifestTooLarge,
+				reason.Params{"size": fmt.Sprintf("%d MiB", maxManifestBytes>>20)}))
 			return
 		}
-		writeErr(w, badRequest("reading the manifests: %v", err))
+		writeErr(w, badRequest(reasonManifestRead, reason.Params{"detail": err.Error()}))
 		return
 	}
 	objects, err := kube.ParseManifests(data)
@@ -76,7 +77,7 @@ func (s *Server) handleApply(w http.ResponseWriter, r *http.Request, c *call) {
 		return
 	}
 	if len(objects) == 0 {
-		writeErr(w, badRequest("the request contains no objects"))
+		writeErr(w, badRequest(reasonNoObjects, nil))
 		return
 	}
 
@@ -127,11 +128,11 @@ func (s *Server) handleEdit(w http.ResponseWriter, r *http.Request, c *call) {
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 2*maxManifestBytes)).Decode(&body); err != nil {
 		var tooLarge *http.MaxBytesError
 		if errors.As(err, &tooLarge) {
-			writeErr(w, errorf(http.StatusRequestEntityTooLarge, plugin.CodeBadRequest,
-				"the manifests exceed %d MiB", 2*maxManifestBytes>>20))
+			writeErr(w, fail(http.StatusRequestEntityTooLarge, plugin.CodeBadRequest, reasonManifestTooLarge,
+				reason.Params{"size": fmt.Sprintf("%d MiB", 2*maxManifestBytes>>20)}))
 			return
 		}
-		writeErr(w, badRequest("invalid JSON body: %v", err))
+		writeErr(w, badRequest(reason.InvalidJSON, reason.Params{"detail": err.Error()}))
 		return
 	}
 	dryRun := plugin.IsDryRun(r)
@@ -148,10 +149,10 @@ func (s *Server) handleEdit(w http.ResponseWriter, r *http.Request, c *call) {
 	var refused *kube.EditError
 	switch {
 	case errors.As(err, &refused) && refused.Redacted:
-		writeErr(w, errorf(http.StatusBadRequest, plugin.CodeRedactedSecret, "%s", refused.Problem))
+		writeErr(w, refuse(http.StatusBadRequest, plugin.CodeRedactedSecret, refused))
 		return
 	case errors.As(err, &refused):
-		writeErr(w, badRequest("%s", refused.Problem))
+		writeErr(w, refuse(http.StatusBadRequest, plugin.CodeBadRequest, refused))
 		return
 	case err != nil:
 		writeErr(w, err)
@@ -164,10 +165,10 @@ func (s *Server) handleEdit(w http.ResponseWriter, r *http.Request, c *call) {
 func writeManifestErr(w http.ResponseWriter, err error) {
 	var me *kube.ManifestError
 	if errors.As(err, &me) && me.Redacted {
-		writeErr(w, errorf(http.StatusBadRequest, plugin.CodeRedactedSecret, "%s", me.Error()))
+		writeErr(w, refuse(http.StatusBadRequest, plugin.CodeRedactedSecret, me))
 		return
 	}
-	writeErr(w, badRequest("%s", err.Error()))
+	writeErr(w, refuse(http.StatusBadRequest, plugin.CodeBadRequest, err))
 }
 
 func toApplyResult(res kube.ApplyResult) applyResult {
@@ -265,7 +266,7 @@ func (s *Server) handleDeleteResource(w http.ResponseWriter, r *http.Request, c 
 	}
 	c.setAudit(obj.Target(), "")
 	if obj.Resource.GroupResource() == namespacesResource {
-		writeErr(w, badRequest("Namespaces are deleted with DELETE /api/namespaces, which protects the system namespaces"))
+		writeErr(w, badRequest(reasonNamespaceDelete, nil))
 		return
 	}
 	respondOK(w, c.rt.DeleteObject(r.Context(), obj, opts))
@@ -279,12 +280,12 @@ func deleteOptions(q url.Values) (kube.DeleteOptions, error) {
 	case "", metav1.DeletePropagationBackground, metav1.DeletePropagationForeground, metav1.DeletePropagationOrphan:
 		opts.Propagation = p
 	default:
-		return opts, badRequest("propagation must be Background, Foreground or Orphan")
+		return opts, badRequest(reason.FieldOneOf, reason.Params{"field": "propagation", "values": "Background, Foreground, Orphan"})
 	}
 	if raw := q.Get("gracePeriod"); raw != "" {
 		seconds, err := strconv.ParseInt(raw, 10, 64)
 		if err != nil || seconds < 0 {
-			return opts, badRequest("gracePeriod must be a number of seconds of at least 0")
+			return opts, badRequest(reason.FieldMin, reason.Params{"field": "gracePeriod", "min": 0})
 		}
 		opts.GracePeriod = &seconds
 	}
@@ -305,15 +306,14 @@ func (s *Server) handlePatchMetadata(w http.ResponseWriter, r *http.Request, c *
 		return
 	}
 	if len(patch.Labels) == 0 && len(patch.Annotations) == 0 {
-		writeErr(w, badRequest("nothing to change: name labels or annotations"))
+		writeErr(w, badRequest(reasonNothingToChange, nil))
 		return
 	}
 	// Values are not recorded: annotations may hold anything.
 	c.setAudit(obj.Target(), "")
 	c.setAuditItems(map[string]any{}, "keys", changedKeys(patch))
 	if obj.Resource.GroupResource() == secretsResource && holdsRedacted(patch) {
-		writeErr(w, errorf(http.StatusBadRequest, plugin.CodeRedactedSecret,
-			"a value is a redaction placeholder; it would replace the real value of the Secret's annotation"))
+		writeErr(w, fail(http.StatusBadRequest, plugin.CodeRedactedSecret, reasonRedactedMetadata, nil))
 		return
 	}
 	respondOK(w, c.rt.PatchMetadata(r.Context(), obj, patch))
@@ -372,16 +372,16 @@ func objectParam(rt *kube.Runtime, q url.Values) (kube.Object, error) {
 	apiVersion, kind, name := q.Get("apiVersion"), q.Get("kind"), q.Get("name")
 	if key := q.Get("key"); key != "" {
 		if apiVersion != "" || kind != "" {
-			return kube.Object{}, badRequest("name the resource by key or by apiVersion and kind, not both")
+			return kube.Object{}, badRequest(reasonKeyAndKind, nil)
 		}
 		entry, ok := kube.Catalog[key]
 		if !ok {
-			return kube.Object{}, badRequest("unknown resource %q", key)
+			return kube.Object{}, badRequest(reasonUnknownResource, reason.Params{"key": key})
 		}
 		apiVersion, kind = entry.GVR.GroupVersion().String(), entry.Kind
 	}
 	if apiVersion == "" || kind == "" || name == "" {
-		return kube.Object{}, badRequest("apiVersion, kind (or key) and name are required")
+		return kube.Object{}, badRequest(reasonObjectRequired, nil)
 	}
 	return rt.ResolveObject(apiVersion, kind, q.Get("ns"), name)
 }
@@ -396,7 +396,7 @@ func writeClusterErr(w http.ResponseWriter, err error) {
 	case errors.As(err, &ae):
 		writeErr(w, ae)
 	case errors.As(err, &re):
-		writeErr(w, badRequest("%s", re.Reason))
+		writeErr(w, refuse(http.StatusBadRequest, plugin.CodeBadRequest, re))
 	default:
 		plugin.WriteK8sError(w, err)
 	}
@@ -412,5 +412,5 @@ func flagParam(q url.Values, key string) (bool, error) {
 	case "true":
 		return true, nil
 	}
-	return false, badRequest("%s must be true or false", key)
+	return false, badRequest(reason.FieldBoolean, reason.Params{"field": key})
 }

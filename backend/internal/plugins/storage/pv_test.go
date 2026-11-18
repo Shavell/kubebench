@@ -103,7 +103,7 @@ func TestCreatePVValidation(t *testing.T) {
 		"csi no handle": {func(b map[string]any) {
 			delete(b, "hostPath")
 			b["csi"] = map[string]string{"driver": "pd.csi.storage.gke.io"}
-		}, "csi.volumeHandle:"},
+		}, "csi.volumeHandle is required"},
 		"csi bad driver": {func(b map[string]any) {
 			delete(b, "hostPath")
 			b["csi"] = map[string]string{"driver": "Bad Driver", "volumeHandle": "x"}

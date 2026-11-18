@@ -15,14 +15,14 @@ import (
 
 	"kubebench/internal/kube"
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 )
 
 // snapshotGroup is the API group of the external-snapshotter CRDs.
 const snapshotGroup = "snapshot.storage.k8s.io"
 
 // errNoSnapshots: the cluster does not serve VolumeSnapshots.
-var errNoSnapshots = errors.New("the cluster does not serve " + snapshotGroup +
-	" VolumeSnapshots: install the external-snapshotter CRDs and snapshot controller")
+var errNoSnapshots = reason.New(reasonNoSnapshots, nil)
 
 // Snapshot is one VolumeSnapshot in GET /snapshots.
 type Snapshot struct {
@@ -91,14 +91,14 @@ func listSnapshots(w http.ResponseWriter, r *http.Request, c *plugin.Context) {
 func getSnapshot(ctx context.Context, rt *kube.Runtime, ns, name string) (Snapshot, error) {
 	gvr, err := snapshotResource(rt)
 	if errors.Is(err, errNoSnapshots) {
-		return Snapshot{}, invalidf("dataSource.kind", "%v", err)
+		return Snapshot{}, invalidField("dataSource.kind", reasonNoSnapshots, nil)
 	}
 	if err != nil {
 		return Snapshot{}, err
 	}
 	obj, err := rt.Dyn.Resource(gvr).Namespace(ns).Get(ctx, name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		return Snapshot{}, invalidf("dataSource.name", "no VolumeSnapshot %q in namespace %q", name, ns)
+		return Snapshot{}, invalidField("dataSource.name", reasonNoSnapshot, reason.Params{"name": name, "namespace": ns})
 	}
 	if err != nil {
 		return Snapshot{}, err

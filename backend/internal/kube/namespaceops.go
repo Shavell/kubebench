@@ -10,6 +10,8 @@ import (
 	metav1validation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+
+	"kubebench/internal/reason"
 )
 
 // SystemNamespaces are the namespaces Kubernetes itself creates and needs.
@@ -21,10 +23,10 @@ var SystemNamespaces = []string{
 // be a DNS-1123 label.
 func (r *Runtime) CreateNamespace(ctx context.Context, name string, labels map[string]string) error {
 	if problems := validation.IsDNS1123Label(name); len(problems) > 0 {
-		return opError(OpInvalid, "namespace name %q: %s", name, strings.Join(problems, "; "))
+		return opError(OpInvalid, reasonNamespaceName, reason.Params{"name": name, "detail": strings.Join(problems, "; ")})
 	}
 	if errs := metav1validation.ValidateLabels(labels, field.NewPath("labels")); len(errs) > 0 {
-		return opError(OpInvalid, "%s", errs.ToAggregate().Error())
+		return opError(OpInvalid, reasonNamespaceLabels, reason.Params{"detail": errs.ToAggregate().Error()})
 	}
 	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: name, Labels: labels}}
 	_, err := r.CS.CoreV1().Namespaces().Create(ctx, ns, metav1.CreateOptions{FieldManager: FieldManager})
@@ -37,14 +39,14 @@ func (r *Runtime) CreateNamespace(ctx context.Context, name string, labels map[s
 // KubeBench itself.
 func (r *Runtime) DeleteNamespace(ctx context.Context, name, own string, force bool) error {
 	if name == "" {
-		return opError(OpInvalid, "a namespace name is required")
+		return opError(OpInvalid, reasonNamespaceRequired, nil)
 	}
 	if !force {
 		if slices.Contains(SystemNamespaces, name) {
-			return opError(OpProtected, "%s is a system namespace; KubeBench deletes it only when forced", name)
+			return opError(OpProtected, reasonNamespaceSystem, reason.Params{"name": name})
 		}
 		if name == own {
-			return opError(OpProtected, "%s is the namespace KubeBench runs in; KubeBench deletes it only when forced", name)
+			return opError(OpProtected, reasonNamespaceOwn, reason.Params{"name": name})
 		}
 	}
 	return r.CS.CoreV1().Namespaces().Delete(ctx, name, metav1.DeleteOptions{})

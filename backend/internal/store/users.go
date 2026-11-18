@@ -7,6 +7,8 @@ import (
 	"sync"
 
 	"golang.org/x/crypto/bcrypt"
+
+	"kubebench/internal/reason"
 )
 
 type User struct {
@@ -60,7 +62,7 @@ func (s *Store) CreateUser(username, password, role string, mustChangePassword b
 		username, hash, role, boolInt(mustChangePassword),
 	)
 	if err != nil {
-		return 0, conflictErr(err, "user %q", username)
+		return 0, conflictErr(err, reasonUserExists, reason.Params{"name": username})
 	}
 	return res.LastInsertId()
 }

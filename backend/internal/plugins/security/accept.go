@@ -2,8 +2,6 @@ package security
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"slices"
@@ -13,6 +11,7 @@ import (
 	"unicode/utf8"
 
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 )
 
 // Accepted risks live in the plugin KV under
@@ -46,13 +45,13 @@ func parseKey(key string) (string, Resource, error) {
 	parts := strings.SplitN(key, ":", 4)
 	switch {
 	case len(key) > maxKey:
-		return "", Resource{}, fmt.Errorf("key: at most %d bytes", maxKey)
+		return "", Resource{}, reason.New(reasonKeyLength, reason.Params{"max": maxKey})
 	case len(parts) != 4 || parts[1] == "" || parts[3] == "":
-		return "", Resource{}, errors.New("key: expected <checkId>:<Kind>:<namespace>:<name>")
+		return "", Resource{}, reason.New(reasonKeyFormat, nil)
 	case checksByID[parts[0]] == nil:
-		return "", Resource{}, fmt.Errorf("key: unknown check %q", parts[0])
+		return "", Resource{}, reason.New(reasonKeyCheck, reason.Params{"check": parts[0]})
 	case kindAPIVersions[parts[1]] == "":
-		return "", Resource{}, fmt.Errorf("key: unknown kind %q", parts[1])
+		return "", Resource{}, reason.New(reasonKeyKind, reason.Params{"kind": parts[1]})
 	}
 	return parts[0], Resource{APIVersion: kindAPIVersions[parts[1]], Kind: parts[1], Namespace: parts[2], Name: parts[3]}, nil
 }
@@ -106,7 +105,7 @@ func (p *Plugin) accept(w http.ResponseWriter, r *http.Request, c *plugin.Contex
 	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxBody))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&req); err != nil {
-		plugin.WriteError(w, http.StatusBadRequest, plugin.CodeBadRequest, fmt.Errorf("invalid JSON body: %w", err))
+		plugin.WriteError(w, http.StatusBadRequest, plugin.CodeBadRequest, reason.New(reason.InvalidJSON, reason.Params{"detail": err.Error()}))
 		return
 	}
 	checkID, res, err := parseKey(req.Key)
@@ -118,11 +117,11 @@ func (p *Plugin) accept(w http.ResponseWriter, r *http.Request, c *plugin.Contex
 	req.Reason = strings.TrimSpace(req.Reason)
 	switch {
 	case req.Reason == "":
-		err = errors.New("reason: required")
+		err = reason.New(reason.FieldRequired, reason.Params{"field": "reason"})
 	case utf8.RuneCountInString(req.Reason) > maxReason:
-		err = fmt.Errorf("reason: at most %d characters", maxReason)
+		err = reason.New(reason.FieldTooLong, reason.Params{"field": "reason", "max": maxReason})
 	case req.ExpiresAt != nil && !req.ExpiresAt.After(now):
-		err = errors.New("expiresAt: must be in the future")
+		err = reason.New(reasonExpiresPast, nil)
 	}
 	if err != nil {
 		plugin.WriteError(w, http.StatusBadRequest, plugin.CodeBadRequest, err)
@@ -163,7 +162,7 @@ func (p *Plugin) unaccept(w http.ResponseWriter, r *http.Request, c *plugin.Cont
 	case err != nil:
 		plugin.WriteError(w, http.StatusInternalServerError, plugin.CodeInternal, err)
 	case !ok:
-		plugin.WriteError(w, http.StatusNotFound, plugin.CodeNotFound, fmt.Errorf("no accepted risk %q", key))
+		plugin.WriteError(w, http.StatusNotFound, plugin.CodeNotFound, reason.New(reasonNoAccepted, reason.Params{"key": key}))
 	default:
 		plugin.WriteJSON(w, map[string]bool{"ok": true})
 	}

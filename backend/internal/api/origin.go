@@ -24,8 +24,8 @@ func (s *Server) checkOrigin(next http.Handler) http.Handler {
 }
 
 var (
-	errOriginMismatch = errorf(http.StatusForbidden, plugin.CodeForbidden, "cross-origin request rejected")
-	errOriginMissing  = errorf(http.StatusForbidden, plugin.CodeForbidden, "WebSocket request without an Origin rejected")
+	errOriginMismatch = fail(http.StatusForbidden, plugin.CodeForbidden, reasonCrossOrigin, nil)
+	errOriginMissing  = fail(http.StatusForbidden, plugin.CodeForbidden, reasonNoOrigin, nil)
 )
 
 // originError is why r fails the origin check, or nil. A WebSocket upgrade
@@ -53,7 +53,7 @@ func (s *Server) originError(r *http.Request) error {
 	return nil
 }
 
-var errCrossSite = errorf(http.StatusForbidden, plugin.CodeForbidden, "cross-site request rejected")
+var errCrossSite = fail(http.StatusForbidden, plugin.CodeForbidden, reasonCrossSite, nil)
 
 // crossSiteError refuses a GET or HEAD of a write or exec route that a page
 // of another site made the browser send: the SameSite=Lax cookie goes

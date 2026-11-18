@@ -45,7 +45,7 @@ func (s *Server) handleDebugPod(w http.ResponseWriter, r *http.Request, c *call)
 	q := r.URL.Query()
 	ns, pod := q.Get("ns"), q.Get("pod")
 	if ns == "" || pod == "" {
-		writeErr(w, badRequest("ns and pod are required"))
+		writeErr(w, required("ns", "pod"))
 		return
 	}
 	debug, err := c.rt.AddDebugContainer(r.Context(), ns, pod, q.Get("image"), q.Get("target"))

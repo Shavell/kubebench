@@ -13,6 +13,8 @@ import (
 
 	"helm.sh/helm/v3/pkg/helmpath"
 	"helm.sh/helm/v3/pkg/repo"
+
+	"kubebench/internal/reason"
 )
 
 var repoNamePattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$`)
@@ -48,18 +50,18 @@ type RepoUpdate struct {
 
 func (in RepoInput) validate() error {
 	if !repoNamePattern.MatchString(in.Name) {
-		return badRequest("name must be 1-64 letters, digits, '.', '_' or '-', starting with a letter or digit")
+		return badRequest(reasonRepoNameRule, nil)
 	}
 	u, err := url.Parse(in.URL)
 	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
-		return badRequest("url must be an http or https URL (OCI registries need no repository: install from oci://…)")
+		return badRequest(reasonRepoURL, nil)
 	}
 	if u.User != nil {
 		// The URL is shown to every user and recorded in the audit log.
-		return badRequest("put credentials in username and password, not in the URL")
+		return badRequest(reasonRepoURLCreds, nil)
 	}
 	if (in.Username == "") != (in.Password == "") {
-		return badRequest("give both username and password, or neither")
+		return badRequest(reasonRepoCredsPair, nil)
 	}
 	return nil
 }
@@ -123,11 +125,11 @@ func (e *environment) addRepo(in RepoInput) (*Repo, error) {
 		return nil, err
 	}
 	if f.Has(in.Name) {
-		return nil, conflict("repository %q already exists", in.Name)
+		return nil, conflict(reasonRepoExists, reason.Params{"name": in.Name})
 	}
 	entry := &repo.Entry{Name: in.Name, URL: in.URL, Username: in.Username, Password: in.Password}
 	if err := e.downloadIndex(entry); err != nil {
-		return nil, badRequest("could not download the index of %s: %v", in.URL, err)
+		return nil, badRequest(reasonRepoIndex, reason.Params{"url": in.URL, "detail": err.Error()})
 	}
 	f.Update(entry)
 	if err := f.WriteFile(e.settings.RepositoryConfig, 0o600); err != nil {
@@ -154,7 +156,7 @@ func (e *environment) removeRepo(name string) error {
 		return err
 	}
 	if !f.Remove(name) {
-		return notFound("repository %q does not exist", name)
+		return notFound(reasonRepoMissing, reason.Params{"name": name})
 	}
 	if err := f.WriteFile(e.settings.RepositoryConfig, 0o600); err != nil {
 		return err

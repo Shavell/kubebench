@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation"
 
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 )
 
 // GraphNode is a subject, binding or role of the binding graph. ID is
@@ -49,7 +50,7 @@ func graph(w http.ResponseWriter, r *http.Request, c *plugin.Context) {
 	ns := r.URL.Query().Get("namespace")
 	if ns != "" {
 		if errs := validation.IsDNS1123Label(ns); len(errs) > 0 {
-			writeErr(w, invalidf("namespace", "%s", strings.Join(errs, "; ")))
+			writeErr(w, invalidField("namespace", reason.FieldInvalid, reason.Params{"detail": strings.Join(errs, "; ")}))
 			return
 		}
 	}

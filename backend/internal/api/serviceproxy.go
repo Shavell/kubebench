@@ -15,6 +15,7 @@ import (
 
 	"kubebench/internal/kube"
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 	"kubebench/internal/store"
 	"kubebench/internal/svcproxy"
 )
@@ -72,7 +73,7 @@ func (s *Server) handleOpenProxy(kind string) handlerFunc {
 			t.Scheme = "http"
 		}
 		if err := t.Validate(); err != nil {
-			writeErr(w, badRequest("%v", err))
+			writeErr(w, refuse(http.StatusBadRequest, plugin.CodeBadRequest, err))
 			return
 		}
 		detail := map[string]any{"scheme": t.Scheme}
@@ -122,12 +123,12 @@ func (s *Server) checkProxyOrigin(appOrigin string) error {
 	app, err := url.Parse(appOrigin)
 	if err != nil || app.Host == "" {
 		// 'self': the host is unknown, so it cannot be told apart.
-		return errorf(http.StatusServiceUnavailable, plugin.CodeCapabilityUnavailable,
-			"the service browser cannot tell KubeBench's host from KUBEBENCH_PROXY_ORIGIN (%s)", s.cfg.ProxyOrigin)
+		return fail(http.StatusServiceUnavailable, plugin.CodeCapabilityUnavailable, reasonProxyOriginHost,
+			reason.Params{"origin": s.cfg.ProxyOrigin})
 	}
 	if svcproxy.SameSite(app.Hostname(), proxy.Hostname()) {
-		return errorf(http.StatusServiceUnavailable, plugin.CodeCapabilityUnavailable,
-			"the service browser is off: KUBEBENCH_PROXY_ORIGIN (%s) is on the same site as KubeBench (%s), so its pages could replace your KubeBench session cookie; an administrator must set it to a host on another domain, or unset it", s.cfg.ProxyOrigin, appOrigin)
+		return fail(http.StatusServiceUnavailable, plugin.CodeCapabilityUnavailable, reasonProxySameSite,
+			reason.Params{"origin": s.cfg.ProxyOrigin, "app": appOrigin})
 	}
 	return nil
 }
@@ -143,12 +144,12 @@ func checkProxyTarget(ctx context.Context, rt *kube.Runtime, t svcproxy.Target) 
 			return err
 		}
 		if svc.Spec.Type == corev1.ServiceTypeExternalName {
-			return badRequest("Service %s/%s points outside the cluster (ExternalName); open %s directly", t.Namespace, t.Name, svc.Spec.ExternalName)
+			return badRequest(reasonExternalName, reason.Params{"namespace": t.Namespace, "name": t.Name, "externalName": svc.Spec.ExternalName})
 		}
 		if !slices.ContainsFunc(svc.Spec.Ports, func(p corev1.ServicePort) bool {
 			return p.Name == t.Port || strconv.Itoa(int(p.Port)) == t.Port
 		}) {
-			return badRequest("Service %s/%s has no port %s", t.Namespace, t.Name, t.Port)
+			return badRequest(reasonNoServicePort, reason.Params{"namespace": t.Namespace, "name": t.Name, "port": t.Port})
 		}
 	case svcproxy.KindPod:
 		pod, err := rt.CS.CoreV1().Pods(t.Namespace).Get(ctx, t.Name, metav1.GetOptions{})
@@ -163,7 +164,7 @@ func checkProxyTarget(ctx context.Context, rt *kube.Runtime, t svcproxy.Target) 
 				return nil
 			}
 		}
-		return badRequest("Pod %s/%s has no port named %s", t.Namespace, t.Name, t.Port)
+		return badRequest(reasonNoPodPort, reason.Params{"namespace": t.Namespace, "name": t.Name, "port": t.Port})
 	}
 	return nil
 }
@@ -172,7 +173,7 @@ func checkProxyTarget(ctx context.Context, rt *kube.Runtime, t svcproxy.Target) 
 func (s *Server) handleProxySession(w http.ResponseWriter, r *http.Request, c *call) {
 	g, ok := s.grants.Get(r.PathValue("token"), c.token)
 	if !ok {
-		writeErr(w, errorf(http.StatusNotFound, plugin.CodeNotFound, "the browser session has ended"))
+		writeErr(w, fail(http.StatusNotFound, plugin.CodeNotFound, reasonBrowserEnded, nil))
 		return
 	}
 	readOnly := false
@@ -186,7 +187,7 @@ func (s *Server) handleProxySession(w http.ResponseWriter, r *http.Request, c *c
 // when its browser tab closes.
 func (s *Server) handleCloseProxySession(w http.ResponseWriter, r *http.Request, c *call) {
 	if !s.grants.Revoke(r.PathValue("token"), c.token) {
-		writeErr(w, errorf(http.StatusNotFound, plugin.CodeNotFound, "the browser session has ended"))
+		writeErr(w, fail(http.StatusNotFound, plugin.CodeNotFound, reasonBrowserEnded, nil))
 		return
 	}
 	writeOK(w)
@@ -217,33 +218,33 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request, _ *call) {
 		svcproxy.Fail(w, http.StatusNotFound, "this browser session has ended; open the service again from KubeBench", sandboxed, ancestor)
 		return
 	}
-	fail := func(status int, message string) {
+	failPage := func(status int, message string) {
 		svcproxy.Fail(w, status, message, sandboxed, g.FrameAncestor)
 	}
 	base := proxyPrefix + token
 	path, err := svcproxy.CleanPath(strings.TrimPrefix(r.URL.EscapedPath(), base))
 	if err != nil {
-		fail(http.StatusBadRequest, err.Error())
+		failPage(http.StatusBadRequest, err.Error())
 		return
 	}
 	cluster, readOnly, err := s.proxyAccess(g)
 	if err != nil {
 		var ae *apiError
 		if errors.As(err, &ae) {
-			fail(ae.status, ae.msg)
+			failPage(ae.status, ae.Error())
 		} else {
-			fail(http.StatusInternalServerError, err.Error())
+			failPage(http.StatusInternalServerError, err.Error())
 		}
 		return
 	}
 	rt, err := s.manager.Runtime(cluster)
 	if err != nil {
-		fail(http.StatusServiceUnavailable, "cluster "+cluster.Name+" is unavailable: "+err.Error())
+		failPage(http.StatusServiceUnavailable, "cluster "+cluster.Name+" is unavailable: "+err.Error())
 		return
 	}
 	transport, apiServer, err := rt.ProxyTransport()
 	if err != nil {
-		fail(http.StatusServiceUnavailable, "cluster "+cluster.Name+" is unavailable: "+err.Error())
+		failPage(http.StatusServiceUnavailable, "cluster "+cluster.Name+" is unavailable: "+err.Error())
 		return
 	}
 	ctx, cancel := s.streamContext(r.Context())
@@ -263,17 +264,17 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request, _ *call) {
 func (s *Server) proxyAccess(g svcproxy.Grant) (cluster *store.Cluster, readOnly bool, err error) {
 	user, err := s.store.UserBySession(g.Session)
 	if errors.Is(err, store.ErrNotFound) {
-		return nil, false, errorf(http.StatusUnauthorized, plugin.CodeSessionExpired, "your KubeBench session has ended; sign in again")
+		return nil, false, fail(http.StatusUnauthorized, plugin.CodeSessionExpired, reasonKubeBenchEnded, nil)
 	}
 	if err != nil {
 		return nil, false, err
 	}
 	if user.MustChangePassword {
-		return nil, false, errorf(http.StatusForbidden, plugin.CodePasswordChangeRequired, "change your password to continue")
+		return nil, false, fail(http.StatusForbidden, plugin.CodePasswordChangeRequired, reasonPasswordChange, nil)
 	}
 	cluster, err = s.store.GetCluster(g.ClusterID)
 	if errors.Is(err, store.ErrNotFound) {
-		return nil, false, errorf(http.StatusNotFound, plugin.CodeNoCluster, "the cluster was removed")
+		return nil, false, fail(http.StatusNotFound, plugin.CodeNoCluster, reasonClusterGone, nil)
 	}
 	if err != nil {
 		return nil, false, err
@@ -283,7 +284,7 @@ func (s *Server) proxyAccess(g svcproxy.Grant) (cluster *store.Cluster, readOnly
 		return nil, false, err
 	}
 	if role == "" {
-		return nil, false, errorf(http.StatusForbidden, plugin.CodeForbidden, "you no longer have access to cluster %q", cluster.Name)
+		return nil, false, fail(http.StatusForbidden, plugin.CodeForbidden, reasonAccessLost, reason.Params{"cluster": cluster.Name})
 	}
 	if err := browseDenied(role, cluster); err != nil {
 		return nil, false, err

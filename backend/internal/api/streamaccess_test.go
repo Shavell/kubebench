@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 	"kubebench/internal/store"
 )
 
@@ -96,7 +97,7 @@ func TestStreamLogsEndsWhenCheckFails(t *testing.T) {
 	var revoked atomic.Bool
 	check := func() error {
 		if revoked.Load() {
-			return errorf(http.StatusForbidden, plugin.CodeForbidden, "you no longer have access to cluster %q", "test")
+			return fail(http.StatusForbidden, plugin.CodeForbidden, reasonAccessLost, reason.Params{"cluster": "test"})
 		}
 		return nil
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 	"time"
 
@@ -93,7 +94,7 @@ func TestPluginCatalog(t *testing.T) {
 		ID: "fake", Name: "Fake", Version: "0.0.1", Description: "test plugin", Category: "tools",
 		Builtin: true, Enabled: true, Status: plugin.Status{Available: true},
 	}
-	if catalog.Plugins[0] != want {
+	if !reflect.DeepEqual(catalog.Plugins[0], want) {
 		t.Fatalf("plugin = %+v, want %+v", catalog.Plugins[0], want)
 	}
 	if s, ok := catalog.Settings["topology"]; !ok || s.Enabled || len(catalog.Settings) != 1 {

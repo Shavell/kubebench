@@ -2,7 +2,6 @@ package watch
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -12,6 +11,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic/dynamicinformer"
 	"k8s.io/client-go/tools/cache"
+
+	"kubebench/internal/reason"
 )
 
 // informer watches one resource type for the hub. Its fields are guarded
@@ -20,7 +21,7 @@ type informer struct {
 	gvr    schema.GroupVersionResource
 	cancel context.CancelFunc
 	mode   Mode
-	reason string
+	reason *reason.Error // why the mode is polling; nil when live
 	// denied is set once access was refused: the mode stays polling until
 	// the informer is stopped (a later subscriber after that tries again).
 	denied bool
@@ -62,18 +63,25 @@ func (inf *informer) stopIdle() {
 
 // setMode records inf's mode and tells its subscribers. A denied informer
 // keeps its polling mode.
-func (h *Hub) setMode(inf *informer, mode Mode, reason string, denied bool) {
+func (h *Hub) setMode(inf *informer, mode Mode, why *reason.Error, denied bool) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	if inf.denied || (inf.mode == mode && inf.reason == reason) {
+	if inf.denied || (inf.mode == mode && sameReason(inf.reason, why)) {
 		return
 	}
-	inf.mode, inf.reason, inf.denied = mode, reason, denied
+	inf.mode, inf.reason, inf.denied = mode, why, denied
 	for sub, topics := range inf.subs {
 		for _, t := range topics {
-			sub.addStatus(TopicStatus{Topic: t, Mode: mode, Reason: reason})
+			sub.addStatus(topicStatus(t, mode, why))
 		}
 	}
+}
+
+func sameReason(a, b *reason.Error) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return a.Error() == b.Error()
 }
 
 // dispatch tells inf's subscribers that an object changed in namespace.
@@ -130,7 +138,7 @@ func (h *Hub) run(ctx context.Context, inf *informer) {
 		si.RunWithContext(runCtx)
 	}()
 	if cache.WaitForCacheSync(runCtx.Done(), si.HasSynced) {
-		h.setMode(inf, ModeLive, "", false)
+		h.setMode(inf, ModeLive, nil, false)
 		h.opts.Logf("[watch] cluster=%s informer %s synced", h.opts.Cluster, gvrName(inf.gvr))
 	}
 	<-ran
@@ -154,7 +162,8 @@ func (h *Hub) probe(ctx context.Context, inf *informer) bool {
 			h.opts.Logf("[watch] cluster=%s informer %s denied: %v", h.opts.Cluster, gvrName(inf.gvr), err)
 			return false
 		}
-		h.setMode(inf, ModePolling, fmt.Sprintf("cannot list %s: %v", inf.gvr.Resource, err), false)
+		h.setMode(inf, ModePolling, reason.Wrap(err, reasonCannotList,
+			reason.Params{"resource": inf.gvr.Resource, "detail": err.Error()}), false)
 		select {
 		case <-ctx.Done():
 			return false
@@ -170,11 +179,11 @@ func denied(err error) bool {
 		apierrors.IsNotFound(err) || apierrors.IsMethodNotSupported(err) || meta.IsNoMatchError(err)
 }
 
-func deniedReason(gvr schema.GroupVersionResource, err error) string {
+func deniedReason(gvr schema.GroupVersionResource, err error) *reason.Error {
 	if apierrors.IsForbidden(err) || apierrors.IsUnauthorized(err) {
-		return fmt.Sprintf("the cluster credential may not list and watch %s", gvr.Resource)
+		return reason.Wrap(err, reasonDenied, reason.Params{"resource": gvr.Resource})
 	}
-	return fmt.Sprintf("%s cannot be watched: %v", gvr.Resource, err)
+	return reason.Wrap(err, reasonCannotWatch, reason.Params{"resource": gvr.Resource, "detail": err.Error()})
 }
 
 // stripObject keeps what change events need of an object: its name,

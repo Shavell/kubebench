@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 	"kubebench/internal/store"
 )
 
@@ -34,17 +35,17 @@ const (
 func (s *Server) stillAllowed(c *call, level access) error {
 	user, err := s.store.UserBySession(c.token)
 	if errors.Is(err, store.ErrNotFound) {
-		return errorf(http.StatusUnauthorized, plugin.CodeSessionExpired, "your session has ended; sign in again")
+		return fail(http.StatusUnauthorized, plugin.CodeSessionExpired, reasonSessionEnded, nil)
 	}
 	if err != nil {
 		return err
 	}
 	if user.MustChangePassword {
-		return errorf(http.StatusForbidden, plugin.CodePasswordChangeRequired, "change your password to continue")
+		return fail(http.StatusForbidden, plugin.CodePasswordChangeRequired, reasonPasswordChange, nil)
 	}
 	cluster, err := s.store.GetCluster(c.cluster.ID)
 	if errors.Is(err, store.ErrNotFound) {
-		return errorf(http.StatusConflict, plugin.CodeNoCluster, "cluster %q was removed", c.cluster.Name)
+		return fail(http.StatusConflict, plugin.CodeNoCluster, reasonClusterRemoved, reason.Params{"cluster": c.cluster.Name})
 	}
 	if err != nil {
 		return err
@@ -54,7 +55,7 @@ func (s *Server) stillAllowed(c *call, level access) error {
 		return err
 	}
 	if role == "" {
-		return errorf(http.StatusForbidden, plugin.CodeForbidden, "you no longer have access to cluster %q", cluster.Name)
+		return fail(http.StatusForbidden, plugin.CodeForbidden, reasonAccessLost, reason.Params{"cluster": cluster.Name})
 	}
 	if level == accessWrite || level == accessExec {
 		return mutationDenied(role, cluster)
@@ -70,6 +71,17 @@ const (
 	kindTerminal  streamKind = "terminal"
 	kindWatch     streamKind = "live-update stream"
 )
+
+// tooMany is the refusal of one stream more than limit.
+func (k streamKind) tooMany() reason.Code {
+	switch k {
+	case kindTerminal:
+		return reasonTooManyTerminals
+	case kindWatch:
+		return reasonTooManyWatches
+	}
+	return reasonTooManyLogs
+}
 
 func (k streamKind) limit() int {
 	switch k {
@@ -102,8 +114,7 @@ func (l *streamLimiter) acquire(user int64, kind streamKind) (release func(), er
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.open[slot] >= kind.limit() {
-		return nil, errorf(http.StatusTooManyRequests, plugin.CodeRateLimited,
-			"you have %d %ss open, the most at once; close one first", kind.limit(), kind)
+		return nil, fail(http.StatusTooManyRequests, plugin.CodeRateLimited, kind.tooMany(), reason.Params{"max": kind.limit()})
 	}
 	l.open[slot]++
 	var once sync.Once

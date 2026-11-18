@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	"kubebench/internal/plugin"
@@ -63,7 +64,7 @@ func TestExternalPluginDiscovery(t *testing.T) {
 		ID: "hello", Name: "Hello cluster", Version: "1.0.0", Description: "says hello", Category: "tools",
 		External: true, Status: plugin.Status{Available: true}, Entry: "/plugins/hello/index.js",
 	}
-	if len(external) != 1 || external[0] != want {
+	if len(external) != 1 || !reflect.DeepEqual(external[0], want) {
 		t.Fatalf("external plugins = %+v, want only %+v", external, want)
 	}
 	if info := decode[infoView](t, e.do(http.MethodGet, "/api/info", "bob", nil)); !info.Features.ExternalPlugins {

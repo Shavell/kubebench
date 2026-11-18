@@ -6,7 +6,6 @@ package store
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"io/fs"
 	"log"
 	"os"
@@ -14,6 +13,8 @@ import (
 
 	"modernc.org/sqlite"
 	sqlite3 "modernc.org/sqlite/lib"
+
+	"kubebench/internal/reason"
 )
 
 // Store is safe for concurrent use.
@@ -143,11 +144,18 @@ func constraintCode(err error) int {
 	return 0
 }
 
-// conflictErr maps unique-key violations to ErrConflict with context.
-func conflictErr(err error, format string, args ...any) error {
+// Reasons of unique-key conflicts (§3.3).
+var (
+	reasonUserExists    = reason.Define("users.exists", "user \"{{name}}\": already exists")
+	reasonClusterExists = reason.Define("clusters.exists", "cluster \"{{name}}\": already exists")
+)
+
+// conflictErr maps unique-key violations to ErrConflict, explained by
+// code with params.
+func conflictErr(err error, code reason.Code, params reason.Params) error {
 	switch constraintCode(err) {
 	case sqlite3.SQLITE_CONSTRAINT_UNIQUE, sqlite3.SQLITE_CONSTRAINT_PRIMARYKEY:
-		return fmt.Errorf("%s: %w", fmt.Sprintf(format, args...), ErrConflict)
+		return reason.Wrap(ErrConflict, code, params)
 	}
 	return err
 }

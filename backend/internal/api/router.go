@@ -168,11 +168,11 @@ func (s *Server) register(pattern string, a access, p plugin.Plugin, h handlerFu
 func (s *Server) authenticate(r *http.Request, c *call) error {
 	cookie, err := r.Cookie(sessionCookie)
 	if err != nil || cookie.Value == "" {
-		return errorf(http.StatusUnauthorized, plugin.CodeUnauthenticated, "sign in to continue")
+		return fail(http.StatusUnauthorized, plugin.CodeUnauthenticated, reasonSignIn, nil)
 	}
 	user, err := s.store.UserBySession(cookie.Value)
 	if errors.Is(err, store.ErrNotFound) {
-		return errorf(http.StatusUnauthorized, plugin.CodeSessionExpired, "your session has expired; sign in again")
+		return fail(http.StatusUnauthorized, plugin.CodeSessionExpired, reasonSessionExpired, nil)
 	}
 	if err != nil {
 		return err
@@ -187,10 +187,10 @@ func (s *Server) authenticate(r *http.Request, c *call) error {
 // cluster.
 func (s *Server) authorize(c *call, level access, p plugin.Plugin) error {
 	if level >= accessRead && c.user.MustChangePassword {
-		return errorf(http.StatusForbidden, plugin.CodePasswordChangeRequired, "change your password to continue")
+		return fail(http.StatusForbidden, plugin.CodePasswordChangeRequired, reasonPasswordChange, nil)
 	}
 	if level == accessAdmin && !c.user.IsAdmin() {
-		return errorf(http.StatusForbidden, plugin.CodeAdminRequired, "this action needs an administrator")
+		return fail(http.StatusForbidden, plugin.CodeAdminRequired, reasonAdminRequired, nil)
 	}
 	if p != nil {
 		if err := s.checkPluginEnabled(p); err != nil {
@@ -219,11 +219,7 @@ func (s *Server) authorize(c *call, level access, p plugin.Plugin) error {
 	}
 	if p != nil {
 		if st := s.detect.status(p, c.rt); !st.Available {
-			reason := st.Reason
-			if reason == "" {
-				reason = "the plugin is not available on this cluster"
-			}
-			return errorf(http.StatusServiceUnavailable, plugin.CodePluginUnavailable, "%s", reason)
+			return pluginUnavailable(st)
 		}
 	}
 	return nil

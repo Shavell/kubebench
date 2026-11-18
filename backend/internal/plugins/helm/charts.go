@@ -10,6 +10,8 @@ import (
 	"helm.sh/helm/v3/pkg/downloader"
 	"helm.sh/helm/v3/pkg/getter"
 	"helm.sh/helm/v3/pkg/registry"
+
+	"kubebench/internal/reason"
 )
 
 // ChartRef names the chart of an install or upgrade, in one of three
@@ -43,32 +45,32 @@ func (c ChartRef) validate() error {
 	if c.Repo != "" || c.Name != "" {
 		forms++
 		if !repoNamePattern.MatchString(c.Repo) {
-			return badRequest("chart.repo must name an added repository")
+			return badRequest(reasonRepoRequired, nil)
 		}
 		if !chartNamePattern.MatchString(c.Name) {
-			return badRequest("chart.name %q is not a chart name", c.Name)
+			return badRequest(reasonChartName, reason.Params{"name": c.Name})
 		}
 	}
 	if c.Ref != "" {
 		forms++
 		if !registry.IsOCI(c.Ref) || len(c.Ref) > 512 || strings.ContainsAny(c.Ref, " \t\r\n@") {
-			return badRequest("chart.ref must be an OCI reference without a digest, e.g. oci://ghcr.io/org/charts/app")
+			return badRequest(reasonOCIRef, nil)
 		}
 	}
 	if c.UploadID != "" {
 		forms++
 		if !uploadIDPattern.MatchString(c.UploadID) {
-			return badRequest("chart.uploadId is not an upload id")
+			return badRequest(reasonUploadID, nil)
 		}
 		if c.Version != "" {
-			return badRequest("an uploaded chart has its own version; chart.version must be empty")
+			return badRequest(reasonUploadVersion, nil)
 		}
 	}
 	if forms != 1 {
-		return badRequest("chart must name exactly one of {repo, name}, {ref} or {uploadId}")
+		return badRequest(reasonChartSource, nil)
 	}
 	if !versionPattern.MatchString(c.Version) {
-		return badRequest("chart.version %q is not a version", c.Version)
+		return badRequest(reasonChartVersion, reason.Params{"version": c.Version})
 	}
 	return nil
 }
@@ -84,7 +86,7 @@ func (e *environment) loadChart(c ChartRef) (*chart.Chart, error) {
 	ref := c.Ref
 	if ref == "" {
 		if !e.hasRepo(c.Repo) {
-			return nil, notFound("repository %q is not added", c.Repo)
+			return nil, notFound(reasonRepoNotAdded, reason.Params{"name": c.Repo})
 		}
 		ref = c.Repo + "/" + c.Name
 	}
@@ -101,11 +103,11 @@ func (e *environment) loadChart(c ChartRef) (*chart.Chart, error) {
 	}
 	path, _, err := dl.DownloadTo(ref, c.Version, e.settings.RepositoryCache)
 	if err != nil {
-		return nil, badRequest("could not download chart %s: %v", describeRef(c), err)
+		return nil, badRequest(reasonDownload, reason.Params{"chart": describeRef(c), "detail": err.Error()})
 	}
 	ch, err := loader.Load(path)
 	if err != nil {
-		return nil, badRequest("chart %s is not a valid chart: %v", describeRef(c), err)
+		return nil, badRequest(reasonInvalidChart, reason.Params{"chart": describeRef(c), "detail": err.Error()})
 	}
 	return ch, nil
 }

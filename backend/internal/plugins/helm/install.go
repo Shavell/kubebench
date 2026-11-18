@@ -10,6 +10,8 @@ import (
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/release"
 	"k8s.io/apimachinery/pkg/util/validation"
+
+	"kubebench/internal/reason"
 )
 
 // actionTimeout bounds hooks and deletions of one install, upgrade,
@@ -60,10 +62,10 @@ type UpgradeResult struct {
 
 func (in InstallRequest) validate() error {
 	if errs := validation.IsDNS1123Subdomain(in.Name); len(errs) > 0 || len(in.Name) > 53 {
-		return badRequest("name must be a lower-case DNS name of at most 53 characters")
+		return badRequest(reasonInstallName, nil)
 	}
 	if errs := validation.IsDNS1123Label(in.Namespace); len(errs) > 0 {
-		return badRequest("namespace must be a namespace name")
+		return badRequest(reasonInstallNS, nil)
 	}
 	return in.Chart.validate()
 }
@@ -74,7 +76,7 @@ func parseValues(text string) (map[string]any, error) {
 	}
 	values, err := chartutil.ReadValues([]byte(text))
 	if err != nil {
-		return nil, badRequest("values are not valid YAML: %v", err)
+		return nil, badRequest(reasonValuesYAML, reason.Params{"detail": err.Error()})
 	}
 	return values, nil
 }

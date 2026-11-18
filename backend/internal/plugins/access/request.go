@@ -12,21 +12,28 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation"
 
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 )
 
 // invalid is a request refused before anything reaches the cluster:
 // 400 bad_request naming the field.
-type invalid struct{ field, msg string }
+type invalid struct{ err *reason.Error }
 
-func (e *invalid) Error() string {
-	if e.field == "" {
-		return e.msg
+func (e *invalid) Error() string { return e.err.Error() }
+
+// Reason implements reason.Reasoned.
+func (e *invalid) Reason() (reason.Code, reason.Params) { return e.err.Reason() }
+
+// invalidField is the refusal of field ("" for the body as a whole),
+// explained by code with params; the field is the {{field}} parameter.
+func invalidField(field string, code reason.Code, params reason.Params) error {
+	if params == nil {
+		params = reason.Params{}
 	}
-	return e.field + ": " + e.msg
-}
-
-func invalidf(field, format string, args ...any) error {
-	return &invalid{field: field, msg: fmt.Sprintf(format, args...)}
+	if field != "" {
+		params["field"] = field
+	}
+	return &invalid{reason.New(code, params)}
 }
 
 // writeErr reports a validation error as 400 and anything else as the
@@ -51,12 +58,12 @@ func decodeBody(w http.ResponseWriter, r *http.Request, v any) error {
 	if err := dec.Decode(v); err != nil {
 		var tooLarge *http.MaxBytesError
 		if errors.As(err, &tooLarge) {
-			return invalidf("", "the request body is larger than %d KiB", maxBody>>10)
+			return invalidField("", reason.BodyTooLarge, reason.Params{"size": fmt.Sprintf("%d KiB", maxBody>>10)})
 		}
-		return invalidf("", "invalid JSON body: %v", err)
+		return invalidField("", reason.InvalidJSON, reason.Params{"detail": err.Error()})
 	}
 	if _, err := dec.Token(); err != io.EOF {
-		return invalidf("", "invalid JSON body: unexpected data after the object")
+		return invalidField("", reason.TrailingData, nil)
 	}
 	return nil
 }
@@ -79,23 +86,23 @@ func requestFromQuery(q url.Values) (Request, error) {
 // resources are matched literally, so "*" asks who has a wildcard grant.
 func validateRequest(r Request) error {
 	if r.Verb == "" {
-		return invalidf("verb", "is required")
+		return invalidField("verb", reason.FieldRequired, nil)
 	}
 	if !r.IsResource() {
 		if r.Resource != "" || r.Subresource != "" || r.Group != "" || r.Namespace != "" || r.Name != "" {
-			return invalidf("path", "a non-resource URL takes no group, resource, namespace or name")
+			return invalidField("path", reasonNonResourceFields, nil)
 		}
 		if !strings.HasPrefix(r.Path, "/") {
-			return invalidf("path", "must start with /")
+			return invalidField("path", reasonPathSlash, nil)
 		}
 		return checkLength("path", r.Path)
 	}
 	if r.Resource == "" {
-		return invalidf("resource", "is required (or path, for a non-resource URL)")
+		return invalidField("resource", reasonResourceRequired, nil)
 	}
 	if r.Namespace != "" {
 		if errs := validation.IsDNS1123Label(r.Namespace); len(errs) > 0 {
-			return invalidf("namespace", "%s", strings.Join(errs, "; "))
+			return invalidField("namespace", reason.FieldInvalid, reason.Params{"detail": strings.Join(errs, "; ")})
 		}
 	}
 	for _, f := range []struct{ field, value string }{
@@ -105,7 +112,7 @@ func validateRequest(r Request) error {
 			return err
 		}
 		if strings.ContainsAny(f.value, "/ ") {
-			return invalidf(f.field, "must not contain spaces or slashes")
+			return invalidField(f.field, reasonNoSpaces, nil)
 		}
 	}
 	return checkLength("name", r.Name)
@@ -113,7 +120,7 @@ func validateRequest(r Request) error {
 
 func checkLength(field, v string) error {
 	if len(v) > maxNameLength {
-		return invalidf(field, "must be at most %d characters", maxNameLength)
+		return invalidField(field, reason.FieldTooLong, reason.Params{"max": maxNameLength})
 	}
 	return nil
 }

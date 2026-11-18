@@ -9,6 +9,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
+
+	"kubebench/internal/reason"
 )
 
 // debugPollInterval is how often WaitForDebugContainer reads the pod.
@@ -42,10 +44,11 @@ func (r *Runtime) WaitForDebugContainer(ctx context.Context, namespace, podName,
 			return true, nil
 		case state.Terminated != nil:
 			t := state.Terminated
-			return false, opError(OpConflict, "the debug container %s ended (exit code %d, %s) before a terminal could attach",
-				container, t.ExitCode, t.Reason)
+			return false, opError(OpConflict, reasonDebugEnded,
+				reason.Params{"container": container, "exitCode": t.ExitCode, "detail": t.Reason})
 		case state.Waiting != nil && slices.Contains(debugStartFailures, state.Waiting.Reason):
-			return false, opError(OpConflict, "the debug container %s cannot start: %s", container, waitingText(state.Waiting))
+			return false, opError(OpConflict, reasonDebugCannotStart,
+				reason.Params{"container": container, "detail": waitingText(state.Waiting)})
 		}
 		return false, nil
 	})
@@ -56,11 +59,12 @@ func (r *Runtime) WaitForDebugContainer(ctx context.Context, namespace, podName,
 	if errors.As(err, &op) || !utilwait.Interrupted(err) {
 		return err
 	}
-	reason := "it has no status yet"
-	if state.Waiting != nil {
-		reason = waitingText(state.Waiting)
+	params := reason.Params{"container": container, "timeout": timeout.String()}
+	if state.Waiting == nil {
+		return opError(OpConflict, reasonDebugNoStatus, params)
 	}
-	return opError(OpConflict, "the debug container %s is not running after %s: %s", container, timeout, reason)
+	params["detail"] = waitingText(state.Waiting)
+	return opError(OpConflict, reasonDebugNotRunning, params)
 }
 
 // ephemeralState is the reported state of the pod's ephemeral container

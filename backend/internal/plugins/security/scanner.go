@@ -2,18 +2,18 @@ package security
 
 import (
 	"context"
-	"errors"
 	"sync"
 	"time"
 
 	"kubebench/internal/kube"
+	"kubebench/internal/reason"
 )
 
 // scanTimeout bounds one scan, however many requests wait for it.
 const scanTimeout = 2 * time.Minute
 
 // errBusy refuses a scan while one with other options runs on the cluster.
-var errBusy = errors.New("a scan with other options is already running on this cluster; try again when it has finished")
+var errBusy = reason.New(reasonBusy, nil)
 
 // scanner runs at most one scan per cluster at a time and keeps each
 // cluster's last result. A request for the scan that is running waits for

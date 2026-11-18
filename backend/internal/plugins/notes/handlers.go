@@ -2,12 +2,12 @@ package notes
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 	"kubebench/internal/store"
 )
 
@@ -27,14 +27,14 @@ func queryFilter(r *http.Request, c *plugin.Context) (store.NoteFilter, error) {
 	case personal, shared:
 		f.Visibility = scope
 	default:
-		return f, invalidf("scope", "must be all, personal or shared")
+		return f, invalidField("scope", reasonScope, nil)
 	}
 	switch clusters := q.Get("clusters"); clusters {
 	case "", "current":
 	case "all":
 		f.AllClusters = true
 	default:
-		return f, invalidf("clusters", "must be current or all")
+		return f, invalidField("clusters", reasonClusters, nil)
 	}
 	m, err := match(r)
 	if err != nil {
@@ -50,7 +50,7 @@ func queryFilter(r *http.Request, c *plugin.Context) (store.NoteFilter, error) {
 	}
 	f.Terms = strings.Fields(q.Get("q"))
 	if len(f.Terms) > maxTerms {
-		return f, invalidf("q", "at most %d search terms", maxTerms)
+		return f, invalidField("q", reasonTerms, reason.Params{"max": maxTerms})
 	}
 	return f, nil
 }
@@ -66,7 +66,7 @@ func listNotes(w http.ResponseWriter, r *http.Request, c *plugin.Context) {
 	if raw := q.Get("limit"); raw != "" {
 		n, err := strconv.Atoi(raw)
 		if err != nil || n < 1 || n > maxLimit {
-			writeErr(w, invalidf("limit", "must be 1-%d", maxLimit))
+			writeErr(w, invalidField("limit", reasonLimit, reason.Params{"max": maxLimit}))
 			return
 		}
 		f.Limit = n
@@ -76,7 +76,7 @@ func listNotes(w http.ResponseWriter, r *http.Request, c *plugin.Context) {
 	case "true":
 		f.WithBody = true
 	default:
-		writeErr(w, invalidf("body", "must be true or false"))
+		writeErr(w, invalidField("body", reasonBooleanFormat, nil))
 		return
 	}
 	notes, truncated, err := c.Store.ListNotes(f)
@@ -226,10 +226,10 @@ func createNote(visibility string) plugin.HandlerFunc {
 		n := store.Note{Visibility: visibility, Title: e.Title, Body: e.Body, Tags: e.Tags, Pinned: req.Pinned}
 		switch {
 		case req.Global && visibility == shared:
-			writeErr(w, invalidf("global", "only personal notes can be global"))
+			writeErr(w, invalidField("global", reasonGlobalShared, nil))
 			return
 		case req.Global && req.Resource != nil:
-			writeErr(w, invalidf("global", "a note on an object belongs to its cluster"))
+			writeErr(w, invalidField("global", reasonGlobalObject, nil))
 			return
 		case !req.Global:
 			cluster := c.Runtime.Cluster.ID
@@ -275,7 +275,7 @@ func updateNote(visibility string) plugin.HandlerFunc {
 			return
 		}
 		if req.Version < 1 {
-			writeErr(w, invalidf("version", "must name the version the edit is based on"))
+			writeErr(w, invalidField("version", reasonVersion, nil))
 			return
 		}
 		e, err := req.edit()
@@ -306,7 +306,7 @@ func pinNote(visibility string) plugin.HandlerFunc {
 			return
 		}
 		if req.Pinned == nil {
-			writeErr(w, invalidf("pinned", "must be true or false"))
+			writeErr(w, invalidField("pinned", reasonBooleanFormat, nil))
 			return
 		}
 		audit(c, n.ID, map[string]any{"pinned": *req.Pinned})
@@ -329,8 +329,7 @@ func deleteNote(visibility string) plugin.HandlerFunc {
 		// Operators share the editing of shared notes, but removing one is
 		// for its author or an administrator.
 		if visibility == shared && c.Role != store.RoleAdmin && (n.CreatorID == nil || *n.CreatorID != c.User.ID) {
-			plugin.WriteError(w, http.StatusForbidden, plugin.CodeForbidden,
-				errors.New("only its author or an administrator can delete a shared note"))
+			plugin.WriteError(w, http.StatusForbidden, plugin.CodeForbidden, reason.New(reasonDeleteShared, nil))
 			return
 		}
 		if err := c.Store.DeleteNote(n.ID); err != nil {

@@ -1,0 +1,46 @@
+package helm
+
+import "kubebench/internal/reason"
+
+// Reasons of the Helm plugin's own refusals (docs/design-v0.5.md §3.3).
+// Messages of Helm itself (a chart that does not render, a failed
+// download) are passed as the detail parameter.
+var (
+	reasonUnavailable    = reason.Define("helm.unavailable", "Helm is not available on this cluster: cannot list the release Secrets ({{detail}})")
+	reasonNotStarted     = reason.Define("helm.not_started", "the Helm plugin was not started")
+	reasonRepoRequired   = reason.Define("helm.chart_repo_required", "chart.repo must name an added repository")
+	reasonChartName      = reason.Define("helm.invalid_chart_name", "chart.name \"{{name}}\" is not a chart name")
+	reasonOCIRef         = reason.Define("helm.invalid_oci_ref", "chart.ref must be an OCI reference without a digest, e.g. oci://ghcr.io/org/charts/app")
+	reasonUploadID       = reason.Define("helm.invalid_upload_id", "chart.uploadId is not an upload id")
+	reasonUploadVersion  = reason.Define("helm.upload_version", "an uploaded chart has its own version; chart.version must be empty")
+	reasonChartSource    = reason.Define("helm.chart_source", "chart must name exactly one of {repo, name}, {ref} or {uploadId}")
+	reasonChartVersion   = reason.Define("helm.invalid_chart_version", "chart.version \"{{version}}\" is not a version")
+	reasonRepoNotAdded   = reason.Define("helm.repo_not_added", "repository \"{{name}}\" is not added")
+	reasonDownload       = reason.Define("helm.download_failed", "could not download chart {{chart}}: {{detail}}")
+	reasonInvalidChart   = reason.Define("helm.invalid_chart", "chart {{chart}} is not a valid chart: {{detail}}")
+	reasonNamespace      = reason.Define("helm.invalid_namespace", "\"{{namespace}}\" is not a namespace name")
+	reasonReleaseName    = reason.Define("helm.invalid_release_name", "\"{{name}}\" is not a release name")
+	reasonRevision       = reason.Define("helm.invalid_revision", "revision must be a revision number")
+	reasonRollback       = reason.Define("helm.invalid_rollback_revision", "revision must be a revision number (0 = the previous one)")
+	reasonBodyTooLarge   = reason.Define("helm.body_too_large", "the request body is larger than {{size}} MiB")
+	reasonRepoName       = reason.Define("helm.invalid_repo_name", "\"{{name}}\" is not a repository name")
+	reasonOCIValues      = reason.Define("helm.oci_values_route", "the values of an OCI chart are read through POST /charts/oci/values")
+	reasonRefNotOCI      = reason.Define("helm.ref_not_oci", "ref must name an OCI chart")
+	reasonArchiveSize    = reason.Define("helm.archive_too_large", "the chart archive is larger than {{size}} MiB")
+	reasonMultipart      = reason.Define("helm.multipart_required", "send the chart as multipart/form-data with a file field named chart")
+	reasonNoChartField   = reason.Define("helm.no_chart_field", "the request has no file field named chart")
+	reasonMultipartBody  = reason.Define("helm.invalid_multipart", "invalid multipart body: {{detail}}")
+	reasonRepoNameRule   = reason.Define("helm.repo_name_rule", "name must be 1-64 letters, digits, '.', '_' or '-', starting with a letter or digit")
+	reasonRepoURL        = reason.Define("helm.repo_url", "url must be an http or https URL (OCI registries need no repository: install from oci://…)")
+	reasonRepoURLCreds   = reason.Define("helm.repo_url_credentials", "put credentials in username and password, not in the URL")
+	reasonRepoCredsPair  = reason.Define("helm.repo_credentials_pair", "give both username and password, or neither")
+	reasonRepoExists     = reason.Define("helm.repo_exists", "repository \"{{name}}\" already exists")
+	reasonRepoIndex      = reason.Define("helm.repo_index_failed", "could not download the index of {{url}}: {{detail}}")
+	reasonRepoMissing    = reason.Define("helm.repo_missing", "repository \"{{name}}\" does not exist")
+	reasonInstallName    = reason.Define("helm.invalid_install_name", "name must be a lower-case DNS name of at most 53 characters")
+	reasonInstallNS      = reason.Define("helm.invalid_install_namespace", "namespace must be a namespace name")
+	reasonValuesYAML     = reason.Define("helm.invalid_values", "values are not valid YAML: {{detail}}")
+	reasonNotArchive     = reason.Define("helm.not_archive", "not a chart archive: {{detail}}")
+	reasonUploadInvalid  = reason.Define("helm.upload_invalid", "invalid chart: {{detail}}")
+	reasonUploadNotFound = reason.Define("helm.upload_not_found", "upload {{id}} does not exist or has expired; upload the chart again")
+)

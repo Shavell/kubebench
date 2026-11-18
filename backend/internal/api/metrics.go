@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"slices"
 	"strconv"
@@ -10,6 +9,7 @@ import (
 
 	"kubebench/internal/kube"
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 )
 
 func minutesParam(r *http.Request) int {
@@ -34,7 +34,7 @@ func resolveSource(r *http.Request, rt *kube.Runtime) (*kube.PromSource, error) 
 	_ = rt.WaitPromDiscovered(ctx)
 	prom := rt.Prom()
 	if prom == nil && wanted == "prometheus" {
-		return nil, unavailable("no Prometheus was found on this cluster")
+		return nil, fail(http.StatusServiceUnavailable, plugin.CodeCapabilityUnavailable, reasonNoPrometheus, nil)
 	}
 	return prom, nil
 }
@@ -46,7 +46,7 @@ func resolveSource(r *http.Request, rt *kube.Runtime) (*kube.PromSource, error) 
 func writeSeries(w http.ResponseWriter, r *http.Request, rt *kube.Runtime, metrics []string,
 	fromProm func(*kube.PromSource) ([]kube.MetricPoint, error), fromSampler func() ([]kube.MetricPoint, error)) {
 	if metric := r.URL.Query().Get("metric"); !slices.Contains(metrics, metric) {
-		writeErr(w, badRequest("metric must be one of %s", strings.Join(metrics, ", ")))
+		writeErr(w, badRequest(reason.FieldOneOf, reason.Params{"field": "metric", "values": strings.Join(metrics, ", ")}))
 		return
 	}
 	prom, err := resolveSource(r, rt)
@@ -61,9 +61,9 @@ func writeSeries(w http.ResponseWriter, r *http.Request, rt *kube.Runtime, metri
 			plugin.WriteJSON(w, points)
 			return
 		}
-		promErr = fmt.Errorf("the query to Prometheus %s failed: %w", prom.Location(), err)
+		promErr = reason.Wrap(err, reasonPromQuery, reason.Params{"location": prom.Location(), "detail": err.Error()})
 		if r.URL.Query().Get("source") == "prometheus" {
-			writeErr(w, unavailable("%v", promErr))
+			writeErr(w, unavailable(promErr))
 			return
 		}
 	}
@@ -72,15 +72,15 @@ func writeSeries(w http.ResponseWriter, r *http.Request, rt *kube.Runtime, metri
 		if promErr != nil {
 			err = promErr // what went wrong, rather than what the fallback lacks
 		}
-		writeErr(w, unavailable("%v", err))
+		writeErr(w, unavailable(err))
 		return
 	}
 	plugin.WriteJSON(w, points)
 }
 
 // unavailable is the error for a capability the active cluster lacks.
-func unavailable(format string, args ...any) *apiError {
-	return errorf(http.StatusServiceUnavailable, plugin.CodeCapabilityUnavailable, format, args...)
+func unavailable(err error) *apiError {
+	return refuse(http.StatusServiceUnavailable, plugin.CodeCapabilityUnavailable, err)
 }
 
 func (s *Server) handleMetricSources(w http.ResponseWriter, r *http.Request, c *call) {

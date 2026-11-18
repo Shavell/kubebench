@@ -14,6 +14,7 @@ import (
 	"kubebench/internal/cloudauth"
 	"kubebench/internal/kube"
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 	"kubebench/internal/store"
 )
 
@@ -106,20 +107,20 @@ func decodeCredentials(raw json.RawMessage, c *store.Cluster) (encoded string, r
 	dec := json.NewDecoder(bytes.NewReader(raw))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&creds); err != nil {
-		return "", false, badRequest("invalid credentials: %v", err)
+		return "", false, badRequest(reasonCredentialsJSON, reason.Params{"detail": err.Error()})
 	}
 	if err := creds.Validate(); err != nil {
-		return "", false, badRequest("invalid credentials: %v", err)
+		return "", false, refuse(http.StatusBadRequest, plugin.CodeBadRequest, err)
 	}
 	if c.Source != store.SourceKubeconfig {
-		return "", false, badRequest("cloud credentials apply to kubeconfig clusters only")
+		return "", false, badRequest(reasonCloudKubeconfig, nil)
 	}
 	user, err := contextUser(c)
 	if err != nil {
-		return "", false, badRequest("invalid kubeconfig: %v", err)
+		return "", false, badRequest(reasonBadKubeconfig, reason.Params{"detail": err.Error()})
 	}
 	if err := cloudauth.CheckCredentials(user, creds.Provider); err != nil {
-		return "", false, badRequest("%v", err)
+		return "", false, refuse(http.StatusBadRequest, plugin.CodeBadRequest, err)
 	}
 	return creds.Encode(), false, nil
 }
@@ -143,7 +144,5 @@ func (s *Server) ambientIdentityError(c *store.Cluster) error {
 	if err == nil && creds.OwnIdentity() {
 		return nil
 	}
-	return errorf(http.StatusForbidden, plugin.CodeForbidden,
-		"the kubeconfig signs in to %s with the KubeBench server's own cloud identity, which this server does not allow (KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY); give the cluster its own credentials (an access key, a service-account key or a service principal)",
-		provider)
+	return fail(http.StatusForbidden, plugin.CodeForbidden, reasonAmbientIdentity, reason.Params{"provider": provider})
 }

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 	"kubebench/internal/store"
 )
 
@@ -42,12 +43,12 @@ func (s *Server) handleUpdateMe(w http.ResponseWriter, r *http.Request, c *call)
 		return
 	}
 	if body.LastSeenVersion == nil {
-		writeErr(w, badRequest("lastSeenVersion is required"))
+		writeErr(w, badRequest(reason.FieldRequired, reason.Params{"field": "lastSeenVersion"}))
 		return
 	}
 	seen := strings.TrimSpace(*body.LastSeenVersion)
 	if seen == "" || len(seen) > maxSeenVersionLen {
-		writeErr(w, badRequest("lastSeenVersion must be 1 to %d characters", maxSeenVersionLen))
+		writeErr(w, badRequest(reasonSeenVersionLimit, reason.Params{"max": maxSeenVersionLen}))
 		return
 	}
 	if err := s.store.SetLastSeenVersion(c.user.ID, seen); err != nil {

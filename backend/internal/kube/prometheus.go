@@ -10,6 +10,8 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"kubebench/internal/reason"
 )
 
 // PromSource serves utilization series from a Prometheus reached through
@@ -173,7 +175,7 @@ func (p *PromSource) PodSeries(ctx context.Context, namespace, pod, metric strin
 	}
 	q, ok := queries[metric]
 	if !ok {
-		return nil, fmt.Errorf(`metric %q not available for pods`, metric)
+		return nil, reason.New(reasonPodMetric, reason.Params{"metric": metric})
 	}
 	return p.rangeQuery(ctx, q, minutes)
 }

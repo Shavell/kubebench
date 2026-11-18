@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 	"kubebench/internal/store"
 )
 
@@ -76,7 +77,7 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request, c *cal
 	}
 	c.setAudit("user/"+body.Username, auditJSON(map[string]string{"role": body.Role}))
 	if !usernamePattern.MatchString(body.Username) {
-		writeErr(w, badRequest("a username is 1-64 letters, digits, '.', '_', '@' or '-'"))
+		writeErr(w, badRequest(reasonUsername, nil))
 		return
 	}
 	if err := validateGlobalRole(body.Role); err != nil {
@@ -122,7 +123,7 @@ func (s *Server) handleUpdateUser(w http.ResponseWriter, r *http.Request, c *cal
 	}
 	c.setAudit("user/"+user.Username, auditJSON(detail))
 	if len(detail) == 0 {
-		writeErr(w, badRequest("nothing to update: send role and/or password"))
+		writeErr(w, badRequest(reasonUserNothing, nil))
 		return
 	}
 	if body.Role != nil {
@@ -139,7 +140,7 @@ func (s *Server) handleUpdateUser(w http.ResponseWriter, r *http.Request, c *cal
 	}
 	if body.Role != nil {
 		if err := s.store.SetUserRole(user.ID, *body.Role); err != nil {
-			writeErr(w, lastAdminConflict(err, "demote"))
+			writeErr(w, lastAdminConflict(err, reasonLastAdminDemote))
 			return
 		}
 	}
@@ -164,11 +165,11 @@ func (s *Server) handleDeleteUser(w http.ResponseWriter, r *http.Request, c *cal
 	}
 	c.setAudit("user/"+user.Username, "")
 	if user.ID == c.user.ID {
-		writeErr(w, errorf(http.StatusConflict, plugin.CodeConflict, "you cannot delete your own account"))
+		writeErr(w, fail(http.StatusConflict, plugin.CodeConflict, reasonDeleteSelf, nil))
 		return
 	}
 	if err := s.store.DeleteUser(user.ID); err != nil {
-		writeErr(w, lastAdminConflict(err, "delete"))
+		writeErr(w, lastAdminConflict(err, reasonLastAdminDelete))
 		return
 	}
 	writeOK(w)
@@ -205,7 +206,7 @@ func (s *Server) handleSetAssignments(w http.ResponseWriter, r *http.Request, c 
 			list = append(list, store.Assignment{ClusterID: id, Role: store.ClusterRoleOperator})
 		}
 	default:
-		writeErr(w, badRequest("send assignments (or the v0.4 clusterIds)"))
+		writeErr(w, badRequest(reasonNoAssignments, nil))
 		return
 	}
 	granted := make([]string, 0, len(list))
@@ -216,13 +217,13 @@ func (s *Server) handleSetAssignments(w http.ResponseWriter, r *http.Request, c 
 	c.setAuditItems(map[string]any{}, "assignments", granted)
 	for _, a := range list {
 		if !store.ValidClusterRole(a.Role) {
-			writeErr(w, badRequest("invalid cluster role %q: use viewer or operator", a.Role))
+			writeErr(w, badRequest(reasonClusterRole, reason.Params{"role": a.Role}))
 			return
 		}
 	}
 	if err := s.store.SetAssignments(user.ID, list); err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			err = errorf(http.StatusNotFound, plugin.CodeNotFound, "%v", err)
+			err = fail(http.StatusNotFound, plugin.CodeNotFound, reasonAssignedMissing, nil)
 		}
 		writeErr(w, err)
 		return
@@ -234,26 +235,26 @@ func (s *Server) handleSetAssignments(w http.ResponseWriter, r *http.Request, c 
 func (s *Server) pathUser(r *http.Request) (*store.User, error) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		return nil, badRequest("invalid user id %q", r.PathValue("id"))
+		return nil, badRequest(reasonUserID, reason.Params{"id": r.PathValue("id")})
 	}
 	user, err := s.store.GetUser(id)
 	if errors.Is(err, store.ErrNotFound) {
-		return nil, errorf(http.StatusNotFound, plugin.CodeNotFound, "user %d not found", id)
+		return nil, fail(http.StatusNotFound, plugin.CodeNotFound, reasonUserNotFound, reason.Params{"id": id})
 	}
 	return user, err
 }
 
 func validateGlobalRole(role string) error {
 	if role != store.RoleAdmin && role != store.RoleUser {
-		return badRequest("invalid role %q: use admin or user", role)
+		return badRequest(reasonGlobalRole, reason.Params{"role": role})
 	}
 	return nil
 }
 
 // lastAdminConflict explains the store's last-admin protection.
-func lastAdminConflict(err error, verb string) error {
+func lastAdminConflict(err error, explanation reason.Code) error {
 	if errors.Is(err, store.ErrLastAdmin) {
-		return errorf(http.StatusConflict, plugin.CodeConflict, "cannot %s the last admin: promote another user first", verb)
+		return fail(http.StatusConflict, plugin.CodeConflict, explanation, nil)
 	}
 	return err
 }

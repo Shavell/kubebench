@@ -10,10 +10,11 @@ import (
 	"regexp"
 
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 )
 
 // errNoReport answers an export before the cluster's first scan.
-var errNoReport = errors.New("no scan has run on this cluster yet")
+var errNoReport = reason.New(reasonNoReport, nil)
 
 func listChecks(w http.ResponseWriter, _ *http.Request, _ *plugin.Context) {
 	plugin.WriteJSON(w, catalog)
@@ -26,7 +27,7 @@ func (p *Plugin) scan(w http.ResponseWriter, r *http.Request, c *plugin.Context)
 	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxBody))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&opts); err != nil && !errors.Is(err, io.EOF) {
-		plugin.WriteError(w, http.StatusBadRequest, plugin.CodeBadRequest, fmt.Errorf("invalid JSON body: %w", err))
+		plugin.WriteError(w, http.StatusBadRequest, plugin.CodeBadRequest, reason.New(reason.InvalidJSON, reason.Params{"detail": err.Error()}))
 		return
 	}
 	res, err := p.scans.run(r.Context(), c.Runtime, opts)
@@ -78,7 +79,8 @@ var unsafeFileChars = regexp.MustCompile(`[^A-Za-z0-9._-]+`)
 func (p *Plugin) export(w http.ResponseWriter, r *http.Request, c *plugin.Context) {
 	format := r.URL.Query().Get("format")
 	if format != "md" && format != "csv" {
-		plugin.WriteError(w, http.StatusBadRequest, plugin.CodeBadRequest, errors.New("format: md or csv"))
+		plugin.WriteError(w, http.StatusBadRequest, plugin.CodeBadRequest,
+			reason.New(reason.FieldOneOf, reason.Params{"field": "format", "values": "md, csv"}))
 		return
 	}
 	res := p.scans.last(c.Runtime.Cluster.ID)

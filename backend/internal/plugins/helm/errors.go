@@ -3,7 +3,6 @@ package helm
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io/fs"
 	"net"
 	"net/http"
@@ -14,27 +13,33 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 )
 
-// requestError is an error with its HTTP status and §3.3 code.
+// requestError is an error with its HTTP status and §3.3 code, explained
+// by a reason (reasons.go).
 type requestError struct {
 	status int
 	code   string
-	msg    string
+	reason reason.Code
+	params reason.Params
 }
 
-func (e *requestError) Error() string { return e.msg }
+func (e *requestError) Error() string { return e.reason.Text(e.params) }
 
-func badRequest(format string, args ...any) error {
-	return &requestError{http.StatusBadRequest, plugin.CodeBadRequest, fmt.Sprintf(format, args...)}
+// Reason implements reason.Reasoned.
+func (e *requestError) Reason() (reason.Code, reason.Params) { return e.reason, e.params }
+
+func badRequest(rc reason.Code, params reason.Params) error {
+	return &requestError{http.StatusBadRequest, plugin.CodeBadRequest, rc, params}
 }
 
-func notFound(format string, args ...any) error {
-	return &requestError{http.StatusNotFound, plugin.CodeNotFound, fmt.Sprintf(format, args...)}
+func notFound(rc reason.Code, params reason.Params) error {
+	return &requestError{http.StatusNotFound, plugin.CodeNotFound, rc, params}
 }
 
-func conflict(format string, args ...any) error {
-	return &requestError{http.StatusConflict, plugin.CodeConflict, fmt.Sprintf(format, args...)}
+func conflict(rc reason.Code, params reason.Params) error {
+	return &requestError{http.StatusConflict, plugin.CodeConflict, rc, params}
 }
 
 // writeError reports err with the status that fits it:

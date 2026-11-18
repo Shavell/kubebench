@@ -14,6 +14,7 @@ import (
 	"regexp"
 
 	"kubebench/internal/kube"
+	"kubebench/internal/reason"
 	"kubebench/internal/store"
 )
 
@@ -60,10 +61,29 @@ type Manifest struct {
 	ID, Name, Version, Description, Category string
 }
 
-// Status is a plugin's availability on one cluster.
+// Status is a plugin's availability on one cluster. Reason is the English
+// explanation of an unavailable plugin; ReasonCode and ReasonParams, set
+// by Unavailable, let the UI translate it (§3.3).
 type Status struct {
-	Available bool   `json:"available"`
-	Reason    string `json:"reason,omitempty"`
+	Available    bool          `json:"available"`
+	Reason       string        `json:"reason,omitempty"`
+	ReasonCode   string        `json:"reasonCode,omitempty"`
+	ReasonParams reason.Params `json:"reasonParams,omitempty"`
+}
+
+// Unavailable is the status of a plugin that cannot work on the cluster,
+// explained by code with params.
+func Unavailable(code reason.Code, params reason.Params) Status {
+	return Status{Reason: code.Text(params), ReasonCode: code.String(), ReasonParams: params}
+}
+
+// UnavailableFrom is the status explained by err: its reason when it has
+// one, else its message alone.
+func UnavailableFrom(err error) Status {
+	if code, params, ok := reason.Of(err); ok {
+		return Status{Reason: err.Error(), ReasonCode: code.String(), ReasonParams: params}
+	}
+	return Status{Reason: err.Error()}
 }
 
 // Context is what a plugin handler gets for one request.
