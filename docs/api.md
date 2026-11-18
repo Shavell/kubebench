@@ -63,7 +63,32 @@ audited too.
 
 ### Errors
 
-Every error is `{"error": "<message>", "code": "<code>"}`:
+Every error is `{"error": "<message>", "code": "<code>"}`. When KubeBench
+explains the error itself (rather than passing on the Kubernetes API's
+answer), the body also carries a stable **reason code** with its
+parameters:
+
+```json
+{"error": "cluster \"prod\" is read-only; an administrator can clear the flag in the Clusters view",
+ "code": "cluster_read_only", "reason": "cluster.read_only", "params": {"cluster": "prod"}}
+```
+
+`error` is the English text; the UI shows the translation of `reason`
+(`src/core/reasons/locales`, `{{param}}` placeholders) and falls back to
+`error` for a code it does not know. Reasons are `<group>.<name>` and stable
+across releases; parameters named `detail` carry a message from elsewhere
+(Kubernetes, Helm, the network), untranslated. Messages of the Kubernetes
+API itself (`code: kubernetes`) have no reason. The same pair explains
+status objects: `reasonCode`/`reasonParams` next to `reason` in plugin
+statuses (`GET /api/plugins`), live-update topic statuses (`event: status`
+of `/api/watch`) and the security report's `skipped`;
+`clusterErrorReason`/`clusterErrorParams` in `/api/info`;
+`errorReason`/`errorParams` in the update status; `warningReasons`
+(`[{"reason","params"}]`, index by index) next to the security report's
+`warnings`. `backend/internal/api/reasons_test.go` fails when a code the
+server defines lacks a string in a UI language.
+
+Codes:
 
 | Code | Typical status | Meaning |
 |---|---|---|
@@ -157,11 +182,11 @@ write-only.
 
 | Method | Path | Level | Parameters | Answer |
 |---|---|---|---|---|
-| GET | `/api/plugins` | authed | — | `{"plugins":[{"id","name","version","description","category","builtin","external","enabled","status":{"available","reason"?},"entry"}],"settings":{"<id>":{"enabled"}}}`; Detect results are cached 60 s per cluster |
+| GET | `/api/plugins` | authed | — | `{"plugins":[{"id","name","version","description","category","builtin","external","enabled","status":{"available","reason"?,"reasonCode"?,"reasonParams"?},"entry"}],"settings":{"<id>":{"enabled"}}}`; Detect results are cached 60 s per cluster |
 | PUT | `/api/plugins/{id}` | admin | `{"enabled": bool}`; id `^[a-z0-9][a-z0-9-]{0,39}$` | `{"ok":true}` |
 | GET | `/plugins/{id}/{file...}` | authed | — | a file of an enabled external plugin from `$KUBEBENCH_PLUGINS_DIR/<id>/` (`.js .mjs .css .json .map .svg .png` only) |
 | GET | `/api/audit` | admin | `?limit=` (default 100) `&before=<id>&user=&cluster=&action=` | `{"items":[{"id","ts","user","cluster","action","target","status","detail"}],"nextBefore":<id>\|null}` |
-| GET | `/api/updates` | authed | — | `{"mode","defaultMode","current","latest","available","prerelease","publishedAt","url","notes","checkedAt","error"}` (`UpdateStatus`, §7.11); checks GitHub when the 6 h cache expired |
+| GET | `/api/updates` | authed | — | `{"mode","defaultMode","current","latest","available","prerelease","publishedAt","url","notes","checkedAt","error","errorReason"?,"errorParams"?}` (`UpdateStatus`, §7.11); checks GitHub when the 6 h cache expired |
 | PUT | `/api/settings/updates` | admin | `{"mode":"off"\|"stable"\|"prerelease"}` | the update status |
 | POST | `/api/updates/check` | admin | — | the update status; `409` while the mode is `off` |
 

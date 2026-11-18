@@ -64,6 +64,9 @@ service browser (a frontend plugin on new core proxy routes).
 - **Hashed session tokens**: the database keeps only a SHA-256 digest of
   each session token, so a copy of it does not hold usable sessions;
   sessions of earlier versions are converted in place on upgrade.
+- **Localized server-side reasons and errors**: the server's own errors
+  and unavailable reasons carry stable reason codes with parameters, which
+  the UI shows in every UI language.
 
 ## Next (candidates)
 
@@ -115,7 +118,6 @@ and the limitations documented in [docs/security.md](docs/security.md).
 
 | Item | Value | Size |
 |---|---|---|
-| Localized server-side reasons and errors | Unavailable reasons and error texts from the backend are English today; translate them like the UI | M |
 | More UI languages | English, Turkish and German ship today; a language is data only ([docs/i18n.md](docs/i18n.md)) | S each |
 | Smaller main bundle | Split the main chunk (over 800 kB minified) further, for a faster first load | M |
 | Interface scale and font settings | Zoom and font choices beyond the terminal font size | S |

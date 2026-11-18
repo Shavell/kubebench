@@ -180,7 +180,23 @@ runs template `lookup`s with KubeBench's own credential.
 
 ### 3.3 Error format
 
-All errors are JSON: `{"error": "<human message>", "code": "<machine code>"}`.
+All errors are JSON: `{"error": "<human message>", "code": "<machine code>"}`,
+plus `"reason": "<reason code>", "params": {…}` (v0.7) when KubeBench
+explains the error itself: a stable `<group>.<name>` code (e.g.
+`cluster.read_only`, `role.cannot_change`, `metrics.no_prometheus`,
+`argocd.not_installed`) whose English template (`{{param}}` placeholders)
+is `error`. Codes are defined once with `reason.Define` in the Go package
+that emits them (`backend/internal/reason`); the UI translates them from
+`src/core/reasons/locales` (namespace `reasons`, keys are the codes) and
+shows `error` for unknown codes; a test requires a string with the same
+placeholders for every defined code in every UI language, English equal
+to the server's. Kubernetes API errors (`kubernetes`) carry no reason, and
+a `detail` parameter holds text from elsewhere, untranslated. Status
+objects explain themselves the same way: plugin `Status`
+(`reasonCode`/`reasonParams`, set by `plugin.Unavailable`), watch topic
+statuses, `/api/info` (`clusterErrorReason`/`clusterErrorParams`), the
+update status (`errorReason`/`errorParams`) and the security report
+(`skipped[].reasonCode`, `warningReasons`).
 Codes used across the API: `unauthenticated`, `session_expired`,
 `forbidden`, `forbidden_role`, `cluster_read_only`, `admin_required`,
 `no_cluster`, `not_found`, `bad_request`, `conflict`, `rate_limited`,
