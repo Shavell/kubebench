@@ -58,7 +58,10 @@ jobs:
           queries: security-extended
       - if: matrix.build-mode == 'manual'
         name: Build
-        run: go build -C backend ./...
+        # Run inside the module: CodeQL's Go tracer resolves packages from
+        # the working directory, so "go build -C backend" extracts nothing.
+        working-directory: backend
+        run: go build ./...
       - uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         with:
           category: /language:${{ matrix.language }}

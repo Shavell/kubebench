@@ -42,6 +42,13 @@ those commits.
   `npm audit`, Trivy and dependency review; OpenSSF Scorecard rates the
   repository weekly.
 
+### Fixed
+
+- Helm upgrades are no longer marked failed in the background after they
+  succeeded: Helm 3.22 watches the upgrade's context from a goroutine that
+  could see its cancellation after a successful upgrade had returned.
+
+
 ## [0.8.0] - 2026-11-18
 
 ### Added
