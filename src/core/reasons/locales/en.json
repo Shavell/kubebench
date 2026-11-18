@@ -225,7 +225,20 @@
     "needs_prometheus": "metrics-server has no {{metric}} data; it needs Prometheus",
     "no_prometheus": "no Prometheus was found on this cluster",
     "pod_metric": "metric \"{{metric}}\" is not available for pods",
-    "prometheus_failed": "the query to Prometheus {{location}} failed: {{detail}}"
+    "prometheus_failed": "the query to Prometheus {{location}} failed: {{detail}}",
+    "api_missing": "this cluster does not serve the metrics API (metrics.k8s.io); install metrics-server or enable cluster monitoring",
+    "api_unavailable": "the metrics API (APIService {{apiservice}}) is not available: {{detail}}",
+    "api_forbidden": "KubeBench may not read the metrics API: {{detail}}",
+    "api_failed": "reading the metrics API failed: {{detail}}",
+    "api_empty": "the metrics API reports no node metrics yet",
+    "not_sampled": "the metrics API has not been read yet; try again in a moment",
+    "node_capacity": "listing the nodes for their capacity failed: {{detail}}",
+    "prometheus_usage_failed": "metrics-server has no data and the query to Prometheus {{location}} failed: {{detail}}",
+    "thanos_no_token": "OpenShift monitoring needs a bearer token, and the credential of cluster \"{{cluster}}\" has none (client certificates do not pass the thanos-querier Route)",
+    "thanos_no_route": "KubeBench runs outside the cluster and cannot read the thanos-querier Route in openshift-monitoring: {{detail}}",
+    "thanos_no_service_ca": "the service CA bundle {{file}} cannot be read: {{detail}}",
+    "thanos_forbidden": "OpenShift monitoring ({{url}}) refused KubeBench's credential: {{detail}}; bind it to the cluster-monitoring-view ClusterRole",
+    "thanos_failed": "OpenShift monitoring ({{url}}) did not answer a query: {{detail}}"
   },
   "namespace": {
     "invalid_labels": "{{detail}}",

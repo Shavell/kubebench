@@ -29,8 +29,10 @@ type Manager struct {
 	removed map[int64]struct{}
 }
 
-// NewManager builds real runtimes that connect to the clusters.
-func NewManager() *Manager { return NewManagerWith(newRuntime) }
+// NewManagerFor builds real runtimes that connect to the clusters with opts.
+func NewManagerFor(opts Options) *Manager {
+	return NewManagerWith(func(c store.Cluster) (*Runtime, error) { return newRuntime(c, opts) })
+}
 
 // NewManagerWith builds runtimes with build, e.g. one returning
 // NewRuntimeForTest runtimes around fake clients.

@@ -225,7 +225,20 @@
     "needs_prometheus": "metrics-server hat keine {{metric}}-Daten; dafür wird Prometheus benötigt",
     "no_prometheus": "Auf diesem Cluster wurde kein Prometheus gefunden",
     "pod_metric": "Die Metrik \"{{metric}}\" ist für Pods nicht verfügbar",
-    "prometheus_failed": "Die Abfrage an Prometheus {{location}} ist fehlgeschlagen: {{detail}}"
+    "prometheus_failed": "Die Abfrage an Prometheus {{location}} ist fehlgeschlagen: {{detail}}",
+    "api_missing": "Dieser Cluster stellt die Metrics-API (metrics.k8s.io) nicht bereit; installieren Sie metrics-server oder aktivieren Sie das Cluster-Monitoring",
+    "api_unavailable": "Die Metrics-API (APIService {{apiservice}}) ist nicht verfügbar: {{detail}}",
+    "api_forbidden": "KubeBench darf die Metrics-API nicht lesen: {{detail}}",
+    "api_failed": "Das Lesen der Metrics-API ist fehlgeschlagen: {{detail}}",
+    "api_empty": "Die Metrics-API meldet noch keine Node-Metriken",
+    "not_sampled": "Die Metrics-API wurde noch nicht gelesen; versuchen Sie es gleich noch einmal",
+    "node_capacity": "Das Auflisten der Nodes für ihre Kapazität ist fehlgeschlagen: {{detail}}",
+    "prometheus_usage_failed": "metrics-server hat keine Daten, und die Abfrage an Prometheus {{location}} ist fehlgeschlagen: {{detail}}",
+    "thanos_no_token": "Das OpenShift-Monitoring benötigt ein Bearer-Token, aber die Anmeldedaten des Clusters \"{{cluster}}\" enthalten keines (Client-Zertifikate passieren die thanos-querier-Route nicht)",
+    "thanos_no_route": "KubeBench läuft außerhalb des Clusters und kann die thanos-querier-Route in openshift-monitoring nicht lesen: {{detail}}",
+    "thanos_no_service_ca": "Das Service-CA-Bundle {{file}} kann nicht gelesen werden: {{detail}}",
+    "thanos_forbidden": "Das OpenShift-Monitoring ({{url}}) hat die Anmeldedaten von KubeBench abgelehnt: {{detail}}; binden Sie KubeBench an die ClusterRole cluster-monitoring-view",
+    "thanos_failed": "Das OpenShift-Monitoring ({{url}}) hat eine Abfrage nicht beantwortet: {{detail}}"
   },
   "namespace": {
     "invalid_labels": "{{detail}}",
