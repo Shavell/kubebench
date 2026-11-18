@@ -10,6 +10,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.33.18
 	github.com/aws/aws-sdk-go-v2/credentials v1.21.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.52.0
+	github.com/coreos/go-oidc/v3 v3.21.0
+	github.com/go-jose/go-jose/v4 v4.1.4
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674
 	golang.org/x/crypto v0.59.0
 	golang.org/x/net v0.62.0

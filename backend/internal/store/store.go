@@ -10,6 +10,7 @@ import (
 	"io/fs"
 	"log"
 	"os"
+	"regexp"
 	"time"
 
 	"modernc.org/sqlite"
@@ -22,8 +23,9 @@ type Store struct{ db *sql.DB }
 var (
 	ErrNotFound = errors.New("not found")
 	ErrConflict = errors.New("already exists")
-	// ErrLastAdmin protects the invariant that at least one admin exists.
-	ErrLastAdmin = errors.New("at least one admin must remain")
+	// ErrLastAdmin protects the invariant that at least one local admin
+	// exists (the break-glass account, §3.6).
+	ErrLastAdmin = errors.New("at least one local admin must remain")
 )
 
 // Global user roles (users.role).
@@ -31,6 +33,20 @@ const (
 	RoleAdmin = "admin"
 	RoleUser  = "user"
 )
+
+// User sources (users.source, §3.6): a local account with a password kept
+// here, or an account of an external identity provider.
+const (
+	UserSourceLocal = "local"
+	UserSourceOIDC  = "oidc"
+	UserSourceLDAP  = "ldap"
+)
+
+// ValidExternalSource reports whether source names an external identity
+// provider.
+func ValidExternalSource(source string) bool {
+	return source == UserSourceOIDC || source == UserSourceLDAP
+}
 
 // Per-cluster assignment roles (user_clusters.role). A global admin's
 // effective role on every cluster is RoleAdmin.
@@ -54,6 +70,12 @@ func ValidEnvironment(env string) bool {
 	}
 	return false
 }
+
+var usernamePattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._@-]{0,63}$`)
+
+// ValidUsername reports whether name is a valid username: 1-64 letters,
+// digits, '.', '_', '@' or '-', starting with a letter or digit.
+func ValidUsername(name string) bool { return usernamePattern.MatchString(name) }
 
 // ValidClusterRole reports whether role can be assigned on a cluster.
 func ValidClusterRole(role string) bool {

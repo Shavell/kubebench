@@ -80,6 +80,13 @@ type Config struct {
 	// (KUBEBENCH_PROXY_ORIGIN, §7.14); empty serves it sandboxed on
 	// KubeBench's own origin only.
 	ProxyOrigin string
+
+	// PublicURL is the URL users reach KubeBench at (KUBEBENCH_PUBLIC_URL,
+	// scheme://host[:port], no path); empty derives it from each request.
+	// The OIDC redirect URL is built from it (§3.6).
+	PublicURL string
+	// Auth configures external identities (§3.6, v0.7).
+	Auth AuthConfig
 }
 
 // DefaultUpdateURL lists the releases of KubeBench's GitHub repository.
@@ -185,6 +192,9 @@ func FromEnv(lookup func(string) (string, bool), inCluster bool) (*Config, error
 			c.ProxyOrigin = strings.ToLower(u.Scheme + "://" + u.Host)
 		}
 	}
+
+	c.PublicURL = p.origin("KUBEBENCH_PUBLIC_URL", "https://kubebench.example.com")
+	c.Auth = p.auth()
 
 	if len(p.errs) > 0 {
 		return nil, errors.Join(p.errs...)

@@ -15,6 +15,7 @@ var migrations = []func(tx *sql.Tx) error{
 	migrateV3,
 	migrateV4,
 	migrateV5,
+	migrateV6,
 }
 
 func (s *Store) migrate() error {
@@ -192,6 +193,43 @@ CREATE TABLE note_tags (
   PRIMARY KEY (note_id, tag)
 );
 CREATE INDEX idx_note_tags_tag ON note_tags(tag);`)
+	return err
+}
+
+// migrateV6 adds external identities (docs/design-v0.5.md §3.6, v0.7):
+// where a user comes from (local, oidc, ldap) and their identity at that
+// source, the ID token an OIDC session ends at the identity provider with,
+// and the group mappings that grant external users their roles.
+func migrateV6(tx *sql.Tx) error {
+	_, err := tx.Exec(`
+ALTER TABLE users ADD COLUMN source TEXT NOT NULL DEFAULT 'local'
+  CHECK (source IN ('local', 'oidc', 'ldap'));
+-- The subject at the source (OIDC "sub", the directory entry's ID);
+-- NULL for local users.
+ALTER TABLE users ADD COLUMN external_id TEXT;
+ALTER TABLE users ADD COLUMN display_name TEXT NOT NULL DEFAULT '';
+ALTER TABLE users ADD COLUMN email TEXT NOT NULL DEFAULT '';
+-- The groups of the last sign-in (JSON array), shown to admins.
+ALTER TABLE users ADD COLUMN external_groups TEXT NOT NULL DEFAULT '[]';
+ALTER TABLE users ADD COLUMN last_sign_in TIMESTAMP;
+CREATE UNIQUE INDEX idx_users_external ON users(source, external_id) WHERE external_id IS NOT NULL;
+
+ALTER TABLE sessions ADD COLUMN id_token TEXT NOT NULL DEFAULT '';
+
+CREATE TABLE auth_group_mappings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  group_name TEXT NOT NULL CHECK (group_name != ''),
+  -- '' applies to the groups of every provider.
+  source TEXT NOT NULL DEFAULT '' CHECK (source IN ('', 'oidc', 'ldap')),
+  role TEXT NOT NULL CHECK (role IN ('admin', 'operator', 'viewer')),
+  -- The cluster (by name) of an operator or viewer grant; '' for admin.
+  cluster TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP NOT NULL,
+  CHECK ((role = 'admin') = (cluster = ''))
+);
+CREATE UNIQUE INDEX idx_auth_group_mappings
+  ON auth_group_mappings(group_name COLLATE NOCASE, source, cluster);`)
 	return err
 }
 
