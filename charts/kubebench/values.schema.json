@@ -117,6 +117,34 @@
             "existingSecretKey": { "type": "string", "minLength": 1 },
             "caBundle": { "type": "string" }
           }
+        },
+        "ldap": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "url": { "type": "string", "pattern": "^(ldaps?://.+)?$" },
+            "type": { "enum": ["openldap", "ad"] },
+            "name": { "type": "string" },
+            "startTLS": { "type": "boolean" },
+            "insecureSkipVerify": { "type": "boolean" },
+            "bindDN": { "type": "string" },
+            "bindPassword": { "type": "string" },
+            "existingSecret": { "type": "string" },
+            "existingSecretKey": { "type": "string", "minLength": 1 },
+            "userBaseDN": { "type": "string" },
+            "userFilter": { "type": "string" },
+            "usernameAttribute": { "type": "string" },
+            "idAttribute": { "type": "string" },
+            "displayNameAttribute": { "type": "string" },
+            "emailAttribute": { "type": "string" },
+            "groupsFrom": { "enum": ["", "search", "memberOf"] },
+            "groupBaseDN": { "type": "string" },
+            "groupFilter": { "type": "string" },
+            "groupNameAttribute": { "type": "string" },
+            "timeout": { "type": "string", "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|ms|s|m|h))*$" },
+            "caBundle": { "type": "string" }
+          }
         }
       }
     },

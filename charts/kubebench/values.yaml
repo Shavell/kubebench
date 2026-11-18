@@ -97,6 +97,47 @@ identity:
     # PEM CA bundle trusted for the provider's TLS certificate besides the
     # system roots; mounted from a ConfigMap at /etc/kubebench/oidc-ca/ca.crt.
     caBundle: ""
+  # LDAP or Active Directory sign-in (KUBEBENCH_LDAP_*, docs/configuration.md).
+  # Empty optional values keep the server's defaults for the type.
+  ldap:
+    enabled: false
+    # ldaps://host[:port], or ldap://host[:port] with startTLS.
+    url: ""
+    # openldap or ad: the defaults of the filters and attributes.
+    type: openldap
+    # Shown on the sign-in screen (default Directory / Active Directory).
+    name: ""
+    startTLS: false
+    # Tests only: do not verify the directory's certificate.
+    insecureSkipVerify: false
+    # The service account that searches users and groups (empty: anonymous).
+    bindDN: ""
+    # Its password from a Secret: existingSecret (key existingSecretKey), or
+    # a Secret the chart creates from bindPassword (which then also ends up
+    # in the Helm release history).
+    bindPassword: ""
+    existingSecret: ""
+    existingSecretKey: bind-password
+    # Required: where users are searched.
+    userBaseDN: ""
+    # %s is the login name, e.g. (uid=%s).
+    userFilter: ""
+    usernameAttribute: ""
+    idAttribute: ""
+    displayNameAttribute: ""
+    emailAttribute: ""
+    # search or memberOf.
+    groupsFrom: ""
+    groupBaseDN: ""
+    # %d is the user's DN, %u its username.
+    groupFilter: ""
+    # cn, or dn for full group DNs.
+    groupNameAttribute: ""
+    # A Go duration, e.g. 10s.
+    timeout: ""
+    # PEM CA bundle trusted for the directory's certificate besides the system
+    # roots; mounted from a ConfigMap at /etc/kubebench/ldap-ca/ca.crt.
+    caBundle: ""
 
 # Additional container environment, e.g. [{name: KUBEBENCH_PLUGINS_DIR, value: /plugins}].
 # Entries listed here override the variables the chart sets.

@@ -24,3 +24,30 @@ data:
   ca.crt: {{ .caBundle | quote }}
 {{- end }}
 {{- end }}
+{{- with .Values.identity.ldap }}
+{{- if and .enabled .bindPassword (not .existingSecret) }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "kubebench.ldapSecretName" $ }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "kubebench.labels" $ | nindent 4 }}
+type: Opaque
+data:
+  bind-password: {{ .bindPassword | b64enc | quote }}
+{{- end }}
+{{- if include "kubebench.ldapCA" $ }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ printf "%s-ldap-ca" (include "kubebench.fullname" $) }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "kubebench.labels" $ | nindent 4 }}
+data:
+  ca.crt: {{ .caBundle | quote }}
+{{- end }}
+{{- end }}

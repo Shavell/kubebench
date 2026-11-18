@@ -70,6 +70,79 @@ client-secret
 {{- end }}
 {{- end }}
 {{- end }}
+{{- include "kubebench.ldapEnv" . }}
+{{- end -}}
+
+{{/* Name of the Secret holding the LDAP bind password ("" = anonymous search). */}}
+{{- define "kubebench.ldapSecretName" -}}
+{{- with .Values.identity.ldap -}}
+{{- if .existingSecret -}}
+{{- .existingSecret -}}
+{{- else if .bindPassword -}}
+{{- printf "%s-ldap" (include "kubebench.fullname" $) -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "kubebench.ldapSecretKey" -}}
+{{- if .Values.identity.ldap.existingSecret -}}
+{{- .Values.identity.ldap.existingSecretKey -}}
+{{- else -}}
+bind-password
+{{- end -}}
+{{- end -}}
+
+{{/* Mount path of the LDAP CA bundle ConfigMap. */}}
+{{- define "kubebench.ldapCADir" -}}/etc/kubebench/ldap-ca{{- end -}}
+
+{{/* Whether the LDAP CA bundle ConfigMap is mounted. */}}
+{{- define "kubebench.ldapCA" -}}
+{{- if and .Values.identity.ldap.enabled .Values.identity.ldap.caBundle -}}true{{- end -}}
+{{- end -}}
+
+{{/* KUBEBENCH_LDAP_* for the directory provider; optional values only when set. */}}
+{{- define "kubebench.ldapEnv" -}}
+{{- with .Values.identity.ldap }}
+{{- if .enabled }}
+{{- if or (not .url) (not .userBaseDN) }}
+{{- fail "identity.ldap.enabled needs identity.ldap.url and identity.ldap.userBaseDN" }}
+{{- end }}
+{{- if and .bindDN (not (include "kubebench.ldapSecretName" $)) }}
+{{- fail "identity.ldap.bindDN needs identity.ldap.existingSecret or identity.ldap.bindPassword" }}
+{{- end }}
+- name: KUBEBENCH_LDAP_URL
+  value: {{ .url | quote }}
+- name: KUBEBENCH_LDAP_TYPE
+  value: {{ .type | quote }}
+{{- if .startTLS }}
+- name: KUBEBENCH_LDAP_START_TLS
+  value: "true"
+{{- end }}
+{{- if .insecureSkipVerify }}
+- name: KUBEBENCH_LDAP_INSECURE_SKIP_VERIFY
+  value: "true"
+{{- end }}
+- name: KUBEBENCH_LDAP_USER_BASE_DN
+  value: {{ .userBaseDN | quote }}
+{{- range $key, $env := dict "name" "NAME" "bindDN" "BIND_DN" "userFilter" "USER_FILTER" "usernameAttribute" "USERNAME_ATTRIBUTE" "idAttribute" "ID_ATTRIBUTE" "displayNameAttribute" "DISPLAY_NAME_ATTRIBUTE" "emailAttribute" "EMAIL_ATTRIBUTE" "groupsFrom" "GROUPS_FROM" "groupBaseDN" "GROUP_BASE_DN" "groupFilter" "GROUP_FILTER" "groupNameAttribute" "GROUP_NAME_ATTRIBUTE" "timeout" "TIMEOUT" }}
+{{- with index $.Values.identity.ldap $key }}
+- name: {{ printf "KUBEBENCH_LDAP_%s" $env }}
+  value: {{ . | quote }}
+{{- end }}
+{{- end }}
+{{- with include "kubebench.ldapSecretName" $ }}
+- name: KUBEBENCH_LDAP_BIND_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: {{ . }}
+      key: {{ include "kubebench.ldapSecretKey" $ }}
+{{- end }}
+{{- if .caBundle }}
+- name: KUBEBENCH_LDAP_CA_FILE
+  value: {{ printf "%s/ca.crt" (include "kubebench.ldapCADir" $) | quote }}
+{{- end }}
+{{- end }}
+{{- end }}
 {{- end -}}
 
 {{/* Whether the OIDC CA bundle ConfigMap is mounted. */}}

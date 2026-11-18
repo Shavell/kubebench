@@ -138,6 +138,11 @@ spec:
               mountPath: {{ include "kubebench.oidcCADir" . }}
               readOnly: true
             {{- end }}
+            {{- if include "kubebench.ldapCA" . }}
+            - name: ldap-ca
+              mountPath: {{ include "kubebench.ldapCADir" . }}
+              readOnly: true
+            {{- end }}
             {{- with .Values.extraVolumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -155,6 +160,11 @@ spec:
         - name: oidc-ca
           configMap:
             name: {{ printf "%s-oidc-ca" (include "kubebench.fullname" .) }}
+        {{- end }}
+        {{- if include "kubebench.ldapCA" . }}
+        - name: ldap-ca
+          configMap:
+            name: {{ printf "%s-ldap-ca" (include "kubebench.fullname" .) }}
         {{- end }}
         {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 8 }}
