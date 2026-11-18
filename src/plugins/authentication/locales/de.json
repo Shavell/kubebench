@@ -36,7 +36,22 @@
       "allowedDomains": "Erlaubte E-Mail-Domains",
       "caFile": "CA-Bundle",
       "publicUrl": "Öffentliche URL",
-      "requireGroup": "Benutzer ohne zugeordnete Gruppe"
+      "requireGroup": "Benutzer ohne zugeordnete Gruppe",
+      "url": "Server-URL",
+      "directoryType": "Verzeichnistyp",
+      "startTls": "StartTLS",
+      "insecureSkipVerify": "TLS-Prüfung überspringen",
+      "bindDn": "Dienstkonto (Bind-DN)",
+      "bindPassword": "Kennwort des Dienstkontos",
+      "userBaseDn": "Basis-DN der Benutzer",
+      "userFilter": "Benutzerfilter",
+      "usernameAttribute": "Attribut für den Benutzernamen",
+      "idAttribute": "ID-Attribut",
+      "groupsFrom": "Gruppen aus",
+      "groupBaseDn": "Basis-DN der Gruppen",
+      "groupFilter": "Gruppenfilter",
+      "groupNameAttribute": "Attribut für den Gruppennamen",
+      "timeout": "Zeitlimit"
     }
   },
   "methods": {
@@ -63,11 +78,16 @@
     "secretUnset": "Nicht gesetzt (öffentlicher Client)",
     "notSet": "Nicht gesetzt",
     "breakGlass": "Lokale Konten funktionieren immer. Der letzte lokale Administrator kann weder entfernt noch herabgestuft werden und bleibt so das Notfallkonto, wenn der Identitätsanbieter nicht verfügbar ist.",
-    "none": "Kein Identitätsanbieter konfiguriert. Konfigurieren Sie OIDC mit den Umgebungsvariablen KUBEBENCH_OIDC_* (siehe Konfigurationsanleitung).",
+    "none": "Es ist kein Identitätsanbieter konfiguriert. Konfigurieren Sie OIDC mit den KUBEBENCH_OIDC_*- und LDAP oder Active Directory mit den KUBEBENCH_LDAP_*-Umgebungsvariablen (siehe Konfigurationsleitfaden).",
     "publicUrlDerived": "(aus der Anfrage abgeleitet; setzen Sie KUBEBENCH_PUBLIC_URL)",
     "requireGroupOn": "Abgewiesen (KUBEBENCH_AUTH_REQUIRE_GROUP)",
     "requireGroupOff": "Dürfen sich anmelden, sehen aber keinen Cluster",
-    "configHint": "Die Anbietereinstellungen stammen aus der Umgebung des Servers und können hier nicht geändert werden. Secrets werden nie an den Browser gesendet."
+    "configHint": "Die Anbietereinstellungen stammen aus der Umgebung des Servers und können hier nicht geändert werden. Secrets werden nie an den Browser gesendet.",
+    "bindPasswordUnset": "Nicht gesetzt (anonyme Suche)",
+    "warnings": {
+      "plaintext": "Die Verbindung ist nicht verschlüsselt: Verzeichniskennwörter werden im Klartext übertragen. Verwenden Sie ldaps:// oder StartTLS.",
+      "tlsVerifyDisabled": "Die TLS-Zertifikatsprüfung ist aus: Jeder auf dem Netzwerkpfad kann die Kennwörter lesen. Konfigurieren Sie stattdessen das CA-Bundle."
+    }
   },
   "mappings": {
     "title": "Gruppenzuordnungen",
@@ -93,7 +113,7 @@
     "editTitle": "Gruppenzuordnung bearbeiten",
     "description": "Mitglieder der Gruppe erhalten diesen Zugriff bei ihrer nächsten Anmeldung.",
     "group": "Gruppe",
-    "groupHelp": "Der Gruppenname, wie ihn der Anbieter meldet (ein Wert des OIDC-Gruppen-Claims oder ein LDAP-Gruppen-DN). Exakter Vergleich ohne Beachtung der Groß-/Kleinschreibung.",
+    "groupHelp": "Der Gruppenname, wie ihn der Anbieter meldet: ein Wert des OIDC-groups-Claims oder der Name einer Verzeichnisgruppe (ihr cn bzw. ihr DN, wenn das Verzeichnis DNs melden soll). Exakter Vergleich ohne Beachtung der Groß-/Kleinschreibung.",
     "source": "Anbieter",
     "sourceHelp": "Beschränken Sie die Zuordnung auf die Gruppen eines Anbieters oder wenden Sie sie auf alle an.",
     "role": "Gewährt",
@@ -140,8 +160,10 @@
     "accountExisting": "Bestehendes Konto; wird bei der Anmeldung aktualisiert",
     "accountOther": "Der Benutzername gehört zu einem anderen Konto: {{source}}",
     "errors": {
-      "username": "Geben Sie einen Benutzernamen ein (Buchstaben, Ziffern, '.', '_', '@' oder '-')."
-    }
+      "username": "Geben Sie einen Benutzernamen ein (Buchstaben, Ziffern, '.', '_', '@' oder '-').",
+      "login": "Geben Sie den Anmeldenamen ein."
+    },
+    "loginHelp": "So, wie der Benutzer ihn eingibt: benutzer, DOMÄNE\\benutzer oder benutzer@domäne."
   },
   "failures": {
     "invalid_credentials": "Ungültiger Benutzername oder ungültiges Kennwort, oder kein solcher Benutzer im Verzeichnis.",

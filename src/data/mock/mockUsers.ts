@@ -58,6 +58,20 @@ const users: StoredUser[] = [
       lastSignIn: '2026-11-02T08:30:00Z',
     },
   },
+  {
+    id: 6,
+    username: 'm.rossi',
+    role: 'user',
+    mustChangePassword: false,
+    assignments: [{ clusterId: 2, role: 'viewer' }],
+    external: {
+      source: 'ldap',
+      displayName: 'Marco Rossi',
+      email: 'm.rossi@corp.example.com',
+      groups: ['developers', 'everyone'],
+      lastSignIn: '2026-11-05T07:45:00Z',
+    },
+  },
 ]
 
 function toAppUser(user: StoredUser, names: Map<number, string>): AppUser {

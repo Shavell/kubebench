@@ -34,12 +34,15 @@ export class ApiError extends Error {
   /** HTTP status, or 0 when the server could not be reached. */
   readonly status: number
   readonly code: ApiErrorCode
+  /** Why an external sign-in was refused (a SignInFailure class), when the server says. */
+  readonly reason?: string
 
-  constructor(status: number, code: ApiErrorCode, message: string) {
+  constructor(status: number, code: ApiErrorCode, message: string, reason?: string) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.code = code
+    this.reason = reason
   }
 }
 
@@ -168,7 +171,8 @@ function refusal(path: string, res: Response, payload: unknown): ApiError {
   if ((res.status === 401 && !path.startsWith('/auth/')) || code === 'password_change_required') {
     sessionListeners.forEach((listener) => listener(code))
   }
-  return new ApiError(res.status, code, failureMessage(res, payload))
+  const reason = payload && typeof payload === 'object' ? (payload as { reason?: unknown }).reason : undefined
+  return new ApiError(res.status, code, failureMessage(res, payload), typeof reason === 'string' ? reason : undefined)
 }
 
 /**

@@ -10,6 +10,8 @@ import './LoginScreen.css'
 /** Translated reason for a failed sign-in; unknown failures keep the server's message. */
 function loginErrorMessage(err: unknown, t: TFunction): string {
   if (!isApiError(err)) return errorMessage(err)
+  // A refused directory sign-in names its failure class.
+  if (err.reason) return t(`login.external.failures.${err.reason}`, { defaultValue: err.message })
   if (err.status === 401) return t('login.errors.invalidCredentials')
   if (err.code === 'rate_limited') return t('login.errors.rateLimited')
   if (err.code === 'network') return t('login.errors.network')
@@ -19,8 +21,10 @@ function loginErrorMessage(err: unknown, t: TFunction): string {
 /**
  * Full-screen sign-in shown when the backend requires authentication:
  * "Sign in with <provider>" for redirect providers (OIDC), and the
- * username/password form for local accounts and directory providers
- * (design §3.6). Local accounts always work (break-glass admin).
+ * username/password form for directory providers (LDAP / Active Directory)
+ * and local accounts (design §3.6). With a directory, the form signs in
+ * there unless the user picks the KubeBench account; local accounts always
+ * work (break-glass admin).
  */
 export function LoginScreen({ failure }: { failure?: SignInFailure | 'unknown' | null }) {
   const { t } = useTranslation()
@@ -31,7 +35,8 @@ export function LoginScreen({ failure }: { failure?: SignInFailure | 'unknown' |
   )
   const [busy, setBusy] = useState(false)
   const [providers, setProviders] = useState<SignInMethod[]>([])
-  const [source, setSource] = useState('local')
+  // null until the user picks: then the first directory, else local.
+  const [picked, setPicked] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -48,6 +53,11 @@ export function LoginScreen({ failure }: { failure?: SignInFailure | 'unknown' |
 
   const redirects = providers.filter((p) => p.type === 'redirect' && p.loginUrl)
   const directories = providers.filter((p) => p.type === 'password')
+  const source = picked ?? directories[0]?.source ?? 'local'
+  const sourceOptions = [
+    ...directories.map((p) => ({ value: p.source, label: p.name })),
+    { value: 'local', label: t('login.external.localAccount') },
+  ]
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -92,21 +102,28 @@ export function LoginScreen({ failure }: { failure?: SignInFailure | 'unknown' |
         ))}
         {redirects.length > 0 && (
           <div className="login__divider" role="separator">
-            <span>{t('login.external.or')}</span>
+            <span>{t(directories.length > 0 ? 'login.external.orPassword' : 'login.external.or')}</span>
           </div>
         )}
         {directories.length > 0 && (
-          <label>
-            {t('login.external.account')}
-            <select value={source} onChange={(e) => setSource(e.target.value)} disabled={busy}>
-              <option value="local">{t('login.external.localAccount')}</option>
-              {directories.map((p) => (
-                <option key={p.source} value={p.source}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="login__sources" role="radiogroup" aria-label={t('login.external.account')}>
+            {sourceOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                role="radio"
+                aria-checked={source === option.value}
+                className={source === option.value ? 'login__source login__source--active' : 'login__source'}
+                disabled={busy}
+                onClick={() => {
+                  setPicked(option.value)
+                  setError(null)
+                }}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
         )}
         <label>
           {t('login.username')}
@@ -116,7 +133,13 @@ export function LoginScreen({ failure }: { failure?: SignInFailure | 'unknown' |
             autoFocus={redirects.length === 0}
             autoComplete="username"
             spellCheck={false}
+            aria-describedby={source !== 'local' ? 'login-username-hint' : undefined}
           />
+          {source !== 'local' && (
+            <span id="login-username-hint" className="login__hint">
+              {t('login.external.directoryHint')}
+            </span>
+          )}
         </label>
         <label>
           {t('login.password')}

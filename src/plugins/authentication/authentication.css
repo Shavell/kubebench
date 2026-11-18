@@ -173,3 +173,12 @@
     gap: 2px;
   }
 }
+
+.auth-card__warning {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--vscode-editorWarning-foreground);
+}

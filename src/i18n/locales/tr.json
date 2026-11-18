@@ -181,7 +181,9 @@
         "invalid_request": "Giriş doğrulanamadı. Lütfen tekrar deneyin.",
         "provider_error": "Kimlik sağlayıcıya ulaşılamadı veya sağlayıcı girişi reddetti.",
         "rate_limited": "Çok fazla başarısız deneme yapıldı. Lütfen birkaç dakika bekleyip tekrar deneyin."
-      }
+      },
+      "orPassword": "veya kullanıcı adı ve parolanızla",
+      "directoryHint": "Dizin hesabınız: kullanıcı, ETKİ_ALANI\\kullanıcı veya kullanıcı@alanadı"
     }
   }
 }

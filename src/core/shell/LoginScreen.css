@@ -111,3 +111,45 @@
   flex: 1;
   border-top: 1px solid var(--vscode-panel-border);
 }
+
+/* Directory or KubeBench account: a segmented choice above the form. */
+.login__sources {
+  display: flex;
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.login__source {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 8px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--vscode-foreground);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.login__source + .login__source {
+  border-left: 1px solid var(--vscode-input-border);
+}
+.login__source:hover:where(:not(:disabled)) {
+  background: var(--vscode-list-hoverBackground);
+}
+.login__source--active,
+.login__source--active:hover:where(:not(:disabled)) {
+  color: var(--vscode-button-foreground);
+  background: var(--vscode-button-background);
+}
+.login__source:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+.login__hint {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}

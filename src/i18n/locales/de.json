@@ -181,7 +181,9 @@
         "invalid_request": "Die Anmeldung konnte nicht überprüft werden. Bitte versuchen Sie es erneut.",
         "provider_error": "Der Identitätsanbieter ist nicht erreichbar oder hat die Anmeldung abgelehnt.",
         "rate_limited": "Zu viele fehlgeschlagene Versuche. Bitte warten Sie einige Minuten und versuchen Sie es erneut."
-      }
+      },
+      "orPassword": "oder mit Benutzername und Kennwort",
+      "directoryHint": "Ihr Verzeichniskonto: benutzer, DOMÄNE\\benutzer oder benutzer@domäne"
     }
   }
 }

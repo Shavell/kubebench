@@ -641,6 +641,8 @@ export interface AuthProviderInfo {
   name: string
   settings: AuthProviderSetting[]
   status: { ok: boolean; error: string }
+  /** Insecure settings: 'plaintext' (no TLS), 'tlsVerifyDisabled'. */
+  warnings: string[]
 }
 
 export interface AuthSettings {

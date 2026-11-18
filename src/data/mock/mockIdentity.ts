@@ -31,8 +31,49 @@ const settings: AuthSettings = {
         { key: 'allowedDomains', value: 'example.com' },
         { key: 'caFile', value: '' },
       ],
+      warnings: [],
+    },
+    {
+      source: 'ldap',
+      name: 'Corp AD',
+      status: { ok: true, error: '' },
+      settings: [
+        { key: 'url', value: 'ldaps://dc1.corp.example.com' },
+        { key: 'directoryType', value: 'ad' },
+        { key: 'startTls', value: 'false' },
+        { key: 'caFile', value: '/etc/kubebench/ldap-ca/ca.crt' },
+        { key: 'insecureSkipVerify', value: 'false' },
+        { key: 'bindDn', value: 'CN=svc-kubebench,OU=Service Accounts,DC=corp,DC=example,DC=com' },
+        { key: 'bindPassword', value: '', secretSet: true },
+        { key: 'userBaseDn', value: 'DC=corp,DC=example,DC=com' },
+        { key: 'userFilter', value: '(|(sAMAccountName=%s)(userPrincipalName=%s))' },
+        { key: 'usernameAttribute', value: 'sAMAccountName' },
+        { key: 'idAttribute', value: 'objectGUID' },
+        { key: 'groupsFrom', value: 'search' },
+        { key: 'groupBaseDn', value: 'OU=Groups,DC=corp,DC=example,DC=com' },
+        { key: 'groupFilter', value: '(member:1.2.840.113556.1.4.1941:=%d)' },
+        { key: 'groupNameAttribute', value: 'cn' },
+        { key: 'timeout', value: '10s' },
+      ],
+      warnings: [],
     },
   ],
+}
+
+/**
+ * The demo directory: groups by sAMAccountName (nested groups already
+ * resolved, as the in-chain search does), and a disabled account.
+ */
+const directory: Record<string, { groups: string[]; disabled?: boolean }> = {
+  'm.rossi': { groups: ['developers', 'everyone'] },
+  'k.yilmaz': { groups: ['platform-admins', 'sre', 'everyone'] },
+  'old.contractor': { groups: ['developers'], disabled: true },
+}
+
+/** The account of a directory login: no DOMAIN\ prefix, lower case, a demo-domain UPN to its sAMAccountName. */
+function directoryAccount(login: string): string {
+  const name = login.slice(login.lastIndexOf('\\') + 1).toLowerCase()
+  return name.endsWith('@corp.example.com') ? name.slice(0, -'@corp.example.com'.length) : name
 }
 
 let nextId = 4
@@ -100,7 +141,7 @@ export function createMockIdentity(): IdentityProvider {
       return delay(undefined)
     },
     preview: (source, rawUsername, groups) => {
-      const username = rawUsername.trim()
+      const username = source === 'ldap' ? directoryAccount(rawUsername.trim()) : rawUsername.trim()
       const known = mockAccount(username)
       const result: SignInPreview = {
         source,
@@ -114,6 +155,15 @@ export function createMockIdentity(): IdentityProvider {
         reason: '',
         existingSource: known?.source ?? '',
         lastSignIn: known?.source === source ? known.lastSignIn : null,
+      }
+      if (source === 'ldap' && !groups) {
+        // Like the server, a directory preview looks the user up.
+        const entry = directory[username]
+        result.groups = entry && !entry.disabled ? entry.groups : []
+        result.groupsFrom = 'directory'
+        result.lastSignIn = null
+        if (!entry) return delay({ ...result, allowed: false, reason: 'invalid_credentials' })
+        if (entry.disabled) return delay({ ...result, allowed: false, reason: 'account_disabled' })
       }
       if (!USERNAME_PATTERN.test(username)) return delay({ ...result, allowed: false, reason: 'invalid_username' })
       const clusterNames = clusterNameSet()

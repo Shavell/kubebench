@@ -181,7 +181,9 @@
         "invalid_request": "The sign-in could not be verified. Please try again.",
         "provider_error": "The identity provider could not be reached or refused the sign-in.",
         "rate_limited": "Too many failed attempts. Please wait a few minutes and try again."
-      }
+      },
+      "orPassword": "or with your username and password",
+      "directoryHint": "Your directory account: user, DOMAIN\\user or user@domain"
     }
   }
 }

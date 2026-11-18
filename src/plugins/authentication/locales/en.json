@@ -36,7 +36,22 @@
       "allowedDomains": "Allowed email domains",
       "caFile": "CA bundle",
       "publicUrl": "Public URL",
-      "requireGroup": "Users without a mapped group"
+      "requireGroup": "Users without a mapped group",
+      "url": "Server URL",
+      "directoryType": "Directory type",
+      "startTls": "StartTLS",
+      "insecureSkipVerify": "Skip TLS verification",
+      "bindDn": "Service account (bind DN)",
+      "bindPassword": "Service account password",
+      "userBaseDn": "User base DN",
+      "userFilter": "User filter",
+      "usernameAttribute": "Username attribute",
+      "idAttribute": "ID attribute",
+      "groupsFrom": "Groups from",
+      "groupBaseDn": "Group base DN",
+      "groupFilter": "Group filter",
+      "groupNameAttribute": "Group name attribute",
+      "timeout": "Timeout"
     }
   },
   "methods": {
@@ -63,11 +78,16 @@
     "secretUnset": "Not set (public client)",
     "notSet": "Not set",
     "breakGlass": "Local accounts always work. The last local administrator cannot be removed or demoted, so it stays as the break-glass account when the identity provider is unavailable.",
-    "none": "No identity provider is configured. Configure OIDC with the KUBEBENCH_OIDC_* environment variables (see the configuration guide).",
+    "none": "No identity provider is configured. Configure OIDC with the KUBEBENCH_OIDC_* and LDAP or Active Directory with the KUBEBENCH_LDAP_* environment variables (see the configuration guide).",
     "publicUrlDerived": "(derived from the request; set KUBEBENCH_PUBLIC_URL)",
     "requireGroupOn": "Refused (KUBEBENCH_AUTH_REQUIRE_GROUP)",
     "requireGroupOff": "May sign in but see no cluster",
-    "configHint": "Provider settings come from the server's environment and cannot be changed here. Secrets are never sent to the browser."
+    "configHint": "Provider settings come from the server's environment and cannot be changed here. Secrets are never sent to the browser.",
+    "bindPasswordUnset": "Not set (anonymous search)",
+    "warnings": {
+      "plaintext": "The connection is not encrypted: directory passwords cross the network in plain text. Use ldaps:// or StartTLS.",
+      "tlsVerifyDisabled": "TLS certificate verification is off: anyone on the network path can read the passwords. Configure the CA bundle instead."
+    }
   },
   "mappings": {
     "title": "Group mappings",
@@ -93,7 +113,7 @@
     "editTitle": "Edit group mapping",
     "description": "Members of the group get this access at their next sign-in.",
     "group": "Group",
-    "groupHelp": "The group name as the provider reports it (an OIDC groups claim value or an LDAP group DN). Matched exactly, ignoring case.",
+    "groupHelp": "The group name as the provider reports it: an OIDC groups claim value, or a directory group's name (its cn, or its DN when the directory is configured to report DNs). Matched exactly, ignoring case.",
     "source": "Provider",
     "sourceHelp": "Limit the mapping to the groups of one provider, or apply it to all.",
     "role": "Grants",
@@ -140,8 +160,10 @@
     "accountExisting": "Existing account; updated at sign-in",
     "accountOther": "The username belongs to a {{source}}",
     "errors": {
-      "username": "Enter a username (letters, digits, '.', '_', '@' or '-')."
-    }
+      "username": "Enter a username (letters, digits, '.', '_', '@' or '-').",
+      "login": "Enter the login name."
+    },
+    "loginHelp": "As the user types it: user, DOMAIN\\user or user@domain."
   },
   "failures": {
     "invalid_credentials": "Invalid username or password, or no such user in the directory.",

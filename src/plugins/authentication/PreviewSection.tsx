@@ -117,12 +117,16 @@ export function PreviewSection({ providers }: { providers: AuthProviderInfo[] })
   const [attempted, setAttempted] = useState(false)
 
   const name = username.trim()
-  const usernameError = attempted && !USERNAME_PATTERN.test(name) ? t('preview.errors.username') : null
   const selected = sources.includes(source) ? source : sources[0]
+  // A directory resolves its login forms (DOMAIN\user, user@domain).
+  const directory = selected === 'ldap'
+  const nameValid = directory ? name.length > 0 : USERNAME_PATTERN.test(name)
+  const usernameError =
+    attempted && !nameValid ? t(directory ? 'preview.errors.login' : 'preview.errors.username') : null
 
   const run = async () => {
     setAttempted(true)
-    if (!USERNAME_PATTERN.test(name)) return
+    if (!nameValid) return
     setBusy(true)
     setFailure(null)
     try {
@@ -156,7 +160,12 @@ export function PreviewSection({ providers }: { providers: AuthProviderInfo[] })
             }))}
           />
         </Field>
-        <Field label={t('preview.username')} error={usernameError} required>
+        <Field
+          label={t('preview.username')}
+          help={directory ? t('preview.loginHelp') : undefined}
+          error={usernameError}
+          required
+        >
           <TextInput value={username} onChange={setUsername} monospace autoComplete="off" disabled={busy} />
         </Field>
         <Field label={t('preview.groupsInput')} help={t('preview.groupsHelp')}>

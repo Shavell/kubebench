@@ -8,7 +8,8 @@ import { AUTH_NS } from './namespace'
 function SettingValue({ setting }: { setting: AuthProviderSetting }) {
   const { t } = useTranslation(AUTH_NS)
   if (setting.secretSet !== undefined) {
-    return <span className="auth__muted">{t(setting.secretSet ? 'providers.secretSet' : 'providers.secretUnset')}</span>
+    const unset = setting.key === 'bindPassword' ? 'providers.bindPasswordUnset' : 'providers.secretUnset'
+    return <span className="auth__muted">{t(setting.secretSet ? 'providers.secretSet' : unset)}</span>
   }
   if (!setting.value) return <span className="auth__muted">{t('providers.notSet')}</span>
   return <code className="auth__value">{setting.value}</code>
@@ -29,6 +30,12 @@ function ProviderCard({ provider }: { provider: AuthProviderInfo }) {
         </span>
       </div>
       {!provider.status.ok && provider.status.error && <p className="auth-card__error">{provider.status.error}</p>}
+      {provider.warnings.map((warning) => (
+        <p key={warning} className="auth-card__warning" role="note">
+          <Icon name="warning" size={13} />
+          {t(`providers.warnings.${warning}`, { defaultValue: warning })}
+        </p>
+      ))}
       <dl className="auth-card__settings">
         {provider.settings.map((setting) => (
           <div key={setting.key} className="auth-card__setting">

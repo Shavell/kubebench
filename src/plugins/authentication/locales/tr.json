@@ -36,7 +36,22 @@
       "allowedDomains": "İzin verilen e-posta alan adları",
       "caFile": "CA paketi",
       "publicUrl": "Genel URL",
-      "requireGroup": "Eşlenmiş grubu olmayan kullanıcılar"
+      "requireGroup": "Eşlenmiş grubu olmayan kullanıcılar",
+      "url": "Sunucu URL'si",
+      "directoryType": "Dizin türü",
+      "startTls": "StartTLS",
+      "insecureSkipVerify": "TLS doğrulamasını atla",
+      "bindDn": "Hizmet hesabı (bind DN)",
+      "bindPassword": "Hizmet hesabı parolası",
+      "userBaseDn": "Kullanıcı temel DN'i",
+      "userFilter": "Kullanıcı filtresi",
+      "usernameAttribute": "Kullanıcı adı özniteliği",
+      "idAttribute": "Kimlik özniteliği",
+      "groupsFrom": "Grupların kaynağı",
+      "groupBaseDn": "Grup temel DN'i",
+      "groupFilter": "Grup filtresi",
+      "groupNameAttribute": "Grup adı özniteliği",
+      "timeout": "Zaman aşımı"
     }
   },
   "methods": {
@@ -63,11 +78,16 @@
     "secretUnset": "Ayarlanmamış (genel istemci)",
     "notSet": "Ayarlanmamış",
     "breakGlass": "Yerel hesaplar her zaman çalışır. Son yerel yönetici silinemez ve rolü düşürülemez; böylece kimlik sağlayıcıya ulaşılamadığında acil durum hesabı olarak kalır.",
-    "none": "Yapılandırılmış bir kimlik sağlayıcı yok. OIDC'yi KUBEBENCH_OIDC_* ortam değişkenleriyle yapılandırın (yapılandırma kılavuzuna bakın).",
+    "none": "Yapılandırılmış bir kimlik sağlayıcı yok. OIDC'yi KUBEBENCH_OIDC_*, LDAP veya Active Directory'yi KUBEBENCH_LDAP_* ortam değişkenleriyle yapılandırın (yapılandırma kılavuzuna bakın).",
     "publicUrlDerived": "(istekten türetildi; KUBEBENCH_PUBLIC_URL değerini ayarlayın)",
     "requireGroupOn": "Reddedilir (KUBEBENCH_AUTH_REQUIRE_GROUP)",
     "requireGroupOff": "Giriş yapabilir ama hiçbir cluster'ı göremez",
-    "configHint": "Sağlayıcı ayarları sunucunun ortamından gelir ve burada değiştirilemez. Gizli değerler tarayıcıya hiçbir zaman gönderilmez."
+    "configHint": "Sağlayıcı ayarları sunucunun ortamından gelir ve burada değiştirilemez. Gizli değerler tarayıcıya hiçbir zaman gönderilmez.",
+    "bindPasswordUnset": "Ayarlanmadı (anonim arama)",
+    "warnings": {
+      "plaintext": "Bağlantı şifrelenmiyor: dizin parolaları ağda düz metin olarak iletiliyor. ldaps:// veya StartTLS kullanın.",
+      "tlsVerifyDisabled": "TLS sertifika doğrulaması kapalı: ağ yolundaki herkes parolaları okuyabilir. Bunun yerine CA paketini yapılandırın."
+    }
   },
   "mappings": {
     "title": "Grup eşlemeleri",
@@ -93,7 +113,7 @@
     "editTitle": "Grup eşlemesini düzenle",
     "description": "Grubun üyeleri bu erişimi bir sonraki girişlerinde alır.",
     "group": "Grup",
-    "groupHelp": "Sağlayıcının bildirdiği grup adı (bir OIDC gruplar claim'i değeri veya bir LDAP grup DN'i). Büyük/küçük harf ayrımı yapılmadan birebir eşleşir.",
+    "groupHelp": "Sağlayıcının bildirdiği grup adı: bir OIDC groups claim değeri veya bir dizin grubunun adı (cn değeri; dizin DN bildirecek şekilde yapılandırıldıysa DN'i). Büyük/küçük harf yok sayılarak birebir eşleştirilir.",
     "source": "Sağlayıcı",
     "sourceHelp": "Eşlemeyi tek bir sağlayıcının gruplarıyla sınırlayın veya tümüne uygulayın.",
     "role": "Verilen erişim",
@@ -140,8 +160,10 @@
     "accountExisting": "Mevcut hesap; girişte güncellenir",
     "accountOther": "Kullanıcı adı başka bir hesaba ait: {{source}}",
     "errors": {
-      "username": "Bir kullanıcı adı girin (harf, rakam, '.', '_', '@' veya '-')."
-    }
+      "username": "Bir kullanıcı adı girin (harf, rakam, '.', '_', '@' veya '-').",
+      "login": "Giriş adını girin."
+    },
+    "loginHelp": "Kullanıcının yazdığı gibi: kullanıcı, ETKİ_ALANI\\kullanıcı veya kullanıcı@alanadı."
   },
   "failures": {
     "invalid_credentials": "Kullanıcı adı veya parola hatalı ya da dizinde böyle bir kullanıcı yok.",
