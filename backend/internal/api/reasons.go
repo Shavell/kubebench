@@ -136,6 +136,7 @@ var (
 	reasonExternalName    = reason.Define("proxy.external_name", "Service {{namespace}}/{{name}} points outside the cluster (ExternalName); open {{externalName}} directly")
 	reasonNoServicePort   = reason.Define("proxy.no_service_port", "Service {{namespace}}/{{name}} has no port {{port}}")
 	reasonNoPodPort       = reason.Define("proxy.no_pod_port", "Pod {{namespace}}/{{name}} has no port named {{port}}")
+	reasonNoIngressRoute  = reason.Define("proxy.no_ingress_route", "Ingress {{namespace}}/{{name}} has no rule for host \"{{host}}\" and path \"{{path}}\" that leads to a Service")
 	reasonBrowserEnded    = reason.Define("proxy.session_ended", "the browser session has ended")
 	reasonKubeBenchEnded  = reason.Define("proxy.kubebench_session_ended", "your KubeBench session has ended; sign in again")
 )

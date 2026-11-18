@@ -280,6 +280,7 @@
   "proxy": {
     "external_name": "{{namespace}}/{{name}} Service'i cluster dışını gösteriyor (ExternalName); {{externalName}} adresini doğrudan açın",
     "kubebench_session_ended": "KubeBench oturumunuz sona erdi; yeniden giriş yapın",
+    "no_ingress_route": "{{namespace}}/{{name}} Ingress'inde \"{{host}}\" host'u ve \"{{path}}\" yolu için bir Service'e giden kural yok",
     "no_pod_port": "{{namespace}}/{{name}} Pod'unda {{port}} adlı port yok",
     "no_service_port": "{{namespace}}/{{name}} Service'inde {{port}} portu yok",
     "origin_same_site": "Servis tarayıcısı kapalı: KUBEBENCH_PROXY_ORIGIN ({{origin}}) KubeBench ({{app}}) ile aynı sitede, bu yüzden sayfaları KubeBench oturum çerezinizi değiştirebilir; bir yönetici bunu başka bir alan adındaki bir host'a ayarlamalı veya kaldırmalı",

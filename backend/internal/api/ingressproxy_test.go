@@ -83,9 +83,18 @@ func TestOpenIngressProxy(t *testing.T) {
 
 	expect(t, e.do(http.MethodPost, ingressURL("web.example.com", "/app", ""), "bob", nil), http.StatusForbidden, plugin.CodeForbiddenRole)
 	expect(t, e.do(http.MethodPost, "/api/proxy/ingresses/default/nope?host=a&path=/", "alice", nil), http.StatusNotFound, plugin.CodeKubernetes)
-	expect(t, e.do(http.MethodPost, ingressURL("web.example.com", "/other", ""), "alice", nil), http.StatusBadRequest, plugin.CodeBadRequest)
-	expect(t, e.do(http.MethodPost, ingressURL("web.example.com", "/static", ""), "alice", nil), http.StatusBadRequest, plugin.CodeBadRequest)
-	expect(t, e.do(http.MethodPost, ingressURL("web.example.com", "/app", "ftp"), "alice", nil), http.StatusBadRequest, plugin.CodeBadRequest)
+	for path, want := range map[string]string{"/other": "proxy.no_ingress_route", "/static": "proxy.no_ingress_route"} {
+		body := decode[plugin.ErrorBody](t, expectRec(t, e.do(http.MethodPost, ingressURL("web.example.com", path, ""), "alice", nil),
+			http.StatusBadRequest, plugin.CodeBadRequest))
+		if body.Reason != want || body.Params["path"] != path {
+			t.Errorf("%s: error = %+v, want reason %s", path, body, want)
+		}
+	}
+	body := decode[plugin.ErrorBody](t, expectRec(t, e.do(http.MethodPost, ingressURL("web.example.com", "/app", "ftp"), "alice", nil),
+		http.StatusBadRequest, plugin.CodeBadRequest))
+	if body.Reason != "proxy.target_scheme" {
+		t.Errorf("ftp scheme: error = %+v", body)
+	}
 
 	s := e.openProxy("alice", ingressURL("web.example.com", "/app", ""))
 	if s.Target.Kind != "services" || s.Target.Name != "web" || s.Target.Port != "80" || s.Target.Host != "web.example.com" || s.Target.Scheme != "http" {

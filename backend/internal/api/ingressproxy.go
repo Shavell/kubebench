@@ -8,6 +8,8 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"kubebench/internal/plugin"
+	"kubebench/internal/reason"
 	"kubebench/internal/svcproxy"
 )
 
@@ -82,7 +84,7 @@ func (s *Server) handleOpenIngressProxy(w http.ResponseWriter, r *http.Request, 
 		}
 	}
 	if route == nil {
-		writeErr(w, badRequest("Ingress %s/%s has no rule for host %q and path %q that leads to a Service", ns, name, host, path))
+		writeErr(w, badRequest(reasonNoIngressRoute, reason.Params{"namespace": ns, "name": name, "host": host, "path": path}))
 		return
 	}
 	t := svcproxy.Target{Kind: svcproxy.KindService, Namespace: ns, Name: route.Service, Port: route.Port, Scheme: scheme}
@@ -91,7 +93,7 @@ func (s *Server) handleOpenIngressProxy(w http.ResponseWriter, r *http.Request, 
 		t.Host = host
 	}
 	if err := t.Validate(); err != nil {
-		writeErr(w, badRequest("%v", err))
+		writeErr(w, refuse(http.StatusBadRequest, plugin.CodeBadRequest, err))
 		return
 	}
 	detail["service"] = route.Service + ":" + route.Port

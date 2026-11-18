@@ -280,6 +280,7 @@
   "proxy": {
     "external_name": "Service {{namespace}}/{{name}} points outside the cluster (ExternalName); open {{externalName}} directly",
     "kubebench_session_ended": "your KubeBench session has ended; sign in again",
+    "no_ingress_route": "Ingress {{namespace}}/{{name}} has no rule for host \"{{host}}\" and path \"{{path}}\" that leads to a Service",
     "no_pod_port": "Pod {{namespace}}/{{name}} has no port named {{port}}",
     "no_service_port": "Service {{namespace}}/{{name}} has no port {{port}}",
     "origin_same_site": "the service browser is off: KUBEBENCH_PROXY_ORIGIN ({{origin}}) is on the same site as KubeBench ({{app}}), so its pages could replace your KubeBench session cookie; an administrator must set it to a host on another domain, or unset it",
