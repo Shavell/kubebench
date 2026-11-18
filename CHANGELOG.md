@@ -25,6 +25,14 @@ those commits.
   included; the GitHub release stays a draft), and pull requests that touch
   the image build and smoke-test it.
 
+### Security
+
+- `backend/go.mod` now requires Go 1.26.11 or later, so a build with an
+  older Go (whose standard library has known vulnerabilities) is refused
+  instead of producing a vulnerable binary. Release builds keep using the
+  `toolchain` (Go 1.27.4).
+
+
 ## [0.8.1] - 2026-11-18
 
 ### Added
