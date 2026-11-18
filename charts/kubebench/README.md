@@ -8,7 +8,8 @@ audit log. This chart runs it inside a cluster, which it registers as the
 
 The pod is a single replica with the `Recreate` strategy (SQLite on a
 ReadWriteOnce volume allows one writer), runs as non-root with a read-only
-root filesystem, and meets the Pod Security `restricted` profile.
+root filesystem, and meets the Pod Security `restricted` profile; on
+OpenShift it runs under the `restricted-v2` SCC ([OpenShift](#openshift)).
 
 ## Install
 
@@ -108,7 +109,7 @@ clusters are enforced on top of it).
 | `rbac.preset` | ClusterRole | Use it for |
 |---|---|---|
 | `cluster-admin` (default) | the built-in `cluster-admin` | the full workbench: changes, shells, Helm, CRDs |
-| `read-only` | chart-defined: `get`/`list`/`watch` on every built-in API group except Secrets, plus `pods/log`, `services/proxy` `get` (Prometheus), `metrics.k8s.io`, and the `argoproj.io`, `snapshot.storage.k8s.io`, `gateway.networking.k8s.io` CRD groups | browsing and troubleshooting; no exec, no changes, no Secrets, no Helm releases (they are Secrets) |
+| `read-only` | chart-defined: `get`/`list`/`watch` on every built-in API group except Secrets, plus `pods/log`, `services/proxy` `get` (Prometheus), `metrics.k8s.io`, and the `argoproj.io`, `snapshot.storage.k8s.io`, `gateway.networking.k8s.io` CRD groups; on OpenShift also the `*.openshift.io` groups of [OpenShift](#openshift) | browsing and troubleshooting; no exec, no changes, no Secrets, no Helm releases (they are Secrets) |
 | `custom` | chart-defined from `rbac.rules` | anything in between |
 
 Make more CRD groups readable with the read-only preset through
@@ -189,6 +190,69 @@ Remote clusters, Helm repositories and other destinations go into
 `api.github.com:443` for the update check, unless `config.updateMode` is
 `off`.
 
+## OpenShift
+
+On OpenShift the chart switches to OpenShift mode by itself
+(`openshift.enabled: auto`, true when the cluster serves
+`route.openshift.io/v1` and `security.openshift.io/v1`) and installs under
+the `restricted-v2` SCC with either RBAC preset:
+
+```bash
+oc new-project kubebench
+helm install kubebench oci://ghcr.io/shavell/charts/kubebench --version 0.5.0 \
+  -n kubebench --set route.enabled=true
+oc -n kubebench get route kubebench -o jsonpath='{.spec.host}'
+```
+
+In OpenShift mode the chart
+
+- leaves `runAsUser`, `runAsGroup` and `fsGroup` out of `podSecurityContext`
+  and `securityContext`, so the SCC assigns them from the project's ranges
+  (the image runs with any UID in group 0); the other restrictions stay;
+- pins the pod with `openshift.io/required-scc` to `restricted-v2`
+  (`restricted-v3` with `hostUsers: false`, or `openshift.requiredSCC`): a
+  ServiceAccount allowed to use more SCCs (`cluster-admin`) would otherwise
+  get any SCC its pod fits (`nonroot-v2` for a fixed UID); with the pin a pod
+  that `restricted-v2` does not admit is refused;
+- renders the Route when `route.enabled` (it fails without OpenShift mode);
+- lets the `read-only` preset read the `apps`, `build`, `config`,
+  `project`, `route` and `security` `.openshift.io` groups, and image
+  streams except their `secrets` and `layers` subresources; no preset
+  grants `use` on an SCC. Routes can embed a TLS key (`spec.tls.key`) and
+  are readable like the other objects;
+- points the NetworkPolicy's DNS rule at `openshift-dns` on ports 53 and
+  5353 (`openshift.dns`, replacing `networkPolicy.dns`).
+
+Offline renders (`helm template`, Argo CD, Flux) cannot detect OpenShift:
+set `openshift.enabled=true`. `openshift.enabled=false` renders the plain
+Kubernetes objects with the fixed UID 65532, which only an SCC such as
+`nonroot-v2` admits, and only for a ServiceAccount allowed to use it.
+
+| `route.tls.termination` | Traffic | Pod |
+|---|---|---|
+| `edge` (default) | the router terminates TLS (`route.tls.certificate`/`key`, else its default certificate) and sends HTTP | plain HTTP |
+| `reencrypt` | the router terminates TLS and opens TLS to the pod, trusting `route.tls.destinationCACertificate`, else the service CA | HTTPS with `tls.existingSecret`, else a service CA certificate (`service.beta.openshift.io/serving-cert-secret-name: <fullname>-tls`) |
+| `passthrough` | TLS goes through to the pod; `route.path` is not allowed | HTTPS with `tls.existingSecret` (required), a certificate for the Route host |
+
+`config.trustProxy` defaults to `true` behind an edge or reencrypt Route
+(the router sets `X-Forwarded-*`), `false` with passthrough. Let only the
+router reach the pod then:
+
+```yaml
+networkPolicy:
+  enabled: true
+  ingressFrom:
+    - namespaceSelector:
+        matchLabels:
+          policy-group.network.openshift.io/ingress: ""
+```
+
+`hostUsers: false` runs the pod in a user namespace under `restricted-v3`
+(OpenShift 5). Set it on a new installation only: the database written by
+the project UID is not writable from the user namespace. See
+[docs/deployment.md](../../docs/deployment.md#openshift) for the plain
+OpenShift manifests and monitoring.
+
 ## Persistence and backups
 
 Users, sessions, the cluster inventory (including stored kubeconfigs) and
@@ -249,7 +313,7 @@ kubectl -n kubebench delete pvc/kubebench-data secret/kubebench-auth
 | `auth.existingSecretKey` | `admin-password` | Key in `auth.existingSecret`. |
 | `auth.createSecret` | `true` | `false` without `existingSecret`: no Secret, `admin`/`admin` with a forced change. |
 | `config.secureCookies` | `auto` | `KUBEBENCH_SECURE_COOKIES`: `auto`, `true` or `false`. |
-| `config.trustProxy` | `null` | `KUBEBENCH_TRUST_PROXY`; `null` = `true` when `ingress.enabled`. |
+| `config.trustProxy` | `null` | `KUBEBENCH_TRUST_PROXY`; `null` = `true` when `ingress.enabled` or behind an edge or reencrypt Route. |
 | `config.sessionTTL` | `168h` | `KUBEBENCH_SESSION_TTL` (Go duration, at least `1m`). |
 | `config.auditRetentionDays` | `90` | `KUBEBENCH_AUDIT_RETENTION_DAYS` (`0` = keep forever). |
 | `config.allowPathKubeconfig` | `false` | `KUBEBENCH_ALLOW_PATH_KUBECONFIG`: add clusters by a path inside the pod. |
@@ -300,12 +364,14 @@ kubectl -n kubebench delete pvc/kubebench-data secret/kubebench-auth
 | `networkPolicy.apiServer.ports` | `[443, 6443]` | API server ports (looked-up endpoint ports are added). |
 | `networkPolicy.dns.namespaceSelector` | `kube-system` | Namespace of the cluster DNS. |
 | `networkPolicy.dns.podSelector` | `k8s-app: kube-dns` | Pods of the cluster DNS. |
+| `networkPolicy.dns.ports` | `[53]` | DNS ports (UDP and TCP). |
 | `networkPolicy.extraEgressCIDRs` | `[]` | Extra egress destinations (any port). |
 | `networkPolicy.extraEgress` | `[]` | Extra NetworkPolicyEgressRule objects. |
 | `podAnnotations` | `{}` | Pod annotations. |
 | `podLabels` | `{}` | Extra pod labels. |
-| `podSecurityContext` | non-root 65532, `fsGroup` 65532, `RuntimeDefault` seccomp | Pod security context. |
-| `securityContext` | no privilege escalation, read-only root, drop `ALL`, `RuntimeDefault` seccomp | Container security context. |
+| `podSecurityContext` | non-root 65532, `fsGroup` 65532, `RuntimeDefault` seccomp | Pod security context (OpenShift mode drops `runAsUser`, `runAsGroup`, `fsGroup`). |
+| `securityContext` | no privilege escalation, read-only root, drop `ALL`, `RuntimeDefault` seccomp | Container security context (OpenShift mode drops `runAsUser`, `runAsGroup`). |
+| `hostUsers` | `null` | `false`: run the pod in a user namespace (`restricted-v3` on OpenShift); `null`: not set. |
 | `resources` | requests `50m`/`128Mi`, limit `512Mi` memory | Container resources. |
 | `startupProbe` | enabled, every 2s, 60 failures | Startup probe timing on `/healthz` (`enabled`, `periodSeconds`, `timeoutSeconds`, `failureThreshold`, ...). |
 | `readinessProbe` | enabled, every 10s | Readiness probe timing on `/healthz`. |
@@ -317,3 +383,15 @@ kubectl -n kubebench delete pvc/kubebench-data secret/kubebench-auth
 | `nodeSelector` | `{}` | Node selector. |
 | `tolerations` | `[]` | Tolerations. |
 | `affinity` | `{}` | Affinity rules. |
+| `tls.existingSecret` | `""` | `kubernetes.io/tls` Secret the server serves HTTPS with (`KUBEBENCH_TLS_CERT`/`KEY`, probes over HTTPS); needed behind a passthrough Route. |
+| `openshift.enabled` | `auto` | OpenShift mode: `auto` (the Route and SCC APIs exist at install time), `true` or `false` ([OpenShift](#openshift)). |
+| `openshift.requiredSCC` | `""` | SCC the pod is pinned to; empty = `restricted-v2`, or `restricted-v3` with `hostUsers: false`. |
+| `openshift.dns` | `openshift-dns`, `dns-default` pods, ports `[53, 5353]` | DNS rule of the NetworkPolicy in OpenShift mode (`namespaceSelector`, `podSelector`, `ports`). |
+| `route.enabled` | `false` | Create a Route (OpenShift mode only). |
+| `route.host` | `""` | Route host; empty = `<fullname>-<namespace>.<apps domain>`. |
+| `route.path` | `""` | Path prefix (not with passthrough). |
+| `route.annotations` | `{}` | Route annotations, e.g. `haproxy.router.openshift.io/timeout`. |
+| `route.tls.termination` | `edge` | `edge`, `reencrypt` or `passthrough`. |
+| `route.tls.insecureEdgeTerminationPolicy` | `Redirect` | Plain HTTP: `Redirect`, `None` or `Allow` (not with passthrough). |
+| `route.tls.certificate` / `key` / `caCertificate` | `""` | PEM certificate, key and chain for the host (edge, reencrypt); empty = the router's default certificate. |
+| `route.tls.destinationCACertificate` | `""` | PEM CA of the pod's certificate (reencrypt); empty = the service CA. |

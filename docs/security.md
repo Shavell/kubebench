@@ -356,7 +356,9 @@ clicks them.
       when `trustProxy` is on, else any pod could forge `X-Forwarded-For`
       and evade login throttling).
 - [ ] Keep the chart's restricted Pod Security settings (non-root, read-only
-      root filesystem, no capabilities, `RuntimeDefault` seccomp).
+      root filesystem, no capabilities, `RuntimeDefault` seccomp). On
+      OpenShift keep the pod pinned to `restricted-v2` (or `restricted-v3`)
+      and grant the ServiceAccount no other SCC.
 - [ ] Bind a cloud identity through `serviceAccount.annotations` only if
       KubeBench should use it for cloud clusters.
 

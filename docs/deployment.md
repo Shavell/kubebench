@@ -9,6 +9,7 @@ machine:
 | Where | How | Section |
 |---|---|---|
 | Kubernetes | Helm chart (OCI or `.tgz`) or plain manifests | [Kubernetes](#kubernetes) |
+| OpenShift | the same chart (detected) or OpenShift manifests | [OpenShift](#openshift) |
 | Linux VM / server | `install.sh`, `.deb`, `.rpm` or the release tarball | [Virtual machines](#virtual-machines) |
 | Container host | `ghcr.io/shavell/kubebench` | [Docker](#docker) |
 | Laptop (Linux, macOS, Windows) | release archive + your kubeconfig | [Local app](#local-app) |
@@ -68,6 +69,91 @@ kubectl -n kubebench port-forward svc/kubebench 8080:80     # admin / admin, the
 `kubebench` with Pod Security `restricted`, `cluster-admin` binding, 1Gi PVC)
 and has no password Secret. Customizing, exposing and uninstalling:
 [deploy/kubernetes/README.md](../deploy/kubernetes/README.md).
+
+### OpenShift
+
+The chart detects OpenShift (`openshift.enabled: auto`: the cluster serves
+`route.openshift.io/v1` and `security.openshift.io/v1`) and then installs
+with least privilege, under the `restricted-v2` SCC that every
+authenticated user may use:
+
+- **No fixed UIDs.** `runAsUser`, `runAsGroup` and `fsGroup` are left out
+  of the security contexts, so the SCC assigns them from the project's
+  ranges (`openshift.io/sa.scc.uid-range`); non-root, `RuntimeDefault`
+  seccomp, no privilege escalation, `drop: [ALL]` and the read-only root
+  filesystem stay. The image runs with any UID in group 0.
+- **Pinned SCC.** The pod carries `openshift.io/required-scc:
+  restricted-v2`. A ServiceAccount that may use more SCCs (the
+  `cluster-admin` preset) would otherwise be admitted under any SCC its pod
+  fits, e.g. `nonroot-v2` for a fixed UID 65532; with the pin such a pod is
+  refused instead. `openshift.requiredSCC` names another SCC.
+- **Route.** `route.enabled=true` creates a Route (edge TLS on the router's
+  default certificate, HTTP redirected to HTTPS) on the generated host
+  `<fullname>-<project>.<apps domain>` or on `route.host`, and
+  `config.trustProxy` defaults to `true`. `reencrypt` makes the pod serve
+  HTTPS with a certificate from the OpenShift service CA; `passthrough`
+  needs your certificate in `tls.existingSecret`.
+- **RBAC.** The `read-only` preset also reads the `route`, `project`,
+  `apps`, `build`, `image`, `security` and `config` `.openshift.io` groups
+  (not `imagestreams/secrets` or `imagestreams/layers`). No preset grants
+  `use` on an SCC.
+- **NetworkPolicy.** The DNS rule targets the `dns-default` pods in
+  `openshift-dns` on ports 53 and 5353 (OVN-Kubernetes evaluates egress
+  after the Service's 53 → 5353 translation); the API server Service and
+  endpoints are looked up as on any cluster.
+
+```bash
+oc new-project kubebench
+helm install kubebench oci://ghcr.io/shavell/charts/kubebench --version 0.7.0 \
+  -n kubebench --set route.enabled=true
+oc -n kubebench get pod -l app.kubernetes.io/name=kubebench \
+  -o jsonpath='{.items[*].metadata.annotations.openshift\.io/scc}'     # restricted-v2
+oc -n kubebench get route kubebench -o jsonpath='{.spec.host}'
+oc -n kubebench get secret kubebench-auth -o jsonpath='{.data.admin-password}' | base64 -d; echo
+```
+
+`rbac.preset=read-only` works the same way. `helm template` and GitOps
+tools render offline and cannot detect OpenShift: set
+`openshift.enabled=true` there (or pass `--api-versions
+route.openshift.io/v1 --api-versions security.openshift.io/v1`). Behind the
+Route, let only the router reach the pod:
+
+```yaml
+networkPolicy:
+  enabled: true
+  ingressFrom:
+    - namespaceSelector:
+        matchLabels:
+          policy-group.network.openshift.io/ingress: ""
+```
+
+**Plain manifests**: `deploy/openshift/kubebench.yaml` (release asset
+`kubebench-openshift.yaml`) is the same as the Kubernetes manifests plus an
+edge Route, without fixed UIDs; it needs a user who may create the
+ClusterRoleBinding to `cluster-admin`:
+
+```bash
+oc apply -f https://github.com/Shavell/kubebench/releases/download/v0.7.0/kubebench-openshift.yaml
+oc -n kubebench get route kubebench -o jsonpath='{.spec.host}'   # admin / admin, then a new password
+```
+
+Details: [deploy/openshift/README.md](../deploy/openshift/README.md).
+
+**User namespaces (`restricted-v3`).** OpenShift 5 adds `restricted-v3`,
+which requires `hostUsers: false`. The chart leaves `hostUsers` unset by
+default, because user namespaces need node, runtime and volume support and
+OpenShift 4 has no `restricted-v3`. Set `hostUsers=false` on a **new**
+installation to run the pod in a user namespace (UID 1000 inside, an
+unprivileged UID on the node; the pin becomes `restricted-v3`). Do not
+switch an existing release: the database on the volume is owned by the
+project UID, which the user namespace cannot write.
+
+**Monitoring.** Node and pod usage comes from `metrics.k8s.io`, which
+OpenShift's monitoring stack serves (`openshift-monitoring/metrics-server`)
+and the `cluster-admin` and `read-only` presets can read. KubeBench reaches
+a Prometheus through the API server's service proxy, which does not forward
+credentials, so OpenShift's `prometheus-k8s` and `thanos-querier` (port
+9091, behind `kube-rbac-proxy`) are not used as a history source.
 
 ## Virtual machines
 
@@ -156,7 +242,9 @@ docker inspect --format '{{.State.Health.Status}}' kubebench    # HEALTHCHECK: k
 The image (distroless, UID/GID 65532, multi-arch) stores everything in
 `/data` (`KUBEBENCH_DATA_DIR`, `KUBEBENCH_DB=/data/kubebench.db`). A named
 volume inherits the right owner; a bind mount must be writable by UID 65532
-(`sudo chown 65532:65532 ./data`). To seed a cluster from a kubeconfig, mount
+(`sudo chown 65532:65532 ./data`). Any other UID works in group 0
+(`--user 1000680000:0`): the image's `/data` is group-writable by root's
+group, as OpenShift expects. To seed a cluster from a kubeconfig, mount
 one that UID 65532 can read and set `KUBECONFIG`
 (`-v ./kubeconfig:/etc/kubebench/kubeconfig:ro -e KUBECONFIG=/etc/kubebench/kubeconfig`);
 an API server address such as `https://127.0.0.1:6443` must be reachable
@@ -474,6 +562,9 @@ kubectl -n kubebench cp kubebench-backup:/data ./kubebench-backup
 kubectl -n kubebench delete pod kubebench-backup
 kubectl -n kubebench scale deploy/kubebench --replicas 1
 ```
+
+On OpenShift, drop `runAsUser` and `runAsGroup`: the SCC gives the helper
+pod the project's UID, which owns the volume like KubeBench's pod.
 
 The Helm chart names the PVC `<fullname>-data`, where the fullname is the
 release name, followed by `-kubebench` unless it already contains

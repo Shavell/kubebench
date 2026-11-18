@@ -16,6 +16,26 @@ those commits.
 
 ## [Unreleased]
 
+### Added
+
+- **OpenShift install with least privilege**: the Helm chart detects
+  OpenShift (`openshift.enabled: auto`) and then leaves the UIDs and
+  `fsGroup` to the SCC and pins the pod to `restricted-v2`, so both the
+  `cluster-admin` and the `read-only` presets install without extra SCC
+  grants. `route.enabled` adds a Route (edge, reencrypt with a service CA
+  certificate, or passthrough), the `read-only` preset reads the OpenShift
+  API groups (Routes, Projects, DeploymentConfigs, Builds, ImageStreams,
+  SCCs; no SCC `use`), and the NetworkPolicy reaches OpenShift's DNS on
+  port 5353. `hostUsers: false` runs the pod in a user namespace
+  (`restricted-v3`). Plain manifests for OpenShift with a Route ship as
+  `kubebench-openshift.yaml`; see the OpenShift section in
+  docs/deployment.md.
+
+### Fixed
+
+- The container image's `/data` is writable by an arbitrary UID in group 0
+  (OpenShift, `docker run --user <uid>:0`), not only by UID 65532.
+
 ## [0.7.0] - 2026-11-18
 
 ### Added
