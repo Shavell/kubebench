@@ -79,11 +79,27 @@ func redactDocument(doc string) string {
 	if !mentionsCredentialKind(doc) {
 		return doc
 	}
+	// Readers disagree on a document's text: Helm's SplitManifests trims
+	// it, kubectl's YAML reader does not, and a stray leading indent makes
+	// the YAML parser stop after the first key without an error. Redact
+	// when any reading finds a credential kind; withhold when none parses.
 	var obj map[string]any
-	if err := yaml.Unmarshal([]byte(doc), &obj); err != nil {
+	parsed := false
+	for _, text := range []string{doc, strings.TrimSpace(doc)} {
+		var candidate map[string]any
+		if yaml.Unmarshal([]byte(text), &candidate) != nil {
+			continue
+		}
+		parsed = true
+		if redactObject(candidate) {
+			obj = candidate
+			break
+		}
+	}
+	if !parsed {
 		return leadingComments(doc) + withheldDocument
 	}
-	if !redactObject(obj) {
+	if obj == nil {
 		return doc
 	}
 	out, err := yaml.Marshal(obj)
