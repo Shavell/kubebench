@@ -90,20 +90,13 @@
     "adminAccess": "Yöneticilerin her cluster'a tam erişimi vardır. Aşağıdaki roller, kullanıcı yeniden normal kullanıcı olursa geçerli olur.",
     "noClusters": "Henüz kayıtlı cluster yok.",
     "submit": "Kaydet",
-    "done": "{{name}} kullanıcısının erişimi güncellendi.",
-    "errors": {
-      "lastAdmin": "En az bir yönetici kalmalı. Önce başka bir kullanıcıyı yönetici yapın."
-    }
+    "done": "{{name}} kullanıcısının erişimi güncellendi."
   },
   "delete": {
     "title": "{{name}} silinsin mi?",
     "message": "Hesap, oturumları ve cluster atamaları kaldırılır. Denetim kaydı girdileri korunur.",
     "confirm": "Sil",
-    "done": "{{name}} kullanıcısı silindi.",
-    "errors": {
-      "self": "Kendi hesabınızı silemezsiniz.",
-      "lastAdmin": "Son yönetici silinemez. Önce başka bir kullanıcıyı yönetici yapın."
-    }
+    "done": "{{name}} kullanıcısı silindi."
   },
   "external": {
     "source": {

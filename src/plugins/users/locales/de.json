@@ -90,20 +90,13 @@
     "adminAccess": "Administratoren haben vollen Zugriff auf jeden Cluster. Die folgenden Rollen gelten wieder, wenn der Benutzer zum regulären Benutzer wird.",
     "noClusters": "Es sind noch keine Cluster registriert.",
     "submit": "Speichern",
-    "done": "Zugriff von {{name}} aktualisiert.",
-    "errors": {
-      "lastAdmin": "Mindestens ein Administrator muss bleiben. Machen Sie zuerst einen anderen Benutzer zum Administrator."
-    }
+    "done": "Zugriff von {{name}} aktualisiert."
   },
   "delete": {
     "title": "{{name}} löschen?",
     "message": "Das Konto, seine Sitzungen und seine Clusterzuweisungen werden entfernt. Einträge im Überwachungsprotokoll bleiben erhalten.",
     "confirm": "Löschen",
-    "done": "Benutzer {{name}} gelöscht.",
-    "errors": {
-      "self": "Sie können Ihr eigenes Konto nicht löschen.",
-      "lastAdmin": "Der letzte Administrator kann nicht gelöscht werden. Machen Sie zuerst einen anderen Benutzer zum Administrator."
-    }
+    "done": "Benutzer {{name}} gelöscht."
   },
   "external": {
     "source": {

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { isApiError } from '@/data/apiClient'
+import { errorMessage, isApiError } from '@/data/apiClient'
 import { refreshData, useProviders } from '@/data/DataContext'
 import type { AppUser, AssignmentRole, ClusterEntry, GlobalRole } from '@/data/types'
 import { Button } from '@/shared/Button'
@@ -60,7 +60,8 @@ export function EditAccessDialog({ user, clusters, onClose }: EditAccessDialogPr
       if (assignmentsChanged) await users.assignClusters(user.id, assignments)
     } catch (err) {
       setBusy(false)
-      setFailure(isApiError(err, 'conflict') && roleChanged ? new Error(t('edit.errors.lastAdmin')) : err)
+      // A refused demotion (the last local admin) shows the server's translated reason.
+      setFailure(isApiError(err, 'conflict') && roleChanged ? new Error(errorMessage(err)) : err)
       refreshData()
       return
     }

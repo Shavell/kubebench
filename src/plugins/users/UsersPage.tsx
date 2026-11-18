@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { isApiError } from '@/data/apiClient'
+import { errorMessage, isApiError } from '@/data/apiClient'
 import { refreshData, useProviderQuery, useProviders } from '@/data/DataContext'
 import { useDataMode } from '@/data/mode'
 import type { AppUser } from '@/data/types'
@@ -56,11 +56,9 @@ export function UsersPage() {
     try {
       await usersProvider.deleteUser(user.id)
     } catch (err) {
-      // The server refuses to delete your own account or the last admin (409).
-      if (isApiError(err, 'conflict')) {
-        throw new Error(t(user.username === me ? 'delete.errors.self' : 'delete.errors.lastAdmin'))
-      }
-      throw err
+      // The server refuses to delete your own account or the last local
+      // admin (409); its translated reason says which and what to do.
+      throw isApiError(err, 'conflict') ? new Error(errorMessage(err)) : err
     }
     refreshData()
     notify.success(t('delete.done', { name: user.username }))

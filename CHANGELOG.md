@@ -32,7 +32,8 @@ those commits.
   sign-in screen (authorization code flow with PKCE), users created at
   their first sign-in, and global and cluster roles re-computed from group
   mappings at every sign-in. Local accounts keep working; the last local
-  admin is the break-glass account and cannot be removed. Allowed email
+  admin is the break-glass account and cannot be removed (Users explains
+  a refused change with that reason: promote another local user first). Allowed email
   domains admit only addresses the provider marks verified. Sign-ins in
   progress are kept in the browser, sealed by the server, so a flood of
   started sign-ins cannot break other users' sign-ins, and callbacks that

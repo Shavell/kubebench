@@ -90,20 +90,13 @@
     "adminAccess": "Administrators have full access to every cluster. The roles below apply again if the user becomes a regular user.",
     "noClusters": "No clusters are registered yet.",
     "submit": "Save",
-    "done": "Access of {{name}} updated.",
-    "errors": {
-      "lastAdmin": "At least one administrator must remain. Make another user an administrator first."
-    }
+    "done": "Access of {{name}} updated."
   },
   "delete": {
     "title": "Delete {{name}}?",
     "message": "The account, its sessions and its cluster assignments are removed. Audit log entries are kept.",
     "confirm": "Delete",
-    "done": "User {{name}} deleted.",
-    "errors": {
-      "self": "You cannot delete your own account.",
-      "lastAdmin": "The last administrator cannot be deleted. Make another user an administrator first."
-    }
+    "done": "User {{name}} deleted."
   },
   "external": {
     "source": {
