@@ -43,7 +43,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     go build -trimpath \
       -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${COMMIT} -X main.date=${DATE}" \
       -o /out/kubebench . \
- && mkdir /out/data
+ && mkdir -p -m 0775 /out/rootfs/data
 
 # 3. Runtime: static binary only; no shell, no package manager.
 FROM gcr.io/distroless/static-debian13:nonroot
@@ -63,7 +63,10 @@ COPY --from=backend /out/kubebench /kubebench
 # GPL-3.0 §4: the image carries the license text.
 COPY LICENSE /LICENSE
 # An image-owned /data lets Docker seed named volumes with nonroot ownership.
-COPY --from=backend --chown=65532:65532 /out/data /data
+# Group 0 with group write (0775) lets an arbitrary UID in group root write
+# it too (OpenShift SCCs, `docker run --user <uid>:0`). It is copied as an
+# entry of a tree because COPY creates a destination directory with mode 0755.
+COPY --from=backend --chown=65532:0 /out/rootfs/ /
 ENV PORT=9876 \
     KUBEBENCH_DATA_DIR=/data \
     KUBEBENCH_DB=/data/kubebench.db
