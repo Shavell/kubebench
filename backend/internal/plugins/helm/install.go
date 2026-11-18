@@ -143,9 +143,11 @@ func upgrade(ctx context.Context, cfg *action.Configuration, namespace, name str
 		up.DryRun = true
 		up.DryRunOption = "server"
 	}
-	ctx, cancel := detached(ctx)
-	defer cancel()
-	rel, err := up.RunWithContext(ctx, name, ch, values)
+	// Never cancel the upgrade's context: Helm (3.22) watches it from a
+	// goroutine that can still see the cancellation after a successful
+	// upgrade has returned, and then marks that release failed (and rolls
+	// it back when atomic) in the background. up.Timeout bounds the upgrade.
+	rel, err := up.RunWithContext(context.WithoutCancel(ctx), name, ch, values)
 	if err != nil {
 		return nil, err
 	}
