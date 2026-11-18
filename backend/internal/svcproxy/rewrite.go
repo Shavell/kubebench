@@ -90,24 +90,53 @@ func (rw *rewriter) mapPath(p string) string {
 // location rewrites a redirect target. Relative references stay as they
 // are (the browser resolves them below the base); absolute paths and
 // absolute URLs naming the API server's host, or the Ingress host the
-// backend got (both: the Host header it got), are mapped below the base.
-// Redirects to other hosts are passed on unchanged: the proxy never
+// backend got (both: the Host header it got), are mapped below the base,
+// their dot segments resolved first so that the result cannot climb out
+// of it. Redirects to other hosts are passed on unchanged: the proxy never
 // follows them, the browser navigates the (sandboxed) frame there.
+//
+// The target is read as a browser reads it (see browserReference). One
+// that does not parse, or an http(s) URL without a host (which a browser
+// may resolve on KubeBench's own origin), is dropped: location returns ""
+// and the Location header is removed.
 func (rw *rewriter) location(loc string) string {
-	u, err := url.Parse(loc)
+	u, err := url.Parse(browserReference(loc))
 	if err != nil {
-		return loc
+		return ""
 	}
+	if u.Scheme != "" && u.Host == "" && (strings.EqualFold(u.Scheme, "http") || strings.EqualFold(u.Scheme, "https")) {
+		return ""
+	}
+	p := removeDotSegments(u.Path)
 	if u.Host != "" || u.Scheme != "" {
-		own := u.Hostname() == rw.apiHost || (rw.appHost != "" && strings.EqualFold(u.Hostname(), rw.appHost))
-		if !own && !rw.hasPrefix(u.Path) {
+		own := strings.EqualFold(u.Hostname(), rw.apiHost) || (rw.appHost != "" && strings.EqualFold(u.Hostname(), rw.appHost))
+		if !own && !rw.hasPrefix(p) {
 			return loc
 		}
 	} else if !strings.HasPrefix(u.Path, "/") {
 		return loc
 	}
-	out := url.URL{Path: rw.mapPath(cleanAbs(u.Path)), RawQuery: u.RawQuery, Fragment: u.Fragment}
+	out := url.URL{Path: rw.mapPath(cleanAbs(p)), RawQuery: u.RawQuery, Fragment: u.Fragment}
 	return out.String()
+}
+
+// browserReference is loc as a browser reads a URL of the special schemes
+// (http, https; WHATWG URL): leading and trailing C0 controls and spaces
+// dropped, tabs and newlines removed anywhere, backslashes read as slashes.
+// " /x" and "\x" are absolute paths to a browser, not relative ones.
+func browserReference(loc string) string {
+	loc = strings.TrimFunc(loc, func(r rune) bool { return r <= ' ' })
+	return strings.NewReplacer("\t", "", "\n", "", "\r", "", `\`, "/").Replace(loc)
+}
+
+// removeDotSegments resolves the "." and ".." segments of an absolute path
+// (RFC 3986 §5.2.4), as the browser would after the rewrite: "/a/../../x"
+// is "/x", which is mapped below the base, not above it.
+func removeDotSegments(p string) string {
+	if !strings.HasPrefix(p, "/") {
+		return p
+	}
+	return (&url.URL{Path: "/"}).ResolveReference(&url.URL{Path: p}).Path
 }
 
 func (rw *rewriter) hasPrefix(p string) bool {

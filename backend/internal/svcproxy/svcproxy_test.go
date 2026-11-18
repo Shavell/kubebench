@@ -204,6 +204,17 @@ func TestLocationRewrite(t *testing.T) {
 		"/api/v1/namespaces/shop/services/http:web:80/proxy/a":                     "/proxy/tok/a",
 		"/api/v1/namespaces/shop/services/http:web:80/proxy":                       "/proxy/tok/",
 		"https://other.example/api/v1/namespaces/shop/services/http:web:80/proxy/": "/proxy/tok/",
+		// Dot segments are resolved before the mapping, not after it.
+		"/../../api/v1/users": "/proxy/tok/api/v1/users",
+		"/api/v1/namespaces/shop/services/http:web:80/proxy/../../secrets": "/proxy/tok/api/v1/namespaces/shop/services/secrets",
+		"/%2e%2e/x?y=1": "/proxy/tok/x?y=1",
+		// Read as a browser reads them: absolute paths, not relative ones.
+		` /login`:           "/proxy/tok/login",
+		`\api\v1`:           "/proxy/tok/api/v1",
+		"HTTP://10.0.0.1/a": "/proxy/tok/a",
+		// Dropped: a browser could resolve them on KubeBench's origin.
+		"http:/x": "",
+		"/a%zz":   "",
 	} {
 		if got := rw.location(in); got != want {
 			t.Errorf("location(%q) = %q, want %q", in, got, want)
