@@ -241,14 +241,45 @@ func TestOIDCCallbackRefusals(t *testing.T) {
 	}
 }
 
-func TestOIDCCallbackRateLimit(t *testing.T) {
-	e, _ := oidcEnv(t, nil)
-	for range loginMaxFailures {
+// Callbacks that never reach the provider's token endpoint (no or another
+// browser's state, a junk code) prove nothing and cost nothing, so they do
+// not count against the client IP: otherwise anyone could lock SSO for
+// everyone behind the same address.
+func TestOIDCJunkCallbacksDoNotLockTheIP(t *testing.T) {
+	e, idp := oidcEnv(t, nil)
+	for range 2 * loginMaxFailures {
 		refusedWith(t, e.serve(httptest.NewRequest(http.MethodGet, oidcCallbackPath+"?state=x&code=y", nil)),
 			identity.ClassInvalidRequest)
+		_, state := startOIDC(t, e)
+		req := httptest.NewRequest(http.MethodGet, oidcCallbackPath+"?state="+url.QueryEscape(state.Value)+"&code=junk", nil)
+		req.AddCookie(state)
+		refusedWith(t, e.serve(req), identity.ClassInvalidRequest)
 	}
-	refusedWith(t, e.serve(httptest.NewRequest(http.MethodGet, oidcCallbackPath+"?state=x&code=y", nil)),
-		identity.ClassRateLimited)
+	signedIn(t, e, oidcSignIn(t, e, idp, claimsOf("s1", "carol", "kb-dev")), "carol")
+}
+
+// Sign-ins the provider completed and KubeBench refused count against the
+// client IP.
+func TestOIDCCallbackRateLimit(t *testing.T) {
+	e, idp := oidcEnv(t, map[string]string{"KUBEBENCH_AUTH_REQUIRE_GROUP": "true"})
+	for range loginMaxFailures {
+		refusedWith(t, oidcSignIn(t, e, idp, claimsOf("s1", "carol", "other")), identity.ClassNoMatchingGroup)
+	}
+	refusedWith(t, oidcSignIn(t, e, idp, claimsOf("s1", "carol", "kb-dev")), identity.ClassRateLimited)
+}
+
+// Starting sign-ins keeps nothing on the server, so a flood of starts
+// cannot push out a sign-in in progress.
+func TestOIDCStartFloodKeepsPendingSignIns(t *testing.T) {
+	e, idp := oidcEnv(t, nil)
+	idp.SetUser(claimsOf("s1", "carol", "kb-dev"))
+	authURL, state := startOIDC(t, e)
+	for range 10001 {
+		e.serve(httptest.NewRequest(http.MethodGet, oidcLoginPath, nil))
+	}
+	req := httptest.NewRequest(http.MethodGet, authorize(t, authURL), nil)
+	req.AddCookie(state)
+	signedIn(t, e, e.serve(req), "carol")
 }
 
 func TestExternalUsersHaveNoLocalPassword(t *testing.T) {

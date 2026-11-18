@@ -366,10 +366,13 @@ only local admins, so the last local admin can be neither deleted nor
 demoted (`409`), whoever asks; external admins lose the role whenever
 their groups stop granting it.
 
-**OIDC.** Authorization code flow with PKCE (S256), `state` (also kept in
-the HttpOnly, SameSite=Lax `kubebench_oidc_state` cookie, so a callback
-only completes in the browser that started it) and `nonce`; pending
-sign-ins live in memory for 10 minutes and are taken once. Discovery and
+**OIDC.** Authorization code flow with PKCE (S256), `state` and `nonce`.
+The pending sign-in (state, nonce, verifier, redirect URL, a 10-minute
+expiry) is sealed with AES-256-GCM under a key drawn at startup into the
+HttpOnly, SameSite=Lax `kubebench_oidc_state` cookie, so a callback only
+completes in the browser that started it and the server keeps no state per
+started sign-in (a flood of starts cannot evict anyone's sign-in); the
+callback clears the cookie and the provider redeems a code once. Discovery and
 JWKS through `go-oidc` (retried until the provider is reachable); the ID
 token's signature, issuer, audience, expiry and nonce are verified; the
 groups claim is read from userinfo when the ID token lacks it; dotted claim
@@ -429,8 +432,10 @@ audited. TLS to the provider is verified (system roots plus
 `KUBEBENCH_OIDC_CA_FILE` / `KUBEBENCH_LDAP_CA_FILE`);
 `KUBEBENCH_LDAP_INSECURE_SKIP_VERIFY` (tests only) and an unencrypted
 `ldap://` URL are logged as warnings at startup and shown as warnings in
-Settings > Authentication. Failed callbacks and password-provider sign-ins
-count against the login limit (§3.5; callbacks per client IP, directory
+Settings > Authentication. Callbacks refused after the provider redeemed
+their code (not those with a wrong state or a refused code, which anyone
+can send) and failed password-provider sign-ins count against the login
+limit (§3.5; callbacks per client IP, directory
 sign-ins per client IP and normalized login).
 Every external sign-in writes an audit row (`auth.signin`, target
 `user/<name>`, detail `{"source"}` or `{"source","reason":"<class>"}`), as

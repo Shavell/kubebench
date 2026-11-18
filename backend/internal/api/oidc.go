@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"kubebench/internal/identity"
+	"kubebench/internal/identity/oidcauth"
 	"kubebench/internal/plugin"
 	"kubebench/internal/store"
 )
@@ -18,8 +19,10 @@ import (
 const (
 	oidcLoginPath    = "/api/auth/oidc/login"
 	oidcCallbackPath = "/api/auth/oidc/callback"
-	// oidcStateCookie binds a sign-in to the browser that started it, so a
-	// callback URL planted on another browser (login CSRF) is refused.
+	// oidcStateCookie holds the pending sign-in, sealed by the server, in
+	// the browser that started it: the server keeps nothing per started
+	// sign-in, and a callback URL planted on another browser (login CSRF)
+	// is refused.
 	oidcStateCookie = "kubebench_oidc_state"
 	// signInErrorParam carries the failure class of a refused sign-in to
 	// the sign-in screen.
@@ -28,8 +31,10 @@ const (
 
 // oidcCallbackKey is the login limiter's username for OIDC callbacks,
 // whose user is unknown until the provider's token is verified: failed
-// callbacks are throttled per client IP. The NUL keeps it apart from
-// every username.
+// callbacks are throttled per client IP. Only callbacks whose code the
+// provider redeemed count; the others (no or another browser's state, a
+// made-up code) cost nothing and would let anyone lock SSO for everyone
+// behind the same address. The NUL keeps it apart from every username.
 const oidcCallbackKey = "\x00oidc-callback"
 
 func (s *Server) handleOIDCLogin(w http.ResponseWriter, r *http.Request, _ *call) {
@@ -45,12 +50,11 @@ func (s *Server) handleOIDCLogin(w http.ResponseWriter, r *http.Request, _ *call
 		redirectSignInError(w, r, base, identity.ClassOf(err))
 		return
 	}
-	s.ident.logins.Put(login)
 	http.SetCookie(w, &http.Cookie{
 		Name:     oidcStateCookie,
-		Value:    login.State,
+		Value:    s.ident.logins.Seal(login),
 		Path:     "/api/auth/oidc/",
-		MaxAge:   600,
+		MaxAge:   int(oidcauth.LoginTTL.Seconds()),
 		HttpOnly: true,
 		// The callback is a top-level navigation from the provider, which
 		// a Lax cookie accompanies.
@@ -60,9 +64,9 @@ func (s *Server) handleOIDCLogin(w http.ResponseWriter, r *http.Request, _ *call
 	http.Redirect(w, r, authURL, http.StatusFound)
 }
 
-// handleOIDCCallback completes a sign-in the provider sent back: it checks
-// the state against the browser's cookie and the pending sign-in, redeems
-// the code and signs the user in. Every outcome is audited.
+// handleOIDCCallback completes a sign-in the provider sent back: it opens
+// the pending sign-in sealed in the browser's cookie, checks the state,
+// redeems the code and signs the user in. Every outcome is audited.
 func (s *Server) handleOIDCCallback(w http.ResponseWriter, r *http.Request, _ *call) {
 	if s.ident.oidc == nil {
 		writeErr(w, fail(http.StatusNotFound, plugin.CodeNotFound, reasonOIDCOff, nil))
@@ -79,7 +83,9 @@ func (s *Server) handleOIDCCallback(w http.ResponseWriter, r *http.Request, _ *c
 	}
 	user, username, idToken, err := s.finishOIDC(r)
 	if err != nil {
-		s.limiter.fail(key)
+		if !errors.Is(err, errNotAttempted) && !errors.Is(err, oidcauth.ErrNotRedeemed) {
+			s.limiter.fail(key)
+		}
 		s.auditSignIn(store.UserSourceOIDC, username, signInError(err).status, identity.ClassOf(err))
 		redirectSignInError(w, r, base, identity.ClassOf(err))
 		return
@@ -96,22 +102,29 @@ func (s *Server) handleOIDCCallback(w http.ResponseWriter, r *http.Request, _ *c
 	http.Redirect(w, r, base+"/", http.StatusFound)
 }
 
+// errNotAttempted marks a callback refused before its code went to the
+// provider: it does not count against the login limit.
+var errNotAttempted = errors.New("the callback was refused before the code was redeemed")
+
 // finishOIDC validates the callback and signs its user in. username is
 // the one the provider named, also when the sign-in is refused afterwards
 // (for the audit row).
 func (s *Server) finishOIDC(r *http.Request) (user *store.User, username, idToken string, err error) {
 	q := r.URL.Query()
 	if e := q.Get("error"); e != "" {
-		return nil, "", "", identity.Fail(identity.ClassProviderError, "the provider refused the sign-in: %s %s", e, q.Get("error_description"))
+		return nil, "", "", identity.Fail(identity.ClassProviderError, "%w: the provider refused the sign-in: %s %s",
+			errNotAttempted, e, q.Get("error_description"))
 	}
-	state := q.Get("state")
 	cookie, err := r.Cookie(oidcStateCookie)
-	if err != nil || state == "" || subtle.ConstantTimeCompare([]byte(cookie.Value), []byte(state)) != 1 {
-		return nil, "", "", identity.Fail(identity.ClassInvalidRequest, "the callback's state does not match this browser's sign-in")
+	if err != nil {
+		return nil, "", "", identity.Fail(identity.ClassInvalidRequest, "%w: no sign-in was started in this browser", errNotAttempted)
 	}
-	login, ok := s.ident.logins.Take(state)
-	if !ok {
-		return nil, "", "", identity.Fail(identity.ClassInvalidRequest, "the sign-in expired or was already completed")
+	login, err := s.ident.logins.Open(cookie.Value)
+	if err != nil {
+		return nil, "", "", identity.Fail(identity.ClassInvalidRequest, "%w: %v", errNotAttempted, err)
+	}
+	if state := q.Get("state"); subtle.ConstantTimeCompare([]byte(login.State), []byte(state)) != 1 {
+		return nil, "", "", identity.Fail(identity.ClassInvalidRequest, "%w: the callback's state does not match this browser's sign-in", errNotAttempted)
 	}
 	id, idToken, err := s.ident.oidc.Finish(r.Context(), login, q.Get("code"))
 	if err != nil {

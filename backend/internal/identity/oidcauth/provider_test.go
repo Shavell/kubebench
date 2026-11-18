@@ -2,10 +2,11 @@ package oidcauth
 
 import (
 	"context"
+	"encoding/base64"
+	"errors"
 	"net/http"
 	"net/url"
 	"slices"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -197,25 +198,45 @@ func TestUnreachableProvider(t *testing.T) {
 	}
 }
 
-func TestLogins(t *testing.T) {
+func TestSealedLogins(t *testing.T) {
 	now := time.Unix(1000, 0)
-	l := NewLogins(func() time.Time { return now })
-	l.Put(&Login{State: "a"})
-	if _, ok := l.Take("a"); !ok {
-		t.Fatal("pending sign-in not found")
+	s := NewSealer(func() time.Time { return now })
+	in := &Login{State: "st", Nonce: "no", Verifier: "pkce-verifier-kept-secret", RedirectURL: redirectURL}
+	sealed := s.Seal(in)
+	if raw, _ := base64.RawURLEncoding.DecodeString(sealed); strings.Contains(string(raw), in.Verifier) {
+		t.Fatalf("the sealed value shows the verifier: %s", raw)
 	}
-	if _, ok := l.Take("a"); ok {
-		t.Fatal("a sign-in was taken twice")
+	out, err := s.Open(sealed)
+	if err != nil || out.State != "st" || out.Nonce != "no" || out.Verifier != in.Verifier || out.RedirectURL != redirectURL {
+		t.Fatalf("open = %+v, %v", out, err)
 	}
-	l.Put(&Login{State: "b"})
-	now = now.Add(loginTTL)
-	if _, ok := l.Take("b"); ok {
-		t.Fatal("an expired sign-in was accepted")
+	// Tampered, foreign or garbage values are refused.
+	raw := []byte(sealed)
+	raw[len(raw)-2] ^= 1
+	other := NewSealer(func() time.Time { return now })
+	for _, v := range []string{string(raw), other.Seal(&Login{State: "st"}), "", "!!", "AAAA"} {
+		if _, err := s.Open(v); err != ErrInvalidLogin {
+			t.Errorf("Open(%q) = %v", v, err)
+		}
 	}
-	for i := range maxLogins + 5 {
-		l.Put(&Login{State: strconv.Itoa(i)})
+	// Expired.
+	now = now.Add(LoginTTL)
+	if _, err := s.Open(sealed); err != ErrInvalidLogin {
+		t.Fatalf("an expired sign-in was accepted: %v", err)
 	}
-	if len(l.pending) > maxLogins {
-		t.Fatalf("%d pending sign-ins kept", len(l.pending))
+}
+
+func TestFinishMarksFailuresBeforeRedemption(t *testing.T) {
+	idp := oidctest.New(t)
+	idp.SetUser(map[string]any{"sub": "u-1", "preferred_username": "alice"})
+	p := newProvider(t, idp, func(c *config.OIDCConfig) { c.AllowedDomains = []string{"example.com"} })
+	login, _ := signIn(t, p)
+	if _, _, err := p.Finish(context.Background(), login, "made-up"); !errors.Is(err, ErrNotRedeemed) {
+		t.Fatalf("junk code: %v", err)
+	}
+	login, q := signIn(t, p)
+	_, _, err := p.Finish(context.Background(), login, q.Get("code"))
+	if identity.ClassOf(err) != identity.ClassDomainNotAllowed || errors.Is(err, ErrNotRedeemed) {
+		t.Fatalf("refusal after redemption: %v", err)
 	}
 }

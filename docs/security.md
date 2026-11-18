@@ -120,7 +120,11 @@ provider, and with `KUBEBENCH_LDAP_*` with their directory account
 ([configuration](configuration.md#external-identities), design §3.6):
 
 - **Flow.** Authorization code flow with PKCE (S256), `state` bound to the
-  browser by an HttpOnly cookie, and `nonce`. The ID token is verified
+  browser by an HttpOnly cookie, and `nonce`. The pending sign-in (state,
+  nonce, PKCE verifier) lives only in that cookie, encrypted and
+  authenticated with a key drawn at startup, so a flood of started sign-ins
+  keeps nothing on the server and cannot push out other users' sign-ins in
+  progress. The ID token is verified
   against the provider's discovery document and signing keys (issuer,
   audience, expiry, nonce). TLS to the provider is always verified; add a
   private CA with `KUBEBENCH_OIDC_CA_FILE`. With
@@ -163,8 +167,10 @@ provider, and with `KUBEBENCH_LDAP_*` with their directory account
   sessions at once.
 - **Audit and throttling.** Every external sign-in is audited
   (`auth.signin`, with the failure class of refused ones), as is every
-  group mapping change; failed callbacks are throttled per client IP like
-  failed logins, failed directory sign-ins per client IP and login name
+  group mapping change; callbacks refused after the provider redeemed
+  their code are throttled per client IP like failed logins (callbacks
+  with a wrong state or a made-up code prove nothing and do not count, so
+  they cannot lock out other users behind the same address), failed directory sign-ins per client IP and login name
   (all forms of a login, such as `CORP\jdoe` and `jdoe`, share one count).
 
 ## Service browser

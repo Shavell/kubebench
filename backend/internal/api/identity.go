@@ -25,8 +25,9 @@ import (
 type identityState struct {
 	service *identity.Service
 	// oidc is the OpenID Connect provider; nil when not configured.
-	oidc   *oidcauth.Provider
-	logins *oidcauth.Logins
+	oidc *oidcauth.Provider
+	// logins seals pending OIDC sign-ins into the state cookie.
+	logins *oidcauth.Sealer
 	// passwords are the providers that check a username and password
 	// (a directory), by source.
 	passwords map[string]identity.PasswordProvider
@@ -38,7 +39,7 @@ type identityState struct {
 func (s *Server) initIdentity() {
 	s.ident = identityState{
 		service:   identity.NewService(s.store, s.cfg.Auth.RequireGroup),
-		logins:    oidcauth.NewLogins(time.Now),
+		logins:    oidcauth.NewSealer(time.Now),
 		passwords: map[string]identity.PasswordProvider{},
 	}
 	if cfg := s.cfg.Auth.OIDC; cfg != nil {

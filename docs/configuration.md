@@ -241,7 +241,9 @@ always sign in when the provider is down or misconfigured. Keep its
 password in your secret store.
 
 Every external sign-in is audited (`auth.signin`, with the failure class of
-a refused one), as is every mapping change. Failed callbacks count against
-the login rate limit per client IP, failed directory sign-ins per client IP
-and login name. Admins can check what a user would get
+a refused one), as is every mapping change. Callbacks refused after the
+provider redeemed their code count against the login rate limit per client
+IP (a callback with a wrong state or a made-up code does not, so nobody can
+lock SSO for others behind the same address), failed directory sign-ins
+per client IP and login name. Admins can check what a user would get
 with "Test sign-in" in Settings > Authentication.

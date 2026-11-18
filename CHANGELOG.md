@@ -32,7 +32,11 @@ those commits.
   sign-in screen (authorization code flow with PKCE), users created at
   their first sign-in, and global and cluster roles re-computed from group
   mappings at every sign-in. Local accounts keep working; the last local
-  admin is the break-glass account and cannot be removed.
+  admin is the break-glass account and cannot be removed. Allowed email
+  domains admit only addresses the provider marks verified. Sign-ins in
+  progress are kept in the browser, sealed by the server, so a flood of
+  started sign-ins cannot break other users' sign-ins, and callbacks that
+  never reached the provider do not count against the login limit.
 - Sign-in with an LDAP directory or Active Directory: the sign-in screen
   offers the directory next to SSO and local accounts; users sign in as
   `user`, `DOMAIN\user` or `user@domain`, over LDAPS or StartTLS with a

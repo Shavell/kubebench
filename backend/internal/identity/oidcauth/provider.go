@@ -131,6 +131,12 @@ func (p *Provider) Start(ctx context.Context, redirectURL string) (*Login, strin
 	return login, authURL, nil
 }
 
+// ErrNotRedeemed marks a Finish failure that happened before the provider
+// redeemed the authorization code (the provider unreachable, the code
+// refused). Anyone can cause one with a made-up code, so it proves nothing
+// about who is signing in.
+var ErrNotRedeemed = errors.New("the authorization code was not redeemed")
+
 // Finish completes a sign-in with the authorization code of the callback:
 // it redeems the code with the PKCE verifier, verifies the ID token
 // (signature, issuer, audience, expiry, nonce) and reads the identity from
@@ -139,16 +145,16 @@ func (p *Provider) Start(ctx context.Context, redirectURL string) (*Login, strin
 func (p *Provider) Finish(ctx context.Context, login *Login, code string) (*identity.Identity, string, error) {
 	discovered, err := p.discover(ctx)
 	if err != nil {
-		return nil, "", identity.Fail(identity.ClassProviderError, "%v", err)
+		return nil, "", identity.Fail(identity.ClassProviderError, "%w: %v", ErrNotRedeemed, err)
 	}
 	ctx, cancel := context.WithTimeout(oidc.ClientContext(ctx, p.client), requestTimeout)
 	defer cancel()
 	token, err := p.oauth2Config(discovered, login.RedirectURL).Exchange(ctx, code, oauth2.VerifierOption(login.Verifier))
 	if err != nil {
 		if _, ok := errors.AsType[*oauth2.RetrieveError](err); ok {
-			return nil, "", identity.Fail(identity.ClassInvalidRequest, "redeem the authorization code: %v", err)
+			return nil, "", identity.Fail(identity.ClassInvalidRequest, "%w: %v", ErrNotRedeemed, err)
 		}
-		return nil, "", identity.Fail(identity.ClassProviderError, "redeem the authorization code: %v", err)
+		return nil, "", identity.Fail(identity.ClassProviderError, "%w: %v", ErrNotRedeemed, err)
 	}
 	rawIDToken, ok := token.Extra("id_token").(string)
 	if !ok || rawIDToken == "" {
