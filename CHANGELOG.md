@@ -18,6 +18,9 @@ those commits.
 
 ### Changed
 
+- The container image's base images (Node, Go, distroless) are pinned by
+  the digest of their multi-arch index; Dependabot updates tag and digest
+  together.
 - Pushing a `v*` tag starts the release workflow (image and chart
   included; the GitHub release stays a draft), and pull requests that touch
   the image build and smoke-test it.

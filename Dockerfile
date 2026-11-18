@@ -12,7 +12,10 @@
 # `make image` does the same for the local platform.
 
 # 1. Frontend (Vite) -> /src/dist
-FROM --platform=$BUILDPLATFORM node:26-trixie-slim AS frontend
+# Base images are pinned by the digest of their multi-arch index (tag kept
+# for readability); Dependabot's docker ecosystem bumps tag and digest
+# together, so every build of a commit uses the same bytes.
+FROM --platform=$BUILDPLATFORM node:26-trixie-slim@sha256:e6bedef217677b276c591795e169840edd9096dbf13f29df8ef8d1856b8820bc AS frontend
 WORKDIR /src
 COPY package.json package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm \
@@ -25,7 +28,7 @@ RUN npm run build
 
 # 2. Go server with the frontend embedded (go:embed of internal/web/dist).
 # CGO stays off: SQLite is the pure-Go modernc driver.
-FROM --platform=$BUILDPLATFORM golang:1.27-alpine AS backend
+FROM --platform=$BUILDPLATFORM golang:1.27-alpine@sha256:70bd7ddea8b6cbe5d6943cde279d6b67feb10cc924fb9100d1d8757c1575b280 AS backend
 WORKDIR /src
 COPY backend/go.mod backend/go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod \
@@ -46,7 +49,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
  && mkdir -p -m 0775 /out/rootfs/data
 
 # 3. Runtime: static binary only; no shell, no package manager.
-FROM gcr.io/distroless/static-debian13:nonroot
+FROM gcr.io/distroless/static-debian13:nonroot@sha256:aafe993665bf6200db38a02c11a9351e782a84b6a45e7f33b6695638c88e3931
 ARG VERSION=dev
 ARG COMMIT=none
 ARG DATE=unknown
