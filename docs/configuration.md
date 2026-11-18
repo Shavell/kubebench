@@ -59,6 +59,8 @@ exits with status 2. Values are trimmed; an empty value counts as unset.
 | `KUBEBENCH_LDAP_GROUP_FILTER` | `(\|(member=%d)(uniqueMember=%d)(memberUid=%u))`; `ad`: `(member:1.2.840.113556.1.4.1941:=%d)` | Finds the user's groups; `%d` is the user's DN, `%u` its username attribute. The AD default follows nested groups |
 | `KUBEBENCH_LDAP_GROUP_NAME_ATTRIBUTE` | `cn` | The group name mappings match; `dn` uses the group's full DN |
 | `KUBEBENCH_LDAP_TIMEOUT` | `10s` | Connect and request timeout (at least `1s`) |
+| `KUBEBENCH_OPENSHIFT_MONITORING_ADDRESS` | unset | `host:port` KubeBench connects to for OpenShift monitoring's Thanos Querier instead of resolving its host; the Route's host (or the Service name in a pod) still names the TLS server and the `Host` header. For a router the Route's host does not resolve to from the server, e.g. CRC behind a port forward ([OpenShift monitoring](deployment.md#openshift-monitoring)) |
+| `KUBEBENCH_OPENSHIFT_MONITORING_INSECURE` | `false` | Do not verify the Thanos Querier's TLS certificate. By default it is verified against the system roots plus the service CA (in a pod) or the cluster's default ingress CA (`openshift-config-managed/default-ingress-cert`, outside the cluster) |
 
 Read by libraries rather than by `internal/config`:
 
