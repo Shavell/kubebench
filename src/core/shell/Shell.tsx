@@ -1,7 +1,5 @@
-import { useEffect } from 'react'
 import { LiveUpdates } from '@/core/live/LiveUpdates'
 import { useLayoutStore } from '@/core/store/layoutStore'
-import { useSettingsStore } from '@/core/store/settingsStore'
 import { UpdatesDialogs } from '@/core/updates/UpdatesDialogs'
 import { ContextMenuHost } from '@/shared/ContextMenuHost'
 import { Toaster } from '@/shared/Toaster'
@@ -14,6 +12,7 @@ import { SideBar } from './SideBar'
 import { SideEditorGroup } from './SideEditorGroup'
 import { StatusBar } from './StatusBar'
 import { TabCloseGuard } from './TabCloseGuard'
+import { useDisplaySettingsEffect } from './useDisplaySettingsEffect'
 import { useGlobalShortcuts } from './useGlobalShortcuts'
 import { WorkbenchDialogs } from './WorkbenchDialogs'
 import './Shell.css'
@@ -24,12 +23,8 @@ export function Shell() {
   const panelVisible = useLayoutStore((s) => s.panelVisible)
   const panelHeight = useLayoutStore((s) => s.panelHeight)
   const panelMaximized = useLayoutStore((s) => s.panelMaximized)
-  const terminalFontSize = useSettingsStore((s) => s.terminalFontSize)
 
-  useEffect(() => {
-    document.documentElement.style.setProperty('--terminal-font-size', `${terminalFontSize}px`)
-  }, [terminalFontSize])
-
+  useDisplaySettingsEffect()
   useGlobalShortcuts()
 
   return (

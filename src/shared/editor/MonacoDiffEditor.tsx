@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { PLATFORM_NS } from '@/core/locales'
 import { useResolvedTheme } from '@/core/theme/themeController'
 import { EditorLoading } from './EditorLoading'
-import { EDITOR_FONT_FAMILY, monacoTheme } from './monaco'
+import { monacoTheme, useEditorFont } from './monaco'
 import type { MonacoDiffEditorProps } from './types'
 
 /** Lazily loaded body of DiffEditor; import DiffEditor instead. */
@@ -40,6 +40,7 @@ export default function MonacoDiffEditor({
     })
   }, [])
 
+  const { fontFamily, fontSize } = useEditorFont()
   const options = useMemo(
     () => ({
       readOnly,
@@ -49,14 +50,14 @@ export default function MonacoDiffEditor({
       ignoreTrimWhitespace: false,
       originalAriaLabel: originalTitle ?? t('editor.diff.original'),
       modifiedAriaLabel: modifiedTitle ?? t('editor.diff.modified'),
-      fontFamily: EDITOR_FONT_FAMILY,
-      fontSize: 13,
+      fontFamily,
+      fontSize,
       minimap: { enabled: false },
       scrollBeyondLastLine: false,
       fixedOverflowWidgets: true,
       automaticLayout: true,
     }),
-    [readOnly, sideBySide, originalTitle, modifiedTitle, t],
+    [readOnly, sideBySide, originalTitle, modifiedTitle, t, fontFamily, fontSize],
   )
 
   return (

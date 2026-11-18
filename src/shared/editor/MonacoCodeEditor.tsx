@@ -2,7 +2,7 @@ import Editor, { type OnMount } from '@monaco-editor/react'
 import { useCallback, useLayoutEffect, useMemo, useRef } from 'react'
 import { useResolvedTheme } from '@/core/theme/themeController'
 import { EditorLoading } from './EditorLoading'
-import { EDITOR_FONT_FAMILY, monacoTheme } from './monaco'
+import { monacoTheme, useEditorFont } from './monaco'
 import type { MonacoCodeEditorProps } from './types'
 
 const focusEditor: OnMount = (editor) => editor.focus()
@@ -29,6 +29,7 @@ export default function MonacoCodeEditor({
   })
   const handleChange = useCallback((text: string | undefined) => onChangeRef.current?.(text ?? ''), [])
 
+  const { fontFamily, fontSize } = useEditorFont()
   const options = useMemo(
     () => ({
       readOnly,
@@ -37,8 +38,8 @@ export default function MonacoCodeEditor({
       minimap: { enabled: minimap },
       lineNumbers: lineNumbers ? ('on' as const) : ('off' as const),
       wordWrap: wordWrap ? ('on' as const) : ('off' as const),
-      fontFamily: EDITOR_FONT_FAMILY,
-      fontSize: 13,
+      fontFamily,
+      fontSize,
       tabSize: 2,
       insertSpaces: true,
       detectIndentation: false,
@@ -48,7 +49,7 @@ export default function MonacoCodeEditor({
       fixedOverflowWidgets: true,
       automaticLayout: true,
     }),
-    [readOnly, ariaLabel, placeholder, minimap, lineNumbers, wordWrap],
+    [readOnly, ariaLabel, placeholder, minimap, lineNumbers, wordWrap, fontFamily, fontSize],
   )
 
   return (

@@ -693,6 +693,18 @@ clusters always require the name to be typed.
 `theme.css` defines every `--vscode-*` token for both themes (Dark+ /
 Light+ palettes). Monaco follows (`vs-dark` / `vs`).
 
+**Interface scale and fonts** (v0.7): `core/store/displayStore.ts`, kept
+in local storage per signed-in user (`<mode>:<user>`, like the palette
+aliases): `uiScale` 90–130% (CSS `zoom` on `<body>`, so Monaco, which
+divides by the zoom of its ancestors below `<html>`, hit-tests correctly;
+code that mixes pointer or `getBoundingClientRect()` coordinates with CSS
+pixels converts through `shared/zoom.ts`), editor and terminal font
+family (a CSS family list, validated, put ahead of `--font-mono`) and
+size (the terminal size defaults to the browser-wide `terminalFontSize`
+of v0.6). Monaco re-measures its fonts on a change; xterm.js gets the
+family and size through `setAppearance`; log views use
+`--terminal-font-family`/`--terminal-font-size`.
+
 ### 6.8 External (runtime) plugins
 
 - Layout on disk: `$KUBEBENCH_PLUGINS_DIR/<id>/plugin.json`

@@ -1,28 +1,34 @@
 import { useTranslation } from 'react-i18next'
-import { useSettingsStore } from '@/core/store/settingsStore'
+import { TERMINAL_FONT_SIZES, useDisplaySettings } from '@/core/store/displayStore'
 import { formatNumber } from '@/i18n/format'
 import { Field, Select } from '@/shared/form'
 import { SETTINGS_NS } from '../namespace'
 import { SettingsSection } from '../SettingsSection'
-
-const FONT_SIZES = [11, 12, 12.5, 13, 14, 15, 16]
+import { FontFamilyField } from './FontFamilyField'
 
 /** Terminal, exec and log view preferences. */
 export function TerminalSection() {
   const { t } = useTranslation(SETTINGS_NS)
-  const fontSize = useSettingsStore((s) => s.terminalFontSize)
-  const setSetting = useSettingsStore((s) => s.set)
+  const display = useDisplaySettings()
+  // A size chosen before the fixed list changed stays selectable.
+  const sizes = [...new Set<number>([...TERMINAL_FONT_SIZES, display.terminalFontSize])].sort((a, b) => a - b)
 
   return (
     <SettingsSection title={t('sections.terminal')}>
+      <FontFamilyField
+        label={t('terminal.fontFamily.label')}
+        help={t('terminal.fontFamily.help')}
+        value={display.terminalFontFamily}
+        onChange={(value) => display.set('terminalFontFamily', value)}
+      />
       <Field layout="inline" label={t('terminal.fontSize.label')} help={t('terminal.fontSize.help')}>
         <Select
-          value={fontSize}
-          options={FONT_SIZES.map((size) => ({
+          value={display.terminalFontSize}
+          options={sizes.map((size) => ({
             value: size,
-            label: t('terminal.fontSize.value', { size: formatNumber(size) }),
+            label: t('fonts.size', { size: formatNumber(size) }),
           }))}
-          onChange={(value) => setSetting('terminalFontSize', value)}
+          onChange={(value) => display.set('terminalFontSize', value)}
         />
       </Field>
     </SettingsSection>

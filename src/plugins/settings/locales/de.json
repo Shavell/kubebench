@@ -18,7 +18,8 @@
     "terminal": "Terminal und Protokolle",
     "about": "Info",
     "shortcuts": "Tastenkombinationen",
-    "aliases": "Befehlsaliase"
+    "aliases": "Befehlsaliase",
+    "editor": "Editor"
   },
   "appearance": {
     "theme": {
@@ -32,6 +33,11 @@
       "label": "Sprache",
       "help": "Sprache der Benutzeroberfläche. „Automatisch“ folgt Ihrem Browser.",
       "auto": "Automatisch ({{language}})"
+    },
+    "scale": {
+      "label": "Skalierung der Oberfläche",
+      "help": "Zoom der gesamten Oberfläche, in diesem Browser für Ihr Konto gespeichert.",
+      "default": "{{scale}} (Standard)"
     }
   },
   "data": {
@@ -65,10 +71,13 @@
     }
   },
   "terminal": {
+    "fontFamily": {
+      "label": "Schriftart",
+      "help": "Schrift der Terminal-, Exec- und Protokollansichten. Eine CSS-Schriftliste; leer verwendet die Standardschrift."
+    },
     "fontSize": {
       "label": "Schriftgröße",
-      "help": "Schriftgröße der Terminal-, Exec- und Protokollansichten.",
-      "value": "{{size}} px"
+      "help": "Schriftgröße der Terminal-, Exec- und Protokollansichten."
     }
   },
   "about": {
@@ -100,5 +109,20 @@
     "remove": "Entfernen",
     "editLabel": "Alias {{name}} bearbeiten",
     "removeLabel": "Alias {{name}} entfernen"
+  },
+  "editor": {
+    "fontFamily": {
+      "label": "Schriftart",
+      "help": "Schrift der Code-Editoren (YAML, Values, Notizen, Diffs). Eine CSS-Schriftliste, zum Beispiel \"JetBrains Mono\", Consolas; leer verwendet die Standardschrift."
+    },
+    "fontSize": {
+      "label": "Schriftgröße",
+      "help": "Schriftgröße der Code-Editoren."
+    }
+  },
+  "fonts": {
+    "invalid": "Geben Sie Schriftnamen durch Kommas getrennt ein; setzen Sie Namen mit anderen Zeichen als Buchstaben, Ziffern, Leerzeichen, Punkten, Bindestrichen und Unterstrichen in Anführungszeichen.",
+    "default": "Standard-Monospace-Schrift",
+    "size": "{{size}} px"
   }
 }

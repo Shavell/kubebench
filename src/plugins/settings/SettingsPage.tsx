@@ -5,6 +5,7 @@ import { AboutSection } from './sections/AboutSection'
 import { AliasesSection } from './sections/AliasesSection'
 import { AppearanceSection } from './sections/AppearanceSection'
 import { DataSection } from './sections/DataSection'
+import { EditorSection } from './sections/EditorSection'
 import { PluginSettingsSections } from './sections/PluginSettingsSections'
 import { ShortcutsSection } from './sections/ShortcutsSection'
 import { TerminalSection } from './sections/TerminalSection'
@@ -20,6 +21,7 @@ export function SettingsPage() {
         <div className="settings">
           <AppearanceSection />
           <DataSection />
+          <EditorSection />
           <TerminalSection />
           <ShortcutsSection />
           <AliasesSection />

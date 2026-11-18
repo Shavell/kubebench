@@ -16,6 +16,13 @@ those commits.
 
 ## [Unreleased]
 
+### Added
+
+- **Interface scale and fonts**: Settings → Appearance zooms the whole
+  interface (90–130%), and Settings → Editor and Terminal and logs choose
+  the font family and size of the code editors and of the terminal, exec
+  and log views. They are kept in the browser for each user.
+
 ## [0.6.0] - 2026-11-18
 
 First public release. It also ships everything listed under 0.5.0, which

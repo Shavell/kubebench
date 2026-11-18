@@ -1,9 +1,10 @@
 import { useCallback, useRef } from 'react'
+import { uiZoom } from './zoom'
 import './ResizeHandle.css'
 
 interface ResizeHandleProps {
   orientation: 'vertical' | 'horizontal'
-  /** Called with the pointer delta since drag start, in px. */
+  /** Called with the pointer delta since the last call, in CSS px. */
   onResize: (delta: number) => void
 }
 
@@ -23,7 +24,7 @@ export function ResizeHandle({ orientation, onResize }: ResizeHandleProps) {
 
       const onMove = (ev: PointerEvent) => {
         const pos = orientation === 'vertical' ? ev.clientX : ev.clientY
-        onResize(pos - startPos.current)
+        onResize((pos - startPos.current) / uiZoom())
         startPos.current = pos
       }
       const onUp = () => {

@@ -1,5 +1,6 @@
 import type { MouseEvent } from 'react'
 import { create } from 'zustand'
+import { uiZoom } from './zoom'
 
 export type ContextMenuItem =
   | {
@@ -16,6 +17,7 @@ export type ContextMenuItem =
 
 interface ContextMenuState {
   open: boolean
+  /** Pointer position in the page's CSS pixels (see ./zoom). */
   x: number
   y: number
   items: ContextMenuItem[]
@@ -40,6 +42,7 @@ export const useContextMenuStore = create<ContextMenuState>((set) => ({
 export function showContextMenu(e: MouseEvent, items: ContextMenuItem[]): void {
   e.preventDefault()
   e.stopPropagation()
-  useContextMenuStore.setState({ open: true, x: e.clientX, y: e.clientY, items })
+  const zoom = uiZoom()
+  useContextMenuStore.setState({ open: true, x: e.clientX / zoom, y: e.clientY / zoom, items })
 }
 

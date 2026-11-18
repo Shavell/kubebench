@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Alias } from '@/core/palette/kubectl'
-import { dataMode, useDataMode, type DataMode } from '@/data/mode'
+import { useDataMode } from '@/data/mode'
+import { prefsOwner } from './prefsOwner'
 
 /**
  * The palette's command aliases (`kgp` → `get pods`), kept in this browser
@@ -24,14 +25,9 @@ export const useAliasStore = create<AliasState>()(
 
 const NONE: Alias[] = []
 
-/** Whose aliases these are: the signed-in user (demo mode has one shared demo user). */
-export function aliasOwner(mode: DataMode = dataMode): string {
-  return `${mode.mode}:${mode.user ?? ''}`
-}
-
 /** The signed-in user's aliases and a setter for them. */
 export function useAliases(): { aliases: Alias[]; setAliases: (aliases: Alias[]) => void } {
-  const owner = aliasOwner(useDataMode())
+  const owner = prefsOwner(useDataMode())
   const aliases = useAliasStore((s) => s.byUser[owner]) ?? NONE
   const setAliases = useAliasStore((s) => s.setAliases)
   return { aliases, setAliases: (next) => setAliases(owner, next) }

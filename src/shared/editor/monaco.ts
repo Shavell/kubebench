@@ -17,7 +17,10 @@ import 'monaco-editor/languages/features/json/register'
 import EditorWorker from 'monaco-editor/editor/editor.worker?worker'
 import JsonWorker from 'monaco-editor/languages/features/json/json.worker?worker'
 import { loader } from '@monaco-editor/react'
+import { useEffect } from 'react'
+import { useDisplaySettings } from '@/core/store/displayStore'
 import type { ResolvedTheme } from '@/core/theme/themeController'
+import { fontStack } from '@/shared/fontFamily'
 
 // Workers are bundled by Vite (`?worker`); JSON validation and formatting
 // run in their own worker, everything else in the generic editor worker.
@@ -40,3 +43,17 @@ export function monacoTheme(theme: ResolvedTheme): 'vs' | 'vs-dark' {
  */
 export const EDITOR_FONT_FAMILY =
   getComputedStyle(document.documentElement).getPropertyValue('--font-mono').trim() || 'monospace'
+
+/**
+ * The user's editor font (display settings). Monaco caches glyph widths,
+ * so they are measured again whenever the font or the interface scale
+ * changes.
+ */
+export function useEditorFont(): { fontFamily: string; fontSize: number } {
+  const { editorFontFamily, editorFontSize, uiScale } = useDisplaySettings()
+  const fontFamily = fontStack(editorFontFamily, EDITOR_FONT_FAMILY)
+  useEffect(() => {
+    monaco.editor.remeasureFonts()
+  }, [fontFamily, editorFontSize, uiScale])
+  return { fontFamily, fontSize: editorFontSize }
+}

@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef } from 'react'
 import clsx from 'clsx'
 import { Icon } from './Icon'
 import { useContextMenuStore } from './contextMenu'
+import { cssViewport } from './zoom'
 import './contextMenu.css'
 
 const ITEM_SELECTOR = '.ctx-menu__item:not(:disabled)'
@@ -43,9 +44,9 @@ export function ContextMenuHost() {
   useLayoutEffect(() => {
     const menu = menuRef.current
     if (!open || !menu) return
-    const rect = menu.getBoundingClientRect()
-    const nx = Math.min(x, window.innerWidth - rect.width - 4)
-    const ny = Math.min(y, window.innerHeight - rect.height - 4)
+    const viewport = cssViewport()
+    const nx = Math.min(x, viewport.width - menu.offsetWidth - 4)
+    const ny = Math.min(y, viewport.height - menu.offsetHeight - 4)
     menu.style.left = `${Math.max(4, nx)}px`
     menu.style.top = `${Math.max(4, ny)}px`
   }, [open, x, y, items])

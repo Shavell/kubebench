@@ -18,7 +18,8 @@
     "terminal": "Terminal and logs",
     "about": "About",
     "shortcuts": "Keyboard shortcuts",
-    "aliases": "Command aliases"
+    "aliases": "Command aliases",
+    "editor": "Editor"
   },
   "appearance": {
     "theme": {
@@ -32,6 +33,11 @@
       "label": "Language",
       "help": "Language of the user interface. Automatic follows your browser.",
       "auto": "Automatic ({{language}})"
+    },
+    "scale": {
+      "label": "Interface scale",
+      "help": "Zoom of the whole interface, kept for your account in this browser.",
+      "default": "{{scale}} (default)"
     }
   },
   "data": {
@@ -65,10 +71,13 @@
     }
   },
   "terminal": {
+    "fontFamily": {
+      "label": "Font family",
+      "help": "Font of the terminal, exec and log views. A CSS font list; empty uses the default."
+    },
     "fontSize": {
       "label": "Font size",
-      "help": "Font size of the terminal, exec and log views.",
-      "value": "{{size}} px"
+      "help": "Font size of the terminal, exec and log views."
     }
   },
   "about": {
@@ -100,5 +109,20 @@
     "remove": "Remove",
     "editLabel": "Edit alias {{name}}",
     "removeLabel": "Remove alias {{name}}"
+  },
+  "editor": {
+    "fontFamily": {
+      "label": "Font family",
+      "help": "Font of the code editors (YAML, values, notes, diffs). A CSS font list, for example \"JetBrains Mono\", Consolas; empty uses the default."
+    },
+    "fontSize": {
+      "label": "Font size",
+      "help": "Font size of the code editors."
+    }
+  },
+  "fonts": {
+    "invalid": "Enter font names separated by commas; quote names with other characters than letters, digits, spaces, dots, hyphens and underscores.",
+    "default": "Default monospace font",
+    "size": "{{size}} px"
   }
 }
