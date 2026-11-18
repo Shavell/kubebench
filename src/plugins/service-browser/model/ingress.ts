@@ -31,7 +31,7 @@ export function ingressRoutes(ingress: { metadata?: unknown; spec?: unknown }): 
   const spec = (ingress.spec ?? {}) as { rules?: unknown; defaultBackend?: BackendFields; tls?: unknown }
   const tlsHosts = new Set(asArray<{ hosts?: unknown }>(spec.tls).flatMap((t) => asArray<string>(t.hosts)))
   const routes: IngressRoute[] = []
-  const add = (host: string, path: string, raw: BackendFields | undefined) => {
+  const add = (host: string, path: string, raw: BackendFields | undefined, defaultBackend = false) => {
     const backend = backendOf(raw)
     if (!backend) return
     routes.push({
@@ -39,6 +39,7 @@ export function ingressRoutes(ingress: { metadata?: unknown; spec?: unknown }): 
       host,
       path,
       tls: host !== '' && tlsHosts.has(host),
+      defaultBackend,
       service: backend.service,
       port: backend.port,
       scheme: guessScheme(backend.number ?? 0, backend.name),
@@ -50,13 +51,13 @@ export function ingressRoutes(ingress: { metadata?: unknown; spec?: unknown }): 
       add(host, typeof p.path === 'string' ? p.path : '', p.backend)
     }
   }
-  if (spec.defaultBackend) add('', '', spec.defaultBackend)
+  if (spec.defaultBackend) add('', '', spec.defaultBackend, true)
   return routes
 }
 
-/** Identifies a route within its Ingress (host and path). */
-export function routeKey(route: { host: string; path: string }): string {
-  return `${route.host} ${route.path}`
+/** Identifies a route within its Ingress (host and path, or the default backend). */
+export function routeKey(route: { host: string; path: string; defaultBackend: boolean }): string {
+  return route.defaultBackend ? 'default' : `rule ${route.host} ${route.path}`
 }
 
 /**

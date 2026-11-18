@@ -35,6 +35,11 @@ export interface IngressRouteRef {
   name: string
   host: string
   path: string
+  /**
+   * The Ingress's default backend; told apart from a rule without host and
+   * path, which has the same (empty) host and path.
+   */
+  defaultBackend: boolean
   /** The host is listed under the Ingress's `spec.tls`. */
   tls: boolean
 }

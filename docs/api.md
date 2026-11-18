@@ -337,7 +337,7 @@ and filesystem series need Prometheus.
 |---|---|---|---|---|
 | POST | `/api/proxy/services/{ns}/{name}/{port}` | browse | `?scheme=http\|https` (default `http`); `port` is a Service port number or name | `ProxySession`; audited once as `service.proxy`, target `service/<ns>/<name>:<port>` |
 | POST | `/api/proxy/pods/{ns}/{name}/{port}` | browse | as above; a port name must be a container port's | `ProxySession`; audited once as `pod.proxy` |
-| POST | `/api/proxy/ingresses/{ns}/{name}` | browse | `?host=&path=` of one rule path (both empty: the default backend), `?scheme=` | `ProxySession` for the Service port of that route, with `target.host` = the rule's host (none for a wildcard host); audited once as `ingress.proxy`, target `ingress/<ns>/<name>`, detail `{"scheme","host","path","service"}` |
+| POST | `/api/proxy/ingresses/{ns}/{name}` | browse | `?host=&path=` of one rule path, or `?default=true` for the default backend (a rule may have neither host nor path, so empty values do not name the default backend), `?scheme=` | `ProxySession` for the Service port of that route, with `target.host` = the rule's host (none for a wildcard host); audited once as `ingress.proxy`, target `ingress/<ns>/<name>`, detail `{"scheme","host","path","service"}` (plus `"default":true`) |
 | GET | `/api/proxy/sessions/{token}` | authed | only the session that opened it | `ProxySession` with the latest `navigations` |
 | DELETE | `/api/proxy/sessions/{token}` | authed | only the session that opened it | `{"ok":true}` |
 | GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS | `/proxy/{token}/{path...}` | public (the token is the credential) | anything the proxied page sends | the page, through `/api/v1/namespaces/<ns>/<services\|pods>/<scheme>:<name>:<port>/proxy/<path>` |

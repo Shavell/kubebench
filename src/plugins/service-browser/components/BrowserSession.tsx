@@ -69,7 +69,7 @@ export function BrowserSession({ target, pickers }: BrowserSessionProps) {
       if (token) provider.close(token).catch(() => undefined)
     }
     // The target's fields, not its identity, select the session.
-  }, [provider, target.kind, target.namespace, target.name, target.port, target.scheme, target.ingress?.name, target.ingress?.host, target.ingress?.path, attempt]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [provider, target.kind, target.namespace, target.name, target.port, target.scheme, target.ingress?.name, target.ingress?.host, target.ingress?.path, target.ingress?.defaultBackend, attempt]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const session = state?.session ?? null
   const source = useMemo(

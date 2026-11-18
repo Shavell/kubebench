@@ -2079,7 +2079,9 @@ from each other (per-application subdomains are a possible follow-up).
   opens tab props `{kind: 'ingresses', namespace, name}`; the tab lists the
   Ingress's routes (every rule path, then the default backend, Service
   backends only: `model/ingress.ts`, the server's order) in a route picker
-  (`host/path → service:port`) instead of the port picker, guesses the
+  (`host/path → service:port`) instead of the port picker; the default
+  backend is flagged (`defaultBackend`, opened with `?default=true`), since
+  a rule may have neither host nor path, guesses the
   scheme from the Service port, starts at the rule's path (`/` for a
   regular expression) and shows the rule's host as the address
   (`https://` when the Ingress lists it under `tls`).

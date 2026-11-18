@@ -58,7 +58,7 @@ interface RoutePickerProps {
 export function RoutePicker({ routes, route, scheme, onChange }: RoutePickerProps) {
   const { t } = useTranslation(NS)
   const label = (r: IngressRoute) => {
-    const from = r.host === '' && r.path === '' ? t('ingress.defaultBackend') : `${r.host || '*'}${r.path}`
+    const from = r.defaultBackend ? t('ingress.defaultBackend') : `${r.host || '*'}${r.path}`
     return t('ingress.route', { from, service: r.service, port: r.port })
   }
   return (

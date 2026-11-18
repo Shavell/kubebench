@@ -23,8 +23,9 @@ export function createLiveServiceBrowser(): ServiceBrowserProvider {
     open: (target) =>
       target.ingress
         ? apiPost<ProxySession>(`/proxy/ingresses/${seg(target.namespace)}/${seg(target.ingress.name)}`, undefined, {
-            host: target.ingress.host,
-            path: target.ingress.path,
+            ...(target.ingress.defaultBackend
+              ? { default: true }
+              : { host: target.ingress.host, path: target.ingress.path }),
             scheme: target.scheme,
           })
         : apiPost<ProxySession>(

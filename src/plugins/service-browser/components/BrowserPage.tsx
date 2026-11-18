@@ -86,7 +86,7 @@ function IngressBrowser({ namespace, name }: { namespace: string; name: string }
     name: selected.service,
     port: selected.port,
     scheme,
-    ingress: { name, host: selected.host, path: selected.path, tls: selected.tls },
+    ingress: { name, host: selected.host, path: selected.path, tls: selected.tls, defaultBackend: selected.defaultBackend },
   }
 
   return (

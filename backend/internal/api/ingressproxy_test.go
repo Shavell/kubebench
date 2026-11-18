@@ -58,15 +58,43 @@ func TestIngressRoutes(t *testing.T) {
 		{Host: "web.example.com", Path: "/app", Service: "web", Port: "80"},
 		{Host: "web.example.com", Path: "/admin", Service: "web", Port: "http"},
 		{Host: "*.example.com", Path: "/", Service: "web", Port: "80"},
-		{Service: "web", Port: "80"},
+		{Default: true, Service: "web", Port: "80"},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("routes = %+v", got)
 	}
 }
 
+// A rule without host and path (an ImplementationSpecific path may have
+// no value) is told apart from the default backend.
+func TestIngressRouteForHostlessPathlessRule(t *testing.T) {
+	implementation := networkingv1.PathTypeImplementationSpecific
+	ing := &networkingv1.Ingress{Spec: networkingv1.IngressSpec{
+		DefaultBackend: &networkingv1.IngressBackend{Service: &networkingv1.IngressServiceBackend{
+			Name: "fallback", Port: networkingv1.ServiceBackendPort{Number: 80},
+		}},
+		Rules: []networkingv1.IngressRule{{IngressRuleValue: networkingv1.IngressRuleValue{HTTP: &networkingv1.HTTPIngressRuleValue{
+			Paths: []networkingv1.HTTPIngressPath{{PathType: &implementation, Backend: networkingv1.IngressBackend{
+				Service: &networkingv1.IngressServiceBackend{Name: "app", Port: networkingv1.ServiceBackendPort{Number: 80}},
+			}}},
+		}}}},
+	}}
+	if r := ingressRouteFor(ing, "", "", false); r == nil || r.Service != "app" {
+		t.Fatalf("rule route = %+v", r)
+	}
+	if r := ingressRouteFor(ing, "", "", true); r == nil || r.Service != "fallback" {
+		t.Fatalf("default backend = %+v", r)
+	}
+	if r := ingressRouteFor(ing, "x", "", true); r != nil {
+		t.Fatalf("a default backend with a host = %+v", r)
+	}
+}
+
 func ingressURL(host, path, scheme string) string {
 	q := url.Values{"host": {host}, "path": {path}}
+	if host == "" && path == "" {
+		q = url.Values{"default": {"true"}}
+	}
 	if scheme != "" {
 		q.Set("scheme", scheme)
 	}

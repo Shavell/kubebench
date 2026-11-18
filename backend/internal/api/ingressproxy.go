@@ -16,8 +16,12 @@ import (
 // ingressRoute is one way into an Ingress: a rule's host and path, or the
 // default backend (no host, no path), and the Service port it leads to.
 type ingressRoute struct {
-	Host    string
-	Path    string
+	Host string
+	Path string
+	// Default marks the default backend, which a rule without host and
+	// path (valid for ImplementationSpecific paths) cannot be told apart
+	// from by host and path.
+	Default bool
 	Service string
 	Port    string // number or name
 }
@@ -27,33 +31,44 @@ type ingressRoute struct {
 // service browser reaches Services only.
 func ingressRoutes(ing *networkingv1.Ingress) []ingressRoute {
 	var out []ingressRoute
-	add := func(host, path string, b networkingv1.IngressBackend) {
+	add := func(route ingressRoute, b networkingv1.IngressBackend) {
 		if b.Service == nil {
 			return
 		}
-		port := b.Service.Port.Name
-		if port == "" {
-			port = strconv.Itoa(int(b.Service.Port.Number))
+		route.Service, route.Port = b.Service.Name, b.Service.Port.Name
+		if route.Port == "" {
+			route.Port = strconv.Itoa(int(b.Service.Port.Number))
 		}
-		out = append(out, ingressRoute{Host: host, Path: path, Service: b.Service.Name, Port: port})
+		out = append(out, route)
 	}
 	for _, rule := range ing.Spec.Rules {
 		if rule.HTTP == nil {
 			continue
 		}
 		for _, p := range rule.HTTP.Paths {
-			add(rule.Host, p.Path, p.Backend)
+			add(ingressRoute{Host: rule.Host, Path: p.Path}, p.Backend)
 		}
 	}
 	if ing.Spec.DefaultBackend != nil {
-		add("", "", *ing.Spec.DefaultBackend)
+		add(ingressRoute{Default: true}, *ing.Spec.DefaultBackend)
 	}
 	return out
 }
 
+// ingressRouteFor is the route of ing a request names: the default backend
+// (isDefault, no host or path), or the first rule path with host and path.
+func ingressRouteFor(ing *networkingv1.Ingress, host, path string, isDefault bool) *ingressRoute {
+	for _, candidate := range ingressRoutes(ing) {
+		if candidate.Default == isDefault && candidate.Host == host && candidate.Path == path {
+			return &candidate
+		}
+	}
+	return nil
+}
+
 // handleOpenIngressProxy opens a grant for the Service behind one route of
-// an Ingress (?host=&path=, as the rule names them; both empty for the
-// default backend), sending the rule's host as the Host header (access
+// an Ingress (?host=&path=, as the rule names them, or ?default=true for
+// the default backend), sending the rule's host as the Host header (access
 // browse; audited once as ingress.proxy). The browser starts at the
 // rule's path; path rewriting done by the ingress controller (annotations,
 // middlewares) does not apply, since the Service is reached directly.
@@ -61,11 +76,15 @@ func (s *Server) handleOpenIngressProxy(w http.ResponseWriter, r *http.Request, 
 	ns, name := r.PathValue("ns"), r.PathValue("name")
 	q := r.URL.Query()
 	host, path := q.Get("host"), q.Get("path")
+	isDefault := q.Get("default") == "true"
 	scheme := q.Get("scheme")
 	if scheme == "" {
 		scheme = "http"
 	}
 	detail := map[string]any{"scheme": scheme, "host": host, "path": path}
+	if isDefault {
+		detail["default"] = true
+	}
 	if c.cluster.ReadOnly {
 		detail["readOnly"] = true
 	}
@@ -76,13 +95,7 @@ func (s *Server) handleOpenIngressProxy(w http.ResponseWriter, r *http.Request, 
 		writeTargetErr(w, err)
 		return
 	}
-	var route *ingressRoute
-	for _, candidate := range ingressRoutes(ing) {
-		if candidate.Host == host && candidate.Path == path {
-			route = &candidate
-			break
-		}
-	}
+	route := ingressRouteFor(ing, host, path, isDefault)
 	if route == nil {
 		writeErr(w, badRequest(reasonNoIngressRoute, reason.Params{"namespace": ns, "name": name, "host": host, "path": path}))
 		return
