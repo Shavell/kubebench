@@ -9,10 +9,15 @@ import (
 	"kubebench/internal/kube"
 )
 
-// documentSeparator is a YAML document separator line. Inside a document
-// "---" at column 0 cannot be content: block scalars of a Kubernetes
-// object are always indented.
-var documentSeparator = regexp.MustCompile(`(?m)^---[ \t]*$`)
+// documentSeparator starts a new document: "---" at column 0, where Helm
+// splits a manifest (releaseutil.SplitManifests), the widest split of its
+// readers. A YAML parser also starts a document with content on the
+// marker's line ("--- {kind: Secret, …}"); splitting only at bare "---"
+// lines would leave such a document inside the previous one, where parsing
+// that one's text never sees it. Inside a document "---" at column 0
+// cannot be content: block scalars of a Kubernetes object are always
+// indented.
+var documentSeparator = regexp.MustCompile(`(?m)^---[ \t]*`)
 
 // withheldDocument replaces a document that may hold credentials but cannot
 // be parsed, so they cannot be redacted.
@@ -33,17 +38,33 @@ func redactManifest(manifest string) string {
 	var b strings.Builder
 	start := 0
 	for _, sep := range documentSeparator.FindAllStringIndex(manifest, -1) {
-		b.WriteString(redactDocument(manifest[start:sep[0]]))
+		writeDocument(&b, manifest[start:sep[0]])
 		b.WriteString(manifest[sep[0]:sep[1]])
 		start = sep[1]
 	}
-	b.WriteString(redactDocument(manifest[start:]))
+	writeDocument(&b, manifest[start:])
 	return b.String()
 }
 
+// writeDocument writes doc redacted. A replaced document that started on
+// its separator's line starts on a line of its own.
+func writeDocument(b *strings.Builder, doc string) {
+	out := redactDocument(doc)
+	if out != doc && b.Len() > 0 && !strings.HasSuffix(b.String(), "\n") {
+		b.WriteByte('\n')
+	}
+	b.WriteString(out)
+}
+
 // mentionsCredentialKind is a cheap test whether text can hold an object
-// of a kind that is redacted.
+// of a kind that is redacted. It must not miss one: a kind can also be
+// spelled with escapes in a double-quoted scalar ("Secre\x74") or as a
+// tagged value (!!binary U2VjcmV0), so text with a backslash or a tag
+// indicator is parsed too.
 func mentionsCredentialKind(text string) bool {
+	if strings.ContainsAny(text, `\!`) {
+		return true
+	}
 	for _, kind := range kube.CredentialKindNames() {
 		if strings.Contains(text, kind) {
 			return true

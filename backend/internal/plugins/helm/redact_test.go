@@ -89,6 +89,22 @@ spec:
 	if got := redactManifest(broken); strings.Contains(got, "unterminated") || !strings.HasPrefix(got, "# Source: x/secret.yaml\n") {
 		t.Fatalf("an unparsable document that may be a Secret was shown: %q", got)
 	}
+
+	// Found by FuzzRedactManifest: a document that starts on the "---" line
+	// (Helm splits there) and a kind spelled with an escape.
+	for name, manifest := range map[string]string{
+		"inline document": "apiVersion: v1\nkind: ConfigMap\nmetadata: {name: c}\n--- {apiVersion: v1, kind: Secret, metadata: {name: s}, stringData: {p: hunter2}}\n",
+		"escaped kind":    "apiVersion: v1\nkind: \"Secre\\x74\"\nmetadata: {name: s}\nstringData: {p: hunter2}\n",
+		"binary kind":     "apiVersion: v1\nkind: !!binary U2VjcmV0\nmetadata: {name: s}\nstringData: {p: hunter2}\n",
+	} {
+		if got := redactManifest(manifest); strings.Contains(got, "hunter2") {
+			t.Errorf("%s: a Secret value survived:\n%s", name, got)
+		}
+	}
+	got = redactManifest("apiVersion: v1\nkind: ConfigMap\n--- {apiVersion: v1, kind: Secret, stringData: {p: x}}\n")
+	if want := "apiVersion: v1\nkind: ConfigMap\n--- \napiVersion: v1\nkind: Secret\nstringData:\n  p: <1 bytes, redacted>\n"; got != want {
+		t.Errorf("inline document redacted as %q, want %q", got, want)
+	}
 }
 
 // secretChart renders a Secret from .Values.password (a release hook
