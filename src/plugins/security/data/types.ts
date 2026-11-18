@@ -14,11 +14,13 @@ export const CATEGORIES = [
   'network',
   'secrets',
   'namespaces',
+  // SCC checks; reports list the category only for OpenShift clusters (design §7.15).
+  'openshift',
 ] as const
 export type Category = (typeof CATEGORIES)[number]
 
 /** The kind of object a check evaluates. */
-export type CheckTarget = 'workload' | 'namespace' | 'serviceaccount' | 'role' | 'binding'
+export type CheckTarget = 'workload' | 'namespace' | 'serviceaccount' | 'role' | 'binding' | 'scc'
 
 export interface SecurityCheck {
   id: string

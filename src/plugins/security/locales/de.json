@@ -32,7 +32,7 @@
   },
   "scan": {
     "includeSystem": "System-Namespaces einbeziehen",
-    "includeSystemHint": "Auch kube-system, kube-public, kube-node-lease und die eigenen RBAC-Objekte des Clusters scannen",
+    "includeSystemHint": "Auch die Namespaces kube-*, openshift und openshift-*, die von OpenShift als eigene gekennzeichneten und die eigenen RBAC-Objekte des Clusters scannen",
     "run": "Scannen",
     "running": "Scan läuft…",
     "done_one": "Scan abgeschlossen: Bewertung {{score}}/100, {{count}} offener Befund",
@@ -65,7 +65,8 @@
     "rbac": "RBAC",
     "network": "Netzwerk",
     "secrets": "Secrets",
-    "namespaces": "Namespaces"
+    "namespaces": "Namespaces",
+    "openshift": "OpenShift-SCCs"
   },
   "columns": {
     "severity": "Schweregrad",
@@ -107,7 +108,8 @@
     "openCategory": "Befunde von {{category}} anzeigen",
     "columnsLabel": "{{category}}: {{critical}} kritische, {{high}} hohe, {{medium}} mittlere, {{low}} niedrige offene Befunde",
     "categorySkipped": "Nicht geprüft",
-    "categoryDetail": "{{failed}} offen · {{accepted}} akzeptiert · {{evaluated}} ausgewertet"
+    "categoryDetail": "{{failed}} offen · {{accepted}} akzeptiert · {{evaluated}} ausgewertet",
+    "systemExcludedMore": "System-Namespaces ausgeschlossen ({{namespaces}} und {{count}} weitere)"
   },
   "notices": {
     "skipped_one": "{{count}} Prüfung übersprungen",
@@ -176,7 +178,8 @@
     "namespace": "Namespaces",
     "serviceaccount": "Standard-ServiceAccounts",
     "role": "Roles",
-    "binding": "Bindings"
+    "binding": "Bindings",
+    "scc": "SecurityContextConstraints"
   },
   "accepted": {
     "title": "Akzeptierte Risiken",
@@ -362,6 +365,26 @@
       "title": "Arbeitslasten im Namespace default",
       "message": "Die Arbeitslast läuft im Namespace default",
       "remediation": "Verschieben Sie die Arbeitslast in einen eigenen Namespace, in dem Quotas, Richtlinien und RBAC auf sie zugeschnitten werden können."
+    },
+    "scc-privileged-subjects": {
+      "title": "Privilegierte SCCs für Benutzer",
+      "message": "Die privilegierte oder anyuid-SCC nennt Benutzer oder Gruppen, die nicht zum Cluster selbst gehören: {{evidence}}",
+      "remediation": "Entfernen Sie die Benutzer und Gruppen aus den Feldern users und groups der SCC; gewähren Sie eine eigene SCC mit nur den nötigen Berechtigungen dem ServiceAccount der Arbeitslast über eine Role mit dem Verb use (oc adm policy remove-scc-from-user)."
+    },
+    "scc-privileged-binding": {
+      "title": "Privilegierte SCCs über RBAC",
+      "message": "Das Binding erlaubt Subjects, privilegierte oder anyuid-SCCs zu verwenden: {{evidence}}",
+      "remediation": "Gewähren Sie das Verb use auf securitycontextconstraints nur den ServiceAccounts, die es brauchen, und nur für die engste SCC (restricted-v2 oder eine eigene); entfernen Sie Freigaben für Benutzer, Gruppen und andere ServiceAccounts."
+    },
+    "scc-privileged-workload": {
+      "title": "Mit privilegierter SCC zugelassene Arbeitslasten",
+      "message": "OpenShift hat die Pods der Arbeitslast mit einer privilegierten oder anyuid-SCC zugelassen: {{evidence}}",
+      "remediation": "Lassen Sie die Arbeitslast unter restricted-v2 laufen: Entfernen Sie die angeforderten Privilegien, den Host-Zugriff und den festen Root-Benutzer, und entziehen Sie ihrem ServiceAccount den Zugriff auf die privilegierte SCC, damit die Admission eine eingeschränkte wählt."
+    },
+    "scc-custom-privileged": {
+      "title": "Eigene SCCs mit privilegiertem oder Host-Zugriff",
+      "message": "Die SCC gehört nicht zum Lieferumfang von OpenShift und erlaubt privilegierte Container oder Host-Verzeichnisse: {{evidence}}",
+      "remediation": "Setzen Sie allowPrivilegedContainer und allowHostDirVolumePlugin auf false, oder löschen Sie die SCC und gewähren Sie eine der Standard-SCCs von OpenShift; prüfen Sie, wer sie verwenden darf."
     }
   }
 }

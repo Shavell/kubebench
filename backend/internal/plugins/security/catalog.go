@@ -2,6 +2,8 @@ package security
 
 import (
 	corev1 "k8s.io/api/core/v1"
+
+	"kubebench/internal/openshift"
 )
 
 // Targets: the kind of object a check evaluates.
@@ -11,6 +13,7 @@ const (
 	targetServiceAccount = "serviceaccount" // the namespaces' default ServiceAccounts
 	targetRole           = "role"           // Roles and ClusterRoles
 	targetBinding        = "binding"        // RoleBindings and ClusterRoleBindings
+	targetSCC            = "scc"            // OpenShift SecurityContextConstraints
 )
 
 // Check is one rule of the catalog. Exactly one evaluator, the one of its
@@ -26,6 +29,10 @@ type Check struct {
 
 	// message is a finding's text; a %s stands for the evidence.
 	message string
+	// openShift checks run only on clusters that serve the OpenShift
+	// security API (§7.15); elsewhere they neither run nor count as
+	// skipped.
+	openShift bool
 	// applies narrows the workloads a workload check looks at.
 	applies   func(*workload) bool
 	workload  func(*scan, *workload) ([]string, bool)
@@ -33,6 +40,7 @@ type Check struct {
 	account   func(*scan, *corev1.ServiceAccount) ([]string, bool)
 	role      func(*scan, *roleInfo) ([]string, bool)
 	binding   func(*scan, *bindingInfo) ([]string, bool)
+	scc       func(*scan, *openshift.SCC) ([]string, bool)
 }
 
 // Framework labels. CIS numbers follow the CIS Kubernetes Benchmark
@@ -41,6 +49,10 @@ const (
 	pssBaseline   = "PSS baseline"
 	pssRestricted = "PSS restricted"
 	nsaHardening  = "NSA hardening"
+	// OpenShift: the CIS Red Hat OpenShift Container Platform Benchmark
+	// and the OpenShift security guide's SCC chapter.
+	cisOpenShift = "CIS OpenShift"
+	openShiftSCC = "OpenShift SCC guide"
 )
 
 // catalog is every check, in the order the catalog view lists them.
@@ -269,6 +281,35 @@ var catalog = []*Check{
 		message:     "The workload runs in the default namespace",
 		Remediation: "Move the workload to a namespace of its own, where quotas, policies and RBAC can be scoped to it.",
 		workload:    checkDefaultNamespace,
+	},
+	// OpenShift (§7.15).
+	{
+		ID: "scc-privileged-subjects", Title: "Privileged SCCs granted to users", Severity: SeverityHigh, Category: CategoryOpenShift,
+		Frameworks: []string{cisOpenShift + " 5.2.1", openShiftSCC}, Target: targetSCC, openShift: true,
+		message:     "The privileged or anyuid SCC lists users or groups that are not the cluster's own: %s",
+		Remediation: "Remove the users and groups from the SCC's users and groups fields; grant a custom SCC with only the permissions the workload needs to its own ServiceAccount through a Role with the use verb (oc adm policy remove-scc-from-user).",
+		scc:         checkSCCSubjects,
+	},
+	{
+		ID: "scc-privileged-binding", Title: "Privileged SCCs granted through RBAC", Severity: SeverityHigh, Category: CategoryOpenShift,
+		Frameworks: []string{cisOpenShift + " 5.2.1", openShiftSCC}, Target: targetBinding, openShift: true,
+		message:     "The binding lets subjects use privileged or anyuid SCCs: %s",
+		Remediation: "Bind the use verb on securitycontextconstraints only to the ServiceAccounts that need it, and only for the narrowest SCC (restricted-v2 or a custom one); remove grants to users, groups and other ServiceAccounts.",
+		binding:     checkSCCBinding,
+	},
+	{
+		ID: "scc-privileged-workload", Title: "Workloads admitted with a privileged SCC", Severity: SeverityHigh, Category: CategoryOpenShift,
+		Frameworks: []string{cisOpenShift + " 5.2.1", cisOpenShift + " 5.2.6", openShiftSCC}, Target: targetWorkload, openShift: true,
+		message:     "OpenShift admitted the workload's pods with a privileged or anyuid SCC: %s",
+		Remediation: "Make the workload run under restricted-v2: drop the privileges, host access and fixed root user it asks for, and remove its ServiceAccount's access to the privileged SCC so admission picks a restricted one.",
+		workload:    checkPrivilegedAdmission,
+	},
+	{
+		ID: "scc-custom-privileged", Title: "Custom SCCs allowing privileged or host access", Severity: SeverityMedium, Category: CategoryOpenShift,
+		Frameworks: []string{cisOpenShift + " 5.2.1", openShiftSCC}, Target: targetSCC, openShift: true,
+		message:     "The SCC is not one OpenShift ships and allows privileged containers or host directories: %s",
+		Remediation: "Set allowPrivilegedContainer and allowHostDirVolumePlugin to false, or delete the SCC and grant one of OpenShift's defaults; review who may use it.",
+		scc:         checkCustomSCC,
 	},
 }
 

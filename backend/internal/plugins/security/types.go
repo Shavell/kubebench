@@ -27,12 +27,15 @@ const (
 	CategoryNetwork    = "network"
 	CategorySecrets    = "secrets"
 	CategoryNamespaces = "namespaces"
+	// CategoryOpenShift holds the SCC checks; reports list it only for
+	// clusters where they ran (§7.15).
+	CategoryOpenShift = "openshift"
 )
 
 // categories lists the categories in report order.
 var categories = []string{
 	CategoryBaseline, CategoryRestricted, CategoryHygiene, CategoryRBAC,
-	CategoryNetwork, CategorySecrets, CategoryNamespaces,
+	CategoryNetwork, CategorySecrets, CategoryNamespaces, CategoryOpenShift,
 }
 
 // Resource names the object a finding is about.
@@ -104,7 +107,9 @@ type Report struct {
 	WarningReasons []reason.Ref `json:"warningReasons"`
 	// Inventory counts the objects the scan looked at, by kind.
 	Inventory map[string]int `json:"inventory"`
-	// SystemNamespaces are the namespaces left out unless IncludeSystem.
+	// SystemNamespaces are the namespaces left out unless IncludeSystem:
+	// the cluster's kube-*, openshift and openshift-* namespaces and those
+	// labelled openshift.io/run-level or openshift.io/cluster-monitoring.
 	SystemNamespaces []string `json:"systemNamespaces"`
 }
 

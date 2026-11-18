@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { usePluginQuery } from '@/data/pluginData'
 import { formatDateTime, formatNumber } from '@/i18n/format'
 import { StatTile } from '@/shared/charts/StatTile'
@@ -100,7 +101,7 @@ export function OverviewPage() {
             <div className="security-muted">
               {report.options.includeSystem
                 ? t('overview.systemIncluded')
-                : t('overview.systemExcluded', { namespaces: report.systemNamespaces.join(', ') })}
+                : systemExcludedText(t, report.systemNamespaces)}
             </div>
           </div>
         </div>
@@ -145,4 +146,18 @@ export function OverviewPage() {
       </div>
     </div>
   )
+}
+
+/** How many system namespaces the overview names before it counts the rest (OpenShift has dozens). */
+const NAMED_SYSTEM_NAMESPACES = 4
+
+/** "System namespaces excluded (kube-system, …, and 63 more)". */
+function systemExcludedText(t: TFunction, namespaces: string[]): string {
+  if (namespaces.length <= NAMED_SYSTEM_NAMESPACES) {
+    return t('overview.systemExcluded', { namespaces: namespaces.join(', ') })
+  }
+  return t('overview.systemExcludedMore', {
+    namespaces: namespaces.slice(0, NAMED_SYSTEM_NAMESPACES).join(', '),
+    count: namespaces.length - NAMED_SYSTEM_NAMESPACES,
+  })
 }

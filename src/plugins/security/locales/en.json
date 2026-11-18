@@ -32,7 +32,7 @@
   },
   "scan": {
     "includeSystem": "Include system namespaces",
-    "includeSystemHint": "Also scan kube-system, kube-public, kube-node-lease and the cluster's own RBAC objects",
+    "includeSystemHint": "Also scan the kube-*, openshift and openshift-* namespaces, those OpenShift labels as its own, and the cluster's own RBAC objects",
     "run": "Scan",
     "running": "Scanning…",
     "done_one": "Scan complete: score {{score}}/100, {{count}} open finding",
@@ -65,7 +65,8 @@
     "rbac": "RBAC",
     "network": "Network",
     "secrets": "Secrets",
-    "namespaces": "Namespaces"
+    "namespaces": "Namespaces",
+    "openshift": "OpenShift SCCs"
   },
   "columns": {
     "severity": "Severity",
@@ -107,7 +108,8 @@
     "openCategory": "Show the findings of {{category}}",
     "columnsLabel": "{{category}}: {{critical}} critical, {{high}} high, {{medium}} medium, {{low}} low open findings",
     "categorySkipped": "Not checked",
-    "categoryDetail": "{{failed}} open · {{accepted}} accepted · {{evaluated}} evaluated"
+    "categoryDetail": "{{failed}} open · {{accepted}} accepted · {{evaluated}} evaluated",
+    "systemExcludedMore": "System namespaces excluded ({{namespaces}} and {{count}} more)"
   },
   "notices": {
     "skipped_one": "{{count}} check skipped",
@@ -176,7 +178,8 @@
     "namespace": "Namespaces",
     "serviceaccount": "Default ServiceAccounts",
     "role": "Roles",
-    "binding": "Bindings"
+    "binding": "Bindings",
+    "scc": "SecurityContextConstraints"
   },
   "accepted": {
     "title": "Accepted risks",
@@ -362,6 +365,26 @@
       "title": "Workloads in the default namespace",
       "message": "The workload runs in the default namespace",
       "remediation": "Move the workload to a namespace of its own, where quotas, policies and RBAC can be scoped to it."
+    },
+    "scc-privileged-subjects": {
+      "title": "Privileged SCCs granted to users",
+      "message": "The privileged or anyuid SCC lists users or groups that are not the cluster's own: {{evidence}}",
+      "remediation": "Remove the users and groups from the SCC's users and groups fields; grant a custom SCC with only the permissions the workload needs to its own ServiceAccount through a Role with the use verb (oc adm policy remove-scc-from-user)."
+    },
+    "scc-privileged-binding": {
+      "title": "Privileged SCCs granted through RBAC",
+      "message": "The binding lets subjects use privileged or anyuid SCCs: {{evidence}}",
+      "remediation": "Bind the use verb on securitycontextconstraints only to the ServiceAccounts that need it, and only for the narrowest SCC (restricted-v2 or a custom one); remove grants to users, groups and other ServiceAccounts."
+    },
+    "scc-privileged-workload": {
+      "title": "Workloads admitted with a privileged SCC",
+      "message": "OpenShift admitted the workload's pods with a privileged or anyuid SCC: {{evidence}}",
+      "remediation": "Make the workload run under restricted-v2: drop the privileges, host access and fixed root user it asks for, and remove its ServiceAccount's access to the privileged SCC so admission picks a restricted one."
+    },
+    "scc-custom-privileged": {
+      "title": "Custom SCCs allowing privileged or host access",
+      "message": "The SCC is not one OpenShift ships and allows privileged containers or host directories: {{evidence}}",
+      "remediation": "Set allowPrivilegedContainer and allowHostDirVolumePlugin to false, or delete the SCC and grant one of OpenShift's defaults; review who may use it."
     }
   }
 }

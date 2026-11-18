@@ -332,7 +332,7 @@ func TestClusterAdminBindingCheck(t *testing.T) {
 func TestCatalogIsWellFormed(t *testing.T) {
 	for _, c := range catalog {
 		evaluators := 0
-		for _, set := range []bool{c.workload != nil, c.namespace != nil, c.account != nil, c.role != nil, c.binding != nil} {
+		for _, set := range []bool{c.workload != nil, c.namespace != nil, c.account != nil, c.role != nil, c.binding != nil, c.scc != nil} {
 			if set {
 				evaluators++
 			}
@@ -340,6 +340,7 @@ func TestCatalogIsWellFormed(t *testing.T) {
 		target := map[string]bool{
 			targetWorkload: c.workload != nil, targetNamespace: c.namespace != nil,
 			targetServiceAccount: c.account != nil, targetRole: c.role != nil, targetBinding: c.binding != nil,
+			targetSCC: c.scc != nil,
 		}[c.Target]
 		if evaluators != 1 || !target {
 			t.Errorf("%s: needs exactly the evaluator of target %q", c.ID, c.Target)

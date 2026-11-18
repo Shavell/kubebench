@@ -32,7 +32,7 @@
   },
   "scan": {
     "includeSystem": "Sistem Namespace'lerini dahil et",
-    "includeSystemHint": "kube-system, kube-public, kube-node-lease ve cluster'ın kendi RBAC nesnelerini de tarar",
+    "includeSystemHint": "kube-*, openshift ve openshift-* namespace'lerini, OpenShift'in kendi etiketiyle işaretlediklerini ve cluster'ın kendi RBAC nesnelerini de tarar",
     "run": "Tara",
     "running": "Taranıyor…",
     "done_one": "Tarama tamamlandı: puan {{score}}/100, {{count}} açık bulgu",
@@ -65,7 +65,8 @@
     "rbac": "RBAC",
     "network": "Ağ",
     "secrets": "Secret'lar",
-    "namespaces": "Namespace'ler"
+    "namespaces": "Namespace'ler",
+    "openshift": "OpenShift SCC'leri"
   },
   "columns": {
     "severity": "Önem",
@@ -107,7 +108,8 @@
     "openCategory": "{{category}} bulgularını gösterin",
     "columnsLabel": "{{category}}: {{critical}} kritik, {{high}} yüksek, {{medium}} orta, {{low}} düşük açık bulgu",
     "categorySkipped": "Kontrol edilmedi",
-    "categoryDetail": "{{failed}} açık · {{accepted}} kabul edildi · {{evaluated}} değerlendirildi"
+    "categoryDetail": "{{failed}} açık · {{accepted}} kabul edildi · {{evaluated}} değerlendirildi",
+    "systemExcludedMore": "Sistem Namespace'leri hariç ({{namespaces}} ve {{count}} tane daha)"
   },
   "notices": {
     "skipped_one": "{{count}} kontrol atlandı",
@@ -176,7 +178,8 @@
     "namespace": "Namespace'ler",
     "serviceaccount": "Varsayılan ServiceAccount'lar",
     "role": "Role'ler",
-    "binding": "Binding'ler"
+    "binding": "Binding'ler",
+    "scc": "SecurityContextConstraints"
   },
   "accepted": {
     "title": "Kabul edilen riskler",
@@ -362,6 +365,26 @@
       "title": "default Namespace'indeki iş yükleri",
       "message": "İş yükü default Namespace'inde çalışıyor",
       "remediation": "İş yükünü, kotaların, policy'lerin ve RBAC'ın ona göre kapsamlanabileceği kendi Namespace'ine taşıyın."
+    },
+    "scc-privileged-subjects": {
+      "title": "Kullanıcılara verilmiş ayrıcalıklı SCC'ler",
+      "message": "Ayrıcalıklı ya da anyuid SCC, cluster'ın kendisine ait olmayan kullanıcıları veya grupları listeliyor: {{evidence}}",
+      "remediation": "Kullanıcıları ve grupları SCC'nin users ve groups alanlarından çıkarın; iş yükünün yalnızca ihtiyaç duyduğu izinleri içeren özel bir SCC'yi, use fiiline sahip bir Role ile kendi ServiceAccount'una verin (oc adm policy remove-scc-from-user)."
+    },
+    "scc-privileged-binding": {
+      "title": "RBAC ile verilmiş ayrıcalıklı SCC'ler",
+      "message": "Binding, subject'lerin ayrıcalıklı ya da anyuid SCC'leri kullanmasına izin veriyor: {{evidence}}",
+      "remediation": "securitycontextconstraints üzerindeki use fiilini yalnızca ihtiyacı olan ServiceAccount'lara ve yalnızca en dar SCC için (restricted-v2 ya da özel bir SCC) verin; kullanıcılara, gruplara ve diğer ServiceAccount'lara verilen izinleri kaldırın."
+    },
+    "scc-privileged-workload": {
+      "title": "Ayrıcalıklı bir SCC ile kabul edilmiş iş yükleri",
+      "message": "OpenShift, iş yükünün Pod'larını ayrıcalıklı ya da anyuid bir SCC ile kabul etti: {{evidence}}",
+      "remediation": "İş yükünü restricted-v2 altında çalıştırın: istediği ayrıcalıkları, host erişimini ve sabit root kullanıcısını kaldırın; admission'ın kısıtlı bir SCC seçmesi için ServiceAccount'unun ayrıcalıklı SCC erişimini geri alın."
+    },
+    "scc-custom-privileged": {
+      "title": "Ayrıcalıklı ya da host erişimine izin veren özel SCC'ler",
+      "message": "SCC, OpenShift ile gelenlerden biri değil ve ayrıcalıklı container'lara ya da host dizinlerine izin veriyor: {{evidence}}",
+      "remediation": "allowPrivilegedContainer ve allowHostDirVolumePlugin değerlerini false yapın ya da SCC'yi silip OpenShift'in varsayılanlarından birini verin; kimlerin kullanabildiğini gözden geçirin."
     }
   }
 }

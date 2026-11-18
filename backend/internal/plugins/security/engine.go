@@ -19,6 +19,7 @@ const maxFindings = 20000
 // indexes some checks consult.
 type scan struct {
 	opts       ScanOptions
+	system     systemNamespaces
 	workloads  []*workload
 	namespaces []*corev1.Namespace
 	// accounts are the namespaces' default ServiceAccounts.
@@ -32,6 +33,13 @@ type scan struct {
 	automount map[string]*bool
 	// policies counts the NetworkPolicies of each namespace.
 	policies map[string]int
+	// openShift: the cluster serves the OpenShift security API; scc and
+	// sccBindings are what its checks read (§7.15).
+	openShift   bool
+	scc         *sccIndex
+	sccBindings []*bindingInfo
+	// systemNamespaces is the report's list of them.
+	systemNamespaces []string
 
 	// unavailable says, per target, why its checks cannot run.
 	unavailable map[string]*reason.Error
@@ -41,9 +49,10 @@ type scan struct {
 
 // newScan prepares the subjects of inv for opts.
 func newScan(inv *inventory, opts ScanOptions) *scan {
-	inScope := func(ns string) bool { return opts.IncludeSystem || !isSystemNamespace(ns) }
+	sys := newSystemNamespaces(inv.namespaces)
+	inScope := func(ns string) bool { return opts.IncludeSystem || !sys.has(ns) }
 	s := &scan{
-		opts: opts, automount: map[string]*bool{}, policies: map[string]int{},
+		opts: opts, system: sys, automount: map[string]*bool{}, policies: map[string]int{},
 		unavailable: map[string]*reason.Error{}, inventory: inv.counts(),
 	}
 	s.workloads = workloads(inv, inScope)
@@ -62,13 +71,19 @@ func newScan(inv *inventory, opts ScanOptions) *scan {
 	for _, p := range inv.networkPolicies {
 		s.policies[p.Namespace]++
 	}
-	s.allBindings = bindings(inv)
+	s.allBindings = bindings(inv, sys)
 	for _, b := range s.allBindings {
 		if opts.IncludeSystem || !b.system {
 			s.bindings = append(s.bindings, b)
 		}
 	}
-	s.roles = roles(inv, s.allBindings, opts.IncludeSystem)
+	s.roles = roles(inv, s.allBindings, sys, opts.IncludeSystem)
+	s.systemNamespaces = sys.list(inv.namespaces)
+	s.openShift = inv.openShift.served
+	if s.openShift {
+		s.scc = newSCCIndex(inv)
+		s.sccBindings = sccBindings(s.allBindings, sys, opts.IncludeSystem)
+	}
 	s.availability(inv)
 	return s
 }
@@ -90,6 +105,10 @@ func (s *scan) availability(inv *inventory) {
 	}
 	if !inv.anyListed(kindRoleBindings, kindClusterRoleBindings) {
 		s.unavailable[targetBinding] = inv.failure(kindRoleBindings, kindClusterRoleBindings)
+	}
+	if err := inv.openShift.err; err != nil {
+		s.unavailable[targetSCC] = err
+		s.warnings = append(s.warnings, err)
 	}
 	for _, kind := range allKinds {
 		if err := inv.errs[kind]; err != nil {
@@ -114,11 +133,16 @@ type result struct {
 	skipped   []Skipped
 	warnings  []*reason.Error
 	inventory map[string]int
+	// systemNamespaces are those the scan left out (unless included).
+	systemNamespaces []string
 }
 
 // run evaluates every check of the catalog on s.
 func (s *scan) run(checks []*Check) *result {
-	res := &result{opts: s.opts, evaluated: map[string]int{}, warnings: s.warnings, inventory: s.inventory, findings: []Finding{}}
+	res := &result{
+		opts: s.opts, evaluated: map[string]int{}, warnings: s.warnings, inventory: s.inventory,
+		findings: []Finding{}, systemNamespaces: s.systemNamespaces,
+	}
 	truncated := false
 	report := func(c *Check, r Resource, evidence []string) {
 		if len(res.findings) >= maxFindings {
@@ -128,6 +152,9 @@ func (s *scan) run(checks []*Check) *result {
 		res.findings = append(res.findings, newFinding(c, r, evidence))
 	}
 	for _, c := range checks {
+		if c.openShift && !s.openShift {
+			continue // not an OpenShift cluster: the check does not apply
+		}
 		if why, ok := s.unavailable[c.Target]; ok {
 			res.skipped = append(res.skipped, Skipped{CheckID: c.ID, Reason: why.Error(), ReasonCode: why.Code.String(), ReasonParams: why.Params})
 			continue
@@ -166,10 +193,21 @@ func (s *scan) run(checks []*Check) *result {
 				}
 			}
 		case targetBinding:
-			for _, b := range s.bindings {
+			bindings := s.bindings
+			if c.openShift {
+				bindings = s.sccBindings
+			}
+			for _, b := range bindings {
 				n++
 				if ev, failed := c.binding(s, b); failed {
 					report(c, b.Resource, ev)
+				}
+			}
+		case targetSCC:
+			for _, scc := range s.scc.sccs {
+				n++
+				if ev, failed := c.scc(s, scc); failed {
+					report(c, Resource{APIVersion: sccAPIVersion, Kind: sccKind, Name: scc.Name}, ev)
 				}
 			}
 		}

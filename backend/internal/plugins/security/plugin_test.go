@@ -85,7 +85,10 @@ func TestScoreAndCounts(t *testing.T) {
 	if rep.Score.Overall == nil || *rep.Score.Overall <= 0 || *rep.Score.Overall >= 100 {
 		t.Fatalf("overall score = %v", rep.Score.Overall)
 	}
-	if len(rep.Score.ByCategory) != len(categories) {
+	// Not an OpenShift cluster: every category but OpenShift's.
+	if len(rep.Score.ByCategory) != len(categories)-1 || slices.ContainsFunc(rep.Score.ByCategory, func(c CategoryScore) bool {
+		return c.Category == CategoryOpenShift
+	}) {
 		t.Fatalf("byCategory = %+v", rep.Score.ByCategory)
 	}
 	total := 0
@@ -318,7 +321,7 @@ func TestExport(t *testing.T) {
 		t.Fatalf("headers = %v", rec.Header())
 	}
 	for _, want := range []string{
-		"# Security posture: lab", "system namespaces excluded (kube-system, kube-public, kube-node-lease)",
+		"# Security posture: lab", "system namespaces excluded (kube-system)",
 		"| critical | Privileged containers | Deployment shop/insecure |",
 		`accepted by alice: =HYPERLINK\("x"\) \| piped`, "## Remediation", "- **Privileged containers** (privileged): ",
 		`accepted by alice: &lt;img src=x onerror=alert\(1\)&gt; \[fix\]\(https://evil.example\) \` + "`x\\`" + ` \*\*y\*\*`,

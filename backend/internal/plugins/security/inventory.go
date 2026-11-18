@@ -59,6 +59,8 @@ type inventory struct {
 	roleBindings        []rbacv1.RoleBinding
 	clusterRoleBindings []rbacv1.ClusterRoleBinding
 	networkPolicies     []networkingv1.NetworkPolicy
+	// openShift holds the OpenShift objects (§7.15); see collectOpenShift.
+	openShift openShiftInventory
 
 	// errs holds the kinds that could not be listed, truncated those cut
 	// at maxPerKind.
@@ -260,9 +262,10 @@ func (inv *inventory) failure(kinds ...string) *reason.Error {
 	return reason.New(reasonNotListed, nil)
 }
 
-// counts is the report's inventory: the objects listed, by kind.
+// counts is the report's inventory: the objects listed, by kind (the
+// OpenShift kinds only where served).
 func (inv *inventory) counts() map[string]int {
-	return map[string]int{
+	counts := map[string]int{
 		kindNamespaces: len(inv.namespaces), kindPods: len(inv.pods),
 		kindDeployments: len(inv.deployments), kindStatefulSets: len(inv.statefulSets),
 		kindDaemonSets: len(inv.daemonSets), kindReplicaSets: len(inv.replicaSets),
@@ -271,6 +274,10 @@ func (inv *inventory) counts() map[string]int {
 		kindClusterRoles: len(inv.clusterRoles), kindRoleBindings: len(inv.roleBindings),
 		kindClusterRoleBindings: len(inv.clusterRoleBindings), kindNetworkPolicies: len(inv.networkPolicies),
 	}
+	if inv.openShift.served {
+		counts[kindSCCs] = len(inv.openShift.sccs)
+	}
+	return counts
 }
 
 // allKinds lists every inventory kind in a fixed order, for messages.
