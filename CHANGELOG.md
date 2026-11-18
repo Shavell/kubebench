@@ -25,6 +25,18 @@ those commits.
   series. Node charts also find OpenShift's node-exporter series, the disk
   chart reads RHCOS' root filesystem, and pod CPU and memory no longer count
   the pod cgroup twice.
+- **OpenShift install with least privilege**: the Helm chart detects
+  OpenShift (`openshift.enabled: auto`) and then leaves the UIDs and
+  `fsGroup` to the SCC and pins the pod to `restricted-v2`, so both the
+  `cluster-admin` and the `read-only` presets install without extra SCC
+  grants. `route.enabled` adds a Route (edge, reencrypt with a service CA
+  certificate, or passthrough), the `read-only` preset reads the OpenShift
+  API groups (Routes, Projects, DeploymentConfigs, Builds, ImageStreams,
+  SCCs; no SCC `use`), and the NetworkPolicy reaches OpenShift's DNS on
+  port 5353. `hostUsers: false` runs the pod in a user namespace
+  (`restricted-v3`). Plain manifests for OpenShift with a Route ship as
+  `kubebench-openshift.yaml`; see the OpenShift section in
+  docs/deployment.md.
 
 ### Fixed
 
@@ -34,6 +46,8 @@ those commits.
   metrics" with the reason (e.g. the metrics API is not served, or its
   APIService is not available), and the charts show why they are empty.
   Nodes and pods that were not measured have no points instead of zeros.
+- The container image's `/data` is writable by an arbitrary UID in group 0
+  (OpenShift, `docker run --user <uid>:0`), not only by UID 65532.
 
 ## [0.7.0] - 2026-11-18
 

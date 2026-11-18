@@ -1,5 +1,7 @@
 {{- if .Values.networkPolicy.enabled }}
 {{- $np := .Values.networkPolicy }}
+{{- /* OpenShift's cluster DNS runs in openshift-dns and listens on 5353. */}}
+{{- $dns := eq (include "kubebench.openshift" .) "true" | ternary .Values.openshift.dns $np.dns }}
 {{- /*
 API server destinations. Explicit CIDRs win; otherwise the `kubernetes`
 Service address and its endpoints are looked up (empty under `helm template`).
@@ -72,15 +74,17 @@ spec:
         {{- end }}
     # DNS
     - ports:
-        - port: 53
+        {{- range uniq $dns.ports }}
+        - port: {{ . }}
           protocol: UDP
-        - port: 53
+        - port: {{ . }}
           protocol: TCP
+        {{- end }}
       to:
         - namespaceSelector:
-            {{- toYaml $np.dns.namespaceSelector | nindent 12 }}
+            {{- toYaml $dns.namespaceSelector | nindent 12 }}
           podSelector:
-            {{- toYaml $np.dns.podSelector | nindent 12 }}
+            {{- toYaml $dns.podSelector | nindent 12 }}
     {{- with $np.extraEgressCIDRs }}
     - to:
         {{- range . }}

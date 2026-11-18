@@ -97,7 +97,7 @@ chart-lint: ## Lint the Helm chart and validate its manifests with kubeconform
 
 ##@ Distribution
 
-manifests: ## Render deploy/kubernetes/kubebench.yaml from the chart
+manifests: ## Render deploy/{kubernetes,openshift}/kubebench.yaml from the chart
 	scripts/render-manifests.sh
 
 image: ## Build the container image for the local platform, tagged IMAGE:VERSION

@@ -219,6 +219,39 @@ ingress:
   #       - kubebench.example.com
   tls: []
 
+# OpenShift Route (route.openshift.io/v1), in OpenShift mode only (see
+# openshift.enabled); use it instead of, or next to, the Ingress.
+route:
+  enabled: false
+  # Empty: the router generates <fullname>-<namespace>.<apps domain>.
+  host: ""
+  # Optional path prefix; not allowed with passthrough termination.
+  path: ""
+  # Shells (WebSocket) and log streams (SSE) are long-lived; KubeBench sends
+  # heartbeats, so the router's default timeouts work. Raise them with e.g.
+  #   haproxy.router.openshift.io/timeout: 1h
+  annotations: {}
+  tls:
+    # edge: the router terminates TLS and talks HTTP to the pod.
+    # reencrypt: the router terminates TLS and opens a new TLS connection to
+    #   the pod, which serves the certificate in tls.existingSecret, else one
+    #   from the OpenShift service CA.
+    # passthrough: the pod terminates TLS itself; needs tls.existingSecret
+    #   with a certificate for the Route host.
+    termination: edge
+    # Plain HTTP requests: Redirect (to HTTPS), None (refused) or Allow
+    # (served over HTTP; not with passthrough).
+    insecureEdgeTerminationPolicy: Redirect
+    # PEM certificate, key and CA chain for the Route host (edge and
+    # reencrypt); empty: the router's default certificate. They are stored
+    # in the Route object and the Helm release history.
+    certificate: ""
+    key: ""
+    caCertificate: ""
+    # PEM CA that signed the pod's certificate (reencrypt); empty: the
+    # OpenShift service CA.
+    destinationCACertificate: ""
+
 networkPolicy:
   enabled: false
   # Egress is limited to DNS, the Kubernetes API server and the destinations
@@ -250,6 +283,7 @@ networkPolicy:
     podSelector:
       matchLabels:
         k8s-app: kube-dns
+    ports: [53]
   # Extra destinations on any port: remote clusters, Helm repositories, ...
   extraEgressCIDRs: []
   # Extra NetworkPolicyEgressRule objects, appended verbatim.
@@ -309,3 +343,44 @@ terminationGracePeriodSeconds: 30
 nodeSelector: {}
 tolerations: []
 affinity: {}
+
+# The server terminates TLS itself (KUBEBENCH_TLS_CERT/KUBEBENCH_TLS_KEY), and
+# the probes use HTTPS. Needed behind a reencrypt or passthrough Route; on
+# OpenShift a reencrypt Route gets a service CA certificate without it.
+tls:
+  # A kubernetes.io/tls Secret (tls.crt, tls.key), mounted at /etc/kubebench/tls.
+  existingSecret: ""
+
+# Run the pod in a user namespace (pod.spec.hostUsers: false): its UIDs map
+# to unprivileged host UIDs. Needs Kubernetes 1.33+ with user namespaces
+# supported by the nodes' kernel, runtime and volume filesystems. null: not
+# set (the cluster default, host users). On OpenShift this selects the
+# restricted-v3 SCC.
+hostUsers: null
+
+# OpenShift support. In OpenShift mode the chart leaves runAsUser, runAsGroup
+# and fsGroup out of the security contexts so that the SCC assigns them from
+# the project's ranges, pins the pod to a restricted SCC, can render a Route,
+# lets the read-only preset read the OpenShift API groups, and points the
+# NetworkPolicy's DNS rule at openshift-dns.
+openshift:
+  # auto: when the cluster serves route.openshift.io/v1 and
+  # security.openshift.io/v1 (helm install/upgrade; an offline helm template
+  # needs true, or --api-versions for both). true or false: forced.
+  enabled: auto
+  # SCC the pod must be admitted under (annotation openshift.io/required-scc).
+  # Empty: restricted-v2, or restricted-v3 with hostUsers: false. Without the
+  # pin, a ServiceAccount allowed to use more SCCs (cluster-admin) gets any
+  # SCC the pod fits (e.g. nonroot-v2 for a fixed UID); with it, a pod the
+  # SCC does not admit is refused.
+  requiredSCC: ""
+  # Replaces networkPolicy.dns in OpenShift mode: the cluster DNS pods listen
+  # on 5353 behind the dns-default Service's port 53.
+  dns:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: openshift-dns
+    podSelector:
+      matchLabels:
+        dns.operator.openshift.io/daemonset-dns: default
+    ports: [53, 5353]

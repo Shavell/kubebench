@@ -1,0 +1,47 @@
+{{- if include "kubebench.route" . }}
+{{- $tls := .Values.route.tls }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ include "kubebench.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kubebench.labels" . | nindent 4 }}
+  {{- with .Values.route.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.route.host }}
+  host: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.route.path }}
+  path: {{ . | quote }}
+  {{- end }}
+  to:
+    kind: Service
+    name: {{ include "kubebench.fullname" . }}
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: {{ $tls.termination }}
+    insecureEdgeTerminationPolicy: {{ $tls.insecureEdgeTerminationPolicy }}
+    {{- with $tls.certificate }}
+    certificate: |
+      {{- . | nindent 6 }}
+    {{- end }}
+    {{- with $tls.key }}
+    key: |
+      {{- . | nindent 6 }}
+    {{- end }}
+    {{- with $tls.caCertificate }}
+    caCertificate: |
+      {{- . | nindent 6 }}
+    {{- end }}
+    {{- with $tls.destinationCACertificate }}
+    destinationCACertificate: |
+      {{- . | nindent 6 }}
+    {{- end }}
+  wildcardPolicy: None
+{{- end }}

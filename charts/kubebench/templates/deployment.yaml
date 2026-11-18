@@ -1,5 +1,7 @@
 {{- include "kubebench.validate" . }}
 {{- $secretName := include "kubebench.secretName" . }}
+{{- $openshift := include "kubebench.openshift" . }}
+{{- $tlsSecret := include "kubebench.tlsSecretName" . }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -21,6 +23,9 @@ spec:
         # KubeBench probes once per pod what its ServiceAccount may do (Helm,
         # shells), so a new RBAC preset or rule set restarts the pod.
         checksum/rbac: {{ include (print $.Template.BasePath "/rbac.yaml") . | sha256sum }}
+        {{- if $openshift }}
+        openshift.io/required-scc: {{ include "kubebench.requiredSCC" . }}
+        {{- end }}
         {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -35,6 +40,9 @@ spec:
       # Service links would inject KUBEBENCH_*-looking variables for every
       # Service in the namespace.
       enableServiceLinks: false
+      {{- if not (kindIs "invalid" .Values.hostUsers) }}
+      hostUsers: {{ .Values.hostUsers }}
+      {{- end }}
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
@@ -44,13 +52,13 @@ spec:
       {{- end }}
       terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
       securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+        {{- include "kubebench.podSecurityContext" . | nindent 8 }}
       containers:
         - name: kubebench
           image: {{ include "kubebench.image" . | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
+            {{- include "kubebench.containerSecurityContext" . | nindent 12 }}
           ports:
             - name: http
               containerPort: 9876
@@ -76,6 +84,12 @@ spec:
               value: {{ .Values.config.allowAmbientCloudIdentity | quote }}
             - name: KUBEBENCH_UPDATE_MODE
               value: {{ .Values.config.updateMode | quote }}
+            {{- if $tlsSecret }}
+            - name: KUBEBENCH_TLS_CERT
+              value: {{ include "kubebench.tlsDir" . }}/tls.crt
+            - name: KUBEBENCH_TLS_KEY
+              value: {{ include "kubebench.tlsDir" . }}/tls.key
+            {{- end }}
             {{- with .Values.config.proxyOrigin }}
             - name: KUBEBENCH_PROXY_ORIGIN
               value: {{ . | quote }}
@@ -103,6 +117,9 @@ spec:
             httpGet:
               path: /healthz
               port: http
+              {{- if $tlsSecret }}
+              scheme: HTTPS
+              {{- end }}
             {{- toYaml (omit . "enabled") | nindent 12 }}
           {{- end }}
           {{- end }}
@@ -112,6 +129,9 @@ spec:
             httpGet:
               path: /healthz
               port: http
+              {{- if $tlsSecret }}
+              scheme: HTTPS
+              {{- end }}
             {{- toYaml (omit . "enabled") | nindent 12 }}
           {{- end }}
           {{- end }}
@@ -121,6 +141,9 @@ spec:
             httpGet:
               path: /healthz
               port: http
+              {{- if $tlsSecret }}
+              scheme: HTTPS
+              {{- end }}
             {{- toYaml (omit . "enabled") | nindent 12 }}
           {{- end }}
           {{- end }}
@@ -133,6 +156,11 @@ spec:
               mountPath: /data
             - name: tmp
               mountPath: /tmp
+            {{- if $tlsSecret }}
+            - name: tls
+              mountPath: {{ include "kubebench.tlsDir" . }}
+              readOnly: true
+            {{- end }}
             {{- if include "kubebench.oidcCA" . }}
             - name: oidc-ca
               mountPath: {{ include "kubebench.oidcCADir" . }}
@@ -156,6 +184,11 @@ spec:
           {{- end }}
         - name: tmp
           emptyDir: {}
+        {{- if $tlsSecret }}
+        - name: tls
+          secret:
+            secretName: {{ $tlsSecret }}
+        {{- end }}
         {{- if include "kubebench.oidcCA" . }}
         - name: oidc-ca
           configMap:
