@@ -138,7 +138,7 @@ Unknown `/api` paths answer `404 not_found`.
 | GET | `/api/auth/oidc/callback` | public | `?code=&state=` (from the provider) | `302` to `<public URL>/` with the session cookie, or to `<public URL>/?signInError=<class>` when refused (`invalid_credentials`, `account_disabled`, `domain_not_allowed`, `no_matching_group`, `username_conflict`, `invalid_username`, `invalid_request`, `provider_error`, `rate_limited`). Callbacks refused after the provider redeemed the code count against the login limit per client IP (a wrong state or a made-up code does not); every outcome is audited (`auth.signin`) |
 | POST | `/api/auth/logout` | authed | — | `{"ok":true,"logoutUrl"?}`; `logoutUrl` (OIDC sessions, providers with RP-initiated logout) ends the provider's session and returns to KubeBench |
 | GET | `/api/auth/me` | authed | — | `{"id","username","role","mustChangePassword","source","displayName","lastSeenVersion"}` |
-| PATCH | `/api/auth/me` | authed | `{"lastSeenVersion":"0.7.0"}` (1–64 characters) | the `me` view |
+| PATCH | `/api/auth/me` | authed | `{"lastSeenVersion":"0.8.0"}` (1–64 characters) | the `me` view |
 | POST | `/api/auth/password` | authed | `{"currentPassword","newPassword"}` | `{"ok":true}`; new password 8 characters to 72 bytes and different; a wrong current password is `403 forbidden` and throttled like logins; other sessions of the user end. External users (`source` other than `local`) get `400` |
 | GET | `/api/info` | authed | — | server, session and active-cluster facts (below) |
 
@@ -147,7 +147,7 @@ capability probe and provider detection:
 
 ```json
 {
-  "version": "0.7.0", "commit": "abc1234",
+  "version": "0.8.0", "commit": "abc1234",
   "user": "alice", "role": "admin", "mustChangePassword": false, "authSource": "local",
   "context": "k3s-dev", "server": "https://10.0.0.1:6443",
   "cluster": {"id": 1, "name": "k3s-dev", "environment": "production", "readOnly": false,

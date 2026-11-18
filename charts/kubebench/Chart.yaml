@@ -3,8 +3,8 @@ name: kubebench
 description: VSCode-style Kubernetes workbench - workloads, logs, shells, YAML, Helm releases and metrics for many clusters in one web UI
 type: application
 # Chart and app share one version line; bump both for every release.
-version: 0.7.0
-appVersion: "0.7.0"
+version: 0.8.0
+appVersion: "0.8.0"
 kubeVersion: ">=1.25.0-0"
 home: https://github.com/Shavell/kubebench
 sources:

@@ -122,13 +122,13 @@ backups and air-gapped installs, is [docs/deployment.md](docs/deployment.md).
 
 ```bash
 # Helm (OCI)
-helm install kubebench oci://ghcr.io/shavell/charts/kubebench --version 0.7.0 \
+helm install kubebench oci://ghcr.io/shavell/charts/kubebench --version 0.8.0 \
   --namespace kubebench --create-namespace
 kubectl -n kubebench get secret kubebench-auth -o jsonpath='{.data.admin-password}' | base64 -d; echo
 kubectl -n kubebench port-forward svc/kubebench 8080:80      # http://localhost:8080, user admin
 
 # or plain manifests (password admin, changed at the first sign-in)
-kubectl apply -f https://github.com/Shavell/kubebench/releases/download/v0.7.0/kubebench.yaml
+kubectl apply -f https://github.com/Shavell/kubebench/releases/download/v0.8.0/kubebench.yaml
 ```
 
 KubeBench registers the cluster it runs in as `in-cluster` through its
@@ -143,20 +143,20 @@ view. Chart values: [charts/kubebench/README.md](charts/kubebench/README.md).
 curl -fsSL https://raw.githubusercontent.com/Shavell/kubebench/main/install.sh | sudo bash
 
 # or the packages
-sudo apt install ./kubebench_0.7.0_amd64.deb
-sudo dnf install ./kubebench-0.7.0-1.x86_64.rpm
+sudo apt install ./kubebench_0.8.0_amd64.deb
+sudo dnf install ./kubebench-0.8.0-1.x86_64.rpm
 ```
 
 The installer prints a generated admin password; the packages start with
 `admin`/`admin`. Configuration lives in `/etc/kubebench/kubebench.env`, data
 in `/var/lib/kubebench`. Without internet access:
-`sudo bash install.sh --offline kubebench-offline-0.7.0.tar.gz`.
+`sudo bash install.sh --offline kubebench-offline-0.8.0.tar.gz`.
 
 ### Docker
 
 ```bash
 docker run -d --name kubebench -p 9876:9876 -v kubebench-data:/data \
-  -e KUBEBENCH_ADMIN_PASSWORD='choose-a-password' ghcr.io/shavell/kubebench:0.7.0
+  -e KUBEBENCH_ADMIN_PASSWORD='choose-a-password' ghcr.io/shavell/kubebench:0.8.0
 ```
 
 Open http://localhost:9876 and sign in as `admin`. KubeBench asks for a new

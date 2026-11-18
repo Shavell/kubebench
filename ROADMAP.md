@@ -85,6 +85,25 @@ service browser (a frontend plugin on new core proxy routes).
   and unavailable reasons carry stable reason codes with parameters, which
   the UI shows in every UI language.
 
+## v0.8 (released 2026-11-18)
+
+### OpenShift
+
+- **Least-privilege install**: the chart detects OpenShift, lets the SCC
+  assign user and group IDs, pins `restricted-v2` (or `restricted-v3` with
+  user namespaces), ships a Route template and an OpenShift NetworkPolicy;
+  plain OpenShift manifests in `deploy/openshift/`.
+- **OpenShift-aware UI**: Routes, Projects, SCCs, DeploymentConfigs,
+  BuildConfigs, Builds and ImageStreams; Routes open in the service
+  browser; the security scan skips OpenShift's own namespaces and checks
+  SCC grants; OpenShift version support status.
+- **Monitoring**: OpenShift's Thanos Querier as a metrics source.
+
+### Honest metrics
+
+- A cluster without a working metrics API shows why metrics are
+  unavailable instead of zeros, on every metrics view.
+
 ## Next (candidates)
 
 Collected from the [comparison notes](docs/notes/kubelizeme-comparison.md#4-still-missing-after-v05-roadmap),

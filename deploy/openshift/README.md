@@ -31,7 +31,7 @@ Applying needs a user who may create the ClusterRoleBinding (a cluster
 administrator):
 
 ```bash
-oc apply -f https://github.com/Shavell/kubebench/releases/download/v0.7.0/kubebench-openshift.yaml
+oc apply -f https://github.com/Shavell/kubebench/releases/download/v0.8.0/kubebench-openshift.yaml
 # or from a checkout / the offline bundle:
 oc apply -f deploy/openshift/kubebench.yaml
 oc -n kubebench rollout status deploy/kubebench
