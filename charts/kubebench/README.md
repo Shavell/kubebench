@@ -397,7 +397,7 @@ kubectl -n kubebench delete pvc/kubebench-data secret/kubebench-auth
 | `openshift.monitoring.clusterMonitoringView` | `true` | Bind `cluster-monitoring-view` (needed to read OpenShift monitoring) when `rbac.preset` is not `cluster-admin`. |
 | `openshift.monitoring` | `openshift-monitoring`, `thanos-query` pods, ports `[9091]` | Thanos Querier egress rule of the NetworkPolicy in OpenShift mode (`namespaceSelector`, `podSelector`, `ports`). |
 | `route.enabled` | `false` | Create a Route (OpenShift mode only). |
-| `route.host` | `""` | Route host; empty = `<fullname>-<namespace>.<apps domain>`. |
+| `route.host` | `""` | Route host; empty = `<fullname>-<namespace>.<apps domain>`. The first DNS label (`<fullname>-<namespace>`) must stay within 63 characters, or OpenShift rejects the Route; with long release or project names set `route.host` (or a shorter `fullnameOverride`). |
 | `route.path` | `""` | Path prefix (not with passthrough). |
 | `route.annotations` | `{}` | Route annotations, e.g. `haproxy.router.openshift.io/timeout`. |
 | `route.tls.termination` | `edge` | `edge`, `reencrypt` or `passthrough`. |
