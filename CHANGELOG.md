@@ -37,6 +37,9 @@ those commits.
 
 ### Security
 
+- A Helm manifest document with a stray leading indent is redacted too:
+  the YAML parser read only its first key while Helm, which trims each
+  document, saw the whole Secret (found by the CI fuzz job).
 - A Helm release's manifest view no longer shows the values of a Secret
   written on the `---` line (`--- {kind: Secret, …}`) or whose kind is
   spelled with YAML escapes or tags; both were passed on unredacted.
