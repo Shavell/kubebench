@@ -64,9 +64,11 @@ those commits.
 ### Changed
 
 - **Security scans skip OpenShift's own namespaces** (`openshift`,
-  `openshift-*`, `kube-*` and those OpenShift labels as its own) unless
-  system namespaces are included; on a fresh OpenShift 5.0 cluster the
-  default scan went from 633 to 73 findings.
+  `openshift-*`, `kube-*` and those OpenShift labels as its own) on
+  OpenShift unless system namespaces are included; on a fresh OpenShift
+  5.0 cluster the default scan went from 633 to 73 findings. Other
+  clusters still skip only `kube-system`, `kube-public` and
+  `kube-node-lease`.
 
 ### Fixed
 

@@ -49,7 +49,7 @@ type scan struct {
 
 // newScan prepares the subjects of inv for opts.
 func newScan(inv *inventory, opts ScanOptions) *scan {
-	sys := newSystemNamespaces(inv.namespaces)
+	sys := newSystemNamespaces(inv.namespaces, inv.openShift.served)
 	inScope := func(ns string) bool { return opts.IncludeSystem || !sys.has(ns) }
 	s := &scan{
 		opts: opts, system: sys, automount: map[string]*bool{}, policies: map[string]int{},

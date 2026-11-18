@@ -2213,10 +2213,14 @@ OpenShift and, in the EUS phase, warns instead of erroring.
 
 **Security plugin** (§7.7):
 
-- System namespaces (excluded by default): `kube-*`, `openshift`,
-  `openshift-*`, and namespaces labelled `openshift.io/run-level` (any
-  value) or `openshift.io/cluster-monitoring=true`; ServiceAccounts there
-  are system subjects. The report's `systemNamespaces` lists the cluster's
+- System namespaces (excluded by default): on a cluster that serves
+  `security.openshift.io`, `kube-*` and `openshift-*` (the prefixes
+  OpenShift reserves), `openshift`, and namespaces labelled
+  `openshift.io/run-level` (any value) or
+  `openshift.io/cluster-monitoring=true`; on other clusters only
+  `kube-system`, `kube-public` and `kube-node-lease`, as before (a
+  `kube-flannel` or `kube-prometheus-stack` is scanned). ServiceAccounts
+  there are system subjects. The report's `systemNamespaces` lists the cluster's
   (sorted), the UI names four and counts the rest.
 - SCCs are listed through the dynamic client (`internal/openshift`); not
   served: the OpenShift checks neither run nor count as skipped, and the
