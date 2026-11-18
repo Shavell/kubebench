@@ -1,0 +1,20 @@
+# OpenShift mode (forced, as an offline render cannot detect it): an edge
+# Route, the read-only preset with the OpenShift API groups, and a
+# NetworkPolicy that reaches openshift-dns and lets only the router in.
+openshift:
+  enabled: true
+rbac:
+  preset: read-only
+route:
+  enabled: true
+  host: kubebench.apps.example.com
+  annotations:
+    haproxy.router.openshift.io/timeout: 1h
+networkPolicy:
+  enabled: true
+  apiServer:
+    cidrs: [172.30.0.1/32, 10.0.0.10/32]
+  ingressFrom:
+    - namespaceSelector:
+        matchLabels:
+          policy-group.network.openshift.io/ingress: ""

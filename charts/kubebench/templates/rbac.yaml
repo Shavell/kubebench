@@ -66,6 +66,30 @@ rules:
       {{- end }}
     resources: ["*"]
     verbs: [get, list, watch]
+{{- if include "kubebench.openshift" . }}
+  # OpenShift API groups (config.openshift.io tells the OpenShift version).
+  # get/list/watch never include "use", so no SCC is granted.
+  - apiGroups:
+      - apps.openshift.io
+      - build.openshift.io
+      - config.openshift.io
+      - project.openshift.io
+      - route.openshift.io
+      - security.openshift.io
+    resources: ["*"]
+    verbs: [get, list, watch]
+  # Resource by resource: imagestreams/secrets returns an image stream's pull
+  # Secrets, and imagestreams/layers allows pulling from the internal registry.
+  - apiGroups: [image.openshift.io]
+    resources:
+      - images
+      - imagestreamimages
+      - imagestreams
+      - imagestreams/status
+      - imagestreamtags
+      - imagetags
+    verbs: [get, list, watch]
+{{- end }}
 {{- else }}
   {{- toYaml .Values.rbac.rules | nindent 2 }}
 {{- end }}

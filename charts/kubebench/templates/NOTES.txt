@@ -3,13 +3,20 @@
 KubeBench {{ include "kubebench.version" . }} is installed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
 
 1. Open the UI:
+{{- if include "kubebench.route" . }}
+{{- if .Values.route.host }}
+     https://{{ .Values.route.host }}{{ .Values.route.path }}
+{{- else }}
+     echo "https://$(oc -n {{ .Release.Namespace }} get route {{ $fullname }} -o jsonpath='{.spec.host}'){{ .Values.route.path }}"
+{{- end }}
+{{- end }}
 {{- if .Values.ingress.enabled }}
 {{- range .Values.ingress.hosts }}
      http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}
 {{- end }}
-{{- else }}
+{{- else if not (include "kubebench.route" .) }}
      kubectl -n {{ .Release.Namespace }} port-forward svc/{{ $fullname }} 8080:{{ .Values.service.port }}
-     # then browse to http://localhost:8080
+     # then browse to http{{ if include "kubebench.tlsSecretName" . }}s{{ end }}://localhost:8080
 {{- end }}
 
 2. Sign in as "admin".
@@ -39,6 +46,12 @@ KubeBench {{ include "kubebench.version" . }} is installed as release "{{ .Relea
 {{- else }} (custom ClusterRole "{{ include "kubebench.rbacName" . }}").
 {{- end }}
    Add more clusters in the Clusters view and grant them to users in Users.
+{{- if include "kubebench.openshift" . }}
+
+OpenShift: the pod is pinned to SCC "{{ include "kubebench.requiredSCC" . }}"; the project's ranges set its
+user and fsGroup. Check with:
+     oc -n {{ .Release.Namespace }} get pod -l app.kubernetes.io/instance={{ .Release.Name }} -o jsonpath='{.items[*].metadata.annotations.openshift\.io/scc}'
+{{- end }}
 {{- if not .Values.persistence.enabled }}
 
 WARNING: persistence is disabled. Users, sessions and the cluster inventory

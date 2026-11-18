@@ -1,0 +1,10 @@
+# OpenShift mode with a reencrypt Route: the pod serves HTTPS with a service
+# CA certificate, and runs in a user namespace (restricted-v3).
+openshift:
+  enabled: true
+route:
+  enabled: true
+  path: /
+  tls:
+    termination: reencrypt
+hostUsers: false

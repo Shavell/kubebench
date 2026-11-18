@@ -107,10 +107,17 @@ cluster always gets a fresh random value.
 {{- end -}}
 {{- end -}}
 
-{{/* KUBEBENCH_TRUST_PROXY: config.trustProxy, or whether an Ingress fronts the pod. */}}
+{{/*
+KUBEBENCH_TRUST_PROXY: config.trustProxy, or whether an Ingress or a Route
+that terminates HTTP (edge, reencrypt; not passthrough) fronts the pod.
+*/}}
 {{- define "kubebench.trustProxy" -}}
 {{- if kindIs "invalid" .Values.config.trustProxy -}}
+{{- if and (include "kubebench.route" .) (ne .Values.route.tls.termination "passthrough") -}}
+true
+{{- else -}}
 {{- .Values.ingress.enabled -}}
+{{- end -}}
 {{- else -}}
 {{- .Values.config.trustProxy -}}
 {{- end -}}
@@ -132,4 +139,5 @@ cluster always gets a fresh random value.
 {{- if and .Values.ingress.enabled (not .Values.ingress.hosts) -}}
 {{- fail "ingress.enabled needs at least one entry in ingress.hosts" -}}
 {{- end -}}
+{{- include "kubebench.validateOpenShift" . -}}
 {{- end -}}
