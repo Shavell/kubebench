@@ -1326,8 +1326,10 @@ Details settled by the implementation (shapes match
 `src/plugins/security/data/types.ts`):
 
 - `POST /scan` takes an optional body `{"includeSystem": bool}` (unknown
-  fields `400`). System objects are the namespaces `kube-system`,
-  `kube-public`, `kube-node-lease` and the cluster's own RBAC: the
+  fields `400`). System objects are the system namespaces (`kube-*`,
+  `openshift`, `openshift-*` and, since v0.8, those labelled
+  `openshift.io/run-level` or `openshift.io/cluster-monitoring=true`,
+  §7.15) and the cluster's own RBAC: the
   `kubernetes.io/bootstrapping=rbac-defaults` label, `system:*` names,
   bindings whose subjects are all `system:` users/groups or ServiceAccounts
   of a system namespace (also as `system:serviceaccount:<ns>:<name>` users
@@ -1664,7 +1666,8 @@ each minor (1.29–1.37 as of 2026-11-15) ends: upstream (end of patch
 support), EKS (end of standard support), AKS (end of life, no LTS), GKE
 (end of standard support). Extended/LTS support is not assumed (it costs
 extra or must be opted into). `eks`/`aks`/`gke` use their table, OpenShift
-none, everything else (k3s, RKE2, DOKS, LKE, OVH, kubernetes) upstream's.
+its own by OpenShift version (§7.15), everything else (k3s, RKE2, DOKS,
+LKE, OVH, kubernetes) upstream's.
 `status`: `end-of-life` after the end date (or for a minor older than
 the table), `ending-soon` within 90 days of it, `supported` before, else
 `unknown` (no table, a minor newer than the table, unparseable version).
@@ -2103,6 +2106,137 @@ origin), and a live Playwright check on k3d with a hostile in-cluster page
 `/api/auth/me`, a namespace create, a popup, top navigation, a planted
 session cookie and `Clear-Site-Data`) — none of which reaches KubeBench —
 plus form posts and WebSocket echo through the proxy.
+
+### 7.15 OpenShift (v0.8)
+
+KubeBench knows OpenShift's own APIs, version and security model. Every
+part is read-only (no new OpenShift mutations) and appears only where the
+cluster serves the API group, so other clusters see no change.
+
+**Resource types** (generic catalog, `kube.Catalog` + workloads
+`openshiftCatalog.tsx`): `routes` (route.openshift.io/v1), `projects`
+(project.openshift.io/v1, cluster-scoped), `securitycontextconstraints`
+(security.openshift.io/v1, cluster-scoped), `deploymentconfigs`
+(apps.openshift.io/v1, deprecated upstream but common), `buildconfigs` and
+`builds` (build.openshift.io/v1), `imagestreams` and `imagestreamtags`
+(image.openshift.io/v1).
+
+- They are *optional* (`kube.OptionalResources`): the capability probe
+  reads the server's group list once (`ServerGroups`, one request) and
+  reports the served keys as `capabilities.optionalResources` of
+  `/api/info`. The UI lists only those (`ResourceDescriptor.optional`,
+  `isServed`): the workloads sidebar groups them under "OpenShift"
+  (Projects under Cluster, next to Namespaces), the palette's `get`/`describe`
+  kinds (short names `dc`, `bc`, `is`, `istag`, `scc`) likewise; a group
+  without entries is hidden. `/api/resource` lists an unserved type as
+  empty, like any type the cluster does not serve.
+- Columns: Route host (a link to the public URL), path, Service and
+  targetPort, TLS termination, admission (every router's `Admitted`
+  condition: Admitted / Not admitted with the reason / Pending); Project
+  display name, phase, requester; SCC privileged, runAsUser and SELinux
+  strategies, number of users and groups; DeploymentConfig ready/desired,
+  trigger types, latest version; BuildConfig strategy, source (Git URI),
+  last build; Build phase, strategy, duration (`status.duration`, else
+  start to completion); ImageStream repository (public, else internal)
+  and tags; ImageStreamTag image reference.
+- Detail pages are the generic detail page with the kind's extra rows
+  (`details`: a Route's routers and alternate backends, a BuildConfig's
+  output, a Build's reason, message and output image, an SCC's users,
+  groups and volumes) and, for every generic kind, a Conditions section
+  from `status.conditions`.
+- Live-update topics are group-qualified (`ResourceDescriptor.topic`, e.g.
+  `builds.build.openshift.io`: `config.openshift.io` has `builds` and
+  `projects` too); ImageStreamTags, which cannot be watched, follow their
+  ImageStreams.
+- Topology (§7.9): Route → Service edges (`spec.to` and
+  `alternateBackends` of kind Service), Routes in the Ingress column with
+  the Ingress status rules; "Show topology" on Routes.
+
+**Service browser** (§7.14): `POST /api/proxy/routes/{ns}/{name}?scheme=`
+(browse, audited once as `route.proxy`, target `route/<ns>/<name>`,
+detail `{"scheme","host","path","service","readOnly"?}`) opens a grant for
+the Service port behind a Route, read through the dynamic client: the
+targetPort as the router resolves it (a name is a Service port name, then
+a named target port; a number the Service port's target port, then its
+port; none: the first port), the Route's host as the grant's `host`. A
+Route to something other than a Service (`proxy.route_not_service`) or
+without a matching port (`proxy.route_no_port`) is `400`. The router
+itself (TLS termination, rewrites) is not involved. "Open in browser" on
+Route rows and detail pages opens tab props `{kind: 'routes', namespace,
+name}`: the address bar shows `https://<host>` (https when the Route
+terminates TLS), the frame starts at the Route's path, the scheme picker
+defaults to https for passthrough and re-encrypt Routes, and an "Open
+route URL" button opens the public `http(s)://<host><path>` through the
+router in a new browser tab (`noopener`).
+
+**Version support** (§7.12): detection reads the ClusterVersion `version`
+(config.openshift.io/v1; the newest `Completed` entry of
+`status.history`, else `status.desired.version`) into
+`Detection.ProductVersion`; a readable ClusterVersion also marks the
+cluster as OpenShift. `cloud.SupportOf` judges OpenShift by that version
+against `openShiftLifecycle` (`internal/cloud/openshift.go`: 4.12–5.0,
+full support, maintenance support and EUS term 1 ends, with sources and
+an as-of date), everything else as before. `status` follows the end of
+maintenance support (`endDate`; EUS is not assumed, like the clouds'
+extended support), `phase` is `full`, `maintenance`, `eus` or `ended`,
+with `fullSupportEnd` and `eusEnd`; without a readable ClusterVersion the
+status is `unknown`. `platform.productVersion` carries the OpenShift
+version; the provider badge shows it ("OpenShift 5.0.0 (Kubernetes
+v1.36.5)" and the phases in its tooltip), the overview notice names
+OpenShift and, in the EUS phase, warns instead of erroring.
+
+**Security plugin** (§7.7):
+
+- System namespaces (excluded by default): `kube-*`, `openshift`,
+  `openshift-*`, and namespaces labelled `openshift.io/run-level` (any
+  value) or `openshift.io/cluster-monitoring=true`; ServiceAccounts there
+  are system subjects. The report's `systemNamespaces` lists the cluster's
+  (sorted), the UI names four and counts the rest.
+- SCCs are listed through the dynamic client (`internal/openshift`); not
+  served: the OpenShift checks neither run nor count as skipped, and the
+  category `openshift` is left out of `byCategory`; listing refused: the
+  SCC-target checks are skipped with the reason and the others judge SCCs
+  by OpenShift's default risky names. An SCC is *privileged* when it
+  allows privileged containers, host directories, network, ports, PID or
+  IPC, any capability or hostPath volumes, *anyuid* when it allows any
+  UID, else restricted; *default* when OpenShift ships it
+  (`include.release.openshift.io/*` annotations, ClusterVersion owner, or
+  `app.kubernetes.io/part-of: openshift-*`).
+- Checks (category `openshift`, frameworks "CIS OpenShift 5.2.x",
+  "OpenShift SCC guide"): `scc-privileged-subjects` (high, target `scc`):
+  a privileged or anyuid SCC lists users or groups in its own fields that
+  are not the cluster's (system users, groups and ServiceAccounts of system
+  namespaces are, unless they stand for everyone); `scc-privileged-binding`
+  (high, bindings): a role bound to non-system subjects may `use` a
+  privileged or anyuid SCC (by name, or every SCC without resourceNames) —
+  OpenShift's `system:openshift:scc:*` names do not make such a binding a
+  system one, `oc adm policy add-scc-to-user` creates them;
+  `scc-privileged-workload` (high, workloads): pods were admitted with a
+  privileged or anyuid SCC (`openshift.io/scc` annotation, reported on the
+  pod's Deployment, CronJob, StatefulSet, DaemonSet or the pod; build pods
+  are left out, the build controller runs every build privileged);
+  `scc-custom-privileged` (medium, `scc`): an SCC OpenShift does not ship
+  allows privileged containers or host directories. With `includeSystem`
+  every subject counts. Finding keys use the kind
+  `SecurityContextConstraints`; `inventory` counts
+  `securitycontextconstraints`.
+- Measured on OpenShift 5.0 (CRC, default options): 633 findings, 505 in
+  `openshift-*` namespaces, before; 73, none there, after (4 of them SCC
+  findings: the hostpath-provisioner add-on's custom privileged SCC, its
+  grant and DaemonSet, and `kubeadmin`'s cluster-admin grant of every SCC).
+
+**Access plugin** (§7.8): `GET /risky` adds `scc-privileged` (critical)
+and `scc-anyuid` (high) for rules that may `use` such SCCs, judged by the
+cluster's SCCs (classification above; OpenShift's default names when they
+cannot be listed; none off OpenShift).
+
+**Mock**: a fourth mock cluster `ocp-lab` (OpenShift 5.0.0, full support)
+serves the OpenShift types (`data/mock/mockOpenShift.ts`: Routes, one not
+admitted and one to a missing Service, Projects, SCCs incl. a custom
+privileged one, a DeploymentConfig, a BuildConfig with three Builds, an
+ImageStream and its tag), its security report has the SCC findings and
+its RBAC the `system:openshift:scc:*` grants; the other mock clusters
+serve none of it.
 
 ## 8. Distribution
 

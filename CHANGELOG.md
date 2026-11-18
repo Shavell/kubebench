@@ -16,6 +16,34 @@ those commits.
 
 ## [Unreleased]
 
+### Added
+
+- **OpenShift resources**: on OpenShift clusters the Workloads sidebar has
+  an OpenShift group with Routes, DeploymentConfigs, BuildConfigs, Builds,
+  ImageStreams, ImageStreamTags and Security Context Constraints, and
+  Projects next to Namespaces, with columns of their own (Route host,
+  TLS termination and admission, build phase and duration, …), conditions
+  on the detail pages and Route → Service edges in the topology. Other
+  clusters do not show them.
+- **Open a Route in the service browser**: "Open in browser" on a Route
+  opens the Service behind it with the Route's host, and "Open route URL"
+  opens its public address.
+- **OpenShift version support**: the provider badge shows the OpenShift
+  version (read from the ClusterVersion) and Red Hat's life cycle (full
+  support, maintenance support, Extended Update Support), with a warning
+  when it ends.
+- **OpenShift security checks**: privileged and anyuid SCCs granted to
+  users, groups or ServiceAccounts (in the SCC or through RBAC), workloads
+  admitted with them and custom privileged SCCs; risky roles list SCC
+  "use" grants.
+
+### Changed
+
+- **Security scans skip OpenShift's own namespaces** (`openshift`,
+  `openshift-*`, `kube-*` and those OpenShift labels as its own) unless
+  system namespaces are included; on a fresh OpenShift 5.0 cluster the
+  default scan went from 633 to 73 findings.
+
 ## [0.7.0] - 2026-11-18
 
 ### Added

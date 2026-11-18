@@ -155,13 +155,33 @@ capability probe and provider detection:
                            "support": {"status": "supported", "endDate": "2027-02-28", "basis": "kubernetes"},
                            "detected": true}},
   "permissions": {"role": "admin", "canRead": true, "canWrite": true, "canExec": true, "isAdmin": true, "readOnly": false},
-  "capabilities": {"crds": true, "helm": true, "exec": true},
+  "capabilities": {"crds": true, "helm": true, "exec": true, "optionalResources": []},
   "features": {"pathKubeconfig": true, "externalPlugins": true, "ambientCloudIdentity": false},
   "clusterError": ""
 }
 ```
 
 Without a usable cluster, `cluster` is `null` and `clusterError` says why.
+
+On OpenShift (§7.15) `capabilities.optionalResources` lists the OpenShift
+catalog keys the cluster serves (`routes`, `projects`,
+`securitycontextconstraints`, `deploymentconfigs`, `buildconfigs`, `builds`,
+`imagestreams`, `imagestreamtags`), and `platform` carries the OpenShift
+version and its life cycle:
+
+```json
+"platform": {"provider": "openshift", "cloud": "", "version": "v1.36.5", "productVersion": "5.0.0",
+             "support": {"status": "supported", "endDate": "2028-11-30", "basis": "openshift",
+                         "phase": "full", "fullSupportEnd": "2027-11-30"},
+             "detected": true}
+```
+
+`productVersion` is read from the ClusterVersion `version`
+(`config.openshift.io/v1`); without it the support status is `unknown`.
+`endDate` is the end of maintenance support; `phase` is `full`,
+`maintenance`, `eus` (past maintenance, in Extended Update Support, which
+an EUS subscription needs: the status stays `end-of-life`) or `ended`;
+`eusEnd` is set for minors with Extended Update Support.
 
 ## Users (admin)
 
@@ -223,7 +243,7 @@ All `read` unless stated.
 | GET | `/api/pods` | `?ns=` (empty = all) | `Pod[]` |
 | GET | `/api/deployments` | `?ns=` | `Deployment[]` (with `paused` when set) |
 | GET | `/api/services` | `?ns=` | `Service[]` |
-| GET | `/api/resource` | `?key=<catalog key>&ns=` | generic list of a built-in kind (`configmaps`, `secrets`, `statefulsets`, `ingresses`, `persistentvolumeclaims`, `clusterroles`, …; see `backend/internal/kube/catalog.go`) |
+| GET | `/api/resource` | `?key=<catalog key>&ns=` | generic list of a built-in kind (`configmaps`, `secrets`, `statefulsets`, `ingresses`, `persistentvolumeclaims`, `clusterroles`, …; see `backend/internal/kube/catalog.go`); OpenShift's `routes`, `projects`, `securitycontextconstraints`, `deploymentconfigs`, `buildconfigs`, `builds`, `imagestreams`, `imagestreamtags` (§7.15) list as empty on clusters that do not serve them |
 | GET | `/api/resource/get` | `?key=&ns=&name=` | one object of that kind |
 | GET | `/api/yaml` | `?apiVersion=&kind=&ns=&name=&neat=true` | `{"yaml"}`; without `apiVersion` only the kinds v0.4 knew; `neat` strips server-maintained fields |
 | GET | `/api/events` | `?kind=&ns=&name=` | `K8sEvent[]` about that object |
@@ -338,6 +358,7 @@ and filesystem series need Prometheus.
 | POST | `/api/proxy/services/{ns}/{name}/{port}` | browse | `?scheme=http\|https` (default `http`); `port` is a Service port number or name | `ProxySession`; audited once as `service.proxy`, target `service/<ns>/<name>:<port>` |
 | POST | `/api/proxy/pods/{ns}/{name}/{port}` | browse | as above; a port name must be a container port's | `ProxySession`; audited once as `pod.proxy` |
 | POST | `/api/proxy/ingresses/{ns}/{name}` | browse | `?host=&path=` of one rule path, or `?default=true` for the default backend (a rule may have neither host nor path, so empty values do not name the default backend), `?scheme=` | `ProxySession` for the Service port of that route, with `target.host` = the rule's host (none for a wildcard host); audited once as `ingress.proxy`, target `ingress/<ns>/<name>`, detail `{"scheme","host","path","service"}` (plus `"default":true`) |
+| POST | `/api/proxy/routes/{ns}/{name}` | browse | `?scheme=` | OpenShift (§7.15): `ProxySession` for the Service port behind the Route (its `targetPort` as a Service port name, a named or numbered target port, or a port number; none: the first port), with `target.host` = the Route's host; `400` (`proxy.route_not_service`, `proxy.route_no_port`) for a Route that does not lead to a Service port; audited once as `route.proxy`, target `route/<ns>/<name>`, detail `{"scheme","host","path","service"}` |
 | GET | `/api/proxy/sessions/{token}` | authed | only the session that opened it | `ProxySession` with the latest `navigations` |
 | DELETE | `/api/proxy/sessions/{token}` | authed | only the session that opened it | `{"ok":true}` |
 | GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS | `/proxy/{token}/{path...}` | public (the token is the credential) | anything the proxied page sends | the page, through `/api/v1/namespaces/<ns>/<services\|pods>/<scheme>:<name>:<port>/proxy/<path>` |
@@ -426,7 +447,7 @@ Always available. Scans only read the cluster.
 
 | Method | Path | Level | Parameters | Answer |
 |---|---|---|---|---|
-| POST | `/scan` | read | `{"includeSystem"?: bool}` | the report: `generatedAt`, `score`, `counts`, `findings`, `skipped`, `warnings`, `inventory`; `409` while a scan with other options runs |
+| POST | `/scan` | read | `{"includeSystem"?: bool}` | the report: `generatedAt`, `score`, `counts`, `findings`, `skipped`, `warnings`, `inventory`, `systemNamespaces`; `409` while a scan with other options runs. On OpenShift the SCC checks run too (category `openshift`, target `scc`; §7.15) and `inventory` counts `securitycontextconstraints` |
 | GET | `/report` | read | — | the last report of the cluster, or `null` |
 | GET | `/checks` | read | — | the check catalog |
 | GET | `/export` | read | `?format=md\|csv` | a file download; `404` before the first scan |
@@ -443,7 +464,7 @@ Always available; every route is `read` and not audited.
 | GET | `/subjects` | — | users, groups and ServiceAccounts named by bindings |
 | GET | `/subjects/{kind}/{name}` | `?namespace=` | `{subject, user, groups, missing?, bindings, rules}` (effective rules with their binding path) |
 | GET | `/who-can` | `?verb=&group=&resource=&subresource=&namespace=&name=` or `?verb=&path=` | `{request, subjects:[{kind, name, namespace?, grants}]}` |
-| GET | `/risky` | — | roles with risks, most severe first |
+| GET | `/risky` | — | roles with risks, most severe first; on OpenShift also `scc-privileged` (critical) and `scc-anyuid` (high) for "use" of privileged or anyuid SCCs (§7.15) |
 | GET | `/graph` | `?namespace=&system=true` | `{subjects, bindings, roles, edges, truncated}` (≤ 300 bindings) |
 | POST | `/review` | `{"subject":{kind,name,namespace?},"verb","group","resource","subresource","namespace","name"}` or `{subject, verb, path}` | `{allowed, denied?, reason?, evaluationError?, user, groups, grants}` (a SubjectAccessReview; 30 per user per minute) |
 
@@ -487,7 +508,7 @@ routes and the passthrough.
 
 The router writes one row per audited request: `action` is
 `"<METHOD> <route pattern>"` (for example `POST /api/deployments/scale`) or
-a named action (`exec.session`, `service.proxy`, `argocd.sync`; external
+a named action (`exec.session`, `service.proxy`, `route.proxy`, `argocd.sync`; external
 sign-ins are `auth.signin` rows with `{"source"}` or
 `{"source","reason":"<failure class>"}`, written by the sign-in routes
 themselves), `target` is
