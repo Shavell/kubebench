@@ -27,6 +27,28 @@ export interface BrowserTarget {
   host?: string
   /** The Ingress route the session was opened through, if any (client side). */
   ingress?: IngressRouteRef
+  /** The OpenShift Route the session was opened through, if any (client side; design §7.15). */
+  route?: OpenShiftRouteRef
+}
+
+/** An OpenShift Route a session is opened through: the server resolves it to its Service port. */
+export interface OpenShiftRouteRef {
+  name: string
+  host: string
+  path: string
+  /** The Route terminates TLS (edge, passthrough or re-encrypt): its public URL is https. */
+  tls: boolean
+}
+
+/** An OpenShift Route and the Service it leads to. */
+export interface OpenShiftRoute extends OpenShiftRouteRef {
+  /** edge, passthrough, reencrypt or "" (none). */
+  termination: string
+  service: string
+  /** The Route's targetPort (Service port name or target port number), "" when it names none. */
+  targetPort: string
+  /** https for passthrough and re-encrypt Routes, else guessed from the port. */
+  scheme: Scheme
 }
 
 /** One route of an Ingress: a rule's host and path, or the default backend (both ""). */

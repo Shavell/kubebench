@@ -1,4 +1,4 @@
-import type { BrowserKind, BrowserPort, BrowserTarget, FrameSource, IngressRoute, ProxySession } from './types'
+import type { BrowserKind, BrowserPort, BrowserTarget, FrameSource, IngressRoute, OpenShiftRoute, ProxySession } from './types'
 
 /**
  * The service browser's data capability (design §7.14). Live: the core
@@ -10,10 +10,13 @@ export interface ServiceBrowserProvider {
   listPorts(kind: BrowserKind, namespace: string, name: string): Promise<BrowserPort[]>
   /** The routes of an Ingress that lead to a Service port. */
   listIngressRoutes(namespace: string, name: string): Promise<IngressRoute[]>
+  /** An OpenShift Route (design §7.15); rejects for one that does not lead to a Service. */
+  getRoute(namespace: string, name: string): Promise<OpenShiftRoute>
   /**
    * Opens a browsing session (needs the browse permission; audited once).
    * A target with `ingress` opens it through that Ingress route: the server
-   * resolves the route and sends the rule's host.
+   * resolves the route and sends the rule's host; one with `route` opens
+   * it through that OpenShift Route the same way.
    */
   open(target: BrowserTarget): Promise<ProxySession>
   /** The session as it is now, with the documents its frames loaded. */

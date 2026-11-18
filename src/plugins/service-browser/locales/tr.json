@@ -48,5 +48,10 @@
     "route": "{{from}} → {{service}}:{{port}}",
     "defaultBackend": "Varsayılan backend",
     "via": "{{address}}; kuralın host'u ile {{service}} Service'i üzerinden erişilir. Ingress controller'ın yol yeniden yazmaları uygulanmaz."
+  },
+  "route": {
+    "loading": "Route okunuyor…",
+    "via": "{{address}}, Route'un host'uyla {{service}} Service'i üzerinden erişiliyor. OpenShift router'ı (TLS sonlandırma, yeniden yazmalar) devreye girmez.",
+    "openPublic": "Route adresini ({{url}}) yeni bir tarayıcı sekmesinde açın (KubeBench üzerinden değil, OpenShift router'ı üzerinden)"
   }
 }
