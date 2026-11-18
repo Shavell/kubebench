@@ -17,6 +17,7 @@ import { securityPlugin } from './security/manifest'
 import { topologyPlugin } from './topology/manifest'
 import { notesPlugin } from './notes/manifest'
 import { serviceBrowserPlugin } from './service-browser/manifest'
+import { authenticationPlugin } from './authentication/manifest'
 
 /**
  * The single place built-in modules are wired in. Comment one out and its
@@ -43,4 +44,4 @@ export const allPlugins: PluginManifest[] = [
 ]
 
 /** Registered at boot only when the signed-in user is a global admin. */
-export const adminPlugins: PluginManifest[] = [usersPlugin, auditPlugin]
+export const adminPlugins: PluginManifest[] = [usersPlugin, auditPlugin, authenticationPlugin]

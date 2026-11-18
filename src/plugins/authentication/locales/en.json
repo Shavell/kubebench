@@ -1,0 +1,157 @@
+{
+  "manifest": {
+    "name": "Authentication",
+    "description": "Sign-in methods, group mappings for external users and a sign-in preview"
+  },
+  "commands": {
+    "open": "Open Authentication Settings"
+  },
+  "tab": {
+    "title": "Authentication"
+  },
+  "page": {
+    "title": "Authentication",
+    "loading": "Loading…"
+  },
+  "actions": {
+    "refresh": "Refresh",
+    "edit": "Edit",
+    "delete": "Delete",
+    "deleteNamed": "Delete the mapping of {{group}}",
+    "cancel": "Cancel"
+  },
+  "settings": {
+    "title": "Authentication",
+    "methods": "Sign-in methods",
+    "summary": "{{methods}} · {{count}} group mappings",
+    "open": "Open Authentication",
+    "keys": {
+      "issuer": "Issuer",
+      "clientId": "Client ID",
+      "clientSecret": "Client secret",
+      "redirectUrl": "Redirect URL",
+      "scopes": "Scopes",
+      "usernameClaim": "Username claim",
+      "groupsClaim": "Groups claim",
+      "allowedDomains": "Allowed email domains",
+      "caFile": "CA bundle",
+      "publicUrl": "Public URL",
+      "requireGroup": "Users without a mapped group"
+    }
+  },
+  "methods": {
+    "local": "KubeBench accounts"
+  },
+  "sources": {
+    "any": "Any provider",
+    "local": "KubeBench account",
+    "oidc": "OIDC / SSO",
+    "ldap": "LDAP / Active Directory"
+  },
+  "roles": {
+    "admin": "Administrator",
+    "operator": "Operator",
+    "viewer": "Viewer",
+    "user": "User"
+  },
+  "providers": {
+    "title": "Sign-in methods",
+    "enabled": "Enabled",
+    "reachable": "Reachable",
+    "unreachable": "Unreachable",
+    "secretSet": "Configured (never shown)",
+    "secretUnset": "Not set (public client)",
+    "notSet": "Not set",
+    "breakGlass": "Local accounts always work. The last local administrator cannot be removed or demoted, so it stays as the break-glass account when the identity provider is unavailable.",
+    "none": "No identity provider is configured. Configure OIDC with the KUBEBENCH_OIDC_* environment variables (see the configuration guide).",
+    "publicUrlDerived": "(derived from the request; set KUBEBENCH_PUBLIC_URL)",
+    "requireGroupOn": "Refused (KUBEBENCH_AUTH_REQUIRE_GROUP)",
+    "requireGroupOff": "May sign in but see no cluster",
+    "configHint": "Provider settings come from the server's environment and cannot be changed here. Secrets are never sent to the browser."
+  },
+  "mappings": {
+    "title": "Group mappings",
+    "notice": "Mappings are applied at every sign-in of an external user: their role and cluster access are re-computed from their groups and replace any manual change made in Users. Changes here take effect at the user's next sign-in.",
+    "add": "Add mapping",
+    "empty": "No group mappings yet. External users can sign in but see no cluster.",
+    "globalAdmin": "Administrator (all clusters)",
+    "onCluster": "{{role}} on {{cluster}}",
+    "unknownCluster": "unknown cluster",
+    "unknownClusterHint": "No cluster of this name is registered. The mapping grants nothing until one is added.",
+    "deleted": "Mapping of {{group}} deleted.",
+    "deleteTitle": "Delete the mapping of {{group}}?",
+    "deleteMessage": "Members of the group lose this access at their next sign-in. Current sessions keep their access until then.",
+    "columns": {
+      "group": "Group",
+      "source": "Provider",
+      "grants": "Grants",
+      "actions": "Actions"
+    }
+  },
+  "dialog": {
+    "createTitle": "Add group mapping",
+    "editTitle": "Edit group mapping",
+    "description": "Members of the group get this access at their next sign-in.",
+    "group": "Group",
+    "groupHelp": "The group name as the provider reports it (an OIDC groups claim value or an LDAP group DN). Matched exactly, ignoring case.",
+    "source": "Provider",
+    "sourceHelp": "Limit the mapping to the groups of one provider, or apply it to all.",
+    "role": "Grants",
+    "roleHelp": "Administrators manage KubeBench and have full access to every cluster. Viewers read a cluster; operators may also change it.",
+    "cluster": "Cluster",
+    "clusterHelp": "The cluster's name in KubeBench.",
+    "unknownCluster": "No cluster of this name is registered yet; the mapping grants nothing until one is added.",
+    "submit": "Save",
+    "created": "Mapping of {{group}} added.",
+    "updated": "Mapping of {{group}} updated.",
+    "errors": {
+      "group": "Enter the group.",
+      "cluster": "Choose the cluster.",
+      "duplicate": "This group already has a mapping for this provider and cluster."
+    }
+  },
+  "preview": {
+    "title": "Test sign-in",
+    "help": "See what a user would get when signing in now, without creating a user or a session. Leave the groups empty to use the groups of the user's last sign-in (or, for a directory, the directory's).",
+    "provider": "Provider",
+    "username": "Username",
+    "groupsInput": "Groups (one per line)",
+    "groupsHelp": "Optional.",
+    "run": "Test",
+    "allowed": "Would sign in",
+    "refused": "Would be refused",
+    "groups": "Groups",
+    "noGroups": "No groups",
+    "groupsFrom": {
+      "input": "(as entered)",
+      "directory": "(from the directory)",
+      "lastSignIn": "(from the last sign-in, {{time}})",
+      "none": "(unknown user: no groups)"
+    },
+    "globalRole": "Global role",
+    "clusters": "Cluster access",
+    "allClusters": "All clusters",
+    "noClusters": "No cluster",
+    "matched": "Mappings",
+    "matchedCount_one": "{{count}} mapping applies",
+    "matchedCount_other": "{{count}} mappings apply",
+    "account": "Account",
+    "accountNew": "Created at the first sign-in",
+    "accountExisting": "Existing account; updated at sign-in",
+    "accountOther": "The username belongs to a {{source}}",
+    "errors": {
+      "username": "Enter a username (letters, digits, '.', '_', '@' or '-')."
+    }
+  },
+  "failures": {
+    "invalid_credentials": "Invalid username or password, or no such user in the directory.",
+    "account_disabled": "The account is disabled at the provider.",
+    "domain_not_allowed": "The email domain is not allowed.",
+    "no_matching_group": "No group is mapped to a role, and users without one are refused.",
+    "username_conflict": "The username belongs to another account; external sign-ins never take over an account.",
+    "invalid_username": "The username cannot be used in KubeBench.",
+    "invalid_request": "The sign-in could not be verified.",
+    "provider_error": "The identity provider could not be reached.",
+    "rate_limited": "Too many failed attempts."
+  }
+}

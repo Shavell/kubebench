@@ -104,5 +104,14 @@
       "self": "Kendi hesabınızı silemezsiniz.",
       "lastAdmin": "Son yönetici silinemez. Önce başka bir kullanıcıyı yönetici yapın."
     }
+  },
+  "external": {
+    "source": {
+      "oidc": "SSO",
+      "ldap": "Dizin"
+    },
+    "sourceHint": "Bir kimlik sağlayıcı üzerinden giriş yapar. Rolü ve cluster erişimi hesabın gruplarına göre belirlenir.",
+    "resetHint": "Bu hesap bir kimlik sağlayıcı üzerinden giriş yapar; parolası orada yönetilir.",
+    "mappedNote": "Bu hesap bir kimlik sağlayıcı üzerinden giriş yapar. Rolü ve cluster erişimi her girişte gruplarından yeniden hesaplanır (Ayarlar > Kimlik doğrulama); bu nedenle burada yaptığınız değişiklikler yalnızca bir sonraki girişe kadar geçerlidir."
   }
 }

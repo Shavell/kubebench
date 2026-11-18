@@ -76,6 +76,14 @@ export function UsersPage() {
           <Icon name="account" size={14} />
           {u.username}
           {u.username === me && <span className="users__muted">{t('table.you')}</span>}
+          {u.source !== 'local' && (
+            <span title={t('external.sourceHint')}>
+              <Badge tone="info">{t(`external.source.${u.source}`)}</Badge>
+            </span>
+          )}
+          {(u.displayName || u.email) && (
+            <span className="users__muted">{[u.displayName, u.email].filter(Boolean).join(' · ')}</span>
+          )}
         </span>
       ),
     },
@@ -98,6 +106,7 @@ export function UsersPage() {
       width: '1%',
       render: (u) => {
         const self = u.username === me
+        const external = u.source !== 'local'
         return (
           <span className="users__actions">
             <Button
@@ -113,8 +122,8 @@ export function UsersPage() {
             <Button
               variant="secondary"
               icon="key"
-              disabled={self}
-              title={self ? t('actions.resetOwnHint') : undefined}
+              disabled={self || external}
+              title={external ? t('external.resetHint') : self ? t('actions.resetOwnHint') : undefined}
               onClick={() => setDialog({ kind: 'reset', user: u })}
             >
               {t('actions.resetPassword')}

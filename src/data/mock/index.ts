@@ -16,6 +16,7 @@ import { mockK8sGet } from './mockK8s'
 import { createMockPlugins } from './mockPlugins'
 import { createMockSession } from './mockSession'
 import { createMockUsers } from './mockUsers'
+import { createMockIdentity } from './mockIdentity'
 import { mockEditing } from './mockEditing'
 import { createMockWorkloadOps } from './mockWorkloadOps'
 import { createMockUpdates } from './mockUpdates'
@@ -150,6 +151,7 @@ export function createMockProviders(): DataProviders {
     workloadOps: createMockWorkloadOps(),
     updates: createMockUpdates(),
     live: createMockLive(),
+    identity: createMockIdentity(),
     metrics: {
       listSources: () =>
         delay([

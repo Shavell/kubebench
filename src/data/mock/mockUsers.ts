@@ -1,7 +1,7 @@
 import { ApiError } from '../apiClient'
 import type { UsersProvider } from '../providers'
 import { MIN_PASSWORD_LENGTH, passwordLength, USERNAME_PATTERN } from '../rules'
-import type { AppUser, AssignmentRole, GlobalRole } from '../types'
+import type { AppUser, AssignmentRole, AuthSource, GlobalRole } from '../types'
 import { delay, delayReject } from './delay'
 import { mockClusterNames } from './mockInventory'
 
@@ -16,6 +16,8 @@ interface StoredUser {
   role: GlobalRole
   mustChangePassword: boolean
   assignments: { clusterId: number; role: AssignmentRole }[]
+  /** External users (design §3.6): source, profile and the groups of their last sign-in. */
+  external?: { source: Exclude<AuthSource, 'local'>; displayName: string; email: string; groups: string[]; lastSignIn: string }
 }
 
 /** The mock session always belongs to this user. */
@@ -42,6 +44,20 @@ const users: StoredUser[] = [
     assignments: [{ clusterId: 1, role: 'viewer' }],
   },
   { id: 4, username: 'ops-lead', role: 'admin', mustChangePassword: false, assignments: [] },
+  {
+    id: 5,
+    username: 'jane.doe',
+    role: 'user',
+    mustChangePassword: false,
+    assignments: [{ clusterId: 3, role: 'operator' }],
+    external: {
+      source: 'oidc',
+      displayName: 'Jane Doe',
+      email: 'jane.doe@example.com',
+      groups: ['sre', 'everyone'],
+      lastSignIn: '2026-11-02T08:30:00Z',
+    },
+  },
 ]
 
 function toAppUser(user: StoredUser, names: Map<number, string>): AppUser {
@@ -53,9 +69,22 @@ function toAppUser(user: StoredUser, names: Map<number, string>): AppUser {
     username: user.username,
     role: user.role,
     mustChangePassword: user.mustChangePassword,
+    source: user.external?.source ?? 'local',
+    displayName: user.external?.displayName ?? '',
+    email: user.external?.email ?? '',
     clusters: assignments.map((a) => a.cluster),
     assignments,
   }
+}
+
+/** The account with this username: its source and, for external users, the last sign-in. */
+export function mockAccount(
+  username: string,
+): { source: AuthSource; groups: string[]; lastSignIn: string | null } | undefined {
+  const user = users.find((u) => u.username === username)
+  if (!user) return undefined
+  if (!user.external) return { source: 'local', groups: [], lastSignIn: null }
+  return { source: user.external.source, groups: user.external.groups, lastSignIn: user.external.lastSignIn }
 }
 
 function find(id: number): StoredUser | undefined {
@@ -65,8 +94,9 @@ function find(id: number): StoredUser | undefined {
 export const badRequest = (message: string) => new ApiError(400, 'bad_request', message)
 const conflict = (message: string) => new ApiError(409, 'conflict', message)
 const notFound = (id: number) => new ApiError(404, 'not_found', `user ${id} not found`)
+/** Only local admins count: they are the break-glass accounts (design §3.6). */
 const isLastAdmin = (user: StoredUser) =>
-  user.role === 'admin' && users.filter((u) => u.role === 'admin').length === 1
+  user.role === 'admin' && !user.external && users.filter((u) => u.role === 'admin' && !u.external).length === 1
 
 export function createMockUsers(): UsersProvider {
   return {
@@ -98,7 +128,10 @@ export function createMockUsers(): UsersProvider {
       const user = find(id)
       if (!user) return delayReject(notFound(id))
       if (update.role === 'user' && isLastAdmin(user)) {
-        return delayReject(conflict('cannot demote the last admin'))
+        return delayReject(conflict('cannot demote the last local admin'))
+      }
+      if (update.password !== undefined && user.external) {
+        return delayReject(badRequest('this account signs in through an identity provider; its password is managed there'))
       }
       if (update.password !== undefined && passwordLength(update.password) < MIN_PASSWORD_LENGTH) {
         return delayReject(badRequest(`password must be at least ${MIN_PASSWORD_LENGTH} characters`))
@@ -113,7 +146,7 @@ export function createMockUsers(): UsersProvider {
       if (user.username === MOCK_USERNAME) {
         return delayReject(conflict('cannot delete your own account'))
       }
-      if (isLastAdmin(user)) return delayReject(conflict('cannot delete the last admin'))
+      if (isLastAdmin(user)) return delayReject(conflict('cannot delete the last local admin'))
       users.splice(users.indexOf(user), 1)
       return delay(undefined)
     },

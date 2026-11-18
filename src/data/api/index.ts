@@ -13,6 +13,7 @@ import { createApiMetrics } from './metrics'
 import { createApiWorkloadOps } from './workloadOps'
 import { createApiUpdates } from './updates'
 import { createApiLive } from './watch'
+import { createApiIdentity } from './identity'
 
 /**
  * Live providers backed by the Go backend (`/api`). Capabilities come from
@@ -32,5 +33,6 @@ export function createApiProviders(capabilities: LiveCapabilities): DataProvider
     workloadOps: createApiWorkloadOps(),
     updates: createApiUpdates(),
     live: createApiLive(),
+    identity: createApiIdentity(),
   }
 }

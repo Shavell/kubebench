@@ -104,5 +104,14 @@
       "self": "Sie können Ihr eigenes Konto nicht löschen.",
       "lastAdmin": "Der letzte Administrator kann nicht gelöscht werden. Machen Sie zuerst einen anderen Benutzer zum Administrator."
     }
+  },
+  "external": {
+    "source": {
+      "oidc": "SSO",
+      "ldap": "Verzeichnis"
+    },
+    "sourceHint": "Meldet sich über einen Identitätsanbieter an. Rolle und Cluster-Zugriff folgen den Gruppen des Kontos.",
+    "resetHint": "Dieses Konto meldet sich über einen Identitätsanbieter an; sein Kennwort wird dort verwaltet.",
+    "mappedNote": "Dieses Konto meldet sich über einen Identitätsanbieter an. Seine Rolle und sein Cluster-Zugriff werden bei jeder Anmeldung aus seinen Gruppen neu berechnet (Einstellungen > Authentifizierung). Änderungen hier gelten daher nur bis zur nächsten Anmeldung."
   }
 }

@@ -165,6 +165,23 @@
       "rateLimited": "Too many failed attempts. Please wait a few minutes and try again.",
       "network": "Cannot reach the KubeBench server",
       "failed": "Sign-in failed"
+    },
+    "external": {
+      "signInWith": "Sign in with {{name}}",
+      "or": "or with a KubeBench account",
+      "account": "Account",
+      "localAccount": "KubeBench account",
+      "failures": {
+        "invalid_credentials": "Invalid username or password",
+        "account_disabled": "This account is disabled.",
+        "domain_not_allowed": "Accounts of this email domain may not sign in to KubeBench.",
+        "no_matching_group": "None of your groups grants access to KubeBench. Ask an administrator to map one of them.",
+        "username_conflict": "Your username belongs to another KubeBench account. Ask an administrator.",
+        "invalid_username": "Your account's username cannot be used in KubeBench. Ask an administrator.",
+        "invalid_request": "The sign-in could not be verified. Please try again.",
+        "provider_error": "The identity provider could not be reached or refused the sign-in.",
+        "rate_limited": "Too many failed attempts. Please wait a few minutes and try again."
+      }
     }
   }
 }

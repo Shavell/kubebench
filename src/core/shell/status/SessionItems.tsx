@@ -42,10 +42,13 @@ export function VersionItem() {
   )
 }
 
-/** The signed-in user; its menu changes the password or signs out. */
+/**
+ * The signed-in user; its menu changes the password (local accounts only:
+ * an identity provider manages the others, design §3.6) or signs out.
+ */
 export function UserItem() {
   const { t } = useTranslation(PLATFORM_NS)
-  const { user, role, mode } = useDataMode()
+  const { user, role, mode, authSource } = useDataMode()
   const { session } = useProviders()
   const show = useWorkbenchDialog((s) => s.show)
   const { anchor, toggle, close } = useMenuAnchor()
@@ -74,13 +77,17 @@ export function UserItem() {
             role: t(role === 'admin' ? 'roles.admin' : 'roles.user'),
           })}
           entries={[
-            {
-              id: 'password',
-              label: t('statusBar.user.changePassword'),
-              icon: 'key',
-              onSelect: () => show('changePassword'),
-            },
-            { type: 'separator', id: 'sep' },
+            ...(authSource && authSource !== 'local'
+              ? []
+              : [
+                  {
+                    id: 'password',
+                    label: t('statusBar.user.changePassword'),
+                    icon: 'key',
+                    onSelect: () => show('changePassword'),
+                  },
+                  { type: 'separator' as const, id: 'sep' },
+                ]),
             {
               id: 'signOut',
               label: t('session.signOut'),

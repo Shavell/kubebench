@@ -28,7 +28,10 @@ export function createWorkbenchPlugin(providers: DataProviders): PluginManifest 
     commands: [
       { id: 'workbench.about', title: 'commands.about', icon: 'info', run: () => show('about') },
       { id: 'workbench.shortcuts', title: 'commands.shortcuts', icon: 'keyboard', keybinding: '?', run: () => show('shortcuts') },
-      { id: 'workbench.changePassword', title: 'commands.changePassword', icon: 'key', run: () => show('changePassword') },
+      // Accounts of an identity provider have no local password (design §3.6).
+      ...(dataMode.authSource && dataMode.authSource !== 'local'
+        ? []
+        : [{ id: 'workbench.changePassword', title: 'commands.changePassword', icon: 'key', run: () => show('changePassword') }]),
       {
         id: 'workbench.signOut',
         title: 'commands.signOut',

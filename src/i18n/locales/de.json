@@ -165,6 +165,23 @@
       "rateLimited": "Zu viele fehlgeschlagene Versuche. Bitte warten Sie einige Minuten und versuchen Sie es erneut.",
       "network": "Der KubeBench-Server ist nicht erreichbar",
       "failed": "Anmeldung fehlgeschlagen"
+    },
+    "external": {
+      "signInWith": "Mit {{name}} anmelden",
+      "or": "oder mit einem KubeBench-Konto",
+      "account": "Konto",
+      "localAccount": "KubeBench-Konto",
+      "failures": {
+        "invalid_credentials": "Ungültiger Benutzername oder ungültiges Kennwort",
+        "account_disabled": "Dieses Konto ist deaktiviert.",
+        "domain_not_allowed": "Konten dieser E-Mail-Domain dürfen sich nicht bei KubeBench anmelden.",
+        "no_matching_group": "Keine Ihrer Gruppen gewährt Zugriff auf KubeBench. Bitten Sie einen Administrator, eine davon zuzuordnen.",
+        "username_conflict": "Ihr Benutzername gehört zu einem anderen KubeBench-Konto. Wenden Sie sich an einen Administrator.",
+        "invalid_username": "Der Benutzername Ihres Kontos kann in KubeBench nicht verwendet werden. Wenden Sie sich an einen Administrator.",
+        "invalid_request": "Die Anmeldung konnte nicht überprüft werden. Bitte versuchen Sie es erneut.",
+        "provider_error": "Der Identitätsanbieter ist nicht erreichbar oder hat die Anmeldung abgelehnt.",
+        "rate_limited": "Zu viele fehlgeschlagene Versuche. Bitte warten Sie einige Minuten und versuchen Sie es erneut."
+      }
     }
   }
 }

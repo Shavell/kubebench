@@ -1,0 +1,157 @@
+{
+  "manifest": {
+    "name": "Authentifizierung",
+    "description": "Anmeldemethoden, Gruppenzuordnungen für externe Benutzer und eine Anmeldevorschau"
+  },
+  "commands": {
+    "open": "Authentifizierungseinstellungen öffnen"
+  },
+  "tab": {
+    "title": "Authentifizierung"
+  },
+  "page": {
+    "title": "Authentifizierung",
+    "loading": "Wird geladen…"
+  },
+  "actions": {
+    "refresh": "Aktualisieren",
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "deleteNamed": "Zuordnung von {{group}} löschen",
+    "cancel": "Abbrechen"
+  },
+  "settings": {
+    "title": "Authentifizierung",
+    "methods": "Anmeldemethoden",
+    "summary": "{{methods}} · {{count}} Gruppenzuordnungen",
+    "open": "Authentifizierung öffnen",
+    "keys": {
+      "issuer": "Issuer",
+      "clientId": "Client-ID",
+      "clientSecret": "Client-Secret",
+      "redirectUrl": "Weiterleitungs-URL",
+      "scopes": "Scopes",
+      "usernameClaim": "Claim für den Benutzernamen",
+      "groupsClaim": "Claim für die Gruppen",
+      "allowedDomains": "Erlaubte E-Mail-Domains",
+      "caFile": "CA-Bundle",
+      "publicUrl": "Öffentliche URL",
+      "requireGroup": "Benutzer ohne zugeordnete Gruppe"
+    }
+  },
+  "methods": {
+    "local": "KubeBench-Konten"
+  },
+  "sources": {
+    "any": "Alle Anbieter",
+    "local": "KubeBench-Konto",
+    "oidc": "OIDC / SSO",
+    "ldap": "LDAP / Active Directory"
+  },
+  "roles": {
+    "admin": "Administrator",
+    "operator": "Operator",
+    "viewer": "Betrachter",
+    "user": "Benutzer"
+  },
+  "providers": {
+    "title": "Anmeldemethoden",
+    "enabled": "Aktiv",
+    "reachable": "Erreichbar",
+    "unreachable": "Nicht erreichbar",
+    "secretSet": "Konfiguriert (wird nie angezeigt)",
+    "secretUnset": "Nicht gesetzt (öffentlicher Client)",
+    "notSet": "Nicht gesetzt",
+    "breakGlass": "Lokale Konten funktionieren immer. Der letzte lokale Administrator kann weder entfernt noch herabgestuft werden und bleibt so das Notfallkonto, wenn der Identitätsanbieter nicht verfügbar ist.",
+    "none": "Kein Identitätsanbieter konfiguriert. Konfigurieren Sie OIDC mit den Umgebungsvariablen KUBEBENCH_OIDC_* (siehe Konfigurationsanleitung).",
+    "publicUrlDerived": "(aus der Anfrage abgeleitet; setzen Sie KUBEBENCH_PUBLIC_URL)",
+    "requireGroupOn": "Abgewiesen (KUBEBENCH_AUTH_REQUIRE_GROUP)",
+    "requireGroupOff": "Dürfen sich anmelden, sehen aber keinen Cluster",
+    "configHint": "Die Anbietereinstellungen stammen aus der Umgebung des Servers und können hier nicht geändert werden. Secrets werden nie an den Browser gesendet."
+  },
+  "mappings": {
+    "title": "Gruppenzuordnungen",
+    "notice": "Zuordnungen gelten bei jeder Anmeldung eines externen Benutzers: Rolle und Cluster-Zugriff werden aus seinen Gruppen neu berechnet und ersetzen manuelle Änderungen unter Benutzer. Änderungen hier wirken bei der nächsten Anmeldung des Benutzers.",
+    "add": "Zuordnung hinzufügen",
+    "empty": "Noch keine Gruppenzuordnungen. Externe Benutzer können sich anmelden, sehen aber keinen Cluster.",
+    "globalAdmin": "Administrator (alle Cluster)",
+    "onCluster": "{{role}} auf {{cluster}}",
+    "unknownCluster": "unbekannter Cluster",
+    "unknownClusterHint": "Kein Cluster dieses Namens ist registriert. Die Zuordnung gewährt nichts, bis einer hinzugefügt wird.",
+    "deleted": "Zuordnung von {{group}} gelöscht.",
+    "deleteTitle": "Zuordnung von {{group}} löschen?",
+    "deleteMessage": "Mitglieder der Gruppe verlieren diesen Zugriff bei ihrer nächsten Anmeldung. Bestehende Sitzungen behalten ihn bis dahin.",
+    "columns": {
+      "group": "Gruppe",
+      "source": "Anbieter",
+      "grants": "Gewährt",
+      "actions": "Aktionen"
+    }
+  },
+  "dialog": {
+    "createTitle": "Gruppenzuordnung hinzufügen",
+    "editTitle": "Gruppenzuordnung bearbeiten",
+    "description": "Mitglieder der Gruppe erhalten diesen Zugriff bei ihrer nächsten Anmeldung.",
+    "group": "Gruppe",
+    "groupHelp": "Der Gruppenname, wie ihn der Anbieter meldet (ein Wert des OIDC-Gruppen-Claims oder ein LDAP-Gruppen-DN). Exakter Vergleich ohne Beachtung der Groß-/Kleinschreibung.",
+    "source": "Anbieter",
+    "sourceHelp": "Beschränken Sie die Zuordnung auf die Gruppen eines Anbieters oder wenden Sie sie auf alle an.",
+    "role": "Gewährt",
+    "roleHelp": "Administratoren verwalten KubeBench und haben vollen Zugriff auf alle Cluster. Betrachter lesen einen Cluster; Operatoren dürfen ihn auch ändern.",
+    "cluster": "Cluster",
+    "clusterHelp": "Der Name des Clusters in KubeBench.",
+    "unknownCluster": "Noch ist kein Cluster dieses Namens registriert; die Zuordnung gewährt nichts, bis einer hinzugefügt wird.",
+    "submit": "Speichern",
+    "created": "Zuordnung von {{group}} hinzugefügt.",
+    "updated": "Zuordnung von {{group}} aktualisiert.",
+    "errors": {
+      "group": "Geben Sie die Gruppe ein.",
+      "cluster": "Wählen Sie den Cluster.",
+      "duplicate": "Diese Gruppe hat für diesen Anbieter und Cluster bereits eine Zuordnung."
+    }
+  },
+  "preview": {
+    "title": "Anmeldung testen",
+    "help": "Sehen Sie, was ein Benutzer bei einer Anmeldung jetzt erhielte, ohne einen Benutzer oder eine Sitzung anzulegen. Lassen Sie die Gruppen leer, um die Gruppen der letzten Anmeldung (bei einem Verzeichnis die des Verzeichnisses) zu verwenden.",
+    "provider": "Anbieter",
+    "username": "Benutzername",
+    "groupsInput": "Gruppen (eine pro Zeile)",
+    "groupsHelp": "Optional.",
+    "run": "Testen",
+    "allowed": "Würde angemeldet",
+    "refused": "Würde abgewiesen",
+    "groups": "Gruppen",
+    "noGroups": "Keine Gruppen",
+    "groupsFrom": {
+      "input": "(wie eingegeben)",
+      "directory": "(aus dem Verzeichnis)",
+      "lastSignIn": "(aus der letzten Anmeldung, {{time}})",
+      "none": "(unbekannter Benutzer: keine Gruppen)"
+    },
+    "globalRole": "Globale Rolle",
+    "clusters": "Cluster-Zugriff",
+    "allClusters": "Alle Cluster",
+    "noClusters": "Kein Cluster",
+    "matched": "Zuordnungen",
+    "matchedCount_one": "{{count}} Zuordnung trifft zu",
+    "matchedCount_other": "{{count}} Zuordnungen treffen zu",
+    "account": "Konto",
+    "accountNew": "Wird bei der ersten Anmeldung angelegt",
+    "accountExisting": "Bestehendes Konto; wird bei der Anmeldung aktualisiert",
+    "accountOther": "Der Benutzername gehört zu einem anderen Konto: {{source}}",
+    "errors": {
+      "username": "Geben Sie einen Benutzernamen ein (Buchstaben, Ziffern, '.', '_', '@' oder '-')."
+    }
+  },
+  "failures": {
+    "invalid_credentials": "Ungültiger Benutzername oder ungültiges Kennwort, oder kein solcher Benutzer im Verzeichnis.",
+    "account_disabled": "Das Konto ist beim Anbieter deaktiviert.",
+    "domain_not_allowed": "Die E-Mail-Domain ist nicht erlaubt.",
+    "no_matching_group": "Keine Gruppe ist einer Rolle zugeordnet, und Benutzer ohne eine werden abgewiesen.",
+    "username_conflict": "Der Benutzername gehört zu einem anderen Konto; externe Anmeldungen übernehmen nie ein Konto.",
+    "invalid_username": "Der Benutzername kann in KubeBench nicht verwendet werden.",
+    "invalid_request": "Die Anmeldung konnte nicht überprüft werden.",
+    "provider_error": "Der Identitätsanbieter ist nicht erreichbar.",
+    "rate_limited": "Zu viele fehlgeschlagene Versuche."
+  }
+}

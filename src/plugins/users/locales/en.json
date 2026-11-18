@@ -104,5 +104,14 @@
       "self": "You cannot delete your own account.",
       "lastAdmin": "The last administrator cannot be deleted. Make another user an administrator first."
     }
+  },
+  "external": {
+    "source": {
+      "oidc": "SSO",
+      "ldap": "Directory"
+    },
+    "sourceHint": "Signs in through an identity provider. Role and cluster access follow the account's groups.",
+    "resetHint": "This account signs in through an identity provider; its password is managed there.",
+    "mappedNote": "This account signs in through an identity provider. Its role and cluster access are re-computed from its groups at every sign-in (Settings > Authentication), so changes made here last only until the next sign-in."
   }
 }
