@@ -39,7 +39,7 @@ type user struct {
 // entry, or more than one, is invalid_credentials: the sign-in screen must
 // not tell which accounts exist.
 func (p *Provider) findUser(name string) (*user, error) {
-	filter := strings.ReplaceAll(p.cfg.UserFilter, config.LDAPUsernamePlaceholder, ldap.EscapeFilter(name))
+	filter := userFilter(p.cfg.UserFilter, name)
 	attrs := []string{p.cfg.UsernameAttribute, p.cfg.IDAttribute, p.cfg.DisplayNameAttribute, p.cfg.EmailAttribute,
 		attrUserAccountControl}
 	if p.cfg.GroupsFrom == config.LDAPGroupsFromMemberOf {
@@ -105,10 +105,7 @@ func (p *Provider) groupsOf(u *user) ([]string, error) {
 		}
 		return dedupe(names), nil
 	}
-	filter := strings.NewReplacer(
-		config.LDAPUserDNPlaceholder, ldap.EscapeFilter(u.dn),
-		config.LDAPUserPlaceholder, ldap.EscapeFilter(u.username),
-	).Replace(p.cfg.GroupFilter)
+	filter := groupFilter(p.cfg.GroupFilter, u.dn, u.username)
 	attrs := []string{"1.1"} // no attributes: the DN is the name
 	byDN := strings.EqualFold(p.cfg.GroupNameAttribute, config.LDAPGroupNameDN)
 	if !byDN {
@@ -136,6 +133,21 @@ func (p *Provider) groupsOf(u *user) ([]string, error) {
 		}
 	}
 	return dedupe(names), nil
+}
+
+// userFilter is the user search filter for a login name: template with
+// the name, escaped, in place of each placeholder.
+func userFilter(template, name string) string {
+	return strings.ReplaceAll(template, config.LDAPUsernamePlaceholder, ldap.EscapeFilter(name))
+}
+
+// groupFilter is the group search filter of a user: template with the
+// user's DN and username, escaped, in place of their placeholders.
+func groupFilter(template, dn, username string) string {
+	return strings.NewReplacer(
+		config.LDAPUserDNPlaceholder, ldap.EscapeFilter(dn),
+		config.LDAPUserPlaceholder, ldap.EscapeFilter(username),
+	).Replace(template)
 }
 
 // groupNameOfDN names a memberOf value: the DN itself, or the value of its
