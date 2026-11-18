@@ -1,9 +1,9 @@
 name: Container image
 
-# Manual on purpose (workflow_dispatch only): images are pushed only when a
-# maintainer asks for one. Release images come from release.yml; the Trivy
-# workflow scans the latest release image every week. Uncomment the trigger
-# below to build an image on every push to main.
+# Pull requests that touch the image build it for linux/amd64 (no push) and
+# smoke-test it, so a broken Dockerfile is caught before the merge. By hand
+# it builds (and optionally pushes) any image. Release images come from
+# release.yml; the Trivy workflow scans the latest release image every week.
 on:
   workflow_dispatch:
     inputs:
@@ -19,8 +19,20 @@ on:
         description: Push to ghcr.io/shavell/kubebench (otherwise build only)
         type: boolean
         default: false
-  # push:
-  #   branches: [main]
+  pull_request:
+    paths:
+      - Dockerfile
+      - .dockerignore
+      - backend/**
+      - src/**
+      - public/**
+      - index.html
+      - package.json
+      - package-lock.json
+      - vite.config.ts
+      - tsconfig*.json
+      - scripts/version.sh
+      - .github/workflows/docker-image.yml
 
 permissions:
   contents: read
@@ -80,8 +92,9 @@ jobs:
       - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
-          platforms: ${{ inputs.platforms }}
-          push: ${{ inputs.push }}
+          platforms: ${{ inputs.platforms || 'linux/amd64' }}
+          push: ${{ inputs.push || false }}
+          load: ${{ github.event_name == 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
@@ -89,6 +102,24 @@ jobs:
             COMMIT=${{ steps.build.outputs.commit }}
             DATE=${{ steps.build.outputs.date }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: ${{ github.event_name == 'pull_request' && 'type=gha' || 'type=gha,mode=max' }}
           provenance: ${{ inputs.push && 'mode=max' || 'false' }}
           sbom: ${{ inputs.push }}
+      - name: Smoke test
+        if: github.event_name == 'pull_request'
+        env:
+          REF: ${{ env.IMAGE }}:${{ steps.build.outputs.tag }}
+        run: |
+          docker run --rm "$REF" --version
+          docker run -d --name kubebench-smoke -p 127.0.0.1:9876:9876 "$REF"
+          for _ in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:9876/healthz; then
+              echo
+              docker inspect -f 'user={{.Config.User}}' kubebench-smoke
+              docker rm -f kubebench-smoke >/dev/null
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs kubebench-smoke
+          exit 1

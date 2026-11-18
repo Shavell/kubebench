@@ -51,8 +51,17 @@ sections become the GitHub release notes (`scripts/extract-changelog.sh`).
 
 ### 2. Release with GitHub Actions
 
-Run the **Release** workflow (Actions > Release > Run workflow) on `main`
-with:
+Push the tag of the merged release commit:
+
+```bash
+git tag -a vX.Y.Z -m "KubeBench vX.Y.Z" && git push origin vX.Y.Z
+```
+
+The **Release** workflow starts on every pushed `v*` tag and then also
+pushes the image and the chart; a tag with a suffix (`v0.9.0-rc.1`) becomes
+a pre-release. To release without a tag push, or without pushing the image
+or the chart, run it by hand instead (Actions > Release > Run workflow) on
+`main` with:
 
 | Input | Meaning |
 |---|---|
@@ -198,9 +207,12 @@ pull request; scheduled runs are weekly, on Mondays.
 
 CodeQL, Trivy and Scorecard report to **Security > Code scanning**.
 
-Manual only (`workflow_dispatch`), because they publish: **Release**,
-**Container image** and **Helm chart**. Every workflow above can be
-started by hand from the Actions tab as well.
+Because they publish, these run only on a deliberate action: **Release**
+on a pushed `v*` tag or by hand, **Helm chart** by hand. **Container
+image** builds (never pushes) a `linux/amd64` image for pull requests that
+touch the image and smoke-tests it (`--version`, `/healthz`); by hand it
+can build and push any image. Every workflow above can be started by hand
+from the Actions tab as well.
 
 The required status checks of `main` are job names: `frontend`, `backend`,
 `vulncheck`, `chart`, `packaging`, `scripts`, `workflows`, `trivy (repo)`

@@ -1,7 +1,8 @@
 name: Release
 
-# Manual on purpose (workflow_dispatch only): a maintainer decides when to
-# release. The commented trigger would release on every pushed v* tag instead.
+# Runs when a v* tag is pushed (the image and the chart are pushed too, a
+# tag with a "-" suffix becomes a pre-release) or by hand. Either way the
+# GitHub release stays a draft until a maintainer publishes it.
 #
 # Supply chain: GoReleaser writes SPDX SBOMs (syft) for the archives and
 # packages and signs checksums.txt keylessly with cosign (Sigstore, this
@@ -28,8 +29,8 @@ on:
         description: Push the Helm chart to oci://ghcr.io/shavell/charts
         type: boolean
         default: false
-  # push:
-  #   tags: ["v*"]
+  push:
+    tags: ["v*"]
 
 permissions:
   contents: read
@@ -63,7 +64,7 @@ jobs:
       - name: Validate the version
         id: version
         env:
-          # A tag push (commented trigger above) has no inputs: use the tag.
+          # A tag push has no inputs: use the tag.
           INPUT_VERSION: ${{ inputs.version || github.ref_name }}
         run: |
           if [[ ! "$INPUT_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
@@ -167,7 +168,7 @@ jobs:
           subject-checksums: build/release/checksums.txt
 
       - name: Mark as pre-release
-        if: inputs.prerelease
+        if: inputs.prerelease || (github.event_name == 'push' && contains(github.ref_name, '-'))
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
@@ -266,7 +267,7 @@ jobs:
   publish-image:
     name: Push the container image
     needs: release
-    if: inputs.push_image
+    if: inputs.push_image || github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
@@ -337,7 +338,7 @@ jobs:
   publish-chart:
     name: Push the Helm chart
     needs: release
-    if: inputs.push_chart
+    if: inputs.push_chart || github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
