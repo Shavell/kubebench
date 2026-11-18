@@ -42,6 +42,13 @@ type Lookuper interface {
 	Lookup(ctx context.Context, username string) (*Identity, error)
 }
 
+// UsernameNormalizer turns what a user typed into the name the provider
+// searches by (a directory drops a DOMAIN\ prefix and ignores case), so
+// login throttling and the audit log see one name per account. Optional.
+type UsernameNormalizer interface {
+	NormalizeUsername(login string) string
+}
+
 // Failure classes: why an external sign-in was refused. They are recorded
 // in the audit log and shown on the sign-in screen; the details stay in
 // the server log.

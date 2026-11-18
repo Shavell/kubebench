@@ -174,13 +174,16 @@ func TestSignInRefusals(t *testing.T) {
 	}
 }
 
-type fakeLookup struct{ groups []string }
+type fakeLookup struct {
+	groups   []string
+	username string
+}
 
 func (f fakeLookup) Lookup(context.Context, string) (*Identity, error) {
 	if f.groups == nil {
 		return nil, Fail(ClassInvalidCredentials, "no such user")
 	}
-	return &Identity{Groups: f.groups}, nil
+	return &Identity{Username: f.username, Groups: f.groups}, nil
 }
 
 func TestPreview(t *testing.T) {
@@ -212,8 +215,13 @@ func TestPreview(t *testing.T) {
 	if p.GroupsFrom != GroupsFromDirectory || !p.Grants.Admin {
 		t.Fatalf("directory preview: %+v", p)
 	}
+	// The directory names the account a login form belongs to.
+	p, _ = svc.Preview(ctx, "ldap", `CORP\Carol`, nil, fakeLookup{username: "carol", groups: []string{"ops"}})
+	if p.Username != "carol" || !p.Allowed || p.Grants.Clusters["prod"] != "operator" {
+		t.Fatalf("directory preview of DOMAIN\\user: %+v", p)
+	}
 	p, _ = svc.Preview(ctx, "ldap", "ghost", nil, fakeLookup{})
-	if p.Allowed || p.Reason != ClassInvalidCredentials {
+	if p.Allowed || p.Reason != ClassInvalidCredentials || p.GroupsFrom != GroupsFromDirectory || p.Groups == nil {
 		t.Fatalf("directory miss: %+v", p)
 	}
 	p, _ = svc.Preview(ctx, "ldap", "alice", []string{"kb-admins"}, nil)

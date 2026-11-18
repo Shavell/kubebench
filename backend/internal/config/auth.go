@@ -23,10 +23,12 @@ type AuthConfig struct {
 	Mappings []MappingSeed
 	// OIDC is the OpenID Connect provider; nil when not configured.
 	OIDC *OIDCConfig
+	// LDAP is the LDAP or Active Directory provider; nil when not configured.
+	LDAP *LDAPConfig
 }
 
 // External reports whether any external identity provider is configured.
-func (a AuthConfig) External() bool { return a.OIDC != nil }
+func (a AuthConfig) External() bool { return a.OIDC != nil || a.LDAP != nil }
 
 // MappingSeed is one group mapping of KUBEBENCH_AUTH_GROUP_MAPPINGS:
 // {"group":"kb-admins","role":"admin"} or
@@ -73,6 +75,7 @@ func (p *parser) auth() AuthConfig {
 		}
 	}
 	a.OIDC = p.oidc()
+	a.LDAP = p.ldap()
 	return a
 }
 

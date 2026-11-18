@@ -107,23 +107,25 @@ type Preview struct {
 
 // Preview resolves the mappings for username at a provider of source.
 // groups, when non-nil, are used as given; otherwise lookup (if the
-// provider supports it) asks the provider, and else the groups of the
-// user's last sign-in are used.
+// provider supports it) asks the provider, which also names the account
+// the login belongs to (a directory resolves DOMAIN\user or a UPN), and
+// else the groups of the user's last sign-in are used.
 func (s *Service) Preview(ctx context.Context, source, username string, groups []string, lookup Lookuper) (*Preview, error) {
 	p := &Preview{Source: source, Username: username, Groups: groups, GroupsFrom: GroupsFromInput}
-	if !store.ValidUsername(username) {
-		p.Reason = ClassInvalidUsername
-		return p, nil
-	}
-	existing, err := s.store.UserByUsername(username)
-	if err != nil && !errors.Is(err, store.ErrNotFound) {
-		return nil, err
-	}
-	p.Existing = existing
 	if groups == nil {
 		if err := s.previewGroups(ctx, p, lookup); err != nil {
 			return nil, err
 		}
+	}
+	if p.Reason == "" && !store.ValidUsername(p.Username) {
+		p.Reason = ClassInvalidUsername
+	}
+	if p.Reason != ClassInvalidUsername {
+		existing, err := s.store.UserByUsername(p.Username)
+		if err != nil && !errors.Is(err, store.ErrNotFound) {
+			return nil, err
+		}
+		p.Existing = existing
 	}
 	mappings, err := s.store.ListGroupMappings()
 	if err != nil {
@@ -132,7 +134,7 @@ func (s *Service) Preview(ctx context.Context, source, username string, groups [
 	p.Grants = Resolve(source, p.Groups, mappings)
 	switch {
 	case p.Reason != "":
-	case existing != nil && existing.Source != source:
+	case p.Existing != nil && p.Existing.Source != source:
 		p.Reason = ClassUsernameConflict
 	case s.requireGroup && !p.Grants.Any():
 		p.Reason = ClassNoMatchingGroup
@@ -146,10 +148,13 @@ func (s *Service) previewGroups(ctx context.Context, p *Preview, lookup Lookuper
 	if lookup != nil {
 		id, err := lookup.Lookup(ctx, p.Username)
 		if err != nil {
-			p.Reason = ClassOf(err)
+			p.Groups, p.GroupsFrom, p.Reason = []string{}, GroupsFromDirectory, ClassOf(err)
 			return nil
 		}
 		p.Groups, p.GroupsFrom = id.Groups, GroupsFromDirectory
+		if id.Username != "" {
+			p.Username = id.Username
+		}
 		return nil
 	}
 	user, err := s.store.ExternalUserByUsername(p.Username)

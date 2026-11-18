@@ -45,6 +45,15 @@ func logIdentityConfig(cfg *config.Config) {
 			log.Printf("[auth] KUBEBENCH_PUBLIC_URL is not set: the OIDC redirect URL is derived from each request's host")
 		}
 	}
+	if l := cfg.Auth.LDAP; l != nil {
+		log.Printf("[auth] %s sign-in with %s (%s, users under %s)", l.Name, l.URL, l.Type, l.UserBaseDN)
+		switch {
+		case !l.TLS():
+			log.Printf("[auth] WARNING: %s is not encrypted: directory passwords cross the network in plain text; use ldaps:// or KUBEBENCH_LDAP_START_TLS=true", l.URL)
+		case l.InsecureSkipVerify:
+			log.Printf("[auth] WARNING: KUBEBENCH_LDAP_INSECURE_SKIP_VERIFY is on: the directory's certificate is not verified and anyone on the network path can read the passwords; set KUBEBENCH_LDAP_CA_FILE instead")
+		}
+	}
 	if cfg.Auth.External() {
 		log.Printf("[auth] local accounts keep working; the last local admin cannot be removed (break-glass)")
 	}
