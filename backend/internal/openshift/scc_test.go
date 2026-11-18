@@ -85,3 +85,50 @@ func TestListSCCs(t *testing.T) {
 		t.Fatalf("not served: %v, %v", served, err)
 	}
 }
+
+// An SCC that forces or allows UID 0 lets containers run as root like
+// RunAsAny does; with a capability that breaks out of the container, it
+// is privileged. Decoded from the API's JSON, as ListSCCs reads it.
+func TestSCCLevelOfRootUIDs(t *testing.T) {
+	tests := []struct {
+		name string
+		scc  map[string]any
+		want string
+	}{
+		{"MustRunAs uid 0", map[string]any{"runAsUser": map[string]any{"type": "MustRunAs", "uid": int64(0)}}, LevelAnyUID},
+		{"MustRunAs uid 1000", map[string]any{"runAsUser": map[string]any{"type": "MustRunAs", "uid": int64(1000)}}, LevelRestricted},
+		{"MustRunAs, the namespace's UID", map[string]any{"runAsUser": map[string]any{"type": "MustRunAs"}}, LevelRestricted},
+		{"range from 0", map[string]any{"runAsUser": map[string]any{"type": "MustRunAsRange", "uidRangeMin": int64(0), "uidRangeMax": int64(100)}}, LevelAnyUID},
+		{"range from 1000", map[string]any{"runAsUser": map[string]any{"type": "MustRunAsRange", "uidRangeMin": int64(1000), "uidRangeMax": int64(2000)}}, LevelRestricted},
+		{"the namespace's range", map[string]any{"runAsUser": map[string]any{"type": "MustRunAsRange"}}, LevelRestricted},
+		{"root with SYS_ADMIN", map[string]any{
+			"runAsUser":           map[string]any{"type": "MustRunAs", "uid": int64(0)},
+			"allowedCapabilities": []any{"NET_ADMIN", "SYS_ADMIN", "SYS_PTRACE"},
+		}, LevelPrivileged},
+		{"RunAsAny adding CAP_SYS_MODULE", map[string]any{
+			"runAsUser":              map[string]any{"type": "RunAsAny"},
+			"defaultAddCapabilities": []any{"CAP_SYS_MODULE"},
+		}, LevelPrivileged},
+		{"root with harmless capabilities", map[string]any{
+			"runAsUser":           map[string]any{"type": "RunAsAny"},
+			"allowedCapabilities": []any{"NET_BIND_SERVICE"},
+		}, LevelAnyUID},
+		{"non-root with SYS_ADMIN", map[string]any{
+			"runAsUser":           map[string]any{"type": "MustRunAsRange"},
+			"allowedCapabilities": []any{"SYS_ADMIN"},
+		}, LevelPrivileged},
+		{"non-root binding low ports", map[string]any{
+			"runAsUser":           map[string]any{"type": "MustRunAsRange"},
+			"allowedCapabilities": []any{"NET_BIND_SERVICE"},
+		}, LevelRestricted},
+	}
+	for _, tt := range tests {
+		var s SCC
+		if err := fromUnstructured(tt.scc, &s); err != nil {
+			t.Fatal(err)
+		}
+		if got := s.Level(); got != tt.want {
+			t.Errorf("%s: level %s, want %s", tt.name, got, tt.want)
+		}
+	}
+}

@@ -184,3 +184,30 @@ func TestOpenShiftSCCsForbidden(t *testing.T) {
 		t.Error("admission with the privileged SCC not reported from the default names")
 	}
 }
+
+// A custom SCC that forces UID 0 is judged like anyuid (with SYS_ADMIN,
+// privileged): its grant and the pods admitted with it are reported.
+func TestOpenShiftScanRootSCC(t *testing.T) {
+	sccs := []*unstructured.Unstructured{
+		scc("tenant-root", false, map[string]any{"runAsUser": map[string]any{"type": "MustRunAs", "uid": int64(0)},
+			"allowedCapabilities": []any{"SYS_ADMIN"}}),
+		scc("tenant-range0", false, map[string]any{"runAsUser": map[string]any{"type": "MustRunAsRange", "uidRangeMin": int64(0), "uidRangeMax": int64(10)},
+			"users": []any{"system:serviceaccount:shop:batch"}}),
+	}
+	e := newOpenShiftEnv(t, sccs,
+		namespace("shop", map[string]string{psaEnforceLabel: "baseline"}),
+		admittedPod("shop", "agent", "", "", "tenant-root"),
+		clusterRole("use-tenant-root", nil, useSCC("tenant-root")),
+		roleBinding("shop", "tenant-root", "use-tenant-root", rbacv1.Subject{Kind: "ServiceAccount", Name: "agent"}),
+	)
+	got := findingsOf(e.scan(false))
+	for key, evidence := range map[string][]string{
+		"scc-privileged-binding:RoleBinding:shop:tenant-root":               {"ServiceAccount shop/agent → tenant-root"},
+		"scc-privileged-workload:Pod:shop:agent":                            {"scc: tenant-root"},
+		"scc-privileged-subjects:SecurityContextConstraints::tenant-range0": {"User system:serviceaccount:shop:batch"},
+	} {
+		if f, ok := got[key]; !ok || !slices.Equal(f.Evidence, evidence) {
+			t.Errorf("%s = %+v, want evidence %q", key, f, evidence)
+		}
+	}
+}

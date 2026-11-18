@@ -16,28 +16,71 @@ import (
 type SCC struct {
 	metav1.ObjectMeta `json:"metadata"`
 
-	AllowPrivilegedContainer bool     `json:"allowPrivilegedContainer"`
-	AllowHostDirVolumePlugin bool     `json:"allowHostDirVolumePlugin"`
-	AllowHostNetwork         bool     `json:"allowHostNetwork"`
-	AllowHostPorts           bool     `json:"allowHostPorts"`
-	AllowHostPID             bool     `json:"allowHostPID"`
-	AllowHostIPC             bool     `json:"allowHostIPC"`
-	AllowedCapabilities      []string `json:"allowedCapabilities"`
-	Volumes                  []string `json:"volumes"`
-	Users                    []string `json:"users"`
-	Groups                   []string `json:"groups"`
-	RunAsUser                struct {
-		Type string `json:"type"`
-	} `json:"runAsUser"`
+	AllowPrivilegedContainer bool              `json:"allowPrivilegedContainer"`
+	AllowHostDirVolumePlugin bool              `json:"allowHostDirVolumePlugin"`
+	AllowHostNetwork         bool              `json:"allowHostNetwork"`
+	AllowHostPorts           bool              `json:"allowHostPorts"`
+	AllowHostPID             bool              `json:"allowHostPID"`
+	AllowHostIPC             bool              `json:"allowHostIPC"`
+	AllowedCapabilities      []string          `json:"allowedCapabilities"`
+	DefaultAddCapabilities   []string          `json:"defaultAddCapabilities"`
+	Volumes                  []string          `json:"volumes"`
+	Users                    []string          `json:"users"`
+	Groups                   []string          `json:"groups"`
+	RunAsUser                RunAsUserStrategy `json:"runAsUser"`
+}
+
+// RunAsUserStrategy is an SCC's runAsUser: the strategy and, when set,
+// the UID or UID range it forces (unset: the namespace's).
+type RunAsUserStrategy struct {
+	Type        string `json:"type"`
+	UID         *int64 `json:"uid,omitempty"`
+	UIDRangeMin *int64 `json:"uidRangeMin,omitempty"`
+}
+
+// allowsRoot reports whether containers may run as UID 0: any UID, a
+// forced UID 0, or a forced range that starts at 0.
+func (r RunAsUserStrategy) allowsRoot() bool {
+	switch r.Type {
+	case "RunAsAny":
+		return true
+	case "MustRunAs":
+		return r.UID != nil && *r.UID == 0
+	case "MustRunAsRange":
+		return r.UIDRangeMin != nil && *r.UIDRangeMin == 0
+	}
+	return false
+}
+
+// breakoutCapabilities are the capabilities that give a container its
+// node: kernel modules, mounts and namespaces, raw devices, other
+// processes, the host network stack, reading any file, eBPF. A non-root
+// process gets them through file capabilities, so they count at any UID.
+var breakoutCapabilities = []string{
+	"ALL", "BPF", "DAC_READ_SEARCH", "NET_ADMIN", "SYS_ADMIN", "SYS_BOOT", "SYS_MODULE", "SYS_PTRACE", "SYS_RAWIO",
+}
+
+// addsBreakoutCapability reports whether the SCC lets containers add,
+// or adds itself, any capability or one of breakoutCapabilities.
+func (s *SCC) addsBreakoutCapability() bool {
+	for _, c := range slices.Concat(s.AllowedCapabilities, s.DefaultAddCapabilities) {
+		name := strings.TrimPrefix(strings.ToUpper(c), "CAP_")
+		if name == "*" || slices.Contains(breakoutCapabilities, name) {
+			return true
+		}
+	}
+	return false
 }
 
 // Levels of what an SCC lets a pod do, from the most to the least
 // dangerous (see Level).
 const (
-	// LevelPrivileged: privileged containers, any capability, or host
-	// namespaces, ports or directories: the pod can take over its node.
+	// LevelPrivileged: privileged containers, any capability or one that
+	// breaks out of the container, or host namespaces, ports or
+	// directories: the pod can take over its node.
 	LevelPrivileged = "privileged"
-	// LevelAnyUID: no host access, but containers may run as root (UID 0).
+	// LevelAnyUID: no host access, but containers may run as root (UID 0):
+	// any UID, or a forced UID or UID range that is or starts at 0.
 	LevelAnyUID = "anyuid"
 	// LevelRestricted: neither; the namespace's UID range or non-root.
 	LevelRestricted = "restricted"
@@ -49,10 +92,10 @@ func (s *SCC) Level() string {
 	switch {
 	case s.AllowPrivilegedContainer, s.AllowHostDirVolumePlugin, s.AllowHostNetwork,
 		s.AllowHostPorts, s.AllowHostPID, s.AllowHostIPC,
-		slices.Contains(s.AllowedCapabilities, "*"),
+		s.addsBreakoutCapability(),
 		slices.Contains(s.Volumes, "*"), slices.Contains(s.Volumes, "hostPath"):
 		return LevelPrivileged
-	case s.RunAsUser.Type == "RunAsAny":
+	case s.RunAsUser.allowsRoot():
 		return LevelAnyUID
 	default:
 		return LevelRestricted

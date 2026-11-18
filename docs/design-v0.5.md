@@ -2224,8 +2224,14 @@ OpenShift and, in the EUS phase, warns instead of erroring.
   SCC-target checks are skipped with the reason and the others judge SCCs
   by OpenShift's default risky names. An SCC is *privileged* when it
   allows privileged containers, host directories, network, ports, PID or
-  IPC, any capability or hostPath volumes, *anyuid* when it allows any
-  UID, else restricted; *default* when OpenShift ships it
+  IPC, any capability or one that breaks out of the container
+  (`allowedCapabilities` or `defaultAddCapabilities` with `ALL`, `BPF`,
+  `DAC_READ_SEARCH`, `NET_ADMIN`, `SYS_ADMIN`, `SYS_BOOT`, `SYS_MODULE`,
+  `SYS_PTRACE` or `SYS_RAWIO`, `CAP_` prefix or not), or hostPath
+  volumes, *anyuid* when containers may run as root (`runAsUser`
+  `RunAsAny`, `MustRunAs` with `uid: 0`, or `MustRunAsRange` with
+  `uidRangeMin: 0`; an unset UID or range is the namespace's), else
+  restricted; *default* when OpenShift ships it
   (`include.release.openshift.io/*` annotations, ClusterVersion owner, or
   `app.kubernetes.io/part-of: openshift-*`).
 - Checks (category `openshift`, frameworks "CIS OpenShift 5.2.x",

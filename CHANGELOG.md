@@ -57,7 +57,9 @@ those commits.
 - **OpenShift security checks**: privileged and anyuid SCCs granted to
   users, groups or ServiceAccounts (in the SCC or through RBAC), workloads
   admitted with them and custom privileged SCCs; risky roles list SCC
-  "use" grants.
+  "use" grants. An SCC that forces UID 0 (or a UID range starting at 0)
+  counts as anyuid, and one that adds capabilities such as `SYS_ADMIN`
+  as privileged.
 
 ### Changed
 
