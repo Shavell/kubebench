@@ -42,10 +42,10 @@ reach that namespace.
 ### Helm
 
 ```bash
-helm install kubebench oci://ghcr.io/shavell/charts/kubebench --version 0.6.0 \
+helm install kubebench oci://ghcr.io/shavell/charts/kubebench --version 0.7.0 \
   --namespace kubebench --create-namespace
 # or the chart attached to the release / in this repository:
-helm install kubebench ./kubebench-0.6.0.tgz -n kubebench --create-namespace
+helm install kubebench ./kubebench-0.7.0.tgz -n kubebench --create-namespace
 helm install kubebench charts/kubebench -n kubebench --create-namespace
 
 kubectl -n kubebench get secret kubebench-auth -o jsonpath='{.data.admin-password}' | base64 -d; echo
@@ -60,7 +60,7 @@ persistence and security settings:
 ### Plain manifests
 
 ```bash
-kubectl apply -f https://github.com/Shavell/kubebench/releases/download/v0.6.0/kubebench.yaml
+kubectl apply -f https://github.com/Shavell/kubebench/releases/download/v0.7.0/kubebench.yaml
 kubectl -n kubebench port-forward svc/kubebench 8080:80     # admin / admin, then a new password
 ```
 
@@ -75,7 +75,7 @@ and has no password Secret. Customizing, exposing and uninstalling:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Shavell/kubebench/main/install.sh | sudo bash
-curl -fsSL https://raw.githubusercontent.com/Shavell/kubebench/main/install.sh | sudo bash -s -- --version v0.6.0
+curl -fsSL https://raw.githubusercontent.com/Shavell/kubebench/main/install.sh | sudo bash -s -- --version v0.7.0
 ```
 
 The installer picks the `.deb` (dpkg), `.rpm` (rpm) or the tarball for the
@@ -101,8 +101,8 @@ keeps the configuration and the data.
 ### Packages
 
 ```bash
-sudo apt install ./kubebench_0.6.0_amd64.deb          # or: sudo dpkg -i ...
-sudo dnf install ./kubebench-0.6.0-1.x86_64.rpm       # or: sudo rpm -i ...
+sudo apt install ./kubebench_0.7.0_amd64.deb          # or: sudo dpkg -i ...
+sudo dnf install ./kubebench-0.7.0-1.x86_64.rpm       # or: sudo rpm -i ...
 ```
 
 Both install `/usr/bin/kubebench`, `kubebench.service`, the documented
@@ -122,7 +122,7 @@ installs them like the packages, with the binary in `/usr/local/bin`. By
 hand:
 
 ```bash
-tar -xzf kubebench_0.6.0_linux_amd64.tar.gz
+tar -xzf kubebench_0.7.0_linux_amd64.tar.gz
 sudo install -m 0755 kubebench /usr/local/bin/kubebench
 sudo useradd --system --home-dir /var/lib/kubebench --shell /usr/sbin/nologin kubebench
 sudo install -d -m 0750 -o kubebench -g kubebench /var/lib/kubebench
@@ -149,7 +149,7 @@ runuser -u kubebench -- sh -c 'set -a; KUBEBENCH_DATA_DIR=/var/lib/kubebench \
 docker volume create kubebench-data
 docker run -d --name kubebench --restart unless-stopped -p 9876:9876 \
   -v kubebench-data:/data -e KUBEBENCH_ADMIN_PASSWORD='choose-a-password' \
-  ghcr.io/shavell/kubebench:0.6.0
+  ghcr.io/shavell/kubebench:0.7.0
 docker inspect --format '{{.State.Health.Status}}' kubebench    # HEALTHCHECK: kubebench healthcheck
 ```
 
@@ -173,7 +173,7 @@ The release archives for Linux, macOS (`darwin`) and Windows contain the
 same binary. Point it at your kubeconfig and open http://localhost:9876:
 
 ```bash
-tar -xzf kubebench_0.6.0_darwin_arm64.tar.gz
+tar -xzf kubebench_0.7.0_darwin_arm64.tar.gz
 KUBEBENCH_LISTEN_ADDR=127.0.0.1:9876 KUBECONFIG=~/.kube/config ./kubebench
 ```
 
@@ -189,8 +189,8 @@ chart `.tgz`, the plain manifests, `install.sh`, `SHA256SUMS` and an
 `OFFLINE-README.md` with the detailed steps.
 
 ```bash
-sha256sum -c kubebench-offline-0.6.0.tar.gz.sha256
-tar -xzf kubebench-offline-0.6.0.tar.gz && cd kubebench-offline-0.6.0
+sha256sum -c kubebench-offline-0.7.0.tar.gz.sha256
+tar -xzf kubebench-offline-0.7.0.tar.gz && cd kubebench-offline-0.7.0
 sha256sum -c SHA256SUMS
 ```
 
@@ -407,7 +407,7 @@ New shows the whole changelog at any time).
   `install.sh --offline` writes `KUBEBENCH_UPDATE_MODE=off` unless the env
   file sets a mode; with Helm use `--set config.updateMode=off`. Or mirror
   the releases JSON inside the network and set `KUBEBENCH_UPDATE_URL`.
-- Development and snapshot builds (`dev`, `0.6.0-3-gabc1234`, `-dirty`,
+- Development and snapshot builds (`dev`, `0.7.0-3-gabc1234`, `-dirty`,
   `-snapshot-`) show the latest release but never claim an update.
 
 ## Backup and restore

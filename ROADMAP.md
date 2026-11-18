@@ -24,7 +24,7 @@ items move, merge or disappear as we learn more.
   feature across the backend and the UI, **L** a new subsystem or a change
   to the security model.
 
-## v0.6 (in progress)
+## v0.6 (released 2026-11-18)
 
 Two new plugins, built on the v0.5 plugin platform: notes (a backend
 plugin with its own frontend plugin, like Argo CD or Storage) and the
@@ -57,7 +57,24 @@ service browser (a frontend plugin on new core proxy routes).
   unsandboxed, isolated from KubeBench by the origin, so apps that need
   cookies or storage (for example sign-ins) work too.
 
-## v0.7 (in progress)
+## v0.7 (released 2026-11-18)
+
+### External identities
+
+- **OIDC / SSO**: sign in with the organization's identity provider
+  (authorization code flow with PKCE; Keycloak, Entra ID, Google, Okta, …).
+- **LDAP and Active Directory**: directory sign-in over LDAPS or StartTLS
+  with `uid`, `sAMAccountName`, UPN or `DOMAIN\user`, nested AD groups and
+  disabled-account checks.
+- Users are created at first sign-in; directory and IdP groups map to the
+  admin role and per-cluster viewer/operator assignments, re-computed at
+  every sign-in and managed in Settings → Authentication. A local
+  break-glass admin always remains.
+
+### Polish
+
+- **Open an Ingress in the service browser**, **live shared notes**,
+  **interface scale and font settings**, and a lint-clean frontend.
 
 ### Security and polish
 
@@ -97,8 +114,7 @@ and the limitations documented in [docs/security.md](docs/security.md).
 
 | Item | Value | Size |
 |---|---|---|
-| Optional OIDC/SSO login | Sign in with the organization's identity provider instead of local accounts | L |
-| LDAP and Active Directory login | Sign in with directory accounts (LDAPS/StartTLS bind, AD `sAMAccountName`/UPN), map directory groups to the admin role and per-cluster viewer/operator assignments, sync or just-in-time provision users, keep a local break-glass admin | L |
+| Background directory sync | Disable or demote external users between sign-ins when the IdP or directory changes (today roles update at the next sign-in) | M |
 | Kubernetes impersonation per user | Let the cluster's own RBAC and audit see the real KubeBench user | L |
 | NSA/CISA mapping and PDF export | Map the posture checks to the NSA/CISA guide and export a printable report | M |
 | Narrower ambient cloud identity | Limit `KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY` instead of all or nothing | M |

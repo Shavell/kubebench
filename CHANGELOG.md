@@ -16,6 +16,8 @@ those commits.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-18
+
 ### Added
 
 - **Interface scale and fonts**: Settings → Appearance zooms the whole
@@ -353,8 +355,9 @@ resource names, the forced password change, the moved Helm routes).
 - Container image and Helm chart for running KubeBench inside the cluster it
   manages.
 
-[Unreleased]: https://github.com/Shavell/kubebench/compare/v0.6.0...HEAD
-[0.6.0]: https://github.com/Shavell/kubebench/releases/tag/v0.6.0
+[Unreleased]: https://github.com/Shavell/kubebench/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/Shavell/kubebench/compare/v0.6.0...v0.7.0
+[0.6.0]: https://github.com/Shavell/kubebench/compare/acc8149...v0.6.0
 [0.5.0]: https://github.com/Shavell/kubebench/compare/acc8149...v0.6.0
 [0.4.0]: https://github.com/Shavell/kubebench/commit/acc8149
 [0.3.0]: https://github.com/Shavell/kubebench/commit/6bec8c1
