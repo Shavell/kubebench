@@ -16,6 +16,12 @@ those commits.
 
 ## [Unreleased]
 
+### Changed
+
+- Pushing a `v*` tag starts the release workflow (image and chart
+  included; the GitHub release stays a draft), and pull requests that touch
+  the image build and smoke-test it.
+
 ## [0.8.1] - 2026-11-18
 
 ### Added

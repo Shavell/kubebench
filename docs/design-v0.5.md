@@ -2294,8 +2294,9 @@ serve none of it.
 - **Container image** `ghcr.io/shavell/kubebench:<version>` (multi-arch).
 - **GitHub Actions**: `ci.yml`, `codeql.yml`, `trivy.yml`, `scorecard.yml`
   and `dependency-review.yml` run on pushes to `main`, pull requests and
-  weekly schedules; `release.yml`, `docker-image.yml` and `helm-chart.yml`
-  stay `on: workflow_dispatch` only. Releases carry SBOMs, a keyless cosign
+  weekly schedules; `release.yml` runs on pushed `v*` tags (or by hand),
+  `docker-image.yml` builds without pushing for pull requests that touch
+  the image, and `helm-chart.yml` stays manual. Releases carry SBOMs, a keyless cosign
   signature of `checksums.txt` and build provenance attestations
   (`docs/releasing.md`).
 - **Dependabot**: npm, gomod (`/backend`), github-actions, docker; weekly,
