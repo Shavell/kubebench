@@ -2026,8 +2026,12 @@ WebSocket upgrades work, no redirect following):
   token never goes to the API server's host) and in
   `Location`; a `Location` that is an absolute path, or an absolute URL
   naming the API server's host (backends build it from the `Host` they
-  got), is moved below the grant too; other hosts pass unchanged (the
-  frame navigates there itself).
+  got), is moved below the grant too, its `.`/`..` segments resolved first
+  so that it cannot climb out of `/proxy/<token>`; other hosts pass
+  unchanged (the frame navigates there itself). The `Location` is read as a
+  browser reads it (surrounding spaces and controls dropped, `\` as `/`);
+  one that does not parse, or an `http(s):` URL without a host, is
+  removed.
 - `Set-Cookie`: `kubebench_session` is dropped; other cookies lose
   `Domain` and get their `Path` below `/proxy/<token>`.
 - Response headers removed: `Strict-Transport-Security`,

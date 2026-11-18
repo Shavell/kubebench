@@ -134,7 +134,11 @@ func shapeResponse(resp *http.Response, rw *rewriter, req Request, opaque bool) 
 	stripFrameAncestors(h, "Content-Security-Policy")
 	stripFrameAncestors(h, "Content-Security-Policy-Report-Only")
 	if loc := h.Get("Location"); loc != "" {
-		h.Set("Location", rw.location(loc))
+		if rewritten := rw.location(loc); rewritten != "" {
+			h.Set("Location", rewritten)
+		} else {
+			h.Del("Location")
+		}
 	}
 	if cookies := h.Values("Set-Cookie"); len(cookies) > 0 {
 		h.Del("Set-Cookie")
