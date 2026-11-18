@@ -1,6 +1,6 @@
 module kubebench
 
-go 1.26.5
+go 1.26.11
 
 toolchain go1.27.4
 
