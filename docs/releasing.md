@@ -138,6 +138,7 @@ packages, and `make offline-bundle` assembles a bundle from that output.
 | `kubebench_<v>_{amd64,arm64}.deb`, `kubebench-<v>-1.{x86_64,aarch64}.rpm` (license in `/usr/share/doc/kubebench/copyright` or `/usr/share/licenses/kubebench/LICENSE`) | GoReleaser (nfpm) |
 | `<archive or package>.sbom.json` (SPDX SBOM) | GoReleaser (syft) |
 | `checksums.txt` (SHA-256 of the archives, packages and SBOMs), `checksums.txt.sigstore.json` (keyless cosign signature) | GoReleaser (cosign) |
+| `kubebench-<version>.intoto.jsonl` (the SLSA build provenance attestations as Sigstore bundles) | `actions/attest-build-provenance` |
 | build provenance attestations of the binaries, archives, packages, SBOMs, chart, manifests, `install.sh`, offline bundle and image | release workflow (`actions/attest-build-provenance`) |
 | `kubebench-<v>.tgz` (Helm chart), `kubebench.yaml` (manifests), `install.sh` | release workflow, via `build/extra/` |
 | `kubebench-offline-<v>.tar.gz` + `.sha256` | `scripts/offline-bundle.sh` |
@@ -187,8 +188,17 @@ gh attestation verify oci://ghcr.io/shavell/kubebench:0.8.1 --repo Shavell/kubeb
 ```
 
 Add `--signer-workflow Shavell/kubebench/.github/workflows/release.yml` to
-insist on the release workflow. Releases up to 0.8.1 have only
-`checksums.txt`, without a signature, SBOMs or attestations.
+insist on the release workflow. The same attestations are attached to each
+release as `kubebench-<version>.intoto.jsonl` (one Sigstore bundle per
+line), which also works without the attestations API, e.g. offline:
+
+```bash
+gh attestation verify kubebench_0.8.1_linux_amd64.tar.gz --repo Shavell/kubebench \
+  --bundle kubebench-0.8.1.intoto.jsonl
+```
+
+0.8.1 is the first release with signatures, SBOMs and attestations; the
+releases before it were withdrawn.
 
 ## Continuous integration
 

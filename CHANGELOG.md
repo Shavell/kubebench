@@ -18,6 +18,9 @@ those commits.
 
 ### Changed
 
+- Releases carry their build provenance as `kubebench-<version>.intoto.jsonl`
+  too (it was only in the attestations API), so it can be verified offline;
+  added to 0.8.1 as well.
 - The container image's base images (Node, Go, distroless) are pinned by
   the digest of their multi-arch index; Dependabot updates tag and digest
   together.
