@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { reasonMessageText } from '@/core/reasons'
 import { useLayoutStore } from '@/core/store/layoutStore'
 import { useProviderQuery } from '@/data/DataContext'
 import { SidebarErrors } from '@/shared/SidebarErrors'
@@ -32,6 +33,7 @@ export function MetricsSidebar() {
       children: (sources ?? []).map((s) => ({
         id: `src-${s.id}`,
         label: s.detail && s.available ? `${s.name} · ${s.detail}` : s.name,
+        description: !s.available && s.unavailable ? reasonMessageText(s.unavailable) : undefined,
         icon: s.available ? 'check' : 'circle-slash',
       })),
     },

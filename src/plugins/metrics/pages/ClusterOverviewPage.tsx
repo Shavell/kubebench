@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { reasonMessageText } from '@/core/reasons'
 import { useProviderQuery } from '@/data/DataContext'
 import { useSettingsStore } from '@/core/store/settingsStore'
 import { useDataMode } from '@/data/mode'
@@ -11,6 +12,7 @@ import { UsageBar } from '@/shared/charts/UsageBar'
 import { chartColor } from '@/shared/charts/chartTheme'
 import { MetricChart } from '@/shared/charts/MetricChart'
 import { Toolbar } from '@/shared/Toolbar'
+import { Unavailable } from '@/shared/Unavailable'
 import { NS } from '../i18n'
 import { RecentWarnings } from './RecentWarnings'
 import '@/shared/tabPage.css'
@@ -40,6 +42,8 @@ export function ClusterOverviewPage() {
 
   // Latest filesystem sample; "—" when the source has no filesystem series.
   const diskPercent = fs.data?.at(-1)?.value
+  // A use nothing measured is "—", never 0.
+  const percent = (value: number | null) => (value === null ? '—' : formatPercent(value / 100))
   // The backend reports CPU in "cores" (a word to translate) and memory in "Gi" (a symbol).
   const unitLabel = (a: ResourceAllocation) =>
     a.unit === 'cores' ? t('units.cores', { count: a.allocatable }) : a.unit
@@ -49,6 +53,14 @@ export function ClusterOverviewPage() {
       <Toolbar title={t('overview.title')} />
       <div className="metrics-page">
         <VersionSupportNotice platform={platform} />
+        {stats.usageUnavailable && (
+          <Unavailable
+            compact
+            code="capability_unavailable"
+            title={t('overview.usageUnavailable')}
+            reason={reasonMessageText(stats.usageUnavailable)}
+          />
+        )}
         <div className="metrics-tiles">
           <StatTile
             icon="server"
@@ -65,7 +77,7 @@ export function ClusterOverviewPage() {
           <StatTile
             icon="dashboard"
             label={t('overview.tiles.cpu')}
-            value={formatPercent(stats.cpuUsagePercent / 100)}
+            value={percent(stats.cpuUsagePercent)}
             detail={t('overview.tiles.cpuDetail', {
               count: stats.cpuCapacityCores,
               cores: formatNumber(stats.cpuCapacityCores),
@@ -75,7 +87,7 @@ export function ClusterOverviewPage() {
           <StatTile
             icon="database"
             label={t('overview.tiles.memory')}
-            value={formatPercent(stats.memoryUsagePercent / 100)}
+            value={percent(stats.memoryUsagePercent)}
             detail={t('overview.tiles.memoryDetail', { amount: formatNumber(stats.memoryCapacityGi) })}
             accent={chartColor('purple')}
           />

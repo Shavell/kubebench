@@ -50,7 +50,8 @@
       "auto": "Otomatik (Prometheus tercih edilir)",
       "prometheus": "Prometheus",
       "prometheusUnavailable": "Prometheus (kullanılamıyor)",
-      "metricsServer": "metrics-server"
+      "metricsServer": "metrics-server",
+      "metricsServerUnavailable": "metrics-server (kullanılamıyor)"
     },
     "metricsWindow": {
       "label": "Metrik zaman aralığı",

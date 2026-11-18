@@ -1,11 +1,17 @@
 import { useSettingsStore } from '@/core/store/settingsStore'
 import { apiGet } from '../apiClient'
 import type { MetricsProvider } from '../providers'
-import type { MetricsSourceInfo } from '../types'
+import type { MetricsSourceInfo, UnavailableReason } from '../types'
+
+interface SourceStatus {
+  available: boolean
+  location: string | null
+  unavailable?: UnavailableReason
+}
 
 interface SourcesResponse {
-  metricsServer: { available: boolean }
-  prometheus: { available: boolean; location: string | null }
+  metricsServer: SourceStatus
+  prometheus: SourceStatus
 }
 
 /**
@@ -20,12 +26,18 @@ export function createApiMetrics(): MetricsProvider {
     listSources: async (): Promise<MetricsSourceInfo[]> => {
       const s = await apiGet<SourcesResponse>('/metrics/sources')
       return [
-        { id: 'metrics-server', name: 'metrics-server', available: s.metricsServer.available },
+        {
+          id: 'metrics-server',
+          name: 'metrics-server',
+          available: s.metricsServer.available,
+          unavailable: s.metricsServer.unavailable,
+        },
         {
           id: 'prometheus',
           name: 'Prometheus',
           available: s.prometheus.available,
           detail: s.prometheus.location ?? undefined,
+          unavailable: s.prometheus.unavailable,
         },
       ]
     },

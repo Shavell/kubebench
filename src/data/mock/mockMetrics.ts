@@ -104,7 +104,10 @@ export function clusterAllocation(): ClusterAllocation {
   }
 }
 
-export function clusterStats(): ClusterStats {
+/** Mock clusters always measure their use. */
+type MeasuredStats = ClusterStats & { cpuUsagePercent: number; memoryUsagePercent: number }
+
+export function clusterStats(): MeasuredStats {
   const cpuSeries = generateSeries('cluster', 'cpu', 5)
   const memSeries = generateSeries('cluster', 'memory', 5)
   return {

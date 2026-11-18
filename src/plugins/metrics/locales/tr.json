@@ -17,7 +17,9 @@
   },
   "statusBar": {
     "usage": "CPU {{cpu}} · Bellek {{memory}}",
-    "tooltip": "Cluster kaynak kullanımı (metrics-server)"
+    "tooltip": "Cluster kaynak kullanımı",
+    "unavailable": "Metrik yok",
+    "unavailableTooltip": "Cluster kaynak kullanımı ölçülmüyor: {{reason}}"
   },
   "overview": {
     "title": "Cluster genel bakışı",
@@ -52,7 +54,8 @@
       "count_one": "{{value}} uyarı",
       "count_other": "{{value}} uyarı",
       "viewAll": "Tümünü gör"
-    }
+    },
+    "usageUnavailable": "CPU ve bellek kullanımı ölçülmüyor"
   },
   "node": {
     "title": "Node metrikleri · {{node}}",
