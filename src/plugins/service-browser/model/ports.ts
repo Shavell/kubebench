@@ -81,6 +81,8 @@ export function portLabel(port: BrowserPort): string {
  * wildcard one.
  */
 export function targetAddress(target: BrowserTarget): string {
+  // Opened through an OpenShift Route (design §7.15): the Route's host.
+  if (target.route?.host) return `${target.route.tls ? 'https' : 'http'}://${target.route.host}`
   const route = target.ingress
   if (route && route.host !== '' && !route.host.startsWith('*.')) {
     return `${route.tls ? 'https' : 'http'}://${route.host}`
@@ -90,10 +92,11 @@ export function targetAddress(target: BrowserTarget): string {
 }
 
 /** The API kind (resource) of a Kubernetes kind the browser opens. */
-export function browserKind(kind: string): BrowserKind | 'ingresses' | null {
+export function browserKind(kind: string): BrowserKind | 'ingresses' | 'routes' | null {
   if (kind === 'Service') return 'services'
   if (kind === 'Pod') return 'pods'
   if (kind === 'Ingress') return 'ingresses'
+  if (kind === 'Route') return 'routes'
   return null
 }
 

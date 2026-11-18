@@ -9,9 +9,10 @@ import { Unavailable } from '@/shared/Unavailable'
 import { ResourceDialogs } from '../editing/ResourceDialogs'
 import { ResourceEditButtons } from '../editing/ResourceEditButtons'
 import { useWorkloadsTranslation } from '../i18n'
-import { catalogByKey } from '../resourceCatalog'
+import { catalogByKey, topicOf } from '../resourceCatalog'
 import { ObjectOpsActions } from '../ops/ObjectOpsActions'
 import { WorkloadOpsDialogs } from '../ops/WorkloadOpsDialogs'
+import { ConditionsSection } from './detail/ConditionsSection'
 import { DetailRow, DetailSection } from './detail/DetailBits'
 import '@/shared/tabPage.css'
 
@@ -31,7 +32,7 @@ export function GenericDetailPage({ tab }: { tab: TabDescriptor }) {
   const { data, error, errorCode } = useProviderQuery(
     (p) => p.cluster.getResource(key, namespace, name),
     [key, namespace, name],
-    { topics: [key], namespace: namespace ?? undefined },
+    { topics: [topicOf(descriptor, key)], namespace: namespace ?? undefined },
   )
 
   if (!descriptor) return <div className="page-loading">{t('list.unknownResource', { key })}</div>
@@ -44,8 +45,8 @@ export function GenericDetailPage({ tab }: { tab: TabDescriptor }) {
 
   const resource = { kind: descriptor.kind, apiVersion: obj.apiVersion, namespace: namespace ?? undefined, name }
 
-  // Reuse the list columns (minus Name/Namespace/Age/Message) as a quick summary.
-  const summaryCols = descriptor.columns.filter((c) => !NOT_IN_SUMMARY.has(c.key))
+  // Reuse the list columns (minus Name/Namespace/Age/Message) as a quick summary, then the kind's own detail rows.
+  const summaryCols = [...descriptor.columns.filter((c) => !NOT_IN_SUMMARY.has(c.key)), ...(descriptor.details ?? [])]
 
   return (
     <div className="page">
@@ -64,6 +65,8 @@ export function GenericDetailPage({ tab }: { tab: TabDescriptor }) {
             <DetailRow key={c.key} label={t(`columns.${c.key}`)} value={c.render(obj)} />
           ))}
         </div>
+
+        <ConditionsSection obj={obj} />
 
         {Object.keys(labels).length > 0 && (
           <>

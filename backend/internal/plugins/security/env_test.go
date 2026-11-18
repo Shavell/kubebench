@@ -14,11 +14,17 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	dynamicfake "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes/fake"
+	k8stesting "k8s.io/client-go/testing"
 
 	"kubebench/internal/kube"
+	"kubebench/internal/openshift"
 	"kubebench/internal/plugin"
 	"kubebench/internal/store"
 )
@@ -76,11 +82,39 @@ type env struct {
 	audits []string // "target detail" given to SetAudit
 }
 
+// newEnv is a plain Kubernetes cluster: the OpenShift APIs are not served.
 func newEnv(t *testing.T, objects ...runtime.Object) *env {
 	t.Helper()
+	dyn := sccClient()
+	dyn.PrependReactor("list", openshift.SCCGVR.Resource, func(k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, apierrors.NewNotFound(schema.GroupResource{Group: openshift.SCCGVR.Group, Resource: openshift.SCCGVR.Resource}, "")
+	})
+	return newEnvWith(t, dyn, objects...)
+}
+
+// newOpenShiftEnv is an OpenShift cluster with the SCCs given.
+func newOpenShiftEnv(t *testing.T, sccs []*unstructured.Unstructured, objects ...runtime.Object) *env {
+	t.Helper()
+	dyn := sccClient()
+	for _, s := range sccs {
+		// Created by resource: the fake would guess the plural of the kind wrong.
+		if _, err := dyn.Resource(openshift.SCCGVR).Create(t.Context(), s, metav1.CreateOptions{}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return newEnvWith(t, dyn, objects...)
+}
+
+// sccClient is a dynamic client that serves the SCC list.
+func sccClient() *dynamicfake.FakeDynamicClient {
+	return dynamicfake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(),
+		map[schema.GroupVersionResource]string{openshift.SCCGVR: "SecurityContextConstraintsList"})
+}
+
+func newEnvWith(t *testing.T, dyn *dynamicfake.FakeDynamicClient, objects ...runtime.Object) *env {
 	cs := fake.NewClientset(objects...)
 	e := &env{
-		t: t, cs: cs, rt: kube.NewRuntimeForTest(store.Cluster{ID: 7, Name: "lab"}, cs, nil),
+		t: t, cs: cs, rt: kube.NewRuntimeForTest(store.Cluster{ID: 7, Name: "lab"}, cs, dyn),
 		p: New(), kv: &memKV{m: map[string]string{}}, mux: http.NewServeMux(),
 	}
 	e.p.now = func() time.Time { return testNow }

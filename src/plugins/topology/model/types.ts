@@ -3,6 +3,7 @@ import type { KubeObject } from '@/data/types'
 /** The kinds the topology shows (design §7.9). */
 export type TopologyKind =
   | 'Ingress'
+  | 'Route'
   | 'Service'
   | 'Deployment'
   | 'ReplicaSet'
@@ -37,7 +38,7 @@ export interface TopologyNode {
 
 /**
  * Edges point from the object that refers to the other one: an Ingress
- * routes to a Service, a Service selects Pods, an owner owns its children,
+ * or an OpenShift Route routes to a Service, a Service selects Pods, an owner owns its children,
  * a Pod mounts a PVC, a PVC binds a PV, a Pod or Ingress references a
  * ConfigMap or Secret.
  */
@@ -63,6 +64,8 @@ export interface TopologyGraph {
  */
 export interface TopologySnapshot {
   ingresses?: KubeObject[]
+  /** OpenShift Routes (design §7.15); always empty where Routes are not served. */
+  routes?: KubeObject[]
   services?: KubeObject[]
   deployments?: KubeObject[]
   replicaSets?: KubeObject[]

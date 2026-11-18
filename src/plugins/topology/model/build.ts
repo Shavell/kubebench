@@ -4,6 +4,7 @@ import {
   type RawConfig,
   type RawDaemonSet,
   type RawIngress,
+  type RawRoute,
   type RawObject,
   type RawPod,
   type RawPv,
@@ -131,6 +132,15 @@ export function ingressBackends(ing: RawIngress): string[] {
   return [...names]
 }
 
+/** Services an OpenShift Route sends traffic to: its target and alternate backends. */
+export function routeBackends(route: RawRoute): string[] {
+  const names = new Set<string>()
+  for (const b of [route.spec?.to, ...(route.spec?.alternateBackends ?? [])]) {
+    if (b?.name && (b.kind ?? 'Service') === 'Service') names.add(b.name)
+  }
+  return [...names]
+}
+
 /** The controller owner of an object among the kinds the graph shows. */
 function controllerOf(obj: RawObject): { kind: TopologyKind; name: string } | null {
   const refs = obj.metadata?.ownerReferences ?? []
@@ -140,8 +150,8 @@ function controllerOf(obj: RawObject): { kind: TopologyKind; name: string } | nu
 }
 
 /**
- * Builds the namespace's graph (design §7.9): Ingress → Service by backend
- * name, Service → Pod by selector, owner → ReplicaSet/Pod by controller
+ * Builds the namespace's graph (design §7.9): Ingress and OpenShift Route
+ * (§7.15) → Service by backend name, Service → Pod by selector, owner → ReplicaSet/Pod by controller
  * ownerReference, Pod → PVC → PV, and optionally Pod/Ingress → ConfigMap
  * and Secret. Pure and deterministic: nodes and edges come out sorted, so
  * the same lists always give the same graph.
@@ -228,6 +238,15 @@ export function buildGraph(namespace: string, snap: TopologySnapshot, options: B
     for (const tls of ing.spec?.tls ?? []) {
       if (tls.secretName) g.link(id, configNode('Secret', tls.secretName), 'references')
     }
+  }
+
+  for (const route of (snap.routes ?? []) as RawRoute[]) {
+    const backends = routeBackends(route)
+    const status = snap.services
+      ? ingressStatus(backends.length, backends.filter((name) => !listedServices.has(name)).length)
+      : UNKNOWN
+    const id = g.add('Route', namespace, nameOf(route), status)
+    for (const name of backends) g.link(id, g.ref('Service', namespace, name, !!snap.services), 'routes')
   }
 
   return {

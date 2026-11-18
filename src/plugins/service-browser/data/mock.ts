@@ -4,7 +4,9 @@ import { delay, delayReject } from '@/data/mock/delay'
 import { pods, services } from '@/data/mock/mockCluster'
 import { genericMock } from '@/data/mock/mockGeneric'
 import { translate } from '../i18n'
+import { reasonError } from '@/data/reasonError'
 import { ingressRoutes } from '../model/ingress'
+import { routeOf } from '../model/route'
 import { parsePortList, targetAddress } from '../model/ports'
 import type { ServiceBrowserProvider } from './provider'
 import type { ProxySession } from './types'
@@ -45,6 +47,12 @@ export function createMockServiceBrowser(): ServiceBrowserProvider {
     listIngressRoutes: (namespace, name) => {
       const ingress = (genericMock.ingresses ?? []).find((i) => i.metadata?.namespace === namespace && i.metadata?.name === name)
       return ingress ? delay(ingressRoutes(ingress)) : notFound(`${namespace}/${name}`)
+    },
+    getRoute: (namespace, name) => {
+      const object = (genericMock.routes ?? []).find((r) => r.metadata?.namespace === namespace && r.metadata?.name === name)
+      if (!object) return notFound(`${namespace}/${name}`)
+      const route = routeOf(object)
+      return route ? delay(route) : delayReject(reasonError(400, 'bad_request', 'proxy.route_not_service', { namespace, name, kind: '?' }))
     },
     open: (target) => {
       opened += 1

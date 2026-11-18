@@ -11,11 +11,6 @@ import (
 
 const rbacAPIVersion = "rbac.authorization.k8s.io/v1"
 
-// systemNamespaces are left out of a scan unless it includes them.
-var systemNamespaces = []string{"kube-system", "kube-public", "kube-node-lease"}
-
-func isSystemNamespace(ns string) bool { return slices.Contains(systemNamespaces, ns) }
-
 // workload is a pod template the workload checks read: a controller's
 // template, or a Pod no scanned controller manages. Pods of Deployments,
 // Jobs of CronJobs and so on are left out, so each problem is reported
@@ -51,6 +46,8 @@ type bindingInfo struct {
 	roleRef  rbacv1.RoleRef
 	subjects []rbacv1.Subject
 	system   bool
+	// bootstrap: created by the API server from its bootstrap policy.
+	bootstrap bool
 }
 
 // subjectText names a binding subject, e.g. "ServiceAccount shop/web".
@@ -141,34 +138,34 @@ func bootstrapped(meta metav1.ObjectMeta) bool {
 // ClusterRoleBinding) is the cluster's own: bootstrapped, or not granting
 // to everyone and in a system namespace, system:-named or bound to system
 // subjects only. A binding to everyone is otherwise always in scope.
-func systemBinding(meta metav1.ObjectMeta, subjects []rbacv1.Subject, ns string) bool {
+func (sys systemNamespaces) systemBinding(meta metav1.ObjectMeta, subjects []rbacv1.Subject, ns string) bool {
 	if bootstrapped(meta) {
 		return true
 	}
 	if grantsEveryone(subjects) {
 		return false
 	}
-	return isSystemNamespace(ns) || systemRBAC(meta) || systemSubjects(subjects, ns)
+	return sys.has(ns) || systemRBAC(meta) || sys.systemSubjects(subjects, ns)
 }
 
 // systemSubjects reports whether every subject belongs to the cluster: a
 // system: user or group, or a ServiceAccount of a system namespace (also
 // when named as a system:serviceaccount(s): user or group). Such bindings
 // are add-ons' own (e.g. k3s's helm-kube-system-* bindings).
-func systemSubjects(subjects []rbacv1.Subject, bindingNS string) bool {
-	return len(subjects) > 0 && !slices.ContainsFunc(subjects, func(s rbacv1.Subject) bool { return !systemSubject(s, bindingNS) })
+func (sys systemNamespaces) systemSubjects(subjects []rbacv1.Subject, bindingNS string) bool {
+	return len(subjects) > 0 && !slices.ContainsFunc(subjects, func(s rbacv1.Subject) bool { return !sys.systemSubject(s, bindingNS) })
 }
 
-func systemSubject(s rbacv1.Subject, bindingNS string) bool {
+func (sys systemNamespaces) systemSubject(s rbacv1.Subject, bindingNS string) bool {
 	if s.Kind == rbacv1.ServiceAccountKind {
 		ns := s.Namespace
 		if ns == "" {
 			ns = bindingNS
 		}
-		return isSystemNamespace(ns)
+		return sys.has(ns)
 	}
 	if ns, ok := serviceAccountNamespace(s); ok {
-		return isSystemNamespace(ns)
+		return sys.has(ns)
 	}
 	return strings.HasPrefix(s.Name, "system:")
 }
@@ -207,14 +204,14 @@ func serviceAccountNamespace(s rbacv1.Subject) (string, bool) {
 }
 
 // bindings builds every binding of inv, marking the cluster's own.
-func bindings(inv *inventory) []*bindingInfo {
+func bindings(inv *inventory, sys systemNamespaces) []*bindingInfo {
 	var out []*bindingInfo
 	for i := range inv.roleBindings {
 		b := &inv.roleBindings[i]
 		out = append(out, &bindingInfo{
 			Resource: Resource{APIVersion: rbacAPIVersion, Kind: "RoleBinding", Namespace: b.Namespace, Name: b.Name},
 			roleRef:  b.RoleRef, subjects: b.Subjects,
-			system: systemBinding(b.ObjectMeta, b.Subjects, b.Namespace),
+			system: sys.systemBinding(b.ObjectMeta, b.Subjects, b.Namespace), bootstrap: bootstrapped(b.ObjectMeta),
 		})
 	}
 	for i := range inv.clusterRoleBindings {
@@ -222,7 +219,7 @@ func bindings(inv *inventory) []*bindingInfo {
 		out = append(out, &bindingInfo{
 			Resource: Resource{APIVersion: rbacAPIVersion, Kind: "ClusterRoleBinding", Name: b.Name},
 			roleRef:  b.RoleRef, subjects: b.Subjects,
-			system: systemBinding(b.ObjectMeta, b.Subjects, ""),
+			system: sys.systemBinding(b.ObjectMeta, b.Subjects, ""), bootstrap: bootstrapped(b.ObjectMeta),
 		})
 	}
 	return out
@@ -231,11 +228,11 @@ func bindings(inv *inventory) []*bindingInfo {
 // roles builds the role subjects in the scan's scope. Without system
 // objects, a ClusterRole is left out when it is the cluster's own, or when
 // only the cluster's own bindings use it: its risk is theirs.
-func roles(inv *inventory, all []*bindingInfo, includeSystem bool) []*roleInfo {
+func roles(inv *inventory, all []*bindingInfo, sys systemNamespaces, includeSystem bool) []*roleInfo {
 	var out []*roleInfo
 	for i := range inv.roles {
 		r := &inv.roles[i]
-		if !includeSystem && (isSystemNamespace(r.Namespace) || systemRBAC(r.ObjectMeta)) {
+		if !includeSystem && (sys.has(r.Namespace) || systemRBAC(r.ObjectMeta)) {
 			continue
 		}
 		out = append(out, &roleInfo{

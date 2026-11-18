@@ -16,7 +16,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	dynamicfake "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/rest"
@@ -56,6 +55,7 @@ type testEnv struct {
 	srv     *Server
 	handler http.Handler
 	cs      *fake.Clientset
+	dyn     *dynamicfake.FakeDynamicClient
 	clock   *fakeClock
 	cluster int64 // id of the "test" cluster
 	tokens  map[string]string
@@ -95,9 +95,9 @@ func newTestEnv(t *testing.T, env map[string]string, plugins ...plugin.Plugin) *
 		&corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "web-1", Namespace: "default"}},
 		&corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "web-2", Namespace: "default"}},
 	)
-	dyn := dynamicfake.NewSimpleDynamicClient(runtime.NewScheme())
+	dyn := plainDynamicClient()
 	e := &testEnv{
-		t: t, cfg: cfg, store: st, cs: cs,
+		t: t, cfg: cfg, store: st, cs: cs, dyn: dyn,
 		clock:  &fakeClock{now: time.Date(2026, 11, 14, 12, 0, 0, 0, time.UTC)},
 		tokens: map[string]string{}, users: map[string]int64{},
 	}

@@ -1,6 +1,8 @@
 import { ApiError } from '@/data/apiClient'
 import { reasonError } from '@/data/reasonError'
 import { delay, delayReject } from '@/data/mock/delay'
+import { activeMockCluster } from '@/data/mock/mockInventory'
+import { mockOptionalResources } from '@/data/mock/mockOpenShift'
 import { MOCK_CATALOG, mockMessage } from './mockCatalog'
 import { exportText } from './mockExport'
 import { scoreFindings } from './mockScore'
@@ -83,11 +85,28 @@ const SYSTEM_SEEDS: Seed[] = [
   ['psa-labels', ns('kube-system'), ['pod-security.kubernetes.io/enforce: unset']],
 ]
 
-/** Objects each target covers: the demo cluster's workloads, namespaces, roles, bindings, default ServiceAccounts. */
+/**
+ * SCC findings (design §7.15), on the OpenShift mock cluster only: its
+ * SCCs (data/mock/mockOpenShift) grant privileged access to shop's
+ * payments ServiceAccount.
+ */
+const scc = (name: string): SecurityResource => ({ apiVersion: 'security.openshift.io/v1', kind: 'SecurityContextConstraints', name })
+const OPENSHIFT_SEEDS: Seed[] = [
+  ['scc-privileged-subjects', scc('privileged'), ['User system:serviceaccount:shop:payments']],
+  ['scc-privileged-subjects', scc('shop-payments-net'), ['User system:serviceaccount:shop:payments']],
+  ['scc-custom-privileged', scc('shop-payments-net'), ['allowPrivilegedContainer: true']],
+  ['scc-privileged-workload', deploy('shop', 'shop-payments'), ['scc: shop-payments-net']],
+  ['scc-privileged-binding', rbac('RoleBinding', 'system:openshift:scc:anyuid', 'shop'), ['ServiceAccount shop/shop-postgres → anyuid']],
+]
+
+/** Objects each target covers: the demo cluster's workloads, namespaces, roles, bindings, default ServiceAccounts, SCCs. */
 const SUBJECTS = {
-  normal: { workload: 11, namespace: 4, role: 9, binding: 7, serviceaccount: 4 },
-  system: { workload: 17, namespace: 7, role: 61, binding: 48, serviceaccount: 7 },
+  normal: { workload: 11, namespace: 4, role: 9, binding: 7, serviceaccount: 4, scc: 4 },
+  system: { workload: 17, namespace: 7, role: 61, binding: 48, serviceaccount: 7, scc: 4 },
 }
+
+/** The active mock cluster is OpenShift: it serves SCCs. */
+const onOpenShift = () => mockOptionalResources(activeMockCluster().platform).includes('securitycontextconstraints')
 
 const INVENTORY: Record<string, number> = {
   namespaces: 6, pods: 19, deployments: 6, statefulsets: 1, daemonsets: 2, replicasets: 6, jobs: 0, cronjobs: 0,
@@ -128,11 +147,16 @@ interface MockScan {
 }
 
 function runScan(options: ScanOptions, generatedAt: string): MockScan {
-  const seeds = options.includeSystem ? [...SEEDS, ...SYSTEM_SEEDS] : SEEDS
+  const openShift = onOpenShift()
+  const seeds = [...SEEDS, ...(options.includeSystem ? SYSTEM_SEEDS : []), ...(openShift ? OPENSHIFT_SEEDS : [])]
   const subjects = options.includeSystem ? SUBJECTS.system : SUBJECTS.normal
   const evaluated: Record<string, number> = {}
-  // Every check ran on all objects of its target (the demo cluster has no Jobs, which probes skip).
-  for (const check of MOCK_CATALOG) evaluated[check.id] = subjects[check.target]
+  // Every check ran on all objects of its target (the demo cluster has no Jobs, which probes skip);
+  // the OpenShift checks only on the OpenShift cluster.
+  for (const check of MOCK_CATALOG) {
+    if (check.category === 'openshift' && !openShift) continue
+    evaluated[check.id] = subjects[check.target]
+  }
   return { generatedAt, options, findings: seeds.map(findingOf).sort(compare), evaluated }
 }
 

@@ -5,6 +5,7 @@ import { MIN_PASSWORD_LENGTH, passwordLength } from '../rules'
 import type { ServerInfo } from '../types'
 import { delay, delayReject } from './delay'
 import { activeMockCluster } from './mockInventory'
+import { mockOptionalResources } from './mockOpenShift'
 import { MOCK_USERNAME } from './mockUsers'
 
 /**
@@ -40,7 +41,8 @@ export function mockServerInfo(): ServerInfo {
       isAdmin: true,
       readOnly,
     },
-    capabilities: { crds: true, helm: true, exec: true },
+    // The OpenShift resource types are served by the OpenShift mock cluster only.
+    capabilities: { crds: true, helm: true, exec: true, optionalResources: mockOptionalResources(cluster.platform) },
     // The mock has no server side for runtime-loaded plugins.
     features: { pathKubeconfig: true, externalPlugins: false, ambientCloudIdentity: true },
     clusterError: '',

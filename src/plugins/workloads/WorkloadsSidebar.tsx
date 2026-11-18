@@ -3,7 +3,7 @@ import { useProviderQuery } from '@/data/DataContext'
 import { SidebarErrors } from '@/shared/SidebarErrors'
 import { Tree, type TreeNode } from '@/shared/Tree'
 import { useWorkloadsTranslation, WORKLOADS_NS } from './i18n'
-import { RESOURCE_CATALOG, resourceLabel, richLabel, type ResourceGroup } from './resourceCatalog'
+import { isServed, RESOURCE_CATALOG, resourceLabel, richLabel, type ResourceGroup } from './resourceCatalog'
 
 // Rich types keep their bespoke pages; everything else is generic.
 // Keys are the `resource` prop of workloads-list tabs.
@@ -15,7 +15,7 @@ const RICH_ICONS: Record<string, string> = {
   Services: 'plug',
 }
 
-const GROUP_ORDER: ResourceGroup[] = ['cluster', 'workloads', 'config', 'network', 'storage', 'accessControl']
+const GROUP_ORDER: ResourceGroup[] = ['cluster', 'workloads', 'config', 'network', 'storage', 'accessControl', 'openshift']
 const GROUP_ICON: Record<ResourceGroup, string> = {
   cluster: 'vm',
   workloads: 'layers',
@@ -23,6 +23,7 @@ const GROUP_ICON: Record<ResourceGroup, string> = {
   network: 'globe',
   storage: 'database',
   accessControl: 'shield',
+  openshift: 'server-environment',
 }
 
 function openRichList(resource: string, icon: string) {
@@ -75,18 +76,16 @@ export function WorkloadsSidebar() {
     network: [rich('Services', servicesQuery.data?.length)],
   }
 
-  const tree: TreeNode[] = GROUP_ORDER.map((group) => {
-    const generic = RESOURCE_CATALOG.filter((d) => d.group === group).map((d) => ({
+  // Optional types (OpenShift's) only where the cluster serves them; a
+  // group left without entries is not shown.
+  const tree: TreeNode[] = GROUP_ORDER.flatMap((group) => {
+    const generic = RESOURCE_CATALOG.filter((d) => d.group === group && isServed(d)).map((d) => ({
       id: `reslist:${d.key}`,
       label: resourceLabel(d.key),
       icon: d.icon,
     }))
-    return {
-      id: `group:${group}`,
-      label: t(`groups.${group}`),
-      icon: GROUP_ICON[group],
-      children: [...(richByGroup[group] ?? []), ...generic],
-    }
+    const children = [...(richByGroup[group] ?? []), ...generic]
+    return children.length ? [{ id: `group:${group}`, label: t(`groups.${group}`), icon: GROUP_ICON[group], children }] : []
   })
 
   return (

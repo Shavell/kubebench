@@ -6,12 +6,13 @@ import { delay, delayReject } from './delay'
 import { eventsFor } from './mockEvents'
 import { mockExecOutput } from './mockExec'
 import { genericMock } from './mockGeneric'
+import { mockOptionalResources, OPENSHIFT_RESOURCES } from './mockOpenShift'
 import { podLogs } from './mockLogs'
 import { streamMockLogs } from './mockLogStream'
 import { openMockTerminal } from './mockTerminal'
 import { clusterAllocation, clusterStats, generateSeries } from './mockMetrics'
 import { createMockAudit } from './mockAudit'
-import { createMockInventory } from './mockInventory'
+import { activeMockCluster, createMockInventory } from './mockInventory'
 import { mockK8sGet } from './mockK8s'
 import { createMockPlugins } from './mockPlugins'
 import { createMockSession } from './mockSession'
@@ -28,6 +29,10 @@ import {
   podYaml,
   serviceYaml,
 } from './mockYaml'
+
+/** Whether the active mock cluster serves a catalog type: OpenShift's only on the OpenShift cluster. */
+const servedByMock = (key: string) =>
+  !OPENSHIFT_RESOURCES.includes(key) || mockOptionalResources(activeMockCluster().platform).includes(key)
 
 const byNamespace = <T extends { namespace: string }>(items: T[], namespace?: string) =>
   namespace ? items.filter((i) => i.namespace === namespace) : items
@@ -86,7 +91,8 @@ export function createMockProviders(): DataProviders {
         return delay(podLogs(podName, container, options))
       },
       listResource: (key, ns) => {
-        const items = genericMock[key] ?? []
+        // Like a live cluster, one that does not serve a type lists none.
+        const items = servedByMock(key) ? (genericMock[key] ?? []) : []
         return delay(ns ? items.filter((o) => o.metadata?.namespace === ns) : items)
       },
       getResource: (key, ns, name) => {

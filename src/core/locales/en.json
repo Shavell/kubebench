@@ -451,7 +451,8 @@
       "eks": "Amazon EKS standard support",
       "aks": "AKS support",
       "gke": "GKE standard support",
-      "kubernetes": "upstream Kubernetes support"
+      "kubernetes": "upstream Kubernetes support",
+      "openshift": "Red Hat OpenShift maintenance support"
     },
     "version": "Version {{version}}",
     "notDetected": "Not connected yet: recognised from the API server address only.",
@@ -474,7 +475,33 @@
       "endingSoon": {
         "title": "{{basis}} for Kubernetes {{version}} ends on {{date}}",
         "hint": "Plan an upgrade to a newer minor version before then."
+      },
+      "openshift": {
+        "endOfLife": {
+          "title": "OpenShift {{version}} is past the end of {{basis}} ({{date}})",
+          "hint": "Red Hat no longer ships fixes for this version. Plan an update to a supported minor version."
+        },
+        "endOfLifeOld": {
+          "title": "OpenShift {{version}} is long past the end of {{basis}}",
+          "hint": "Red Hat no longer ships fixes for this version. Plan an update to a supported minor version."
+        },
+        "inEus": {
+          "title": "OpenShift {{version}} is past the end of {{basis}} ({{date}})",
+          "hint": "Only clusters with Extended Update Support still get fixes, until {{eusDate}}. Plan an update to a supported minor version."
+        },
+        "endingSoon": {
+          "title": "{{basis}} for OpenShift {{version}} ends on {{date}}",
+          "hint": "Plan an update to a newer minor version before then."
+        }
       }
+    },
+    "productVersion": "OpenShift {{version}} (Kubernetes {{kubernetes}})",
+    "phase": {
+      "full": "Full support until {{date}}",
+      "maintenance": "Maintenance support until {{date}}",
+      "eus": "Extended Update Support until {{date}} (with an EUS subscription)",
+      "eusLater": "Extended Update Support available until {{date}}",
+      "ended": "Every support phase has ended"
     }
   }
 }

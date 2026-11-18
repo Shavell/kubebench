@@ -18,7 +18,8 @@
     "config": "Config",
     "network": "Network",
     "storage": "Storage",
-    "accessControl": "Access Control"
+    "accessControl": "Access Control",
+    "openshift": "OpenShift"
   },
   "resources": {
     "pods": "Pods",
@@ -56,7 +57,15 @@
     "rolebindings": "Role Bindings",
     "clusterroles": "Cluster Roles",
     "clusterrolebindings": "Cluster Role Bindings",
-    "events": "Events"
+    "events": "Events",
+    "routes": "Routes",
+    "projects": "Projects",
+    "securitycontextconstraints": "Security Context Constraints",
+    "deploymentconfigs": "DeploymentConfigs",
+    "buildconfigs": "BuildConfigs",
+    "builds": "Builds",
+    "imagestreams": "ImageStreams",
+    "imagestreamtags": "ImageStreamTags"
   },
   "columns": {
     "name": "Name",
@@ -110,7 +119,34 @@
     "message": "Message",
     "count": "Count",
     "object": "Object",
-    "lastSeen": "Last seen"
+    "lastSeen": "Last seen",
+    "displayName": "Display name",
+    "phase": "Phase",
+    "requester": "Requester",
+    "host": "Host",
+    "path": "Path",
+    "service": "Service",
+    "tls": "TLS termination",
+    "admitted": "Admitted",
+    "routers": "Routers",
+    "alternateBackends": "Alternate backends",
+    "triggers": "Triggers",
+    "latestVersion": "Latest version",
+    "strategy": "Strategy",
+    "source": "Source",
+    "lastVersion": "Last build",
+    "output": "Output",
+    "duration": "Duration",
+    "repository": "Repository",
+    "tags": "Tags",
+    "image": "Image",
+    "privileged": "Privileged",
+    "runAsUser": "Run as user",
+    "seLinux": "SELinux",
+    "grantedTo": "Users and groups",
+    "users": "Users",
+    "groups": "Groups",
+    "volumes": "Volumes"
   },
   "values": {
     "addresses_one": "{{count}} address",
@@ -414,5 +450,19 @@
     "noWarnings": "No warnings",
     "groupSummary_one": "{{events}} event · {{occurrences}} occurrences · last {{lastSeen}} ago",
     "groupSummary_other": "{{events}} events · {{occurrences}} occurrences · last {{lastSeen}} ago"
+  },
+  "openshift": {
+    "admission": {
+      "pending": "Pending",
+      "admitted": "Admitted",
+      "rejected": "Not admitted"
+    },
+    "openRouteUrl": "Open {{url}} in a new browser tab",
+    "duration": {
+      "hm": "{{h}}h {{m}}m",
+      "ms": "{{m}}m {{s}}s",
+      "s": "{{s}}s"
+    },
+    "conditions": "Conditions"
   }
 }

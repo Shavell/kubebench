@@ -42,6 +42,7 @@ export function openTopology(namespace: string, focus?: TopologyFocus): void {
 
 const API_VERSIONS: Record<TopologyKind, string> = {
   Ingress: 'networking.k8s.io/v1',
+  Route: 'route.openshift.io/v1',
   Service: 'v1',
   Deployment: 'apps/v1',
   ReplicaSet: 'apps/v1',
@@ -59,6 +60,7 @@ const RICH: Partial<Record<TopologyKind, string>> = { Pod: 'package', Deployment
 
 const CATALOG_KEYS: Partial<Record<TopologyKind, string>> = {
   Ingress: 'ingresses',
+  Route: 'routes',
   ReplicaSet: 'replicasets',
   StatefulSet: 'statefulsets',
   DaemonSet: 'daemonsets',
@@ -103,4 +105,4 @@ export function openObjectYaml(node: TopologyNode): void {
 }
 
 /** Kinds the "Show topology" action focuses (design §7.9). */
-export const FOCUSABLE_KINDS: TopologyKind[] = ['Deployment', 'StatefulSet', 'DaemonSet', 'Service', 'Ingress']
+export const FOCUSABLE_KINDS: TopologyKind[] = ['Deployment', 'StatefulSet', 'DaemonSet', 'Service', 'Ingress', 'Route']

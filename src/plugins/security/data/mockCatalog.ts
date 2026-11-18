@@ -41,6 +41,10 @@ const SPECS: Spec[] = [
   ['hardcoded-secret', 'high', 'secrets', 'workload', ['CIS 5.4.1']],
   ['psa-labels', 'low', 'namespaces', 'namespace', ['CIS 5.2.1', 'PSS baseline']],
   ['default-namespace', 'low', 'namespaces', 'workload', ['CIS 5.7.4']],
+  ['scc-privileged-subjects', 'high', 'openshift', 'scc', ['CIS OpenShift 5.2.1', 'OpenShift SCC guide']],
+  ['scc-privileged-binding', 'high', 'openshift', 'binding', ['CIS OpenShift 5.2.1', 'OpenShift SCC guide']],
+  ['scc-privileged-workload', 'high', 'openshift', 'workload', ['CIS OpenShift 5.2.1', 'CIS OpenShift 5.2.6', 'OpenShift SCC guide']],
+  ['scc-custom-privileged', 'medium', 'openshift', 'scc', ['CIS OpenShift 5.2.1', 'OpenShift SCC guide']],
 ]
 
 type CheckTexts = Record<string, { title: string; message: string; remediation: string }>

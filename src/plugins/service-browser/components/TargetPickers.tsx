@@ -7,7 +7,8 @@ import { portLabel } from '../model/ports'
 
 const SCHEMES: Scheme[] = ['http', 'https']
 
-function SchemePicker({ value, onChange }: { value: Scheme; onChange: (scheme: Scheme) => void }) {
+/** How the API server reaches the backend: http or https. */
+export function SchemePicker({ value, onChange }: { value: Scheme; onChange: (scheme: Scheme) => void }) {
   const { t } = useTranslation(NS)
   return (
     <Select

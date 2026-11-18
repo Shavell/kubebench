@@ -48,5 +48,10 @@
     "route": "{{from}} → {{service}}:{{port}}",
     "defaultBackend": "Standard-Backend",
     "via": "{{address}}, erreicht über den Service {{service}} mit dem Host der Regel. Pfadumschreibungen des Ingress-Controllers gelten nicht."
+  },
+  "route": {
+    "loading": "Route wird gelesen…",
+    "via": "{{address}}, erreicht über den Service {{service}} mit dem Host der Route. Der OpenShift-Router (TLS-Terminierung, Umschreibungen) ist nicht beteiligt.",
+    "openPublic": "Route-URL {{url}} in einem neuen Browser-Tab öffnen (über den OpenShift-Router, nicht über KubeBench)"
   }
 }

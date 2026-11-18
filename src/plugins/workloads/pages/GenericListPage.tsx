@@ -11,7 +11,7 @@ import { Toolbar } from '@/shared/Toolbar'
 import { EmptyState } from '@/shared/EmptyState'
 import { Unavailable } from '@/shared/Unavailable'
 import { useWorkloadsTranslation } from '../i18n'
-import { catalogByKey, objName, objNamespace, resourceLabel, withHeaders } from '../resourceCatalog'
+import { catalogByKey, objName, objNamespace, resourceLabel, topicOf, withHeaders } from '../resourceCatalog'
 import { ResourceDialogs } from '../editing/ResourceDialogs'
 import { NewResourceButton } from '../editing/ResourceEditButtons'
 import { genericMenu } from '../rowActions'
@@ -42,8 +42,8 @@ function CatalogListPage({ tab }: { tab: TabDescriptor }) {
   const query = useProviderQuery(
     (p) => (descriptor ? p.cluster.listResource(key, nsFilter) : Promise.resolve([])),
     [key, nsFilter],
-    // Catalog keys are resource names, i.e. watch topics.
-    { topics: [key], namespace: nsFilter },
+    // Catalog keys are resource names, i.e. watch topics (group-qualified where ambiguous).
+    { topics: [topicOf(descriptor, key)], namespace: nsFilter },
   )
 
   if (!descriptor) return <div className="page-loading">{t('list.unknownResource', { key })}</div>

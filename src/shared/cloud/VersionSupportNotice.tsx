@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { PLATFORM_NS } from '@/core/locales'
 import type { ClusterPlatform } from '@/data/types'
 import { Icon } from '@/shared/Icon'
-import { formatEndDate, platformName } from './platformText'
+import { displayVersion, formatEndDate, platformName } from './platformText'
 import './cloud.css'
 
 /**
@@ -17,19 +17,26 @@ export function VersionSupportNotice({ platform }: { platform: ClusterPlatform |
   if (!platform?.detected) return null
   const { status, endDate, basis } = platform.support
   if (status !== 'end-of-life' && status !== 'ending-soon') return null
+  const { phase, eusEnd } = platform.support
   const values = {
-    version: platform.version,
+    version: displayVersion(platform),
     provider: platformName(t, platform),
     basis: basis ? t(`cloud.basis.${basis}`) : '',
     date: endDate ? formatEndDate(endDate) : '',
+    eusDate: eusEnd ? formatEndDate(eusEnd) : '',
   }
-  const key = status === 'end-of-life' ? (endDate ? 'endOfLife' : 'endOfLifeOld') : 'endingSoon'
+  // OpenShift names its own version, and past maintenance an even minor
+  // may still be in Extended Update Support (design §7.15): a warning then.
+  const inEus = phase === 'eus'
+  const base = status === 'end-of-life' ? (inEus ? 'inEus' : endDate ? 'endOfLife' : 'endOfLifeOld') : 'endingSoon'
+  const key = platform.productVersion ? `openshift.${base}` : base
+  const error = status === 'end-of-life' && !inEus
   return (
     <div
-      className={clsx('kb-support-notice', status === 'end-of-life' ? 'kb-support-notice--error' : 'kb-support-notice--warning')}
-      role={status === 'end-of-life' ? 'alert' : 'status'}
+      className={clsx('kb-support-notice', error ? 'kb-support-notice--error' : 'kb-support-notice--warning')}
+      role={error ? 'alert' : 'status'}
     >
-      <Icon name={status === 'end-of-life' ? 'error' : 'warning'} size={16} />
+      <Icon name={error ? 'error' : 'warning'} size={16} />
       <div>
         <div className="kb-support-notice__title">{t(`cloud.notice.${key}.title`, values)}</div>
         <div className="kb-support-notice__hint">{t(`cloud.notice.${key}.hint`, values)}</div>

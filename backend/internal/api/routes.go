@@ -107,6 +107,7 @@ func (s *Server) routes() {
 	s.handle("POST /api/proxy/services/{ns}/{name}/{port}", accessBrowse, s.handleOpenProxy(svcproxy.KindService))
 	s.handle("POST /api/proxy/pods/{ns}/{name}/{port}", accessBrowse, s.handleOpenProxy(svcproxy.KindPod))
 	s.handle("POST /api/proxy/ingresses/{ns}/{name}", accessBrowse, s.handleOpenIngressProxy)
+	s.handle("POST /api/proxy/routes/{ns}/{name}", accessBrowse, s.handleOpenRouteProxy) // OpenShift (§7.15)
 	s.handle("GET /api/proxy/sessions/{token}", accessAuthed, s.handleProxySession)
 	s.handle("DELETE /api/proxy/sessions/{token}", accessAuthed, s.handleCloseProxySession)
 	s.handle("GET /proxy/{token}", accessPublic, s.handleProxyRoot)
@@ -133,6 +134,7 @@ var auditKinds = map[string]string{
 	"POST /api/proxy/services/{ns}/{name}/{port}": "service",
 	"POST /api/proxy/pods/{ns}/{name}/{port}":     "pod",
 	"POST /api/proxy/ingresses/{ns}/{name}":       "ingress",
+	"POST /api/proxy/routes/{ns}/{name}":          "route",
 	// Group mappings (§3.6).
 	"POST /api/settings/auth/mappings":        "mapping",
 	"PUT /api/settings/auth/mappings/{id}":    "mapping",
@@ -149,4 +151,5 @@ var auditActions = map[string]string{
 	"POST /api/proxy/services/{ns}/{name}/{port}": "service.proxy",
 	"POST /api/proxy/pods/{ns}/{name}/{port}":     "pod.proxy",
 	"POST /api/proxy/ingresses/{ns}/{name}":       "ingress.proxy",
+	"POST /api/proxy/routes/{ns}/{name}":          "route.proxy",
 }

@@ -319,6 +319,8 @@
     "external_name": "Der Service {{namespace}}/{{name}} zeigt aus dem Cluster hinaus (ExternalName); öffnen Sie {{externalName}} direkt",
     "kubebench_session_ended": "Ihre KubeBench-Sitzung wurde beendet; melden Sie sich erneut an",
     "no_ingress_route": "Der Ingress {{namespace}}/{{name}} hat keine Regel für den Host \"{{host}}\" und den Pfad \"{{path}}\", die zu einem Service führt",
+    "route_no_port": "Der Service {{service}} der Route {{namespace}}/{{name}} hat keinen Port, der zu \"{{port}}\" passt",
+    "route_not_service": "Die Route {{namespace}}/{{name}} führt nicht zu einem Service (sie nennt {{kind}})",
     "no_pod_port": "Der Pod {{namespace}}/{{name}} hat keinen Port namens {{port}}",
     "no_service_port": "Der Service {{namespace}}/{{name}} hat keinen Port {{port}}",
     "origin_same_site": "Der Service-Browser ist aus: KUBEBENCH_PROXY_ORIGIN ({{origin}}) liegt auf derselben Website wie KubeBench ({{app}}), sodass seine Seiten Ihr KubeBench-Sitzungscookie ersetzen könnten; ein Administrator muss ihn auf einen Host einer anderen Domain setzen oder entfernen",

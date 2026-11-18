@@ -18,7 +18,8 @@
     "config": "Yapılandırma",
     "network": "Ağ",
     "storage": "Depolama",
-    "accessControl": "Erişim denetimi"
+    "accessControl": "Erişim denetimi",
+    "openshift": "OpenShift"
   },
   "resources": {
     "pods": "Pod'lar",
@@ -56,7 +57,15 @@
     "rolebindings": "RoleBinding'ler",
     "clusterroles": "ClusterRole'ler",
     "clusterrolebindings": "ClusterRoleBinding'ler",
-    "events": "Event'ler"
+    "events": "Event'ler",
+    "routes": "Route'lar",
+    "projects": "Project'ler",
+    "securitycontextconstraints": "Security Context Constraints",
+    "deploymentconfigs": "DeploymentConfig'ler",
+    "buildconfigs": "BuildConfig'ler",
+    "builds": "Build'ler",
+    "imagestreams": "ImageStream'ler",
+    "imagestreamtags": "ImageStreamTag'ler"
   },
   "columns": {
     "name": "Ad",
@@ -110,7 +119,34 @@
     "message": "Mesaj",
     "count": "Sayı",
     "object": "Nesne",
-    "lastSeen": "Son görülme"
+    "lastSeen": "Son görülme",
+    "displayName": "Görünen ad",
+    "phase": "Aşama",
+    "requester": "Talep eden",
+    "host": "Host",
+    "path": "Yol",
+    "service": "Service",
+    "tls": "TLS sonlandırma",
+    "admitted": "Kabul",
+    "routers": "Router'lar",
+    "alternateBackends": "Alternatif backend'ler",
+    "triggers": "Tetikleyiciler",
+    "latestVersion": "Son sürüm",
+    "strategy": "Strateji",
+    "source": "Kaynak",
+    "lastVersion": "Son build",
+    "output": "Çıktı",
+    "duration": "Süre",
+    "repository": "Depo",
+    "tags": "Etiketler",
+    "image": "İmaj",
+    "privileged": "Ayrıcalıklı",
+    "runAsUser": "Çalıştıran kullanıcı",
+    "seLinux": "SELinux",
+    "grantedTo": "Kullanıcılar ve gruplar",
+    "users": "Kullanıcılar",
+    "groups": "Gruplar",
+    "volumes": "Volume'ler"
   },
   "values": {
     "addresses_one": "{{count}} adres",
@@ -414,5 +450,19 @@
     "noWarnings": "Uyarı yok",
     "groupSummary_one": "{{events}} olay · {{occurrences}} kez · son: {{lastSeen}} önce",
     "groupSummary_other": "{{events}} olay · {{occurrences}} kez · son: {{lastSeen}} önce"
+  },
+  "openshift": {
+    "admission": {
+      "pending": "Bekliyor",
+      "admitted": "Kabul edildi",
+      "rejected": "Kabul edilmedi"
+    },
+    "openRouteUrl": "{{url}} adresini yeni bir tarayıcı sekmesinde açın",
+    "duration": {
+      "hm": "{{h}} sa {{m}} dk",
+      "ms": "{{m}} dk {{s}} sn",
+      "s": "{{s}} sn"
+    },
+    "conditions": "Koşullar"
   }
 }

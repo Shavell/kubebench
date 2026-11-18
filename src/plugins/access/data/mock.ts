@@ -3,6 +3,7 @@ import { reasonError } from '@/data/reasonError'
 import { delay, delayReject } from '@/data/mock/delay'
 import { identityOf, RbacEngine } from './mockEngine'
 import { mockRbac } from './mockRbac'
+import { mockClusterRbac } from './mockOpenShift'
 import type { AccessProvider } from './provider'
 import type { AccessRequest, Grant, ReviewResult, Subject } from './types'
 
@@ -38,7 +39,7 @@ function reasonOf(grant: Grant): string {
 }
 
 export function createMockAccess(): AccessProvider {
-  const engine = new RbacEngine(mockRbac)
+  const engine = new RbacEngine(mockClusterRbac(mockRbac))
   return {
     listSubjects: () => delay(engine.subjects()),
     getSubject: (subject) => {

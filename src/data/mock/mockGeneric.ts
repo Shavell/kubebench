@@ -1,6 +1,7 @@
 import type { KubeObject } from '../types'
 import { apiVersionOf } from './mockKinds'
 import { MOCK_CLUSTER_EVENTS } from './mockClusterEvents'
+import { openShiftMock } from './mockOpenShift'
 
 /**
  * Mock objects for the generic resource browser, keyed by catalog key.
@@ -226,4 +227,5 @@ export const genericMock: Record<string, KubeObject[]> = {
     obj('EndpointSlice', 'shop-frontend-abcde', 'shop', '45d', { addressType: 'IPv4', endpoints: [{}, {}] }),
   ],
   events: MOCK_CLUSTER_EVENTS,
+  ...openShiftMock,
 }

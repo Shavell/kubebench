@@ -92,6 +92,9 @@ func (s *scanner) scan(ctx context.Context, rt *kube.Runtime, opts ScanOptions) 
 	if len(inv.errs) == len(allKinds) {
 		return nil, inv.errs[kindNamespaces]
 	}
+	if err := collectOpenShift(ctx, rt.Dyn, inv); err != nil {
+		return nil, err
+	}
 	res := newScan(inv, opts).run(catalog)
 	res.generatedAt = s.now().UTC()
 	res.cluster = rt.Cluster.Name

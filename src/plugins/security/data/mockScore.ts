@@ -69,5 +69,7 @@ export function scoreFindings(
     catTotals.set(check.category, { total: t.total + w * n, passed: t.passed + w * ok })
   }
   for (const [category, t] of catTotals) byCategory.get(category)!.score = percent(t.passed, t.total)
-  return { findings, counts, overall: percent(passed, total), byCategory: [...byCategory.values()] }
+  // Like the server, OpenShift's category only where its checks ran.
+  const categories = [...byCategory.values()].filter((c) => c.category !== 'openshift' || c.checks > 0)
+  return { findings, counts, overall: percent(passed, total), byCategory: categories }
 }

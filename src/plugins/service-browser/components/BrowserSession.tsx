@@ -8,6 +8,7 @@ import { frameLocation } from '../model/frameLocation'
 import { canGoBack, canGoForward, currentPath, goBack, goForward, startHistory, visit } from '../model/history'
 import { startPath } from '../model/ingress'
 import { targetAddress } from '../model/ports'
+import { routePublicUrl } from '../model/route'
 import { AddressBar } from './AddressBar'
 import { SessionNotices } from './SessionNotices'
 
@@ -40,7 +41,7 @@ export function BrowserSession({ target, pickers }: BrowserSessionProps) {
   const provider = serviceBrowserData()
   const [state, setState] = useState<SessionState>(null)
   const [attempt, setAttempt] = useState(0)
-  const [history, setHistory] = useState(() => startHistory(startPath(target.ingress?.path ?? '/')))
+  const [history, setHistory] = useState(() => startHistory(startPath(target.ingress?.path ?? target.route?.path ?? '/')))
   // Every navigation KubeBench starts remounts the frame (n), so going to
   // the path the frame was opened with still loads it again.
   const [frame, setFrame] = useState(() => ({ path: currentPath(history), n: 0 }))
@@ -69,7 +70,7 @@ export function BrowserSession({ target, pickers }: BrowserSessionProps) {
       if (token) provider.close(token).catch(() => undefined)
     }
     // The target's fields, not its identity, select the session.
-  }, [provider, target.kind, target.namespace, target.name, target.port, target.scheme, target.ingress?.name, target.ingress?.host, target.ingress?.path, target.ingress?.defaultBackend, attempt]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [provider, target.kind, target.namespace, target.name, target.port, target.scheme, target.ingress?.name, target.ingress?.host, target.ingress?.path, target.ingress?.defaultBackend, target.route?.name, attempt]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const session = state?.session ?? null
   const source = useMemo(
@@ -111,7 +112,14 @@ export function BrowserSession({ target, pickers }: BrowserSessionProps) {
     <div className="sb-page">
       <AddressBar
         address={targetAddress(target)}
-        addressTitle={target.ingress ? t('ingress.via', { address: targetAddress(target), service: `${target.name}:${target.port}` }) : undefined}
+        addressTitle={
+          target.ingress
+            ? t('ingress.via', { address: targetAddress(target), service: `${target.name}:${target.port}` })
+            : target.route
+              ? t('route.via', { address: targetAddress(target), service: session ? `${session.target.name}:${session.target.port}` : target.name })
+              : undefined
+        }
+        publicUrl={target.route ? routePublicUrl(target.route) : null}
         path={path}
         pickers={pickers}
         canBack={canGoBack(history)}

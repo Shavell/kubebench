@@ -10,12 +10,17 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	dynamicfake "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
+	k8stesting "k8s.io/client-go/testing"
 
 	"kubebench/internal/kube"
+	"kubebench/internal/openshift"
 	"kubebench/internal/plugin"
 	"kubebench/internal/store"
 )
@@ -25,6 +30,7 @@ import (
 type env struct {
 	t      *testing.T
 	rt     *kube.Runtime
+	dyn    *dynamicfake.FakeDynamicClient // serves SCCs only after openShift()
 	mux    *http.ServeMux
 	now    time.Time
 	access map[string]plugin.Access
@@ -37,7 +43,13 @@ func newEnv(t *testing.T, objects ...runtime.Object) *env {
 
 func newEnvWith(t *testing.T, cs kubernetes.Interface) *env {
 	t.Helper()
-	e := &env{t: t, rt: kube.NewRuntimeForTest(store.Cluster{ID: 1, Name: "test"}, cs, nil), mux: http.NewServeMux(), now: time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC), access: map[string]plugin.Access{}}
+	dyn := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(),
+		map[schema.GroupVersionResource]string{openshift.SCCGVR: "SecurityContextConstraintsList"})
+	// A plain cluster: the SCC API is not served.
+	dyn.PrependReactor("list", openshift.SCCGVR.Resource, func(k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, apierrors.NewNotFound(openshift.SCCGVR.GroupResource(), "")
+	})
+	e := &env{t: t, rt: kube.NewRuntimeForTest(store.Cluster{ID: 1, Name: "test"}, cs, dyn), dyn: dyn, mux: http.NewServeMux(), now: time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC), access: map[string]plugin.Access{}}
 	newPlugin(func() time.Time { return e.now }).Routes(e)
 	return e
 }

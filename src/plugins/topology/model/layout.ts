@@ -26,6 +26,7 @@ const COLUMN: Record<TopologyKind, number> = {
   ConfigMap: 3,
   Secret: 3,
   Ingress: 4,
+  Route: 4,
   PersistentVolume: 4,
 }
 
@@ -43,6 +44,7 @@ const KIND_ORDER: TopologyKind[] = [
   'ConfigMap',
   'Secret',
   'Ingress',
+  'Route',
   'PersistentVolume',
 ]
 

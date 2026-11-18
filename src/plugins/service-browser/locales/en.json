@@ -48,5 +48,10 @@
     "route": "{{from}} → {{service}}:{{port}}",
     "defaultBackend": "Default backend",
     "via": "{{address}}, reached through Service {{service}} with the rule's host. Path rewrites of the ingress controller do not apply."
+  },
+  "route": {
+    "loading": "Reading the Route…",
+    "via": "{{address}}, reached through Service {{service}} with the Route's host. The OpenShift router (TLS termination, rewrites) is not involved.",
+    "openPublic": "Open the route URL {{url}} in a new browser tab (through the OpenShift router, not KubeBench)"
   }
 }

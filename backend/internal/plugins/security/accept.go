@@ -62,6 +62,7 @@ var kindAPIVersions = map[string]string{
 	"Deployment": "apps/v1", "StatefulSet": "apps/v1", "DaemonSet": "apps/v1", "ReplicaSet": "apps/v1",
 	"Job": "batch/v1", "CronJob": "batch/v1",
 	"Role": rbacAPIVersion, "ClusterRole": rbacAPIVersion, "RoleBinding": rbacAPIVersion, "ClusterRoleBinding": rbacAPIVersion,
+	sccKind: sccAPIVersion,
 }
 
 // loadAccepted reads the cluster's accepted risks, by finding key. Records

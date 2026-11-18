@@ -79,6 +79,14 @@ export interface IngressBackend {
   service?: { name?: string }
 }
 
+/** An OpenShift Route: its Service and the alternate backends that share its traffic. */
+export interface RawRoute extends RawObject {
+  spec?: {
+    to?: { kind?: string; name?: string }
+    alternateBackends?: { kind?: string; name?: string }[]
+  }
+}
+
 export interface RawIngress extends RawObject {
   spec?: {
     defaultBackend?: IngressBackend

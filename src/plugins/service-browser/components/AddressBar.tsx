@@ -17,6 +17,8 @@ interface AddressBarProps {
   canForward: boolean
   /** The page's URL for a browser tab of its own; null in demo mode. */
   externalUrl: string | null
+  /** An OpenShift Route's public URL, served by its router (design §7.15); null otherwise. */
+  publicUrl?: string | null
   onBack: () => void
   onForward: () => void
   onReload: () => void
@@ -66,6 +68,13 @@ export function AddressBar(props: AddressBarProps) {
         />
       </form>
       {props.pickers}
+      {props.publicUrl && (
+        <IconButton
+          icon="globe"
+          label={t('route.openPublic', { url: props.publicUrl })}
+          onClick={() => window.open(props.publicUrl!, '_blank', 'noopener,noreferrer')}
+        />
+      )}
       <IconButton
         icon="link-external"
         label={props.externalUrl ? t('toolbar.newTab') : t('toolbar.newTabDemo')}

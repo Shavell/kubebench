@@ -1,5 +1,7 @@
 import { apiDelete, apiGet, apiPost } from '@/data/apiClient'
+import { reasonError } from '@/data/reasonError'
 import { ingressRoutes } from '../model/ingress'
+import { routeOf } from '../model/route'
 import { podPorts, servicePorts } from '../model/ports'
 import type { ServiceBrowserProvider } from './provider'
 import type { ProxySession } from './types'
@@ -20,8 +22,15 @@ export function createLiveServiceBrowser(): ServiceBrowserProvider {
     },
     listIngressRoutes: async (namespace, name) =>
       ingressRoutes(await apiGet<{ spec?: unknown }>(`/k8s/apis/networking.k8s.io/v1/namespaces/${seg(namespace)}/ingresses/${seg(name)}`)),
+    getRoute: async (namespace, name) => {
+      const route = routeOf(await apiGet<unknown>(`/k8s/apis/route.openshift.io/v1/namespaces/${seg(namespace)}/routes/${seg(name)}`))
+      if (!route) throw reasonError(400, 'bad_request', 'proxy.route_not_service', { namespace, name, kind: '?' })
+      return route
+    },
     open: (target) =>
-      target.ingress
+      target.route
+        ? apiPost<ProxySession>(`/proxy/routes/${seg(target.namespace)}/${seg(target.route.name)}`, undefined, { scheme: target.scheme })
+        : target.ingress
         ? apiPost<ProxySession>(`/proxy/ingresses/${seg(target.namespace)}/${seg(target.ingress.name)}`, undefined, {
             ...(target.ingress.defaultBackend
               ? { default: true }

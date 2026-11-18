@@ -137,11 +137,12 @@ func listRisky(w http.ResponseWriter, r *http.Request, c *plugin.Context) {
 		plugin.WriteK8sError(w, err)
 		return
 	}
-	plugin.WriteJSON(w, snap.risky())
+	plugin.WriteJSON(w, snap.risky(sccLevels(r.Context(), c.Runtime.Dyn)))
 }
 
-// risksOf evaluates every check against rules.
-func risksOf(rules []rbacv1.PolicyRule) []Risk {
+// risksOf evaluates every check against rules, and the SCC grants against
+// the cluster's risky SCCs (sccs; nil off OpenShift).
+func risksOf(rules []rbacv1.PolicyRule, sccs map[string]string) []Risk {
 	var out []Risk
 	for _, check := range riskChecks {
 		for i := range rules {
@@ -154,12 +155,12 @@ func risksOf(rules []rbacv1.PolicyRule) []Risk {
 	if slices.ContainsFunc(out, func(r Risk) bool { return r.ID == "full-access" }) {
 		out = slices.DeleteFunc(out, func(r Risk) bool { return r.ID == "wildcard-verbs" || r.ID == "wildcard-resources" })
 	}
-	return out
+	return append(out, sccRisks(rules, sccs)...)
 }
 
 // risky lists the roles with at least one risk, most severe first, then
-// those bound to the most subjects.
-func (s *snapshot) risky() []RiskyRole {
+// those bound to the most subjects; sccs are the cluster's risky SCCs.
+func (s *snapshot) risky(sccs map[string]string) []RiskyRole {
 	usedBy := map[string][]*binding{}
 	for i := range s.bindings {
 		b := &s.bindings[i]
@@ -167,7 +168,7 @@ func (s *snapshot) risky() []RiskyRole {
 	}
 	out := []RiskyRole{}
 	for _, ro := range s.sortedRoles() {
-		risks := risksOf(ro.Rules)
+		risks := risksOf(ro.Rules, sccs)
 		if len(risks) == 0 {
 			continue
 		}

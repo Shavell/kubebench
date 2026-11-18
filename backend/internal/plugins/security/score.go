@@ -17,7 +17,7 @@ func buildReport(res *result, accepted map[string]Acceptance, now time.Time) *Re
 		GeneratedAt: res.generatedAt, Cluster: res.cluster, Options: res.opts,
 		Findings: make([]Finding, len(res.findings)), Skipped: res.skipped,
 		Warnings: []string{}, WarningReasons: []reason.Ref{},
-		Inventory: res.inventory, SystemNamespaces: systemNamespaces,
+		Inventory: res.inventory, SystemNamespaces: res.systemNamespaces,
 	}
 	if rep.Skipped == nil {
 		rep.Skipped = []Skipped{}
@@ -80,6 +80,9 @@ func buildReport(res *result, accepted map[string]Acceptance, now time.Time) *Re
 	rep.Score.Overall = percent(passed, total)
 	for _, cat := range categories {
 		cs := byCategory[cat]
+		if cat == CategoryOpenShift && cs.Checks == 0 {
+			continue // not an OpenShift cluster
+		}
 		cs.Score = percent(catPassed[cat], catTotal[cat])
 		rep.Score.ByCategory = append(rep.Score.ByCategory, *cs)
 	}

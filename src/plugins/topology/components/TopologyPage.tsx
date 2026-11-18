@@ -26,6 +26,7 @@ const LIST_OF: Partial<Record<TopologyKind, ListName>> = {
   DaemonSet: 'daemonSets',
   Service: 'services',
   Ingress: 'ingresses',
+  Route: 'routes',
 }
 
 /**

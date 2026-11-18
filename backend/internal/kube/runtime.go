@@ -35,6 +35,9 @@ type Capabilities struct {
 	CRDs bool `json:"crds"`
 	Helm bool `json:"helm"`
 	Exec bool `json:"exec"`
+	// OptionalResources are the keys of OptionalResources the cluster
+	// serves (OpenShift's resource types, §7.15).
+	OptionalResources []string `json:"optionalResources"`
 }
 
 // Runtime is the connection to one cluster. Its exported fields are set at
@@ -343,10 +346,11 @@ func (r *Runtime) probeCapabilities() {
 	); err == nil && res.Status.Allowed {
 		caps.Exec = true
 	}
+	caps.OptionalResources = servedOptional(r.CS.Discovery())
 
 	r.mu.Lock()
 	r.caps = caps
 	r.mu.Unlock()
-	log.Printf("[capabilities] cluster=%s crds=%v helm=%v exec=%v",
-		r.Cluster.Name, caps.CRDs, caps.Helm, caps.Exec)
+	log.Printf("[capabilities] cluster=%s crds=%v helm=%v exec=%v optional=%v",
+		r.Cluster.Name, caps.CRDs, caps.Helm, caps.Exec, caps.OptionalResources)
 }

@@ -3,7 +3,7 @@ import { useLayoutStore } from '@/core/store/layoutStore'
 import type { DataProviders } from '@/data/providers'
 import { WORKLOADS_NS } from './i18n'
 import { LOCAL_ALL_NAMESPACES } from './pages/namespaceFilter'
-import { objName, objNamespace, RESOURCE_CATALOG, resourceLabel, richLabel } from './resourceCatalog'
+import { isServed, objName, objNamespace, RESOURCE_CATALOG, resourceLabel, richLabel } from './resourceCatalog'
 
 /** kubectl's short names (`kubectl api-resources`) of the kinds this plugin lists. */
 const SHORT_NAMES: Record<string, string[]> = {
@@ -31,6 +31,12 @@ const SHORT_NAMES: Record<string, string[]> = {
   storageclasses: ['sc'],
   serviceaccounts: ['sa'],
   events: ['ev'],
+  // OpenShift (oc api-resources)
+  deploymentconfigs: ['dc'],
+  buildconfigs: ['bc'],
+  imagestreams: ['is'],
+  imagestreamtags: ['istag'],
+  securitycontextconstraints: ['scc'],
 }
 
 /** plural, singular (the kind in lowercase), short names. */
@@ -87,8 +93,12 @@ const richKinds: ResourceKindContribution[] = RICH.map((r) => ({
   listObjects: async (providers, namespace) => objects(await r.list(providers, namespace)),
 }))
 
-/** Every other catalog resource (`generic-list` / `generic-detail`). */
-const catalogKinds: ResourceKindContribution[] = RESOURCE_CATALOG.map((d) => ({
+/**
+ * Every other catalog resource (`generic-list` / `generic-detail`). The
+ * optional (OpenShift) types are left out on clusters that do not serve
+ * them; a cluster switch reloads the app, so the boot's capabilities hold.
+ */
+const catalogKinds = (): ResourceKindContribution[] => RESOURCE_CATALOG.filter(isServed).map((d) => ({
   kind: d.kind,
   names: namesOf(d.key, d.kind),
   namespaced: d.namespaced,
@@ -118,4 +128,4 @@ const catalogKinds: ResourceKindContribution[] = RESOURCE_CATALOG.map((d) => ({
 }))
 
 /** Kinds for the palette's kubectl-style `get` / `describe` commands. */
-export const workloadKinds: ResourceKindContribution[] = [...richKinds, ...catalogKinds]
+export const workloadKinds = (): ResourceKindContribution[] => [...richKinds, ...catalogKinds()]

@@ -212,6 +212,14 @@
     "persistentvolume-create": {
       "title": "PersistentVolume oluşturur",
       "description": "Node dosyalarını açığa çıkaran hostPath gibi volume'lar oluşturabilir."
+    },
+    "scc-privileged": {
+      "title": "Ayrıcalıklı bir SCC kullanımı",
+      "description": "Pod'ları ayrıcalıklı container'lara ya da host erişimine izin veren bir OpenShift SecurityContextConstraints ile (privileged, hostaccess, hostnetwork, …) çalıştırabilir; bu, node'un ele geçirilmesine yol açabilir."
+    },
+    "scc-anyuid": {
+      "title": "anyuid SCC kullanımı",
+      "description": "Pod'ları, container'ların root dahil herhangi bir kullanıcıyla çalışmasına izin veren bir OpenShift SecurityContextConstraints ile (anyuid) çalıştırabilir."
     }
   },
   "graph": {

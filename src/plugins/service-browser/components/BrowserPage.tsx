@@ -12,7 +12,7 @@ import { NS } from '../i18n'
 import { routeKey } from '../model/ingress'
 import type { BrowserTabProps } from '../tabs'
 import { BrowserSession } from './BrowserSession'
-import { PortPicker, RoutePicker } from './TargetPickers'
+import { PortPicker, RoutePicker, SchemePicker } from './TargetPickers'
 import '../serviceBrowser.css'
 
 /**
@@ -24,11 +24,9 @@ export function BrowserPage({ tab }: { tab: TabDescriptor }) {
   const { kind, namespace, name } = tab.props as unknown as BrowserTabProps
   const permission = usePermission('browse')
   if (!permission.allowed) return <Unavailable code={permission.code} reason={permission.reason} />
-  return kind === 'ingresses' ? (
-    <IngressBrowser namespace={namespace} name={name} />
-  ) : (
-    <ObjectBrowser kind={kind} namespace={namespace} name={name} />
-  )
+  if (kind === 'ingresses') return <IngressBrowser namespace={namespace} name={name} />
+  if (kind === 'routes') return <RouteBrowser namespace={namespace} name={name} />
+  return <ObjectBrowser kind={kind} namespace={namespace} name={name} />
 }
 
 /** A Service or Pod: one of its TCP ports. */
@@ -103,4 +101,29 @@ function IngressBrowser({ namespace, name }: { namespace: string; name: string }
       }
     />
   )
+}
+
+/**
+ * An OpenShift Route (design §7.15): its Service, reached with the Route's
+ * host; the server resolves the Route's targetPort to the Service port.
+ */
+function RouteBrowser({ namespace, name }: { namespace: string; name: string }) {
+  const { t } = useTranslation(NS)
+  const route = usePluginQuery(() => serviceBrowserData().getRoute(namespace, name), [namespace, name])
+  const [scheme, setScheme] = useState<Scheme | null>(null)
+
+  if (route.error) return <Unavailable code={route.errorCode} reason={route.error} onRetry={refreshData} />
+  if (!route.data) return <div className="page-loading">{t('route.loading')}</div>
+
+  const r = route.data
+  const chosen = scheme ?? r.scheme
+  const target: BrowserTarget = {
+    kind: 'services',
+    namespace,
+    name: r.service,
+    port: r.targetPort,
+    scheme: chosen,
+    route: { name: r.name, host: r.host, path: r.path, tls: r.tls },
+  }
+  return <BrowserSession key={chosen} target={target} pickers={<SchemePicker value={chosen} onChange={setScheme} />} />
 }
