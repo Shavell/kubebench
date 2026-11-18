@@ -11,11 +11,12 @@ name: Trivy
 on:
   push:
     branches: [main]
-    paths-ignore: &docs-only
+    paths-ignore:
       - "**/*.md"
       - "docs/**"
+  # Not filtered: these jobs are required checks, and a skipped workflow
+  # never reports them, which would block docs-only pull requests.
   pull_request:
-    paths-ignore: *docs-only
   schedule:
     - cron: "41 4 * * 1"
   workflow_dispatch:

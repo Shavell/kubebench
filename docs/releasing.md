@@ -205,10 +205,9 @@ started by hand from the Actions tab as well.
 The required status checks of `main` are job names: `frontend`, `backend`,
 `vulncheck`, `chart`, `packaging`, `scripts`, `workflows`, `trivy (repo)`
 and `dependency-review`. Renaming a job means updating the branch
-protection in the same change. Because documentation-only pull requests do
-not start CI or Trivy, their required checks never report; such a pull
-request needs an administrator to merge it, or a change outside the
-ignored paths.
+protection in the same change. CI and Trivy skip documentation-only
+pushes to `main` but always run on pull requests, so the required checks
+report on every pull request.
 
 Accepted Trivy findings go into `.trivyignore`, each with its reason (there
 are none). Known MEDIUM findings, below the reported severities:
