@@ -212,6 +212,14 @@
     "persistentvolume-create": {
       "title": "Creates PersistentVolumes",
       "description": "Can create volumes such as hostPath that expose node files."
+    },
+    "scc-privileged": {
+      "title": "Use of a privileged SCC",
+      "description": "Can run pods under an OpenShift SecurityContextConstraints that allows privileged containers or host access (privileged, hostaccess, hostnetwork, …), which can take over the node."
+    },
+    "scc-anyuid": {
+      "title": "Use of an anyuid SCC",
+      "description": "Can run pods under an OpenShift SecurityContextConstraints that lets containers run as any user, root included (anyuid)."
     }
   },
   "graph": {

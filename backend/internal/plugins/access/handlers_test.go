@@ -250,7 +250,7 @@ func TestRisky(t *testing.T) {
 func TestRiskChecks(t *testing.T) {
 	ids := func(rules ...rbacv1.PolicyRule) []string {
 		var out []string
-		for _, r := range risksOf(rules) {
+		for _, r := range risksOf(rules, nil) {
 			out = append(out, r.ID)
 		}
 		return out

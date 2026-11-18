@@ -39,6 +39,8 @@ export interface RbacCluster {
   roles: MockRole[]
   bindings: MockBinding[]
   serviceAccounts: { namespace: string; name: string }[]
+  /** OpenShift: the risky SCCs by level (design §7.15); absent elsewhere. */
+  sccLevels?: Record<string, 'privileged' | 'anyuid'>
 }
 
 const refKey = (r: RbacRef) => `${r.kind}/${r.namespace ?? ''}/${r.name}`
@@ -221,7 +223,7 @@ export class RbacEngine {
   risky(): RiskyRole[] {
     const out: RiskyRole[] = []
     for (const role of this.cluster.roles) {
-      const risks = risksOf(role.rules)
+      const risks = risksOf(role.rules, this.cluster.sccLevels)
       if (!risks.length) continue
       const bindings = this.cluster.bindings.filter((b) => refKey(b.roleRef) === refKey(role.ref))
       const subjects = new Set(bindings.flatMap((b) => b.subjects.map((s) => subjectKey(bindingSubject(s, scopeOf(b))))))
@@ -309,13 +311,29 @@ const CHECKS: [RiskId, Severity, (r: PolicyRule) => boolean][] = [
   ['persistentvolume-create', 'medium', (r) => can(r, '', 'persistentvolumes', 'create')],
 ]
 
-function risksOf(rules: PolicyRule[]): Risk[] {
+/** The first rule that may "use" an SCC of the level (all SCCs without resourceNames), like the server's. */
+function sccRule(rules: PolicyRule[], levels: Record<string, string>, level: string): PolicyRule | undefined {
+  return rules.find((r) => {
+    const unnamed: PolicyRule = { ...r, resourceNames: undefined }
+    if (!can(unnamed, 'security.openshift.io', 'securitycontextconstraints', 'use')) return false
+    return Object.entries(levels).some(([name, l]) => l === level && (!r.resourceNames?.length || r.resourceNames.includes(name)))
+  })
+}
+
+function risksOf(rules: PolicyRule[], sccLevels?: Record<string, string>): Risk[] {
   const out: Risk[] = []
   for (const [id, severity, check] of CHECKS) {
     const rule = rules.find(check)
     if (rule) out.push({ id, severity, rule })
   }
-  return out.some((r) => r.id === 'full-access')
+  const filtered = out.some((r) => r.id === 'full-access')
     ? out.filter((r) => r.id !== 'wildcard-verbs' && r.id !== 'wildcard-resources')
     : out
+  if (sccLevels) {
+    const privileged = sccRule(rules, sccLevels, 'privileged')
+    const anyuid = sccRule(rules, sccLevels, 'anyuid')
+    if (privileged) filtered.push({ id: 'scc-privileged', severity: 'critical', rule: privileged })
+    if (anyuid) filtered.push({ id: 'scc-anyuid', severity: 'high', rule: anyuid })
+  }
+  return filtered
 }

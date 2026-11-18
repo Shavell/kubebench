@@ -112,6 +112,9 @@ export type RiskId =
   | 'csr-approve'
   | 'workload-create'
   | 'persistentvolume-create'
+  // OpenShift (design §7.15): "use" of a privileged or an anyuid SecurityContextConstraints.
+  | 'scc-privileged'
+  | 'scc-anyuid'
 
 export interface Risk {
   id: RiskId
