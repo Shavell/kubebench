@@ -1,12 +1,14 @@
 import type { ReactNode } from 'react'
+import { dataMode } from '@/data/mode'
 import type { KubeObject } from '@/data/types'
 import { Badge } from '@/shared/Badge'
 import { toneForStatus } from '@/shared/badgeTone'
 import type { Column } from '@/shared/Table'
 import { tw } from './i18n'
+import { openShiftResources } from './openshiftCatalog'
 
 /** Sidebar grouping for the resource tree; the label is the `groups.<id>` key. */
-export type ResourceGroup = 'cluster' | 'workloads' | 'config' | 'network' | 'storage' | 'accessControl'
+export type ResourceGroup = 'cluster' | 'workloads' | 'config' | 'network' | 'storage' | 'accessControl' | 'openshift'
 
 /** A table column without its header: the header is the `columns.<key>` i18n key. */
 export type ColumnSpec<T> = Omit<Column<T>, 'header'>
@@ -22,7 +24,24 @@ export interface ResourceDescriptor {
   group: ResourceGroup
   namespaced: boolean
   columns: ResourceColumn[]
+  /** Extra rows of the detail page's summary, after the list columns. */
+  details?: ResourceColumn[]
+  /**
+   * Served by some clusters only (OpenShift's types, design §7.15): listed
+   * when the cluster reports it in capabilities.optionalResources.
+   */
+  optional?: boolean
+  /** Live-update topic when the key alone is ambiguous (default: the key). */
+  topic?: string
 }
+
+/** Whether the active cluster serves a catalog type (always, unless it is optional). */
+export function isServed(d: ResourceDescriptor): boolean {
+  return !d.optional || (dataMode.capabilities?.optionalResources ?? []).includes(d.key)
+}
+
+/** The live-update topic of a catalog type's objects. */
+export const topicOf = (d: ResourceDescriptor | undefined, key: string): string => d?.topic ?? key
 
 /** Translated, plural display name of a resource list (`resources.<key>`). */
 export function resourceLabel(key: string): string {
@@ -320,6 +339,8 @@ export const RESOURCE_CATALOG: ResourceDescriptor[] = [
       ageCol,
     ],
   },
+  // OpenShift (only where served)
+  ...openShiftResources({ get, str, num, withCommon }),
 ]
 
 export const catalogByKey = new Map(RESOURCE_CATALOG.map((d) => [d.key, d]))

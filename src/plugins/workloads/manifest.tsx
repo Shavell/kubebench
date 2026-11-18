@@ -37,7 +37,10 @@ export const workloadsPlugin: PluginManifest = {
     { kind: 'generic-list', component: GenericListPage },
     { kind: 'generic-detail', component: GenericDetailPage },
   ],
-  resourceKinds: workloadKinds,
+  // Read on use: the optional (OpenShift) kinds depend on the session's capabilities.
+  get resourceKinds() {
+    return workloadKinds()
+  },
   commands: LIST_COMMANDS.map(({ resource, icon }) => ({
     id: `workloads.open${resource}`,
     title: `commands.open${resource}`,

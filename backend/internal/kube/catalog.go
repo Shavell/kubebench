@@ -57,6 +57,15 @@ var Catalog = map[string]ResourceType{
 	"clusterrolebindings": {"clusterrolebindings", "ClusterRoleBinding", gvr("rbac.authorization.k8s.io", "v1", "clusterrolebindings"), false},
 	// Cluster
 	"events": {"events", "Event", gvr("", "v1", "events"), true},
+	// OpenShift (§7.15): listed only where served (see OptionalResources).
+	"routes":                     {"routes", "Route", gvr("route.openshift.io", "v1", "routes"), true},
+	"projects":                   {"projects", "Project", gvr("project.openshift.io", "v1", "projects"), false},
+	"securitycontextconstraints": {"securitycontextconstraints", "SecurityContextConstraints", gvr("security.openshift.io", "v1", "securitycontextconstraints"), false},
+	"deploymentconfigs":          {"deploymentconfigs", "DeploymentConfig", gvr("apps.openshift.io", "v1", "deploymentconfigs"), true},
+	"buildconfigs":               {"buildconfigs", "BuildConfig", gvr("build.openshift.io", "v1", "buildconfigs"), true},
+	"builds":                     {"builds", "Build", gvr("build.openshift.io", "v1", "builds"), true},
+	"imagestreams":               {"imagestreams", "ImageStream", gvr("image.openshift.io", "v1", "imagestreams"), true},
+	"imagestreamtags":            {"imagestreamtags", "ImageStreamTag", gvr("image.openshift.io", "v1", "imagestreamtags"), true},
 }
 
 // catalogByKind resolves a Kind (used by /api/yaml) to its ResourceType.

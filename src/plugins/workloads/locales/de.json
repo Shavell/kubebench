@@ -18,7 +18,8 @@
     "config": "Konfiguration",
     "network": "Netzwerk",
     "storage": "Speicher",
-    "accessControl": "Zugriffssteuerung"
+    "accessControl": "Zugriffssteuerung",
+    "openshift": "OpenShift"
   },
   "resources": {
     "pods": "Pods",
@@ -56,7 +57,15 @@
     "rolebindings": "RoleBindings",
     "clusterroles": "ClusterRoles",
     "clusterrolebindings": "ClusterRoleBindings",
-    "events": "Events"
+    "events": "Events",
+    "routes": "Routes",
+    "projects": "Projects",
+    "securitycontextconstraints": "Security Context Constraints",
+    "deploymentconfigs": "DeploymentConfigs",
+    "buildconfigs": "BuildConfigs",
+    "builds": "Builds",
+    "imagestreams": "ImageStreams",
+    "imagestreamtags": "ImageStreamTags"
   },
   "columns": {
     "name": "Name",
@@ -110,7 +119,34 @@
     "message": "Meldung",
     "count": "Anzahl",
     "object": "Objekt",
-    "lastSeen": "Zuletzt gesehen"
+    "lastSeen": "Zuletzt gesehen",
+    "displayName": "Anzeigename",
+    "phase": "Phase",
+    "requester": "Angefordert von",
+    "host": "Host",
+    "path": "Pfad",
+    "service": "Service",
+    "tls": "TLS-Terminierung",
+    "admitted": "Zugelassen",
+    "routers": "Router",
+    "alternateBackends": "Alternative Backends",
+    "triggers": "Trigger",
+    "latestVersion": "Neueste Version",
+    "strategy": "Strategie",
+    "source": "Quelle",
+    "lastVersion": "Letzter Build",
+    "output": "Ausgabe",
+    "duration": "Dauer",
+    "repository": "Repository",
+    "tags": "Tags",
+    "image": "Image",
+    "privileged": "Privilegiert",
+    "runAsUser": "Ausführen als Benutzer",
+    "seLinux": "SELinux",
+    "grantedTo": "Benutzer und Gruppen",
+    "users": "Benutzer",
+    "groups": "Gruppen",
+    "volumes": "Volumes"
   },
   "values": {
     "addresses_one": "{{count}} Adresse",
@@ -414,5 +450,19 @@
     "noWarnings": "Keine Warnungen",
     "groupSummary_one": "{{events}} Ereignis · {{occurrences}}-mal · zuletzt vor {{lastSeen}}",
     "groupSummary_other": "{{events}} Ereignisse · {{occurrences}}-mal · zuletzt vor {{lastSeen}}"
+  },
+  "openshift": {
+    "admission": {
+      "pending": "Ausstehend",
+      "admitted": "Zugelassen",
+      "rejected": "Nicht zugelassen"
+    },
+    "openRouteUrl": "{{url}} in einem neuen Browser-Tab öffnen",
+    "duration": {
+      "hm": "{{h}} h {{m}} min",
+      "ms": "{{m}} min {{s}} s",
+      "s": "{{s}} s"
+    },
+    "conditions": "Bedingungen"
   }
 }

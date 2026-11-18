@@ -60,6 +60,15 @@ const KINDS: MockKind[] = [
   generic('rbac.authorization.k8s.io/v1', 'ClusterRole', 'clusterroles', false),
   generic('rbac.authorization.k8s.io/v1', 'ClusterRoleBinding', 'clusterrolebindings', false),
   generic('v1', 'Event', 'events'),
+  // OpenShift (design §7.15).
+  generic('route.openshift.io/v1', 'Route', 'routes'),
+  generic('project.openshift.io/v1', 'Project', 'projects', false),
+  generic('security.openshift.io/v1', 'SecurityContextConstraints', 'securitycontextconstraints', false),
+  generic('apps.openshift.io/v1', 'DeploymentConfig', 'deploymentconfigs'),
+  generic('build.openshift.io/v1', 'BuildConfig', 'buildconfigs'),
+  generic('build.openshift.io/v1', 'Build', 'builds'),
+  generic('image.openshift.io/v1', 'ImageStream', 'imagestreams'),
+  generic('image.openshift.io/v1', 'ImageStreamTag', 'imagestreamtags'),
   // Custom resources of the mock CRDs.
   ...crds.map((crd) => typed(`${crd.group}/${crd.versions[0]}`, crd.kind, crd.scope === 'Namespaced')),
 ]

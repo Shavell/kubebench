@@ -49,7 +49,8 @@
     "pvcs": "PersistentVolumeClaims",
     "pvs": "PersistentVolumes",
     "configMaps": "ConfigMaps",
-    "secrets": "Secrets"
+    "secrets": "Secrets",
+    "routes": "Routes"
   },
   "kinds": {
     "short": {
@@ -63,7 +64,8 @@
       "PersistentVolumeClaim": "pvc",
       "PersistentVolume": "pv",
       "ConfigMap": "cm",
-      "Secret": "secret"
+      "Secret": "secret",
+      "Route": "route"
     }
   },
   "status": {

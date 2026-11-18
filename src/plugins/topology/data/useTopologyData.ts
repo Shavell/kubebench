@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { useProviderQuery, type QueryState } from '@/data/DataContext'
+import { dataMode } from '@/data/mode'
 import type { DataProviders } from '@/data/providers'
 import type { KubeObject } from '@/data/types'
 import type { TopologySnapshot } from '../model/types'
@@ -25,6 +26,7 @@ export const LIST_NAMES: ListName[] = [
   'daemonSets',
   'services',
   'ingresses',
+  'routes',
   'pvcs',
   'pvs',
   'configMaps',
@@ -47,6 +49,8 @@ export interface TopologyData {
 interface ItemList {
   items?: KubeObject[]
 }
+
+const servesRoutes = () => (dataMode.capabilities?.optionalResources ?? []).includes('routes')
 
 const passthrough = (p: DataProviders, path: string) =>
   p.cluster.k8sGet<ItemList>(path).then((list) => list.items ?? [])
@@ -71,6 +75,12 @@ export function useTopologyData(namespace: string): TopologyData {
     statefulSets: useList((p) => p.cluster.listResource('statefulsets', namespace), namespace, 'statefulsets'),
     daemonSets: useList((p) => p.cluster.listResource('daemonsets', namespace), namespace, 'daemonsets'),
     ingresses: useList((p) => p.cluster.listResource('ingresses', namespace), namespace, 'ingresses'),
+    // OpenShift Routes only where the cluster serves them (design §7.15).
+    routes: useList(
+      (p) => (servesRoutes() ? p.cluster.listResource('routes', namespace) : Promise.resolve([])),
+      namespace,
+      'routes.route.openshift.io',
+    ),
     pvcs: useList((p) => p.cluster.listResource('persistentvolumeclaims', namespace), namespace, 'persistentvolumeclaims'),
     pvs: useList((p) => p.cluster.listResource('persistentvolumes'), namespace, 'persistentvolumes', false),
     configMaps: useList((p) => p.cluster.listResource('configmaps', namespace), namespace, 'configmaps'),
