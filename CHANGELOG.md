@@ -16,6 +16,13 @@ those commits.
 
 ## [Unreleased]
 
+### Added
+
+- Development: Go fuzz tests for the code that reads untrusted input
+  (apply manifests, Secret and Helm manifest redaction, the service
+  browser's paths and redirects, LDAP filters, OIDC claims, the release
+  list), run for a short while in CI on `main` and weekly.
+
 ### Changed
 
 - Releases carry their build provenance as `kubebench-<version>.intoto.jsonl`
@@ -30,6 +37,13 @@ those commits.
 
 ### Security
 
+- A Helm release's manifest view no longer shows the values of a Secret
+  written on the `---` line (`--- {kind: Secret, …}`) or whose kind is
+  spelled with YAML escapes or tags; both were passed on unredacted.
+- The service browser keeps redirects inside the browsing session: a
+  `Location` with `..` segments, a leading space or backslash, or an
+  `http:` URL without a host is no longer able to send the frame to
+  KubeBench's own paths.
 - `backend/go.mod` now requires Go 1.26.11 or later, so a build with an
   older Go (whose standard library has known vulnerabilities) is refused
   instead of producing a vulnerable binary. Release builds keep using the
