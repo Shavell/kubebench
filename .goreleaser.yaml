@@ -139,6 +139,29 @@ checksum:
   name_template: checksums.txt
   algorithm: sha256
 
+# SPDX SBOMs (syft) of every archive and package: <artifact>.sbom.json,
+# listed in checksums.txt like the artifacts themselves.
+sboms:
+  - id: archives
+    artifacts: archive
+  - id: packages
+    artifacts: package
+
+# Keyless cosign signature of checksums.txt (checksums.txt.sigstore.json):
+# in GitHub Actions the certificate names release.yml as the signer. With
+# the checksums verified, every artifact they list is verified too.
+# `make snapshot` and `make deb` skip signing and SBOMs.
+signs:
+  - cmd: cosign
+    signature: "${artifact}.sigstore.json"
+    args:
+      - sign-blob
+      - --bundle=${signature}
+      - ${artifact}
+      - --yes
+    artifacts: checksum
+    output: true
+
 snapshot:
   version_template: "{{ incpatch .Version }}-snapshot-{{ .ShortCommit }}"
 

@@ -105,10 +105,10 @@ image: ## Build the container image for the local platform, tagged IMAGE:VERSION
 	  --build-arg DATE='$(DATE)' -t '$(IMAGE):$(VERSION)' .
 
 snapshot: ## Build every archive and package with GoReleaser into build/release/ (no publish)
-	goreleaser release --snapshot --clean
+	goreleaser release --snapshot --clean --skip=sign,sbom
 
 deb: ## Build snapshot .deb and .rpm packages into build/release/
-	goreleaser release --snapshot --clean --skip=archive
+	goreleaser release --snapshot --clean --skip=archive,sign,sbom
 
 offline-bundle: ## Assemble the offline bundle from build/release/ (IMAGE_TARS="a.tar b.tar")
 	scripts/offline-bundle.sh $(foreach tar,$(IMAGE_TARS),--image-tar $(tar))

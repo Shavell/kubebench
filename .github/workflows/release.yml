@@ -1,7 +1,14 @@
 name: Release
 
-# CI is intentionally manual for now (workflow_dispatch only); the commented
-# trigger would release on every pushed v* tag instead.
+# Manual on purpose (workflow_dispatch only): a maintainer decides when to
+# release. The commented trigger would release on every pushed v* tag instead.
+#
+# Supply chain: GoReleaser writes SPDX SBOMs (syft) for the archives and
+# packages and signs checksums.txt keylessly with cosign (Sigstore, this
+# workflow's OIDC identity); the binaries, archives, packages, chart,
+# manifests, installer and offline bundle get GitHub build provenance
+# attestations; a pushed image is signed with cosign and attested too.
+# docs/releasing.md lists the verification commands.
 on:
   workflow_dispatch:
     inputs:
@@ -47,6 +54,8 @@ jobs:
     # scripts, tests and builds could read it.
     permissions:
       contents: write # push the tag, create the draft release, upload assets
+      id-token: write # keyless cosign signature and provenance attestations
+      attestations: write # store the provenance attestations
     outputs:
       tag: ${{ steps.version.outputs.tag }}
       version: ${{ steps.version.outputs.version }}
@@ -64,7 +73,7 @@ jobs:
           echo "tag=$INPUT_VERSION" >>"$GITHUB_OUTPUT"
           echo "version=${INPUT_VERSION#v}" >>"$GITHUB_OUTPUT"
 
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0 # tags and history for GoReleaser and scripts/version.sh
           persist-credentials: false
@@ -81,15 +90,15 @@ jobs:
             echo "exists=false" >>"$GITHUB_OUTPUT"
           fi
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-      - uses: actions/setup-go@v7
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
-      - uses: azure/setup-helm@v5
+      - uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
         with:
           version: ${{ env.HELM_VERSION }}
       # No dependency needs an install script; none runs in this job.
@@ -129,15 +138,33 @@ jobs:
           cp deploy/kubernetes/kubebench.yaml install.sh build/extra/
           cp deploy/openshift/kubebench.yaml build/extra/kubebench-openshift.yaml
 
+      # GoReleaser runs syft for the SBOMs and cosign to sign checksums.txt.
+      - uses: anchore/sbom-action/download-syft@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        id: syft
+      - name: Put syft on the PATH
+        env:
+          SYFT: ${{ steps.syft.outputs.cmd }}
+        run: |
+          dirname "$SYFT" >>"$GITHUB_PATH"
+          "$SYFT" version
+      - uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+
       # --skip=before: the frontend was built above, without the token in its
       # environment; GoReleaser's `make embed` hook would rebuild it with one.
       - name: GoReleaser
-        uses: goreleaser/goreleaser-action@v7
+        uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7.3.0
         with:
           version: "~> v2"
           args: release --clean --skip=before --release-notes ${{ runner.temp }}/release-notes.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # One attestation for everything checksums.txt lists: archives,
+      # packages and their SBOMs.
+      - name: Attest the archives and packages
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-checksums: build/release/checksums.txt
 
       - name: Mark as pre-release
         if: inputs.prerelease
@@ -155,10 +182,10 @@ jobs:
           echo "commit=$(git rev-parse --short HEAD)" >>"$GITHUB_OUTPUT"
           echo "date=$(TZ=UTC git log -1 --format=%cd --date=format-local:%Y-%m-%dT%H:%M:%SZ)" >>"$GITHUB_OUTPUT"
           mkdir -p build/images
-      - uses: docker/setup-qemu-action@v4
-      - uses: docker/setup-buildx-action@v4
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - name: Image tarball (linux/amd64)
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           platforms: linux/amd64
@@ -171,7 +198,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Image tarball (linux/arm64)
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           platforms: linux/arm64
@@ -203,8 +230,17 @@ jobs:
             "build/bundle/kubebench-offline-$VERSION.tar.gz" \
             "build/bundle/kubebench-offline-$VERSION.tar.gz.sha256"
 
+      - name: Attest the binaries, chart, manifests, installer and bundle
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            build/release/kubebench_*/kubebench
+            build/release/kubebench_*/kubebench.exe
+            build/extra/*
+            build/bundle/*
+
       - name: Keep the chart for the publish job
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: chart
           path: build/extra/kubebench-*.tgz
@@ -235,9 +271,11 @@ jobs:
     timeout-minutes: 60
     permissions:
       contents: read
-      packages: write
+      packages: write # push the image, its signature and attestation
+      id-token: write # keyless cosign signature and provenance attestation
+      attestations: write # store the provenance attestation
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: refs/tags/${{ needs.release.outputs.tag }}
           fetch-depth: 0
@@ -247,15 +285,15 @@ jobs:
         run: |
           echo "commit=$(git rev-parse --short HEAD)" >>"$GITHUB_OUTPUT"
           echo "date=$(TZ=UTC git log -1 --format=%cd --date=format-local:%Y-%m-%dT%H:%M:%SZ)" >>"$GITHUB_OUTPUT"
-      - uses: docker/setup-qemu-action@v4
-      - uses: docker/setup-buildx-action@v4
-      - uses: docker/login-action@v4
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - id: meta
-        uses: docker/metadata-action@v6
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
           images: ${{ env.IMAGE }}
           tags: |
@@ -266,7 +304,8 @@ jobs:
           labels: |
             org.opencontainers.image.title=KubeBench
             org.opencontainers.image.description=VSCode-style Kubernetes workbench
-      - uses: docker/build-push-action@v7
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        id: push
         with:
           context: .
           platforms: linux/amd64,linux/arm64
@@ -281,6 +320,19 @@ jobs:
           cache-to: type=gha,mode=max
           provenance: mode=max
           sbom: true
+      # Signs the multi-arch index by digest; every tag points at it.
+      - uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+      - name: Sign the image
+        env:
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: cosign sign --yes "${IMAGE}@${DIGEST}"
+      - name: Attest the image
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ${{ env.IMAGE }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
+          create-storage-record: false
 
   publish-chart:
     name: Push the Helm chart
@@ -292,10 +344,10 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: chart
-      - uses: azure/setup-helm@v5
+      - uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
         with:
           version: ${{ env.HELM_VERSION }}
       - name: helm push
