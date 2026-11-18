@@ -24,9 +24,9 @@ type rewriter struct {
 	// if any: its absolute redirects and links name that host.
 	appHost string
 	// replacements are what body replaces, longest first: the prefixes,
-	// each also as an absolute URL naming the API server (a backend
-	// builds absolute links from the Host header too), with the base; and
-	// absolute URLs of appHost's root with the base's root.
+	// each also as an absolute URL naming the API server or appHost (a
+	// backend builds absolute links from the Host header too), with the
+	// base; and absolute URLs of appHost's root with the base's root.
 	replacements []replacement
 }
 
@@ -46,6 +46,11 @@ func newRewriter(base string, apiServer *url.URL, t Target) *rewriter {
 			bare = "[" + bare + "]"
 		}
 		hosts = append(hosts, bare)
+	}
+	if t.Host != "" {
+		// The API server rewrites the backend's absolute links naming the
+		// Host it sent into links below the subresource on that host.
+		hosts = append(hosts, t.Host)
 	}
 	to := []byte(base)
 	for _, prefix := range rw.prefixes {

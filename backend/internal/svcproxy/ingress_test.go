@@ -61,10 +61,14 @@ func TestLocationRewriteOfTheIngressHost(t *testing.T) {
 
 func TestBodyRewriteOfTheIngressHost(t *testing.T) {
 	rw := ingressRewriter()
+	prefix := "/api/v1/namespaces/shop/services/http:web:80/proxy"
 	in := `<link href="https://shop.example.com/app.css"><a href="//shop.example.com/cart">` +
+		// The API server's own rewrite of a link naming the Host it sent.
+		`<a href="http://shop.example.com` + prefix + `/page.html">` +
 		`<a href="http://shop.example.com/">` +
 		`<a href="https://shop.example.community/x"><a href="https://cdn.example.com/y.js">`
 	want := `<link href="/proxy/tok/app.css"><a href="/proxy/tok/cart">` +
+		`<a href="/proxy/tok/page.html">` +
 		`<a href="/proxy/tok/">` +
 		`<a href="https://shop.example.community/x"><a href="https://cdn.example.com/y.js">`
 	for name, src := range map[string]io.Reader{
