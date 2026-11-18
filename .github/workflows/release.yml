@@ -163,6 +163,7 @@ jobs:
       # One attestation for everything checksums.txt lists: archives,
       # packages and their SBOMs.
       - name: Attest the archives and packages
+        id: attest-archives
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-checksums: build/release/checksums.txt
@@ -232,6 +233,7 @@ jobs:
             "build/bundle/kubebench-offline-$VERSION.tar.gz.sha256"
 
       - name: Attest the binaries, chart, manifests, installer and bundle
+        id: attest-files
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: |
@@ -239,6 +241,21 @@ jobs:
             build/release/kubebench_*/kubebench.exe
             build/extra/*
             build/bundle/*
+
+      # The same two attestations as release files too, one Sigstore bundle
+      # per line: gh attestation verify --bundle works offline with it, and
+      # OpenSSF Scorecard finds the provenance next to the downloads.
+      - name: Upload the provenance to the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+          ARCHIVES: ${{ steps.attest-archives.outputs.bundle-path }}
+          FILES: ${{ steps.attest-files.outputs.bundle-path }}
+        run: |
+          out="build/kubebench-$VERSION.intoto.jsonl"
+          jq -c . "$ARCHIVES" "$FILES" >"$out"
+          gh release upload "$TAG" --clobber "$out"
 
       - name: Keep the chart for the publish job
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
