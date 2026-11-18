@@ -22,6 +22,8 @@ export interface ReasonMessage {
   params?: Record<string, unknown>
 }
 
+const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype'])
+
 /** Whether value is a ReasonMessage. */
 export function isReasonMessage(value: unknown): value is ReasonMessage {
   return typeof value === 'object' && value !== null && typeof (value as { error?: unknown }).error === 'string'
@@ -36,8 +38,11 @@ export function reasonParamText(
   params: Record<string, unknown> | null | undefined,
   translator?: ReasonTranslator,
 ): Record<string, string> {
-  const out: Record<string, string> = {}
+  // Parameter names come from the server: write them into an object without
+  // a prototype and skip the names that would reach Object.prototype.
+  const out: Record<string, string> = Object.create(null)
   for (const [name, value] of Object.entries(params ?? {})) {
+    if (UNSAFE_KEYS.has(name)) continue
     if (typeof value === 'string') out[name] = value
     else if (typeof value === 'number') out[name] = String(value)
     else if (isReasonMessage(value)) {

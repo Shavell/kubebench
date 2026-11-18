@@ -48,7 +48,9 @@ jobs:
         uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
           go-version-file: backend/go.mod
-          cache-dependency-path: backend/go.sum
+          # No build cache: CodeQL only sees code the compiler really
+          # compiles, and a cached build compiles nothing.
+          cache: false
       - uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         with:
           languages: ${{ matrix.language }}

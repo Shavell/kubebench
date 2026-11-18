@@ -31,8 +31,8 @@ test('unknown and missing codes fall back to the English message', () => {
 })
 
 test('parameter values become text', () => {
-  assert.deepEqual(reasonParamText({ a: 'x', b: 3, c: true, d: null }), { a: 'x', b: '3', c: 'true', d: 'null' })
-  assert.deepEqual(reasonParamText(undefined), {})
+  assert.deepEqual({ ...reasonParamText({ a: 'x', b: 3, c: true, d: null }) }, { a: 'x', b: '3', c: 'true', d: 'null' })
+  assert.deepEqual({ ...reasonParamText(undefined) }, {})
 })
 
 test('a nested reason is translated in place, an unknown one shows its English text', () => {
@@ -45,5 +45,13 @@ test('a nested reason is translated in place, an unknown one shows its English t
     localizeReason(translator, 'streams.closed', { cause: { error: 'pods is forbidden' } }, 'x'),
     'Oturum kapatıldı: pods is forbidden',
   )
-  assert.deepEqual(reasonParamText({ cause }), { cause: 'cluster "prod" is read-only' })
+  assert.deepEqual({ ...reasonParamText({ cause }) }, { cause: 'cluster "prod" is read-only' })
+})
+
+test('server-chosen parameter names cannot reach Object.prototype', () => {
+  const params = JSON.parse('{"__proto__": {"polluted": "yes"}, "constructor": "x", "ok": "1"}') as Record<string, unknown>
+  const out = reasonParamText(params)
+  assert.equal(Object.getPrototypeOf(out), null)
+  assert.deepEqual(Object.keys(out), ['ok'])
+  assert.equal(({} as Record<string, unknown>).polluted, undefined)
 })
