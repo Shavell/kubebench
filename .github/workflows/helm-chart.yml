@@ -1,7 +1,8 @@
 name: Helm chart
 
-# CI is intentionally manual for now (workflow_dispatch only); uncomment the
-# trigger below to lint the chart whenever it changes.
+# Manual on purpose (workflow_dispatch only): it packages and optionally
+# pushes the chart. Every push and pull request already lints the chart in
+# ci.yml (job `chart`); release charts come from release.yml.
 on:
   workflow_dispatch:
     inputs:
@@ -9,9 +10,6 @@ on:
         description: Push the packaged chart to oci://ghcr.io/shavell/charts
         type: boolean
         default: false
-  # push:
-  #   branches: [main]
-  #   paths: ["charts/**", "deploy/**"]
 
 permissions:
   contents: read
@@ -34,13 +32,13 @@ jobs:
       contents: read
       packages: write # only used when pushing
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: azure/setup-helm@v5
+      - uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
         with:
           version: ${{ env.HELM_VERSION }}
-      - uses: actions/setup-go@v7
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
           go-version-file: backend/go.mod
           cache: false
@@ -55,7 +53,7 @@ jobs:
         run: |
           helm package charts/kubebench --destination build/chart
           echo "file=$(ls build/chart/kubebench-*.tgz)" >>"$GITHUB_OUTPUT"
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: chart
           path: ${{ steps.package.outputs.file }}

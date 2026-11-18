@@ -1,35 +1,46 @@
 name: CI
 
-# CI is intentionally manual for now (workflow_dispatch only); uncomment the
-# triggers below to run it on every push and pull request.
+# Runs on pushes to main and on pull requests, except for changes that only
+# touch documentation. The job names are the required status checks of main:
+# rename them only together with the branch protection rule. Once a week the
+# vulnerability scan runs on its own, because new advisories appear without
+# any change here.
 on:
+  push:
+    branches: [main]
+    paths-ignore: &docs-only
+      - "**/*.md"
+      - "docs/**"
+  pull_request:
+    paths-ignore: *docs-only
+  schedule:
+    - cron: "17 5 * * 1"
   workflow_dispatch:
-  # push:
-  #   branches: [main, "release/**"]
-  # pull_request:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
   NODE_VERSION: "24"
   KUBECONFORM_VERSION: v0.8.0
   ACTIONLINT_VERSION: v1.7.12
+  GOVULNCHECK_VERSION: v1.10.0
 
 jobs:
   frontend:
-    name: Frontend
+    name: frontend
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -46,17 +57,18 @@ jobs:
         run: npm test
 
   backend:
-    name: Backend
+    name: backend
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-go@v7
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
@@ -82,54 +94,92 @@ jobs:
             -o "$RUNNER_TEMP/kubebench" .
           "$RUNNER_TEMP/kubebench" --version
 
-  chart:
-    name: Helm chart (${{ matrix.helm }})
+  # Known vulnerabilities in what ships: govulncheck reports only the Go
+  # advisories whose code the server can reach (the Go toolchain's standard
+  # library included); npm audit fails on high or critical advisories in the
+  # runtime dependencies that the frontend bundle is built from. Build tooling
+  # (devDependencies) never reaches users and is left to Dependabot.
+  vulncheck:
+    name: vulncheck
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    strategy:
-      fail-fast: false
-      matrix:
-        helm: [v3.22.1, v4.3.2]
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: azure/setup-helm@v5
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
-          version: ${{ matrix.helm }}
-      - uses: actions/setup-go@v7
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: govulncheck
+        working-directory: backend
+        run: |
+          go install "golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}"
+          "$(go env GOPATH)/bin/govulncheck" ./...
+      # npm audit reads package-lock.json; nothing is installed.
+      - name: npm audit
+        run: npm audit --omit=dev --audit-level=high
+
+  # Helm 3 and Helm 4 one after the other: one runner, one stable check name.
+  chart:
+    name: chart
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
           go-version-file: backend/go.mod
           cache: false
       - name: Install kubeconform
         run: go install "github.com/yannh/kubeconform/cmd/kubeconform@${KUBECONFORM_VERSION}"
-      - name: Lint and validate the chart
-        run: scripts/lint-chart.sh
+      - uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
+        with:
+          version: v3.22.1
+      - name: Lint and validate the chart (Helm 3)
+        run: |
+          helm version --short
+          scripts/lint-chart.sh
       - name: Check the rendered manifests are current
         run: scripts/render-manifests.sh --check
+      - uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
+        with:
+          version: v4.3.2
+      - name: Lint and validate the chart (Helm 4)
+        run: |
+          helm version --short
+          scripts/lint-chart.sh
 
   packaging:
-    name: Packaging config
+    name: packaging
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Check .goreleaser.yaml
-        uses: goreleaser/goreleaser-action@v7
+        uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7.3.0
         with:
           version: "~> v2"
           args: check
       - name: Lint the Dockerfile
         run: docker buildx build --check .
 
-  shell:
-    name: Shell scripts
+  scripts:
+    name: scripts
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: shellcheck
@@ -137,19 +187,21 @@ jobs:
           shellcheck --version
           shellcheck install.sh scripts/*.sh packaging/scripts/*.sh
 
-  actionlint:
-    name: Workflows
+  workflows:
+    name: workflows
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-go@v7
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
           go-version-file: backend/go.mod
           cache: false
       - name: Install actionlint
         run: go install "github.com/rhysd/actionlint/cmd/actionlint@${ACTIONLINT_VERSION}"
+      # actionlint also runs shellcheck on every run: block.
       - name: actionlint
         run: actionlint -color

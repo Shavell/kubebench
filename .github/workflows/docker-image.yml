@@ -1,7 +1,9 @@
 name: Container image
 
-# CI is intentionally manual for now (workflow_dispatch only); uncomment the
-# trigger below to build an image on every push to main.
+# Manual on purpose (workflow_dispatch only): images are pushed only when a
+# maintainer asks for one. Release images come from release.yml; the Trivy
+# workflow scans the latest release image every week. Uncomment the trigger
+# below to build an image on every push to main.
 on:
   workflow_dispatch:
     inputs:
@@ -39,7 +41,7 @@ jobs:
       contents: read
       packages: write # only used when pushing
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0 # scripts/version.sh describes the commit from the tags
           persist-credentials: false
@@ -58,16 +60,16 @@ jobs:
             echo "commit=$(git rev-parse --short HEAD)"
             echo "date=$(TZ=UTC git log -1 --format=%cd --date=format-local:%Y-%m-%dT%H:%M:%SZ)"
           } >>"$GITHUB_OUTPUT"
-      - uses: docker/setup-qemu-action@v4
-      - uses: docker/setup-buildx-action@v4
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - if: inputs.push
-        uses: docker/login-action@v4
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - id: meta
-        uses: docker/metadata-action@v6
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
           images: ${{ env.IMAGE }}
           tags: type=raw,value=${{ steps.build.outputs.tag }}
@@ -75,7 +77,7 @@ jobs:
           labels: |
             org.opencontainers.image.title=KubeBench
             org.opencontainers.image.description=VSCode-style Kubernetes workbench
-      - uses: docker/build-push-action@v7
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           platforms: ${{ inputs.platforms }}

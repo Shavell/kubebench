@@ -1,57 +1,62 @@
 name: CodeQL
 
-# CI is intentionally manual for now (workflow_dispatch only); uncomment the
-# triggers below to scan pushes, pull requests and once a week.
+# Static analysis of the Go server and the TypeScript frontend on pushes to
+# main, on pull requests (documentation-only changes excepted) and once a
+# week, so new queries also look at code that did not change.
 on:
+  push:
+    branches: [main]
+    paths-ignore: &docs-only
+      - "**/*.md"
+      - "docs/**"
+  pull_request:
+    paths-ignore: *docs-only
+  schedule:
+    - cron: "23 4 * * 1"
   workflow_dispatch:
-  # push:
-  #   branches: [main]
-  # pull_request:
-  # schedule:
-  #   - cron: "23 4 * * 1"
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   analyze:
-    name: Analyze (${{ matrix.language }})
+    name: codeql (${{ matrix.language }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
       contents: read
       security-events: write # upload the results
-      actions: read # read workflow metadata in private repositories
     strategy:
       fail-fast: false
       matrix:
         include:
+          # Go has no build-mode none: the module is compiled (in about a
+          # minute; the embed directory's .gitkeep is enough).
           - language: go
             build-mode: manual
           - language: javascript-typescript
             build-mode: none
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - if: matrix.language == 'go'
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
-      - uses: github/codeql-action/init@v4
+      - uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
           queries: security-extended
-      # The module lives in backend/; the embed directory's .gitkeep is enough to compile.
       - if: matrix.build-mode == 'manual'
         name: Build
         run: go build -C backend ./...
-      - uses: github/codeql-action/analyze@v4
+      - uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         with:
           category: /language:${{ matrix.language }}

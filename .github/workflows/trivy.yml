@@ -1,0 +1,113 @@
+name: Trivy
+
+# Trivy scans, reported to code scanning (Security > Code scanning):
+# - repo (pushes to main, pull requests): misconfigurations of the
+#   Dockerfile, the Helm chart and the deploy/ manifests, and known
+#   vulnerabilities in backend/go.mod and package-lock.json. Only CRITICAL
+#   misconfigurations fail the job; HIGH findings are reported.
+# - image (weekly, manual): the image of the latest published release, so
+#   new advisories against what users run show up without a code change.
+# Accepted findings go into .trivyignore, each with its reason.
+on:
+  push:
+    branches: [main]
+    paths-ignore: &docs-only
+      - "**/*.md"
+      - "docs/**"
+  pull_request:
+    paths-ignore: *docs-only
+  schedule:
+    - cron: "41 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TRIVY_VERSION: v0.76.2
+  IMAGE: ghcr.io/shavell/kubebench
+
+jobs:
+  repo:
+    name: trivy (repo)
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write # upload the results
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Scan the repository (SARIF)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: ${{ env.TRIVY_VERSION }}
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,misconfig
+          severity: CRITICAL,HIGH
+          limit-severities-for-sarif: true
+          format: sarif
+          output: trivy-repo.sarif
+          exit-code: "0"
+      # Pull requests from forks get a read-only token and cannot upload.
+      - name: Upload to code scanning
+        if: always() && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          sarif_file: trivy-repo.sarif
+          category: trivy-repo
+      - name: Fail on critical misconfigurations
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: ${{ env.TRIVY_VERSION }}
+          skip-setup-trivy: true
+          scan-type: config
+          scan-ref: .
+          severity: CRITICAL
+          format: table
+          exit-code: "1"
+
+  image:
+    name: trivy (image)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write # upload the results
+    steps:
+      - name: Resolve the latest release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName)"
+          echo "Latest release: $tag"
+          echo "ref=${IMAGE}:${tag#v}" >>"$GITHUB_OUTPUT"
+      - name: Scan the image (SARIF)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: ${{ env.TRIVY_VERSION }}
+          scan-type: image
+          image-ref: ${{ steps.release.outputs.ref }}
+          severity: CRITICAL,HIGH
+          limit-severities-for-sarif: true
+          format: sarif
+          output: trivy-image.sarif
+          exit-code: "0"
+      - name: Upload to code scanning
+        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          sarif_file: trivy-image.sarif
+          category: trivy-image
+      - name: Summary
+        env:
+          REF: ${{ steps.release.outputs.ref }}
+        run: echo "Scanned \`$REF\`; findings are in Security > Code scanning (tool Trivy, category trivy-image)." >>"$GITHUB_STEP_SUMMARY"
