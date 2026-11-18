@@ -11,7 +11,7 @@ function loginErrorMessage(err: unknown, t: TFunction): string {
   if (err.status === 401) return t('login.errors.invalidCredentials')
   if (err.code === 'rate_limited') return t('login.errors.rateLimited')
   if (err.code === 'network') return t('login.errors.network')
-  return err.message || t('login.errors.failed')
+  return errorMessage(err) || t('login.errors.failed')
 }
 
 /** Full-screen sign-in shown when the backend requires authentication. */

@@ -1,4 +1,5 @@
 import { ApiError } from '../apiClient'
+import { reasonError } from '../reasonError'
 import type { Deployment, Pod, RolloutHistory, RolloutRevision } from '../types'
 import { deployments, pods } from './mockCluster'
 
@@ -116,14 +117,14 @@ export function mockRolloutHistory(namespace: string, name: string): RolloutHist
 export function mockRollback(namespace: string, name: string, revision: number): void {
   const d = findDeployment(namespace, name)
   if (d.paused) {
-    throw new ApiError(409, 'conflict', `Deployment ${name} is paused; resume it before rolling back`)
+    throw reasonError(409, 'conflict', 'rollout.paused', { name })
   }
   const revisions = revisionsOf(d)
   if (revisions.find((r) => r.current)?.revision === revision) {
-    throw new ApiError(409, 'conflict', `revision ${revision} is the current revision of Deployment ${name}`)
+    throw reasonError(409, 'conflict', 'rollout.current_revision', { name, revision })
   }
   const target = revisions.find((r) => r.revision === revision)
-  if (!target) throw new ApiError(404, 'not_found', `Deployment ${name} has no revision ${revision}`)
+  if (!target) throw reasonError(404, 'not_found', 'rollout.no_revision', { name, revision })
 
   const next = Math.max(...revisions.map((r) => r.revision)) + 1
   for (const r of revisions) r.current = false

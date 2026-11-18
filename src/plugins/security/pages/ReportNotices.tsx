@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { reasonText } from '@/core/reasons'
 import { Icon } from '@/shared/Icon'
 import type { SecurityReport } from '../data/types'
 import { NS } from '../i18n'
@@ -18,7 +19,7 @@ export function ReportNotices({ report }: { report: SecurityReport }) {
             {report.skipped.map((s) => (
               <li key={s.checkId}>
                 <Icon name="circle-slash" size={13} /> <strong>{texts.title(s.checkId, s.checkId)}</strong>
-                <span className="security-muted"> — {s.reason}</span>
+                <span className="security-muted"> — {reasonText(s.reasonCode, s.reasonParams, s.reason)}</span>
               </li>
             ))}
           </ul>
@@ -28,9 +29,12 @@ export function ReportNotices({ report }: { report: SecurityReport }) {
         <>
           <h2 className="security-section-title">{t('notices.warnings')}</h2>
           <ul>
-            {report.warnings.map((w) => (
+            {report.warnings.map((w, i) => (
               <li key={w}>
-                <Icon name="warning" size={13} /> <span className="security-muted">{w}</span>
+                <Icon name="warning" size={13} />{' '}
+                <span className="security-muted">
+                  {reasonText(report.warningReasons?.[i]?.reason, report.warningReasons?.[i]?.params, w)}
+                </span>
               </li>
             ))}
           </ul>

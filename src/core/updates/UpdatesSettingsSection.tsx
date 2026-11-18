@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { usePermission } from '@/core/permissions'
+import { reasonText } from '@/core/reasons'
 import { errorMessage } from '@/data/apiClient'
 import { useProviders } from '@/data/DataContext'
 import type { UpdateMode, UpdateStatus } from '@/data/types'
@@ -82,7 +83,7 @@ export function UpdatesSettingsSection() {
         {!off && status.error && (
           <>
             <dt>{t('settings.error.label')}</dt>
-            <dd className="kb-update-settings__error">{status.error}</dd>
+            <dd className="kb-update-settings__error">{reasonText(status.errorReason, status.errorParams, status.error)}</dd>
           </>
         )}
       </dl>

@@ -2,6 +2,7 @@ import clsx from 'clsx'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PLATFORM_NS } from '@/core/locales'
+import { reasonText } from '@/core/reasons'
 import { useLayoutStore } from '@/core/store/layoutStore'
 import { useProviders } from '@/data/DataContext'
 import { useDataMode } from '@/data/mode'
@@ -33,7 +34,7 @@ function openInventory(): void {
  */
 export function ClusterItem() {
   const { t } = useTranslation(PLATFORM_NS)
-  const { cluster, server, clusterError } = useDataMode()
+  const { cluster, server, clusterError, clusterErrorReason, clusterErrorParams } = useDataMode()
   const providers = useProviders()
   const { anchor, toggle, close } = useMenuAnchor()
   const [clusters, setClusters] = useState<ClusterEntry[] | null>(null)
@@ -94,7 +95,7 @@ export function ClusterItem() {
       ]
         .filter(Boolean)
         .join('\n')
-    : clusterError || t('statusBar.cluster.noneHint')
+    : reasonText(clusterErrorReason, clusterErrorParams, clusterError ?? '') || t('statusBar.cluster.noneHint')
 
   return (
     <>

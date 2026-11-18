@@ -1,5 +1,8 @@
 /** Domain types shaped after the Kubernetes API, trimmed to what the UI shows. */
 
+/** Parameters of a server reason code (design §3.3), e.g. `{"cluster": "prod"}`. */
+export type ReasonParams = Record<string, unknown>
+
 export interface K8sNode {
   name: string
   roles: string[]
@@ -117,6 +120,9 @@ export interface ServerInfo {
   features: ServerFeatures
   /** Why no cluster runtime is available (no assignment, bad kubeconfig, …); empty otherwise. */
   clusterError: string
+  /** Reason code and parameters of clusterError, for its translation (§3.3). */
+  clusterErrorReason?: string
+  clusterErrorParams?: ReasonParams
 }
 
 /** Options of GET /api/logs (design §4.4). */
@@ -158,7 +164,10 @@ export interface AuditQuery {
 
 export interface PluginAvailability {
   available: boolean
+  /** The server's English explanation; reasonCode and reasonParams translate it (§3.3). */
   reason?: string
+  reasonCode?: string
+  reasonParams?: ReasonParams
 }
 
 /** A plugin known to the server: a backend plugin or an installed external UI plugin. */
@@ -529,6 +538,9 @@ export interface UpdateStatus {
   checkedAt: string | null
   /** Why the last check failed; empty after a success. */
   error: string
+  /** Reason code and parameters of error, for its translation (§3.3). */
+  errorReason?: string
+  errorParams?: ReasonParams
 }
 
 // Live updates (design §7.10, GET /api/watch).
@@ -547,6 +559,9 @@ export interface WatchTopicStatus {
   topic: string
   mode: WatchTopicMode
   reason?: string
+  /** Reason code and parameters of reason, for its translation (§3.3). */
+  reasonCode?: string
+  reasonParams?: ReasonParams
 }
 
 /** `event: change`: an object of `topic` changed in `namespace` ('' = cluster-scoped or anywhere). */

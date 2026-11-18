@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { usePermission } from '@/core/permissions'
 import { ResourceActionButtons } from '@/core/plugin/ResourceActionButtons'
+import { errorMessage } from '@/data/apiClient'
 import { refreshData, useProviderQuery, useProviders } from '@/data/DataContext'
 import type { Deployment } from '@/data/types'
 import { Badge } from '@/shared/Badge'
@@ -40,7 +41,7 @@ export function DeploymentDetail({ deployment: d, onDeleted }: { deployment: Dep
       await op()
       refreshData()
     } catch (err) {
-      setOpError(err instanceof Error ? err.message : String(err))
+      setOpError(errorMessage(err))
     } finally {
       setBusy(false)
     }

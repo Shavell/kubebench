@@ -3,9 +3,12 @@
  *
  * Every request goes to `/api<path>`. Bodies are sent as JSON, query
  * parameters are always built with `qs()` (never by hand), and failures
- * become an `ApiError` carrying the backend's `{"error", "code"}` body
- * (§3.3). Network failures surface as `ApiError` with status 0.
+ * become an `ApiError` carrying the backend's `{"error", "code", "reason",
+ * "params"}` body (§3.3). Network failures surface as `ApiError` with
+ * status 0.
  */
+import { reasonText } from '@/core/reasons'
+import type { ReasonParams } from './types'
 
 /** Machine codes the backend uses (§3.3), plus `network` for transport failures. */
 export type ApiErrorCode =
@@ -30,16 +33,28 @@ export type ApiErrorCode =
   | 'http_error'
   | (string & {})
 
+/** The server's explanation of an error: a stable reason code with its parameters (§3.3). */
+export interface ApiErrorReason {
+  reason: string
+  params?: ReasonParams
+}
+
 export class ApiError extends Error {
   /** HTTP status, or 0 when the server could not be reached. */
   readonly status: number
   readonly code: ApiErrorCode
+  /** Reason code of an error KubeBench explains itself; absent for e.g. Kubernetes API errors. */
+  readonly reason?: string
+  readonly params?: ReasonParams
 
-  constructor(status: number, code: ApiErrorCode, message: string) {
+  /** `message` is the server's English text, the fallback for reasons the UI cannot translate. */
+  constructor(status: number, code: ApiErrorCode, message: string, explanation?: ApiErrorReason) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.code = code
+    this.reason = explanation?.reason
+    this.params = explanation?.params
   }
 }
 
@@ -47,8 +62,12 @@ export function isApiError(err: unknown, code?: ApiErrorCode): err is ApiError {
   return err instanceof ApiError && (code === undefined || err.code === code)
 }
 
-/** Human-readable message for any thrown value. */
+/**
+ * Human-readable message for any thrown value, in the UI language when the
+ * server explained the error with a reason code it knows.
+ */
 export function errorMessage(err: unknown): string {
+  if (err instanceof ApiError) return reasonText(err.reason, err.params, err.message)
   if (err instanceof Error) return err.message
   return String(err)
 }
@@ -159,6 +178,14 @@ export async function apiFetch<T>(path: string, init: ApiRequestInit = {}): Prom
   return payload as T
 }
 
+/** The reason code and parameters of an error body, if it has them. */
+function explanationOf(payload: unknown): ApiErrorReason | undefined {
+  if (!payload || typeof payload !== 'object') return undefined
+  const { reason, params } = payload as { reason?: unknown; params?: unknown }
+  if (typeof reason !== 'string' || !reason) return undefined
+  return { reason, params: params && typeof params === 'object' ? (params as ReasonParams) : undefined }
+}
+
 /** The ApiError of a failed response; tells the shell when the session is gone. */
 function refusal(path: string, res: Response, payload: unknown): ApiError {
   const bodyCode =
@@ -168,7 +195,7 @@ function refusal(path: string, res: Response, payload: unknown): ApiError {
   if ((res.status === 401 && !path.startsWith('/auth/')) || code === 'password_change_required') {
     sessionListeners.forEach((listener) => listener(code))
   }
-  return new ApiError(res.status, code, failureMessage(res, payload))
+  return new ApiError(res.status, code, failureMessage(res, payload), explanationOf(payload))
 }
 
 /**

@@ -1,4 +1,5 @@
 import { ApiError } from '../apiClient'
+import { reasonError } from '../reasonError'
 import type { WorkloadOpsProvider } from '../providers'
 import { MAX_BULK_DELETE, type KubeObject, type Pod, type PodDeleteResult } from '../types'
 import { delay, delayReject } from './delay'
@@ -135,7 +136,7 @@ export function createMockWorkloadOps(): WorkloadOpsProvider {
       }),
     scaleWorkload: (kind, ns, name, replicas) =>
       run(() => {
-        if (replicas < 0) throw badRequest('replicas must be at least 0')
+        if (replicas < 0) throw reasonError(400, 'bad_request', 'workload.replicas_negative')
         if (kind === 'Deployment') {
           const d = deployments.find((x) => x.namespace === ns && x.name === name)
           if (!d) throw notFound('deployments.apps', name)
@@ -157,9 +158,9 @@ export function createMockWorkloadOps(): WorkloadOpsProvider {
     deletePods: (items) =>
       run(() => {
         if (items.length === 0 || items.length > MAX_BULK_DELETE) {
-          throw badRequest(`a bulk delete takes 1 to ${MAX_BULK_DELETE} pods, not ${items.length}`)
+          throw reasonError(400, 'bad_request', 'pod.bulk_delete_count', { max: MAX_BULK_DELETE, count: items.length })
         }
-        if (items.some((item) => !item.namespace || !item.name)) throw badRequest('every pod needs a namespace and a name')
+        if (items.some((item) => !item.namespace || !item.name)) throw reasonError(400, 'bad_request', 'pod.bulk_delete_name')
         return items.map((item): PodDeleteResult => {
           const index = pods.findIndex((p) => p.namespace === item.namespace && p.name === item.name)
           if (index < 0) return { ...item, error: `pods "${item.name}" not found` }
@@ -170,9 +171,9 @@ export function createMockWorkloadOps(): WorkloadOpsProvider {
     addDebugContainer: (ns, podName, { image, target }) =>
       run(() => {
         const pod = findPod(ns, podName)
-        if (image && /\s/.test(image)) throw badRequest(`the image "${image}" contains white space`)
+        if (image && /\s/.test(image)) throw reasonError(400, 'bad_request', 'pod.debug_image_space', { image })
         if (target && !pod.containers.some((c) => c.name === target)) {
-          throw badRequest(`pod ${podName} has no container "${target}" to target`)
+          throw reasonError(400, 'bad_request', 'pod.debug_no_container', { pod: podName, container: target })
         }
         return { namespace: ns, pod: podName, container: `debugger-${suffix()}` }
       }),
@@ -216,10 +217,10 @@ export function createMockWorkloadOps(): WorkloadOpsProvider {
         const index = namespaces.findIndex((n) => n.name === name)
         if (index < 0) throw notFound('namespaces', name)
         if (!force && SYSTEM_NAMESPACES.includes(name)) {
-          throw new ApiError(403, 'forbidden', `${name} is a system namespace; KubeBench deletes it only when forced`)
+          throw reasonError(403, 'forbidden', 'namespace.system', { name })
         }
         if (!force && name === MOCK_OWN_NAMESPACE) {
-          throw new ApiError(403, 'forbidden', `${name} is the namespace KubeBench runs in; KubeBench deletes it only when forced`)
+          throw reasonError(403, 'forbidden', 'namespace.own', { name })
         }
         namespaces.splice(index, 1)
         removeWhere(pods, (p) => p.namespace === name)

@@ -1,4 +1,5 @@
 import { ApiError } from '@/data/apiClient'
+import { reasonError } from '@/data/reasonError'
 import { delay, delayReject } from '@/data/mock/delay'
 import { MOCK_CATALOG, mockMessage } from './mockCatalog'
 import { exportText } from './mockExport'
@@ -198,11 +199,11 @@ export function createMockSecurity(): SecurityProvider {
       return delay(acceptance)
     },
     unaccept: (key) => {
-      if (!accepted.delete(key)) return delayReject(new ApiError(404, 'not_found', `no accepted risk "${key}"`))
+      if (!accepted.delete(key)) return delayReject(reasonError(404, 'not_found', 'security.no_accepted_risk', { key }))
       return delay(undefined)
     },
     exportReport: (format) => {
-      if (!last) return delayReject(new ApiError(404, 'not_found', 'no scan has run on this cluster yet'))
+      if (!last) return delayReject(reasonError(404, 'not_found', 'security.no_report'))
       return delay(exportText(report(last), format))
     },
   }

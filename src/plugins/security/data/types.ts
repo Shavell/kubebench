@@ -93,8 +93,11 @@ export interface SecurityReport {
   score: { overall: number | null; byCategory: CategoryScore[] }
   counts: SeverityCounts
   findings: Finding[]
-  skipped: { checkId: string; reason: string }[]
+  /** Checks that could not run; reasonCode and reasonParams translate reason (design §3.3). */
+  skipped: { checkId: string; reason: string; reasonCode?: string; reasonParams?: Record<string, unknown> }[]
   warnings: string[]
+  /** The reason codes of warnings, index by index (absent from older servers). */
+  warningReasons?: { reason: string; params?: Record<string, unknown> }[]
   inventory: Record<string, number>
   systemNamespaces: string[]
 }

@@ -1,4 +1,5 @@
 import { ApiError } from '@/data/apiClient'
+import { reasonError } from '@/data/reasonError'
 import { delay, delayReject } from '@/data/mock/delay'
 import { mulberry32 } from '@/data/mock/rng'
 import type { ArgoCdProvider } from './provider'
@@ -359,7 +360,7 @@ export function mockArgoCd(): ArgoCdProvider {
 
   const start = (app: ArgoApplicationDetail, revision: string, options: { dryRun: boolean; prune: boolean }) => {
     if (app.operating) {
-      throw new ApiError(409, 'conflict', `another operation is already running on application ${key(app)}; wait for it to finish`)
+      throw reasonError(409, 'conflict', 'argocd.operation_running', { namespace: app.namespace, name: app.name })
     }
     app.operating = true
     app.operationPhase = 'Running'
@@ -414,10 +415,10 @@ export function mockArgoCd(): ArgoCdProvider {
     rollbackApplication: (namespace, name, historyId) =>
       mutate(namespace, name, (app) => {
         if (app.autoSync) {
-          throw new ApiError(409, 'conflict', 'rollback is not possible while automated sync is enabled; disable it first')
+          throw reasonError(409, 'conflict', 'argocd.rollback_auto_sync')
         }
         const entry = app.history.find((h) => h.id === historyId)
-        if (!entry) throw new ApiError(404, 'not_found', `the application has no history entry ${historyId}`)
+        if (!entry) throw reasonError(404, 'not_found', 'argocd.no_history_entry', { id: historyId })
         start(app, entry.revision, { dryRun: false, prune: false })
         app.sync = 'OutOfSync'
       }),

@@ -1,4 +1,5 @@
 import { ApiError } from '../apiClient'
+import { reasonError } from '../reasonError'
 import type { InventoryProvider } from '../providers'
 import type { CloudCredentialProvider, ClusterEnvironment, ClusterEntry } from '../types'
 import { delay, delayReject } from './delay'
@@ -115,7 +116,7 @@ export function createMockInventory(): InventoryProvider {
     addCluster: (entry) => {
       const clusters = load()
       if (clusters.some((c) => c.name === entry.name)) {
-        return delayReject(new ApiError(409, 'conflict', `cluster "${entry.name}" already exists`))
+        return delayReject(reasonError(409, 'conflict', 'clusters.exists', { name: entry.name }))
       }
       clusters.push({
         id: Math.max(0, ...clusters.map((c) => c.id)) + 1,
@@ -143,9 +144,9 @@ export function createMockInventory(): InventoryProvider {
     updateCluster: (id, update) => {
       const clusters = load()
       const target = clusters.find((c) => c.id === id)
-      if (!target) return delayReject(new ApiError(404, 'not_found', `cluster ${id} not found`))
+      if (!target) return delayReject(reasonError(404, 'not_found', 'clusters.id_not_found', { id }))
       if (update.name && clusters.some((c) => c.id !== id && c.name === update.name)) {
-        return delayReject(new ApiError(409, 'conflict', `cluster "${update.name}" already exists`))
+        return delayReject(reasonError(409, 'conflict', 'clusters.exists', { name: update.name }))
       }
       if (update.credentials && target.cloudAuth !== update.credentials.provider) {
         return delayReject(

@@ -1,8 +1,9 @@
 import { create } from 'zustand'
 import { PLATFORM_NS } from '@/core/locales'
+import { reasonText } from '@/core/reasons'
 import { errorMessage } from '@/data/apiClient'
 import type { PluginsProvider } from '@/data/providers'
-import type { ServerPlugin } from '@/data/types'
+import type { PluginAvailability, ServerPlugin } from '@/data/types'
 import { i18n } from '@/i18n'
 import type { PluginManifest, PluginSource } from './types'
 
@@ -96,6 +97,11 @@ type StatusInputs = Pick<
 const t = (key: string, options?: Record<string, unknown>) =>
   i18n.t(key, { ns: PLATFORM_NS, ...options })
 
+/** The server's explanation of an unavailable plugin, translated when its reason code is known. */
+function statusReason(status: PluginAvailability): string {
+  return reasonText(status.reasonCode, status.reasonParams, status.reason ?? '')
+}
+
 /** Translated explanation of an external plugin load failure. */
 export function describeLoadError(error: PluginLoadError): string {
   return t(`plugins.load.${error.reason}`, { detail: error.detail ?? '' })
@@ -145,11 +151,11 @@ export function resolvePluginStatus(
     if (!backend) return unavailable(t('plugins.reasons.backendMissing', { id: backendId }))
     if (!backend.enabled) return unavailable(t('plugins.reasons.backendDisabled', { id: backendId }))
     if (!backend.status.available) {
-      return unavailable(backend.status.reason || t('plugins.reasons.backendUnavailable', { id: backendId }))
+      return unavailable(statusReason(backend.status) || t('plugins.reasons.backendUnavailable', { id: backendId }))
     }
   }
   if (server && !server.status.available) {
-    return unavailable(server.status.reason || t('plugins.reasons.unavailable', { id }))
+    return unavailable(statusReason(server.status) || t('plugins.reasons.unavailable', { id }))
   }
   return { enabled, available: true, loading }
 }

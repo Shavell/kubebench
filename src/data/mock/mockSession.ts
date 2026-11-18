@@ -1,10 +1,11 @@
 import { ApiError } from '../apiClient'
+import { reasonError } from '../reasonError'
 import type { SessionProvider } from '../providers'
 import { MIN_PASSWORD_LENGTH, passwordLength } from '../rules'
 import type { ServerInfo } from '../types'
 import { delay, delayReject } from './delay'
 import { activeMockCluster } from './mockInventory'
-import { badRequest, MOCK_USERNAME } from './mockUsers'
+import { MOCK_USERNAME } from './mockUsers'
 
 /**
  * The mock session: an administrator on the active mock cluster. The
@@ -50,10 +51,10 @@ export function createMockSession(): SessionProvider {
     info: () => delay(mockServerInfo()),
     changePassword: (current, next) => {
       if (passwordLength(next) < MIN_PASSWORD_LENGTH) {
-        return delayReject(badRequest(`password must be at least ${MIN_PASSWORD_LENGTH} characters`))
+        return delayReject(reasonError(400, 'bad_request', 'password.too_short', { min: MIN_PASSWORD_LENGTH }))
       }
       if (next === current) {
-        return delayReject(badRequest('the new password must differ from the current one'))
+        return delayReject(reasonError(400, 'bad_request', 'auth.same_password'))
       }
       return delay(undefined)
     },

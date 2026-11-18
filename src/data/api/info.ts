@@ -84,6 +84,8 @@ function parseServerInfo(body: unknown): ServerInfo {
       ambientCloudIdentity: bool(features.ambientCloudIdentity),
     },
     clusterError: str(body.clusterError),
+    clusterErrorReason: str(body.clusterErrorReason) || undefined,
+    clusterErrorParams: isObject(body.clusterErrorParams) ? body.clusterErrorParams : undefined,
   }
 }
 

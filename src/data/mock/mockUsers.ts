@@ -1,4 +1,4 @@
-import { ApiError } from '../apiClient'
+import { reasonError } from '../reasonError'
 import type { UsersProvider } from '../providers'
 import { MIN_PASSWORD_LENGTH, passwordLength, USERNAME_PATTERN } from '../rules'
 import type { AppUser, AssignmentRole, GlobalRole } from '../types'
@@ -62,9 +62,7 @@ function find(id: number): StoredUser | undefined {
   return users.find((u) => u.id === id)
 }
 
-export const badRequest = (message: string) => new ApiError(400, 'bad_request', message)
-const conflict = (message: string) => new ApiError(409, 'conflict', message)
-const notFound = (id: number) => new ApiError(404, 'not_found', `user ${id} not found`)
+const notFound = (id: number) => reasonError(404, 'not_found', 'users.not_found', { id })
 const isLastAdmin = (user: StoredUser) =>
   user.role === 'admin' && users.filter((u) => u.role === 'admin').length === 1
 
@@ -77,13 +75,13 @@ export function createMockUsers(): UsersProvider {
     createUser: (rawUsername, password, role) => {
       const username = rawUsername.trim()
       if (!USERNAME_PATTERN.test(username)) {
-        return delayReject(badRequest("a username is 1-64 letters, digits, '.', '_', '@' or '-'"))
+        return delayReject(reasonError(400, 'bad_request', 'users.invalid_username'))
       }
       if (passwordLength(password) < MIN_PASSWORD_LENGTH) {
-        return delayReject(badRequest(`password must be at least ${MIN_PASSWORD_LENGTH} characters`))
+        return delayReject(reasonError(400, 'bad_request', 'password.too_short', { min: MIN_PASSWORD_LENGTH }))
       }
       if (users.some((u) => u.username === username)) {
-        return delayReject(conflict(`user "${username}" already exists`))
+        return delayReject(reasonError(409, 'conflict', 'users.exists', { name: username }))
       }
       users.push({
         id: Math.max(0, ...users.map((u) => u.id)) + 1,
@@ -98,10 +96,10 @@ export function createMockUsers(): UsersProvider {
       const user = find(id)
       if (!user) return delayReject(notFound(id))
       if (update.role === 'user' && isLastAdmin(user)) {
-        return delayReject(conflict('cannot demote the last admin'))
+        return delayReject(reasonError(409, 'conflict', 'users.last_admin_demote'))
       }
       if (update.password !== undefined && passwordLength(update.password) < MIN_PASSWORD_LENGTH) {
-        return delayReject(badRequest(`password must be at least ${MIN_PASSWORD_LENGTH} characters`))
+        return delayReject(reasonError(400, 'bad_request', 'password.too_short', { min: MIN_PASSWORD_LENGTH }))
       }
       if (update.role) user.role = update.role
       if (update.password !== undefined) user.mustChangePassword = true
@@ -111,9 +109,9 @@ export function createMockUsers(): UsersProvider {
       const user = find(id)
       if (!user) return delayReject(notFound(id))
       if (user.username === MOCK_USERNAME) {
-        return delayReject(conflict('cannot delete your own account'))
+        return delayReject(reasonError(409, 'conflict', 'users.delete_self'))
       }
-      if (isLastAdmin(user)) return delayReject(conflict('cannot delete the last admin'))
+      if (isLastAdmin(user)) return delayReject(reasonError(409, 'conflict', 'users.last_admin_delete'))
       users.splice(users.indexOf(user), 1)
       return delay(undefined)
     },

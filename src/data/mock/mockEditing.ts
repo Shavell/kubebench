@@ -1,5 +1,6 @@
 import { dump, load, loadAll } from 'js-yaml'
 import { ApiError } from '../apiClient'
+import { reasonError } from '../reasonError'
 import type { ClusterProvider } from '../providers'
 import type { ApplyOptions, ApplyResult, KubeObject, MetadataPatch, ObjectRef } from '../types'
 import { delay, delayReject } from './delay'
@@ -41,7 +42,7 @@ function resolve(ref: ObjectRef): { kind: MockKind; namespace: string } {
   const kind = findKind(ref.apiVersion, ref.kind)
   if (!kind) throw new ApiError(404, 'not_found', `no matches for kind "${ref.kind}" in version "${ref.apiVersion}"`)
   const namespace = kind.namespaced ? (ref.namespace ?? '') : ''
-  if (kind.namespaced && !namespace) throw badRequest(`${ref.kind} is a namespaced kind: name its namespace`)
+  if (kind.namespaced && !namespace) throw reasonError(400, 'bad_request', 'resource.namespaced_kind', { kind: ref.kind })
   return { kind, namespace }
 }
 
@@ -273,7 +274,7 @@ function patchObject(ref: ObjectRef, patch: MetadataPatch): void {
   const manifest = readObject(kind, namespace, ref.name)
   if (!manifest) throw notFound(kind, ref.name)
   if (kind.kind === 'Secret' && values.some((v) => typeof v === 'string' && isRedacted(v))) {
-    throw new ApiError(400, 'redacted_secret', "a value is a redaction placeholder; it would replace the real value of the Secret's annotation")
+    throw reasonError(400, 'redacted_secret', 'editing.annotation_placeholder')
   }
   const meta = metadataOf(manifest)
   for (const [field, changes] of [['labels', patch.labels], ['annotations', patch.annotations]] as const) {
