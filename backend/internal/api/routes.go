@@ -9,6 +9,10 @@ func (s *Server) routes() {
 	s.handle("GET /healthz", accessPublic, s.handleHealthz)
 	s.handle("GET /api/version", accessPublic, s.handleVersion)
 	s.handle("POST /api/auth/login", accessPublic, s.handleLogin)
+	// External identities (§3.6): sign-in methods and the OIDC flow.
+	s.handle("GET /api/auth/methods", accessPublic, s.handleAuthMethods)
+	s.handle("GET "+oidcLoginPath, accessPublic, s.handleOIDCLogin)
+	s.handle("GET "+oidcCallbackPath, accessPublic, s.handleOIDCCallback)
 
 	// Any session, including one that must change its password first.
 	s.handle("POST /api/auth/logout", accessAuthed, s.handleLogout)
@@ -35,6 +39,13 @@ func (s *Server) routes() {
 	s.handle("GET /api/audit", accessAdmin, s.handleListAudit)
 	s.handle("PUT /api/settings/updates", accessAdmin, s.handleSetUpdateMode)
 	s.handle("POST /api/updates/check", accessAdmin, s.handleCheckUpdates)
+	// Settings > Authentication (§3.6).
+	s.handle("GET /api/settings/auth", accessAdmin, s.handleAuthSettings)
+	s.handle("GET /api/settings/auth/mappings", accessAdmin, s.handleListMappings)
+	s.handle("POST /api/settings/auth/mappings", accessAdmin, s.handleCreateMapping)
+	s.handle("PUT /api/settings/auth/mappings/{id}", accessAdmin, s.handleUpdateMapping)
+	s.handle("DELETE /api/settings/auth/mappings/{id}", accessAdmin, s.handleDeleteMapping)
+	s.handle("POST /api/settings/auth/preview", accessAdmin, s.handlePreviewSignIn)
 
 	// The active cluster: reads.
 	s.handle("GET /api/nodes", accessRead, s.handleNodes)
@@ -120,6 +131,11 @@ var auditKinds = map[string]string{
 	// Service browser (§7.14).
 	"POST /api/proxy/services/{ns}/{name}/{port}": "service",
 	"POST /api/proxy/pods/{ns}/{name}/{port}":     "pod",
+	// Group mappings (§3.6).
+	"POST /api/settings/auth/mappings":        "mapping",
+	"PUT /api/settings/auth/mappings/{id}":    "mapping",
+	"DELETE /api/settings/auth/mappings/{id}": "mapping",
+	"POST /api/settings/auth/preview":         "user",
 }
 
 // auditActions names the audit action of routes that record a named action

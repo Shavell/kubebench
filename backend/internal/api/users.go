@@ -5,15 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"regexp"
 	"strconv"
 	"strings"
 
 	"kubebench/internal/plugin"
 	"kubebench/internal/store"
 )
-
-var usernamePattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._@-]{0,63}$`)
 
 type assignmentView struct {
 	ClusterID int64  `json:"clusterId"`
@@ -28,6 +25,11 @@ type userView struct {
 	MustChangePassword bool             `json:"mustChangePassword"`
 	Clusters           []string         `json:"clusters"` // assigned cluster names, for v0.4 clients
 	Assignments        []assignmentView `json:"assignments"`
+	// Source is local, oidc or ldap (§3.6); the role and assignments of
+	// external users are re-computed from their groups at every sign-in.
+	Source      string `json:"source"`
+	DisplayName string `json:"displayName"`
+	Email       string `json:"email"`
 }
 
 func (s *Server) handleListUsers(w http.ResponseWriter, _ *http.Request, _ *call) {
@@ -50,6 +52,7 @@ func (s *Server) handleListUsers(w http.ResponseWriter, _ *http.Request, _ *call
 		v := userView{
 			ID: u.ID, Username: u.Username, Role: u.Role, MustChangePassword: u.MustChangePassword,
 			Clusters: []string{}, Assignments: []assignmentView{},
+			Source: u.Source, DisplayName: u.DisplayName, Email: u.Email,
 		}
 		for _, a := range byUser[u.ID] {
 			v.Clusters = append(v.Clusters, a.ClusterName)
@@ -75,7 +78,7 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request, c *cal
 		body.Role = store.RoleUser
 	}
 	c.setAudit("user/"+body.Username, auditJSON(map[string]string{"role": body.Role}))
-	if !usernamePattern.MatchString(body.Username) {
+	if !store.ValidUsername(body.Username) {
 		writeErr(w, badRequest("a username is 1-64 letters, digits, '.', '_', '@' or '-'"))
 		return
 	}
@@ -132,6 +135,10 @@ func (s *Server) handleUpdateUser(w http.ResponseWriter, r *http.Request, c *cal
 		}
 	}
 	if body.Password != nil {
+		if user.IsExternal() {
+			writeErr(w, errExternalPassword)
+			return
+		}
 		if err := validatePassword(*body.Password); err != nil {
 			writeErr(w, err)
 			return
@@ -253,7 +260,7 @@ func validateGlobalRole(role string) error {
 // lastAdminConflict explains the store's last-admin protection.
 func lastAdminConflict(err error, verb string) error {
 	if errors.Is(err, store.ErrLastAdmin) {
-		return errorf(http.StatusConflict, plugin.CodeConflict, "cannot %s the last admin: promote another user first", verb)
+		return errorf(http.StatusConflict, plugin.CodeConflict, "cannot %s the last local admin: promote another local user first (the local admin is the break-glass account)", verb)
 	}
 	return err
 }
