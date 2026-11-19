@@ -6,11 +6,12 @@ name: CodeQL
 on:
   push:
     branches: [main]
-    paths-ignore: &docs-only
+    paths-ignore:
       - "**/*.md"
       - "docs/**"
+  # Not filtered: the main ruleset waits for CodeQL results, and a skipped
+  # workflow never reports them, which would block docs-only pull requests.
   pull_request:
-    paths-ignore: *docs-only
   schedule:
     - cron: "23 4 * * 1"
   workflow_dispatch:
