@@ -231,6 +231,20 @@ protection in the same change. CI and Trivy skip documentation-only
 pushes to `main` but always run on pull requests, so the required checks
 report on every pull request.
 
+Two repository rulesets protect what a release is built from:
+
+- **`main`** (also any `release/*` branch): no deletion, no force push,
+  linear history; changes arrive through pull requests (squash or rebase)
+  that need one approval from a code owner (`.github/CODEOWNERS`), resolved
+  review threads, the required checks above on an up-to-date branch, and no
+  open CodeQL alert of high severity or worse. Repository administrators
+  may bypass: with a single maintainer, who cannot approve their own pull
+  request, that is how pull requests are merged (`gh pr merge --admin`, or
+  "Merge without waiting for requirements").
+- **`release-tags`** (`v*`): a release tag cannot be deleted or moved to
+  another commit, so a published version always points at the source it
+  was built from.
+
 Accepted Trivy findings go into `.trivyignore`, each with its reason (there
 are none). Known MEDIUM findings, below the reported severities:
 `KSV-0111` (the chart's default `rbac.preset: cluster-admin`, which the full
