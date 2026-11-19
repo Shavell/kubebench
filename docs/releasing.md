@@ -3,9 +3,9 @@
 ## Versioning
 
 KubeBench follows [Semantic Versioning](https://semver.org): `MAJOR.MINOR.PATCH`,
-with pre-releases such as `0.8.1-rc.1`. Until 1.0, a minor version may break
+with pre-releases such as `0.8.2-rc.1`. Until 1.0, a minor version may break
 APIs, the plugin SDK or configuration; the CHANGELOG says how to migrate.
-Tags are `v` + the version (`v0.8.1`).
+Tags are `v` + the version (`v0.8.2`).
 
 One version identifies every artifact of a release:
 
@@ -18,7 +18,7 @@ One version identifies every artifact of a release:
 | binaries, packages, image | stamped by the build (`-X main.version`) from the git tag |
 
 Development builds get their version from `scripts/version.sh`:
-`git describe` on the latest `v*` tag (`0.8.1-3-gabc1234`, `-dirty` for
+`git describe` on the latest `v*` tag (`0.8.2-3-gabc1234`, `-dirty` for
 uncommitted changes), or `<package.json version>-<sha>` before the first
 tag. `make version` prints it. GoReleaser snapshots use
 `<next patch>-snapshot-<sha>` (`0.5.1-snapshot-abc1234`).
@@ -98,13 +98,13 @@ not the release workflow's, so verify such a release with
 attestations:
 
 ```bash
-scripts/check-release.sh 0.8.1 && make test
-git tag -a v0.8.1 -m "KubeBench v0.8.1"
-git push origin v0.8.1        # the remote that points at github.com/Shavell/kubebench
+scripts/check-release.sh 0.8.2 && make test
+git tag -a v0.8.2 -m "KubeBench v0.8.2"
+git push origin v0.8.2        # the remote that points at github.com/Shavell/kubebench
 mkdir -p build/extra
 helm package charts/kubebench --destination build/extra
 cp deploy/kubernetes/kubebench.yaml install.sh build/extra/
-scripts/extract-changelog.sh 0.8.1 >build/release-notes.md
+scripts/extract-changelog.sh 0.8.2 >build/release-notes.md
 goreleaser release --clean --release-notes build/release-notes.md
 ```
 
@@ -113,13 +113,13 @@ Then the images and the bundle:
 ```bash
 for arch in amd64 arm64; do
   docker buildx build --platform "linux/$arch" \
-    --build-arg VERSION=0.8.1 --build-arg COMMIT="$(git rev-parse --short HEAD)" \
-    --build-arg DATE="$(git log -1 --format=%cI)" -t ghcr.io/shavell/kubebench:0.8.1 \
-    --output "type=docker,dest=build/kubebench_0.8.1_linux_$arch.tar" .
+    --build-arg VERSION=0.8.2 --build-arg COMMIT="$(git rev-parse --short HEAD)" \
+    --build-arg DATE="$(git log -1 --format=%cI)" -t ghcr.io/shavell/kubebench:0.8.2 \
+    --output "type=docker,dest=build/kubebench_0.8.2_linux_$arch.tar" .
 done
-scripts/offline-bundle.sh 0.8.1 --chart build/extra/kubebench-0.8.1.tgz \
-  --image-tar build/kubebench_0.8.1_linux_amd64.tar --image-tar build/kubebench_0.8.1_linux_arm64.tar
-gh release upload v0.8.1 build/extra/kubebench-offline-0.8.1.tar.gz{,.sha256}
+scripts/offline-bundle.sh 0.8.2 --chart build/extra/kubebench-0.8.2.tgz \
+  --image-tar build/kubebench_0.8.2_linux_amd64.tar --image-tar build/kubebench_0.8.2_linux_arm64.tar
+gh release upload v0.8.2 build/extra/kubebench-offline-0.8.2.tar.gz{,.sha256}
 ```
 
 ### Dry runs
@@ -153,8 +153,8 @@ and the chart as `charts/kubebench/LICENSE` (a copy that
 ## Verifying a release
 
 Every release made by the Release workflow can be checked against the
-workflow that built it. The examples use `0.8.1`; download the files into
-one directory first (`gh release download v0.8.1 --repo Shavell/kubebench`).
+workflow that built it. The examples use `0.8.2`; download the files into
+one directory first (`gh release download v0.8.2 --repo Shavell/kubebench`).
 
 `checksums.txt` is signed keylessly with cosign. Once its signature is
 verified, `sha256sum` verifies everything it lists (archives, packages,
@@ -172,7 +172,7 @@ sha256sum --check --ignore-missing checksums.txt
 The container image is signed with cosign:
 
 ```bash
-cosign verify ghcr.io/shavell/kubebench:0.8.1 \
+cosign verify ghcr.io/shavell/kubebench:0.8.2 \
   --certificate-identity-regexp '^https://github\.com/Shavell/kubebench/\.github/workflows/release\.yml@refs/(heads|tags)/' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
@@ -182,9 +182,9 @@ cover the binaries, archives, packages, SBOMs, chart, manifests,
 `install.sh`, the offline bundle and the image:
 
 ```bash
-gh attestation verify kubebench_0.8.1_linux_amd64.tar.gz --repo Shavell/kubebench
-gh attestation verify kubebench-offline-0.8.1.tar.gz --repo Shavell/kubebench
-gh attestation verify oci://ghcr.io/shavell/kubebench:0.8.1 --repo Shavell/kubebench
+gh attestation verify kubebench_0.8.2_linux_amd64.tar.gz --repo Shavell/kubebench
+gh attestation verify kubebench-offline-0.8.2.tar.gz --repo Shavell/kubebench
+gh attestation verify oci://ghcr.io/shavell/kubebench:0.8.2 --repo Shavell/kubebench
 ```
 
 Add `--signer-workflow Shavell/kubebench/.github/workflows/release.yml` to
@@ -193,8 +193,8 @@ release as `kubebench-<version>.intoto.jsonl` (one Sigstore bundle per
 line), which also works without the attestations API, e.g. offline:
 
 ```bash
-gh attestation verify kubebench_0.8.1_linux_amd64.tar.gz --repo Shavell/kubebench \
-  --bundle kubebench-0.8.1.intoto.jsonl
+gh attestation verify kubebench_0.8.2_linux_amd64.tar.gz --repo Shavell/kubebench \
+  --bundle kubebench-0.8.2.intoto.jsonl
 ```
 
 0.8.1 is the first release with signatures, SBOMs and attestations; the
