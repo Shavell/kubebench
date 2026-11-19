@@ -6,8 +6,8 @@
 # multi-arch build needs no emulation:
 #
 #   docker buildx build --platform linux/amd64,linux/arm64 \
-#     --build-arg VERSION=0.8.1 --build-arg COMMIT="$(git rev-parse --short HEAD)" \
-#     --build-arg DATE="$(git log -1 --format=%cI)" -t ghcr.io/shavell/kubebench:0.8.1 .
+#     --build-arg VERSION=0.8.2 --build-arg COMMIT="$(git rev-parse --short HEAD)" \
+#     --build-arg DATE="$(git log -1 --format=%cI)" -t ghcr.io/shavell/kubebench:0.8.2 .
 #
 # `make image` does the same for the local platform.
 
