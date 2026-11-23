@@ -11,8 +11,9 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.48.0
 	github.com/aws/aws-sdk-go-v2/config v1.33.18
 	github.com/aws/aws-sdk-go-v2/credentials v1.21.0
-	github.com/aws/aws-sdk-go-v2/service/sts v1.52.0
+	github.com/aws/aws-sdk-go-v2/service/sts v1.53.0
 	github.com/coreos/go-oidc/v3 v3.21.0
+	github.com/go-asn1-ber/asn1-ber v1.5.8
 	github.com/go-jose/go-jose/v4 v4.1.6
 	github.com/go-ldap/ldap/v3 v3.4.15
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674
@@ -66,7 +67,6 @@ require (
 	github.com/exponent-io/jsonpath v0.0.0-20210407135951-1de76d718b3f // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.1 // indirect
-	github.com/go-asn1-ber/asn1-ber v1.5.8 // indirect
 	github.com/go-errors/errors v1.4.2 // indirect
 	github.com/go-gorp/gorp/v3 v3.1.0 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
