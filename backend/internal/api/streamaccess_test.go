@@ -106,7 +106,7 @@ func TestStreamLogsEndsWhenCheckFails(t *testing.T) {
 		defer close(done)
 		streamLogs(context.Background(), sse, []logFeed{feed("a", func(context.Context) (io.ReadCloser, error) {
 			return logR, nil
-		})}, 1, 10*time.Millisecond, check)
+		})}, 1, 10*time.Millisecond, check, nil)
 	}()
 	if _, err := io.WriteString(logW, "hello\n"); err != nil {
 		t.Fatal(err)
@@ -215,7 +215,7 @@ func TestLogStreamStalledClient(t *testing.T) {
 		}
 		streamLogs(r.Context(), sse, []logFeed{feed("a", func(context.Context) (io.ReadCloser, error) {
 			return logR, nil
-		})}, 1, time.Hour, nil)
+		})}, 1, time.Hour, nil, nil)
 	}))
 	defer srv.Close()
 

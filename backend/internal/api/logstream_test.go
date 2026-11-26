@@ -192,16 +192,57 @@ func events(stream string) []string {
 	return slices.DeleteFunc(strings.Split(stream, "\n\n"), func(s string) bool { return s == "" })
 }
 
+// streamUntil serves a log stream request as user until the stream's
+// body satisfies done (or ends), then cancels it like a leaving client
+// and returns the body.
+func streamUntil(t *testing.T, e *testEnv, target, user string, done func(body string) bool) string {
+	t.Helper()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	req := httptest.NewRequest(http.MethodGet, target, nil).WithContext(ctx)
+	req.AddCookie(&http.Cookie{Name: sessionCookie, Value: e.tokens[user]})
+	w := &syncRecorder{header: http.Header{}}
+	finished := make(chan struct{})
+	go func() {
+		defer close(finished)
+		e.handler.ServeHTTP(w, req)
+	}()
+	deadline := time.After(5 * time.Second)
+	for !done(w.String()) {
+		select {
+		case <-finished:
+			return w.String()
+		case <-deadline:
+			cancel()
+			<-finished
+			t.Fatalf("stream %s: condition not met in %q", target, w.String())
+		case <-time.After(5 * time.Millisecond):
+		}
+	}
+	cancel()
+	select {
+	case <-finished:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the stream outlived its client")
+	}
+	return w.String()
+}
+
+// hasEvents reports whether body holds at least n events.
+func hasEvents(n int) func(string) bool {
+	return func(body string) bool { return len(events(body)) >= n }
+}
+
 func TestLogStreamSelectorFanOut(t *testing.T) {
 	e := newTestEnv(t, nil)
 	addPod(t, e, "api-2", map[string]string{"app": "api"}, "app")
 	addPod(t, e, "api-1", map[string]string{"app": "api"}, "app", "sidecar")
 	addPod(t, e, "worker", map[string]string{"app": "worker"}, "app")
 
-	rec := e.do(http.MethodGet, "/api/logs/stream?ns=default&selector=app%3Dapi", "bob", nil)
-	expect(t, rec, http.StatusOK, "")
-	got := events(rec.Body.String())
-	if len(got) != 4 || got[0] != `event: pods`+"\n"+`data: {"pods":["api-1/app","api-2/app"],"total":2}` || got[3] != "event: end\ndata: " {
+	// A live selector stream does not end with its logs: new pods may come.
+	body := streamUntil(t, e, "/api/logs/stream?ns=default&selector=app%3Dapi", "bob", hasEvents(3))
+	got := events(body)
+	if len(got) != 3 || got[0] != `event: pods`+"\n"+`data: {"pods":["api-1/app","api-2/app"],"total":2}` {
 		t.Fatalf("events = %q", got)
 	}
 	lines := []string{got[1], got[2]}
@@ -211,9 +252,15 @@ func TestLogStreamSelectorFanOut(t *testing.T) {
 	}
 
 	// With a container, pods without it do not match.
-	rec = e.do(http.MethodGet, "/api/logs/stream?ns=default&selector=app%3Dapi&container=sidecar", "bob", nil)
-	if got := events(rec.Body.String()); len(got) != 3 || got[1] != "data: [api-1/sidecar] fake logs" {
+	body = streamUntil(t, e, "/api/logs/stream?ns=default&selector=app%3Dapi&container=sidecar", "bob", hasEvents(2))
+	if got := events(body); len(got) != 2 || got[1] != "data: [api-1/sidecar] fake logs" {
 		t.Fatalf("events = %q", got)
+	}
+
+	// A previous container's log does not grow: that stream ends.
+	rec := e.do(http.MethodGet, "/api/logs/stream?ns=default&selector=app%3Dapi&previous=true", "bob", nil)
+	if got := events(rec.Body.String()); len(got) != 4 || got[3] != "event: end\ndata: " {
+		t.Fatalf("previous: events = %q", got)
 	}
 
 	// At most maxStreamPods pods are followed; the first event tells.
@@ -221,13 +268,71 @@ func TestLogStreamSelectorFanOut(t *testing.T) {
 		addPod(t, e, fmt.Sprintf("many-%02d", i), map[string]string{"app": "many"}, "app")
 	}
 	e.cs.ClearActions()
-	rec = e.do(http.MethodGet, "/api/logs/stream?ns=default&selector=app%3Dmany", "bob", nil)
-	got = events(rec.Body.String())
+	body = streamUntil(t, e, "/api/logs/stream?ns=default&selector=app%3Dmany", "bob", hasEvents(1+maxStreamPods))
+	got = events(body)
 	if !strings.HasPrefix(got[0], `event: pods`+"\n"+`data: {"pods":["many-00/app",`) || !strings.HasSuffix(got[0], `"many-09/app"],"total":12}`) {
 		t.Fatalf("first event = %q", got[0])
 	}
 	if n := len(logRequests(e)); n != maxStreamPods {
 		t.Fatalf("followed %d pods, want %d", n, maxStreamPods)
+	}
+}
+
+// A selector stream follows pods that start to match later and a pod
+// recreated under the same name.
+func TestLogStreamSelectorFollowsNewPods(t *testing.T) {
+	e := newTestEnv(t, nil)
+	e.srv.streams.logResolve = 10 * time.Millisecond
+	addPod(t, e, "api-1", map[string]string{"app": "api"}, "app")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	req := httptest.NewRequest(http.MethodGet, "/api/logs/stream?ns=default&selector=app%3Dapi", nil).WithContext(ctx)
+	req.AddCookie(&http.Cookie{Name: sessionCookie, Value: e.tokens["bob"]})
+	w := &syncRecorder{header: http.Header{}}
+	finished := make(chan struct{})
+	go func() {
+		defer close(finished)
+		e.handler.ServeHTTP(w, req)
+	}()
+	waitFor := func(what string) {
+		t.Helper()
+		for deadline := time.Now().Add(5 * time.Second); !strings.Contains(w.String(), what); time.Sleep(5 * time.Millisecond) {
+			if time.Now().After(deadline) {
+				t.Fatalf("no %q in %q", what, w.String())
+			}
+		}
+	}
+	waitFor("data: [api-1/app] fake logs")
+
+	addPod(t, e, "api-2", map[string]string{"app": "api"}, "app")
+	waitFor(`data: {"pods":["api-2/app"],"total":2}`)
+	waitFor("data: [api-2/app] fake logs")
+
+	// Deleted and recreated under the same name: a new incarnation.
+	if err := e.cs.CoreV1().Pods("default").Delete(ctx, "api-1", metav1.DeleteOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(`"total":1}`)
+	pod := &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "api-1", Namespace: "default", UID: "second",
+		Labels: map[string]string{"app": "api"}}, Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "app"}}}}
+	if _, err := e.cs.CoreV1().Pods("default").Create(ctx, pod, metav1.CreateOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(`data: {"pods":["api-1/app"],"total":2}`)
+	for deadline := time.Now().Add(5 * time.Second); strings.Count(w.String(), "data: [api-1/app] fake logs") < 2; time.Sleep(5 * time.Millisecond) {
+		if time.Now().After(deadline) {
+			t.Fatalf("the recreated pod was not followed: %q", w.String())
+		}
+	}
+	if strings.Contains(w.String(), "event: end") {
+		t.Fatalf("a live selector stream ended: %q", w.String())
+	}
+	cancel()
+	select {
+	case <-finished:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the stream outlived its client")
 	}
 }
 
@@ -282,12 +387,12 @@ func TestStreamLogsReportsFailingLogs(t *testing.T) {
 		feed("a", func(context.Context) (io.ReadCloser, error) {
 			return nil, errors.New(`container "app" in pod "a" is waiting to start: ContainerCreating`)
 		}),
-	}, 1, time.Hour, nil)
+	}, 1, time.Hour, nil, nil)
 	streamLogs(context.Background(), sse, []logFeed{
 		feed("b", func(context.Context) (io.ReadCloser, error) {
 			return io.NopCloser(&failingReader{text: "one\ntwo\n", err: io.ErrUnexpectedEOF}), nil
 		}),
-	}, 1, time.Hour, nil)
+	}, 1, time.Hour, nil, nil)
 
 	want := []string{
 		"event: pods\ndata: {\"pods\":[\"a/app\"],\"total\":1}",
@@ -317,7 +422,7 @@ func TestStreamLogsHeartbeatUntilCancelled(t *testing.T) {
 		defer close(done)
 		streamLogs(ctx, sse, []logFeed{feed("a", func(context.Context) (io.ReadCloser, error) {
 			return logR, nil
-		})}, 1, 10*time.Millisecond, nil)
+		})}, 1, 10*time.Millisecond, nil, nil)
 	}()
 	if _, err := io.WriteString(logW, "hello\n"); err != nil {
 		t.Fatal(err)
@@ -395,5 +500,86 @@ func TestSSEEventFraming(t *testing.T) {
 	want := "event: error\ndata: first line\ndata: second line\n\ndata: plain\n\n: ping\n\n"
 	if got := rec.Body.String(); got != want {
 		t.Fatalf("stream = %q, want %q", got, want)
+	}
+}
+
+// With follow, the logs of pods that no longer match are closed and new
+// matches are started, at most maxStreamPods at once.
+func TestStreamLogsFollowClosesDeletedPods(t *testing.T) {
+	w := &syncRecorder{header: http.Header{}}
+	sse, err := startSSE(w, time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	type pipe struct {
+		r *io.PipeReader
+		w *io.PipeWriter
+	}
+	var mu sync.Mutex
+	pipes := map[string]pipe{}
+	openFeed := func(pod string) logFeed {
+		return feed(pod, func(context.Context) (io.ReadCloser, error) {
+			r, pw := io.Pipe()
+			mu.Lock()
+			pipes[pod] = pipe{r, pw}
+			mu.Unlock()
+			go func() { _, _ = io.WriteString(pw, "hi from "+pod+"\n") }()
+			return r, nil
+		})
+	}
+	current := []string{"a", "b"}
+	resolve := func(context.Context) ([]logFeed, int, error) {
+		mu.Lock()
+		defer mu.Unlock()
+		var out []logFeed
+		for _, p := range current {
+			out = append(out, openFeed(p))
+		}
+		return out, len(current), nil
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		feeds, matched, _ := resolve(ctx)
+		streamLogs(ctx, sse, feeds, matched, time.Hour, nil, &selectorFollow{every: 5 * time.Millisecond, resolve: resolve})
+	}()
+	waitFor := func(what string) {
+		t.Helper()
+		for deadline := time.Now().Add(5 * time.Second); !strings.Contains(w.String(), what); time.Sleep(5 * time.Millisecond) {
+			if time.Now().After(deadline) {
+				t.Fatalf("no %q in %q", what, w.String())
+			}
+		}
+	}
+	waitFor("data: [b/app] hi from b")
+	waitFor("data: [a/app] hi from a")
+
+	mu.Lock()
+	current = []string{"b", "c"} // a deleted, c new
+	mu.Unlock()
+	waitFor(`data: {"pods":["b/app","c/app"],"total":2}`)
+	waitFor("data: [c/app] hi from c")
+	mu.Lock()
+	a := pipes["a"]
+	mu.Unlock()
+	if _, err := a.w.Write([]byte("late\n")); err == nil {
+		t.Fatal("the log of the deleted pod was left open")
+	}
+	cancel()
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the stream outlived its client")
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	for pod, p := range pipes {
+		if _, err := p.w.Write([]byte("x\n")); err == nil {
+			t.Errorf("the log of %s was left open", pod)
+		}
+	}
+	if strings.Contains(w.String(), "event: end") {
+		t.Fatal("a followed selector stream reported its end")
 	}
 }

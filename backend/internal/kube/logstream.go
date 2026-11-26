@@ -8,12 +8,16 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // LogSource is one container whose log a stream follows.
 type LogSource struct {
 	Pod       string
 	Container string
+	// UID is the pod's UID when known (selector streams): a pod recreated
+	// under the same name is another source.
+	UID types.UID
 }
 
 // String is "pod/container", the prefix of the source's lines when a
@@ -65,7 +69,7 @@ func (r *Runtime) SelectorLogSources(ctx context.Context, namespace, selector, c
 		}
 		matched++
 		if len(sources) < limit {
-			sources = append(sources, LogSource{Pod: pods[i].Name, Container: name})
+			sources = append(sources, LogSource{Pod: pods[i].Name, Container: name, UID: pods[i].UID})
 		}
 	}
 	return sources, matched, nil

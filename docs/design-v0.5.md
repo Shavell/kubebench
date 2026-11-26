@@ -948,9 +948,15 @@ and `new-resource` with `{namespace?, kind?}` (see 7.2);
   (read) — Server-Sent Events: first `event: pods` with
   `{"pods":["<pod>/<container>"],"total":N}` (followed containers, matching
   pods), then `data:` one log line per event, `event: error` (a reason
-  message, §3.3), `event: end`, `: ping` every 15 s. Also `?selector=<labelSelector>` (≤10 pods, lines
-  prefixed `[pod/container]`). Failures before the stream starts are JSON
-  errors (§3.3).
+  message, §3.3), `event: end`, `: ping` every 15 s. Also `?selector=<labelSelector>` (≤10 pods at
+  once, lines prefixed `[pod/container]`). A live selector stream (not
+  `previous`) lists the matching pods again every 5 s: pods that start to
+  match (new, rescheduled, or recreated under the same name, told apart by
+  UID) are followed from their `tail`, up to 10 at once; the logs of pods
+  that no longer match are closed; each change sends another `event: pods`.
+  A log that ended is not reopened, and such a stream sends no `event:
+  end` (it ends with the client, a lost access or the server's shutdown).
+  Failures before the stream starts are JSON errors (§3.3).
 - Both are authorized when they start and checked again at every ping
   (terminal) or heartbeat (logs): once the session ends (logout, password
   change, user deleted), a password change is due, the cluster is removed,

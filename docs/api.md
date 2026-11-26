@@ -365,7 +365,11 @@ fields (counts, capacity, requests, limits) are always present.
 - **Log stream events.** `event: pods` `{"pods":["<pod>/<container>"],"total":N}`
   first, then one `data:` line per log line (prefixed `[pod/container]` with
   a selector), `event: error` with a reason message (a failing log, or why
-  the server ended the stream), `event: end`, and `: ping` every 15 s.
+  the server ended the stream), `event: end`, and `: ping` every 15 s. A
+  live selector stream (not `previous`) re-lists its pods every 5 s,
+  follows pods that start to match (up to 10 at once), closes the logs of
+  pods that stopped matching, sends another `event: pods` on every change
+  and never sends `event: end`.
 - **Watch events.** `event: status` `{"topic","mode":"starting"|"live"|"polling","reason"?}`,
   `event: change` `{"topic","namespace"}` (batched for 500 ms), `event: end`
   with a reason message; a comment heartbeat every 25 s. Topics starting with

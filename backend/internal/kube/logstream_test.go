@@ -70,7 +70,7 @@ func TestSelectorLogSources(t *testing.T) {
 	)
 	ctx := context.Background()
 	sources, matched, err := rt.SelectorLogSources(ctx, "shop", "app=api", "", 10)
-	want := []LogSource{{"api-a", "app"}, {"api-b", "sidecar"}, {"api-c", "app"}}
+	want := []LogSource{{Pod: "api-a", Container: "app"}, {Pod: "api-b", Container: "sidecar"}, {Pod: "api-c", Container: "app"}}
 	if err != nil || matched != 3 || !slices.Equal(sources, want) {
 		t.Fatalf("sources = %v (%d), %v; want %v", sources, matched, err, want)
 	}
@@ -79,13 +79,13 @@ func TestSelectorLogSources(t *testing.T) {
 		t.Fatalf("limited sources = %v (%d)", sources, matched)
 	}
 	sources, matched, _ = rt.SelectorLogSources(ctx, "shop", "app=api", "sidecar", 10)
-	if matched != 2 || !slices.Equal(sources, []LogSource{{"api-a", "sidecar"}, {"api-b", "sidecar"}}) {
+	if matched != 2 || !slices.Equal(sources, []LogSource{{Pod: "api-a", Container: "sidecar"}, {Pod: "api-b", Container: "sidecar"}}) {
 		t.Fatalf("sidecar sources = %v (%d)", sources, matched)
 	}
 	if sources, matched, _ = rt.SelectorLogSources(ctx, "shop", "app=none", "", 10); len(sources) != 0 || matched != 0 {
 		t.Fatalf("no match = %v (%d)", sources, matched)
 	}
-	if got := (LogSource{"api-a", "app"}).String(); got != "api-a/app" {
+	if got := (LogSource{Pod: "api-a", Container: "app"}).String(); got != "api-a/app" {
 		t.Fatalf("String = %q", got)
 	}
 }
@@ -93,7 +93,7 @@ func TestSelectorLogSources(t *testing.T) {
 func TestFollowLog(t *testing.T) {
 	rt, cs := podRuntime(pod("web", nil, nil, "app"))
 	tail := int64(50)
-	body, err := rt.FollowLog(context.Background(), "shop", LogSource{"web", "app"},
+	body, err := rt.FollowLog(context.Background(), "shop", LogSource{Pod: "web", Container: "app"},
 		LogFollowOptions{TailLines: &tail, Previous: true, Timestamps: true, SinceSeconds: 30})
 	if err != nil {
 		t.Fatal(err)

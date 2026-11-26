@@ -6,8 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"sync"
 	"time"
@@ -135,22 +137,35 @@ func (s *Server) handleLogStream(w http.ResponseWriter, r *http.Request, c *call
 			return
 		}
 		feeds = []logFeed{{source: src, open: func(context.Context) (io.ReadCloser, error) { return body, nil }}}
-	} else {
-		var sources []kube.LogSource
-		sources, matched, err = c.rt.SelectorLogSources(ctx, req.namespace, req.selector, req.container, maxStreamPods)
+	}
+	var follow *selectorFollow
+	if req.selector != "" {
+		resolve := func(ctx context.Context) ([]logFeed, int, error) {
+			// Every match: streamLogs follows the first maxStreamPods it
+			// has not followed before.
+			sources, matched, err := c.rt.SelectorLogSources(ctx, req.namespace, req.selector, req.container, math.MaxInt)
+			feeds := make([]logFeed, 0, len(sources))
+			for _, src := range sources {
+				feeds = append(feeds, logFeed{source: src, prefixed: true, open: func(ctx context.Context) (io.ReadCloser, error) {
+					return c.rt.FollowLog(ctx, req.namespace, src, req.opts)
+				}})
+			}
+			return feeds, matched, err
+		}
+		feeds, matched, err = resolve(ctx)
 		if err != nil {
 			plugin.WriteK8sError(w, err)
 			return
 		}
-		if len(sources) == 0 {
+		if len(feeds) == 0 {
 			writeErr(w, fail(http.StatusNotFound, plugin.CodeNotFound, reasonNoPodMatches,
 				reason.Params{"namespace": req.namespace, "selector": req.selector}))
 			return
 		}
-		for _, src := range sources {
-			feeds = append(feeds, logFeed{source: src, prefixed: true, open: func(ctx context.Context) (io.ReadCloser, error) {
-				return c.rt.FollowLog(ctx, req.namespace, src, req.opts)
-			}})
+		// A previous container's log does not grow; only a live
+		// selector stream follows pods that appear later.
+		if !req.opts.Previous {
+			follow = &selectorFollow{every: s.streams.logResolve, resolve: resolve}
 		}
 	}
 
@@ -160,7 +175,15 @@ func (s *Server) handleLogStream(w http.ResponseWriter, r *http.Request, c *call
 		return // the client is gone
 	}
 	// A logout or a revoked assignment ends the stream too.
-	streamLogs(ctx, sse, feeds, matched, s.streams.logHeartbeat, func() error { return s.stillAllowed(c, accessRead) })
+	streamLogs(ctx, sse, feeds, matched, s.streams.logHeartbeat, func() error { return s.stillAllowed(c, accessRead) }, follow)
+}
+
+// selectorFollow keeps a selector stream's pods current: every interval
+// resolve lists the containers the selector matches now (at most
+// maxStreamPods, and how many pods matched).
+type selectorFollow struct {
+	every   time.Duration
+	resolve func(ctx context.Context) ([]logFeed, int, error)
 }
 
 // logFeed is one container log of a stream.
@@ -169,6 +192,12 @@ type logFeed struct {
 	// prefixed starts every line with "[pod/container] " (selector streams).
 	prefixed bool
 	open     func(ctx context.Context) (io.ReadCloser, error)
+}
+
+// key identifies the container of one pod incarnation: a pod recreated
+// under the same name (a StatefulSet's) is a new feed.
+func (f logFeed) key() string {
+	return string(f.source.UID) + "/" + f.source.String()
 }
 
 func (f logFeed) prefix() string {
@@ -198,33 +227,103 @@ type podsEvent struct {
 // the server stopped (ctx from streamContext; both end with "event:
 // error" and the reason). Idle streams get a heartbeat comment every
 // heartbeat. It returns once every feed has stopped and closed its log.
-func streamLogs(ctx context.Context, sse *sseWriter, feeds []logFeed, matched int, heartbeat time.Duration, check func() error) {
+//
+// With follow (a live selector stream) the set of feeds is kept current
+// instead: pods that start to match are followed (up to maxStreamPods at
+// once), the logs of pods that no longer match (deleted, relabelled) are
+// closed, and every change is announced with another "event: pods". Such
+// a stream does not end when its logs did: new pods may still come.
+func streamLogs(ctx context.Context, sse *sseWriter, feeds []logFeed, matched int, heartbeat time.Duration, check func() error, follow *selectorFollow) {
 	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	announce := podsEvent{Pods: make([]string, 0, len(feeds)), Total: matched}
-	for _, f := range feeds {
-		announce.Pods = append(announce.Pods, f.source.String())
-	}
-	data, _ := json.Marshal(announce)
-	if sse.event("pods", string(data)) != nil || sse.flush() != nil {
-		return
-	}
-
 	events := make(chan logEvent, 256)
+	ended := make(chan string) // keys of feeds whose log ended
 	var wg sync.WaitGroup
-	for _, f := range feeds {
-		wg.Go(func() { f.run(ctx, events) })
-	}
-	go func() {
-		wg.Wait()
-		close(events)
-	}()
 	defer func() {
 		cancel()
-		for range events { // the feeds stop once ctx is done
-		}
+		wg.Wait() // the feeds stop once ctx is done
 	}()
+
+	type running struct {
+		feed   logFeed
+		cancel context.CancelFunc
+	}
+	active := map[string]running{} // followed now, by feedKey
+	seen := map[string]bool{}      // ever followed: a log that ended is not reopened
+	var order []string             // active keys in announcement order
+	start := func(f logFeed) {
+		key := f.key()
+		fctx, fcancel := context.WithCancel(ctx)
+		active[key], seen[key] = running{feed: f, cancel: fcancel}, true
+		order = append(order, key)
+		wg.Go(func() {
+			f.run(fctx, events)
+			select {
+			case ended <- key:
+			case <-ctx.Done():
+			}
+		})
+	}
+	drop := func(key string) {
+		if r, ok := active[key]; ok {
+			r.cancel()
+			delete(active, key)
+			order = slices.DeleteFunc(order, func(k string) bool { return k == key })
+		}
+	}
+	announce := func() bool {
+		ev := podsEvent{Pods: make([]string, 0, len(order)), Total: matched}
+		for _, key := range order {
+			ev.Pods = append(ev.Pods, active[key].feed.source.String())
+		}
+		data, _ := json.Marshal(ev)
+		return sse.event("pods", string(data)) == nil && sse.flush() == nil
+	}
+	for _, f := range feeds {
+		if len(active) < maxStreamPods {
+			start(f)
+		}
+	}
+	if !announce() {
+		return
+	}
+	// resync follows what follow.resolve found and reports whether the
+	// stream may go on.
+	resync := func() bool {
+		found, total, err := follow.resolve(ctx)
+		if err != nil {
+			if ctx.Err() != nil {
+				return true
+			}
+			// A failed list (API server briefly away) changes nothing.
+			data, _ := json.Marshal(reason.Message{Text: err.Error()})
+			return sse.event("error", string(data)) == nil
+		}
+		now := map[string]logFeed{}
+		for _, f := range found {
+			now[f.key()] = f
+		}
+		changed := total != matched
+		matched = total
+		for _, key := range slices.Clone(order) {
+			if _, ok := now[key]; !ok {
+				drop(key)
+				changed = true
+			}
+		}
+		for _, f := range found {
+			if key := f.key(); !seen[key] && len(active) < maxStreamPods {
+				start(f)
+				changed = true
+			}
+		}
+		return !changed || announce()
+	}
+	var resolveC <-chan time.Time
+	if follow != nil {
+		t := time.NewTicker(follow.every)
+		defer t.Stop()
+		resolveC = t.C
+	}
 
 	// The feeds stop as well when the server stops, so its end is
 	// reported whichever comes first.
@@ -252,15 +351,37 @@ func streamLogs(ctx context.Context, sse *sseWriter, feeds []logFeed, matched in
 			if sse.comment("ping") != nil || sse.flush() != nil {
 				return
 			}
-		case ev, ok := <-events:
-			if !ok {
-				if stopped() {
-					return
-				}
-				_ = sse.event("end", "")
-				_ = sse.flush()
+		case <-resolveC:
+			if !resync() {
 				return
 			}
+		case key := <-ended:
+			if _, ok := active[key]; ok {
+				delete(active, key) // stays in seen: not reopened
+				order = slices.DeleteFunc(order, func(k string) bool { return k == key })
+			}
+			if len(active) > 0 || follow != nil {
+				continue
+			}
+			// Write the lines the last feeds sent before they ended.
+		drain:
+			for {
+				select {
+				case ev := <-events:
+					if sse.event(ev.name, ev.data) != nil {
+						return
+					}
+				default:
+					break drain
+				}
+			}
+			if stopped() {
+				return
+			}
+			_ = sse.event("end", "")
+			_ = sse.flush()
+			return
+		case ev := <-events:
 			if sse.event(ev.name, ev.data) != nil {
 				return
 			}
