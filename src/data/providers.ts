@@ -57,6 +57,7 @@ import type {
   GroupMapping,
   GroupMappingInput,
   SignInPreview,
+  YamlDocument,
 } from './types'
 
 /**
@@ -96,14 +97,24 @@ export interface ClusterProvider {
   // Resource editing (design §7.2):
   /** YAML of any object; `neat` drops what the API server maintains. Secret values come redacted. */
   getYaml(ref: ObjectRef, options?: { neat?: boolean }): Promise<string>
+  /** getYaml with the resourceVersion read, which an edit sends as its precondition. */
+  getYamlDocument(ref: ObjectRef, options?: { neat?: boolean }): Promise<YamlDocument>
   /** Server-side apply of YAML/JSON manifests (any number of documents): one result per object. */
   applyYaml(manifests: string, options?: ApplyOptions): Promise<ApplyResult[]>
   /**
    * Edits one existing object: sends the changes from `original` (the YAML
    * editing started from) to `edited` as a merge patch, so removed fields are
-   * removed and placeholders left unchanged keep the Secret's values. One result.
+   * removed and placeholders left unchanged keep the Secret's values. With
+   * `resourceVersion` (of `original`, from getYamlDocument) an object that
+   * changed since fails with `conflict` (reason `edit.changed_on_server`)
+   * instead of losing that change. One result.
    */
-  editYaml(ref: ObjectRef, original: string, edited: string, options?: { dryRun?: boolean }): Promise<ApplyResult[]>
+  editYaml(
+    ref: ObjectRef,
+    original: string,
+    edited: string,
+    options?: { dryRun?: boolean; resourceVersion?: string },
+  ): Promise<ApplyResult[]>
   deleteResource(ref: ObjectRef, options?: DeleteOptions): Promise<void>
   patchMetadata(ref: ObjectRef, patch: MetadataPatch): Promise<void>
   /**

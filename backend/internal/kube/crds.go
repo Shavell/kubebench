@@ -1,14 +1,18 @@
 package kube
 
 import (
+	"bytes"
 	"context"
 	"fmt"
-	"strings"
+	"reflect"
+	"strconv"
+	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/util/jsonpath"
 )
 
 var crdGVR = schema.GroupVersionResource{
@@ -23,15 +27,32 @@ type CrdInfo struct {
 	Scope      string   `json:"scope"`
 	ShortNames []string `json:"shortNames"`
 	Age        string   `json:"age"`
+	// PrinterColumns are the additionalPrinterColumns of the version
+	// listed (the first served one), in order; the keys of
+	// CustomResourceInfo.Extra. Name, Namespace and Age are left out: the
+	// list has them already.
+	PrinterColumns []PrinterColumn `json:"printerColumns"`
+}
+
+// PrinterColumn describes one additionalPrinterColumn. Like kubectl, the
+// UI shows columns of priority 0 by default and the others on request
+// (kubectl get -o wide).
+type PrinterColumn struct {
+	Name        string `json:"name"`
+	Type        string `json:"type"` // integer, number, string, boolean or date
+	Description string `json:"description,omitempty"`
+	Priority    int32  `json:"priority"`
 }
 
 type CustomResourceInfo struct {
-	Name      string            `json:"name"`
-	Namespace string            `json:"namespace,omitempty"`
-	CrdName   string            `json:"crdName"`
-	Status    string            `json:"status"`
-	Age       string            `json:"age"`
-	Extra     map[string]string `json:"extra"`
+	Name      string `json:"name"`
+	Namespace string `json:"namespace,omitempty"`
+	CrdName   string `json:"crdName"`
+	Status    string `json:"status"`
+	Age       string `json:"age"`
+	// Extra holds the formatted printer column values by column name;
+	// a column without a value is missing.
+	Extra map[string]string `json:"extra"`
 }
 
 type crdSpec struct {
@@ -40,7 +61,10 @@ type crdSpec struct {
 	printerColumns             []printerColumn
 }
 
-type printerColumn struct{ name, jsonPath string }
+type printerColumn struct {
+	PrinterColumn
+	path *jsonpath.JSONPath
+}
 
 func (r *Runtime) crdSpec(ctx context.Context, crdName string) (*crdSpec, error) {
 	obj, err := r.Dyn.Resource(crdGVR).Get(ctx, crdName, metav1.GetOptions{})
@@ -53,39 +77,89 @@ func (r *Runtime) crdSpec(ctx context.Context, crdName string) (*crdSpec, error)
 		plural: str(obj.Object, "spec", "names", "plural"),
 		scope:  str(obj.Object, "spec", "scope"),
 	}
-	versions, _, _ := unstructured.NestedSlice(obj.Object, "spec", "versions")
+	spec.version, spec.printerColumns = listedVersion(obj.Object)
+	return spec, nil
+}
+
+// listedVersion picks the version of a CRD that lists use, the first
+// served one (or the first one when none is served), and parses its
+// printer columns. Columns whose JSONPath does not parse are left out,
+// as the API server leaves them out of its tables.
+func listedVersion(crd map[string]any) (string, []printerColumn) {
+	versions, _, _ := unstructured.NestedSlice(crd, "spec", "versions")
+	var version map[string]any
 	for _, v := range versions {
 		vm, ok := v.(map[string]any)
 		if !ok {
 			continue
 		}
-		served, _ := vm["served"].(bool)
-		if !served && spec.version != "" {
-			continue
+		if version == nil {
+			version = vm
 		}
-		spec.version, _ = vm["name"].(string)
-		spec.printerColumns = nil
-		if cols, ok := vm["additionalPrinterColumns"].([]any); ok {
-			for _, c := range cols {
-				cm, ok := c.(map[string]any)
-				if !ok {
-					continue
-				}
-				name, _ := cm["name"].(string)
-				jsonPath, _ := cm["jsonPath"].(string)
-				if name == "Age" || name == "Name" || name == "Namespace" {
-					continue
-				}
-				if len(spec.printerColumns) < 3 {
-					spec.printerColumns = append(spec.printerColumns, printerColumn{name, jsonPath})
-				}
-			}
-		}
-		if served {
+		if served, _ := vm["served"].(bool); served {
+			version = vm
 			break
 		}
 	}
-	return spec, nil
+	if version == nil {
+		return "", nil
+	}
+	name, _ := version["name"].(string)
+	cols, _ := version["additionalPrinterColumns"].([]any)
+	if len(cols) == 0 {
+		// apiextensions.k8s.io/v1beta1 kept the columns on the CRD.
+		cols, _, _ = unstructured.NestedSlice(crd, "spec", "additionalPrinterColumns")
+	}
+	var out []printerColumn
+	for _, c := range cols {
+		cm, ok := c.(map[string]any)
+		if !ok {
+			continue
+		}
+		col := printerColumn{PrinterColumn: PrinterColumn{
+			Name: strField(cm, "name"), Type: strField(cm, "type"), Description: strField(cm, "description"),
+		}}
+		switch p := cm["priority"].(type) {
+		case int64:
+			col.Priority = int32(p)
+		case float64:
+			col.Priority = int32(p)
+		}
+		if col.Name == "" || col.Name == "Age" || col.Name == "Name" || col.Name == "Namespace" {
+			continue
+		}
+		path, err := parseColumnPath(col.Name, strField(cm, "jsonPath"))
+		if err != nil {
+			continue
+		}
+		col.path = path
+		out = append(out, col)
+	}
+	return name, out
+}
+
+func strField(m map[string]any, key string) string {
+	s, _ := m[key].(string)
+	return s
+}
+
+// parseColumnPath parses a printer column's JSONPath as the API server's
+// table convertor does: missing keys are no error, just no value.
+func parseColumnPath(name, path string) (*jsonpath.JSONPath, error) {
+	p := jsonpath.New(name)
+	if err := p.Parse(fmt.Sprintf("{%s}", path)); err != nil {
+		return nil, err
+	}
+	p.AllowMissingKeys(true)
+	return p, nil
+}
+
+func columnInfos(cols []printerColumn) []PrinterColumn {
+	out := make([]PrinterColumn, len(cols))
+	for i, c := range cols {
+		out[i] = c.PrinterColumn
+	}
+	return out
 }
 
 func (r *Runtime) ListCrds(ctx context.Context) ([]CrdInfo, error) {
@@ -106,18 +180,20 @@ func (r *Runtime) ListCrds(ctx context.Context) ([]CrdInfo, error) {
 				}
 			}
 		}
+		_, cols := listedVersion(item.Object)
 		shortNames, _, _ := unstructured.NestedStringSlice(item.Object, "spec", "names", "shortNames")
 		if shortNames == nil {
 			shortNames = []string{}
 		}
 		out = append(out, CrdInfo{
-			Name:       item.GetName(),
-			Group:      str(item.Object, "spec", "group"),
-			Kind:       str(item.Object, "spec", "names", "kind"),
-			Versions:   versions,
-			Scope:      str(item.Object, "spec", "scope"),
-			ShortNames: shortNames,
-			Age:        FormatAge(item.GetCreationTimestamp().Time),
+			Name:           item.GetName(),
+			Group:          str(item.Object, "spec", "group"),
+			Kind:           str(item.Object, "spec", "names", "kind"),
+			Versions:       versions,
+			Scope:          str(item.Object, "spec", "scope"),
+			ShortNames:     shortNames,
+			Age:            FormatAge(item.GetCreationTimestamp().Time),
+			PrinterColumns: columnInfos(cols),
 		})
 	}
 	return out, nil
@@ -137,8 +213,8 @@ func (r *Runtime) ListCustomResources(ctx context.Context, crdName string) ([]Cu
 	for _, item := range list.Items {
 		extra := map[string]string{}
 		for _, col := range spec.printerColumns {
-			if value := evalJSONPath(item.Object, col.jsonPath); value != "" {
-				extra[col.name] = value
+			if value, ok := col.value(item.Object); ok {
+				extra[col.Name] = value
 			}
 		}
 		out = append(out, CustomResourceInfo{
@@ -202,29 +278,53 @@ func str(obj map[string]any, fields ...string) string {
 	return s
 }
 
-// evalJSONPath handles the simple ".spec.a.b" paths used by
-// additionalPrinterColumns.
-func evalJSONPath(obj map[string]any, path string) string {
-	parts := strings.Split(strings.TrimPrefix(path, "."), ".")
-	var current any = obj
-	for _, part := range parts {
-		m, ok := current.(map[string]any)
-		if !ok {
-			return ""
+// value evaluates the column on obj and formats the result by the
+// column's type, as the API server's table convertor does (kubectl get):
+// the first result counts, a string column prints any value, the others
+// only values of their type; a date shows as an age. ok is false when
+// there is no value.
+func (c printerColumn) value(obj map[string]any) (string, bool) {
+	results, err := c.path.FindResults(obj)
+	if err != nil || len(results) == 0 || len(results[0]) == 0 {
+		return "", false
+	}
+	value := results[0][0].Interface()
+	if value == nil {
+		return "", false
+	}
+	switch c.Type {
+	case "string":
+		var buf bytes.Buffer
+		if err := c.path.PrintResults(&buf, []reflect.Value{reflect.ValueOf(value)}); err != nil {
+			return "", false
 		}
-		current, ok = m[part]
-		if !ok {
-			return ""
+		return buf.String(), true
+	case "integer":
+		switch v := value.(type) {
+		case int64:
+			return strconv.FormatInt(v, 10), true
+		case float64:
+			return strconv.FormatInt(int64(v), 10), true
+		}
+	case "number":
+		switch v := value.(type) {
+		case int64:
+			return strconv.FormatInt(v, 10), true
+		case float64:
+			return strconv.FormatFloat(v, 'f', -1, 64), true
+		}
+	case "boolean":
+		if b, ok := value.(bool); ok {
+			return strconv.FormatBool(b), true
+		}
+	case "date":
+		if s, ok := value.(string); ok {
+			t, err := time.Parse(time.RFC3339, s)
+			if err != nil {
+				return "<invalid>", true
+			}
+			return FormatAge(t), true
 		}
 	}
-	switch v := current.(type) {
-	case string:
-		return v
-	case bool:
-		return fmt.Sprintf("%v", v)
-	case float64, int64:
-		return fmt.Sprintf("%v", v)
-	default:
-		return ""
-	}
+	return "", false
 }

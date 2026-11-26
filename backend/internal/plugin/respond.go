@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -77,8 +78,9 @@ func WriteError(w http.ResponseWriter, status int, code string, err error) {
 	}
 	msg := body.Error
 	if status >= http.StatusInternalServerError {
-		// The message can quote request input: escape line breaks.
-		log.Printf("[api] %d %s: %s", status, logsafe.Text(code), logsafe.Text(msg))
+		// The message can quote request input: escape line breaks in the
+		// whole line.
+		log.Print(logsafe.Text(fmt.Sprintf("[api] %d %s: %s", status, code, msg)))
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("X-Content-Type-Options", "nosniff")

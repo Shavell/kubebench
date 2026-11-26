@@ -8,6 +8,7 @@ import (
 	"io"
 
 	"k8s.io/apimachinery/pkg/api/equality"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
@@ -30,6 +31,28 @@ func (e *EditError) Error() string { return e.Code.Text(e.Params) }
 // Reason implements reason.Reasoned.
 func (e *EditError) Reason() (reason.Code, reason.Params) { return e.Code, e.Params }
 
+// StaleEditError is an edit the API server refused (409) because the
+// object changed since the editor read it: its resourceVersion is no
+// longer the one the edit started from.
+type StaleEditError struct {
+	Err        error
+	Kind, Name string
+}
+
+func (e *StaleEditError) Error() string { return e.Err.Error() }
+func (e *StaleEditError) Unwrap() error { return e.Err }
+
+// Reason implements reason.Reasoned.
+func (e *StaleEditError) Reason() (reason.Code, reason.Params) {
+	return reasonEditStale, reason.Params{"kind": e.Kind, "name": e.Name}
+}
+
+// IsStaleEdit reports whether err is a *StaleEditError.
+func IsStaleEdit(err error) bool {
+	var stale *StaleEditError
+	return errors.As(err, &stale)
+}
+
 // editReasons are the refusals of parseEdited for one of the two manifests.
 type editReasons struct {
 	invalidYAML, severalDocuments, notObject, empty, otherObject reason.Code
@@ -51,7 +74,14 @@ var (
 // labels can be edited without revealing it; a value changed to a
 // placeholder is refused. Refusals are *EditError; the cluster's answer is
 // in the result.
-func (r *Runtime) EditObject(ctx context.Context, o Object, original, edited []byte, dryRun bool) (ApplyResult, error) {
+//
+// resourceVersion is the version of o the original manifest was read at
+// (a neat manifest has none; "" takes the original's
+// metadata.resourceVersion, if it has one). The patch carries it as a
+// precondition, so an edit of an object that changed on the server since
+// fails with a *StaleEditError instead of overwriting the change: a merge
+// patch replaces lists (containers, env, tolerations) whole.
+func (r *Runtime) EditObject(ctx context.Context, o Object, original, edited []byte, resourceVersion string, dryRun bool) (ApplyResult, error) {
 	res := ApplyResult{APIVersion: o.Resource.GroupVersion().String(), Kind: o.Kind, Namespace: o.Namespace, Name: o.Name}
 	from, err := parseEdited(original, originalManifest, o)
 	if err != nil {
@@ -83,6 +113,17 @@ func (r *Runtime) EditObject(ctx context.Context, o Object, original, edited []b
 		res.Action = ActionUnchanged
 		return res, nil
 	}
+	if resourceVersion == "" {
+		resourceVersion = (&unstructured.Unstructured{Object: from}).GetResourceVersion()
+	}
+	if resourceVersion != "" {
+		meta, _ := patch["metadata"].(map[string]any)
+		if meta == nil {
+			meta = map[string]any{}
+			patch["metadata"] = meta
+		}
+		meta["resourceVersion"] = resourceVersion
+	}
 	body, err := json.Marshal(patch)
 	if err != nil {
 		return res, err
@@ -92,6 +133,9 @@ func (r *Runtime) EditObject(ctx context.Context, o Object, original, edited []b
 		options.DryRun = []string{metav1.DryRunAll}
 	}
 	after, err := client.Patch(ctx, o.Name, types.MergePatchType, body, options)
+	if apierrors.IsConflict(err) && resourceVersion != "" {
+		err = &StaleEditError{Err: err, Kind: o.Kind, Name: joinName(o.Namespace, o.Name)}
+	}
 	if err != nil {
 		res.Err = err
 		return res, nil

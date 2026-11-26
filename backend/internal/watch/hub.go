@@ -9,6 +9,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/metadata"
 
 	"kubebench/internal/reason"
 )
@@ -75,7 +76,8 @@ func (o Options) withDefaults() Options {
 // Hub fans the changes of one cluster out to subscriptions. It is safe
 // for concurrent use.
 type Hub struct {
-	dyn     dynamic.Interface
+	meta    metadata.Interface
+	dyn     dynamic.Interface // nil: no fallback from metadata-only watches
 	resolve Resolver
 	opts    Options
 	done    chan struct{} // closed by Close
@@ -90,10 +92,12 @@ type Hub struct {
 	owned map[int64]map[schema.GroupVersionResource]int
 }
 
-// NewHub returns a hub watching through dyn. It starts nothing until the
-// first subscription.
-func NewHub(dyn dynamic.Interface, resolve Resolver, opts Options) *Hub {
+// NewHub returns a hub watching object metadata through meta, and whole
+// objects through dyn (which may be nil) for resources whose API cannot
+// serve metadata only. It starts nothing until the first subscription.
+func NewHub(meta metadata.Interface, dyn dynamic.Interface, resolve Resolver, opts Options) *Hub {
 	return &Hub{
+		meta:      meta,
 		dyn:       dyn,
 		resolve:   resolve,
 		opts:      opts.withDefaults(),

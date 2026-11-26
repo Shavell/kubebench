@@ -101,21 +101,30 @@ type ObjectRef struct {
 // drops what Neat strips. Secret values and credentials are always
 // redacted.
 func (r *Runtime) ObjectYAML(ctx context.Context, ref ObjectRef, neat bool) (string, error) {
+	text, _, err := r.ObjectYAMLVersion(ctx, ref, neat)
+	return text, err
+}
+
+// ObjectYAMLVersion is ObjectYAML with the resourceVersion of the object
+// it rendered, also when neat leaves it out: an edit of the YAML sends it
+// as its precondition (EditObject).
+func (r *Runtime) ObjectYAMLVersion(ctx context.Context, ref ObjectRef, neat bool) (text, resourceVersion string, err error) {
 	var obj map[string]any
-	var err error
 	if ref.APIVersion != "" {
 		var o Object
 		if o, err = r.ResolveObject(ref.APIVersion, ref.Kind, ref.Namespace, ref.Name); err != nil {
-			return "", err
+			return "", "", err
 		}
 		obj, err = r.getObject(ctx, o)
 	} else {
 		obj, err = r.objectByKind(ctx, ref.Kind, ref.Namespace, ref.Name)
 	}
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	return renderYAML(obj, neat)
+	resourceVersion = (&unstructured.Unstructured{Object: obj}).GetResourceVersion()
+	text, err = renderYAML(obj, neat)
+	return text, resourceVersion, err
 }
 
 // renderYAML marshals obj without managedFields, neat on request.

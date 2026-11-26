@@ -115,7 +115,7 @@ func TestEditObjectCredentialPlaceholders(t *testing.T) {
 		t.Fatal(err)
 	}
 	relabelled := strings.Replace(original, "team: web", "team: platform", 1)
-	if res, err := rt.EditObject(ctx, route, []byte(original), []byte(relabelled), false); err != nil || res.Err != nil {
+	if res, err := rt.EditObject(ctx, route, []byte(original), []byte(relabelled), "", false); err != nil || res.Err != nil {
 		t.Fatalf("annotation edit = %+v, %v", res, err)
 	}
 	stored, err := rt.Dyn.Resource(route.Resource).Namespace("shop").Get(ctx, "web", metav1.GetOptions{})
@@ -138,13 +138,13 @@ func TestEditObjectCredentialPlaceholders(t *testing.T) {
 	if moreTriggers == bcOriginal {
 		t.Fatalf("unexpected YAML:\n%s", bcOriginal)
 	}
-	_, err = rt.EditObject(ctx, bc, []byte(bcOriginal), []byte(moreTriggers), false)
+	_, err = rt.EditObject(ctx, bc, []byte(bcOriginal), []byte(moreTriggers), "", false)
 	var ee *EditError
 	if !errors.As(err, &ee) || !ee.Redacted || ee.Code != reasonEditCredential || ee.Params["field"] != "spec.triggers[2].github.secret" {
 		t.Fatalf("a changed trigger list with a placeholder: %v", err)
 	}
 	withAnnotation := strings.Replace(bcOriginal, "  name: api\n", "  name: api\n  annotations:\n    "+lastAppliedAnnotation+": <redacted>\n", 1)
-	if _, err := rt.EditObject(ctx, bc, []byte(bcOriginal), []byte(withAnnotation), false); !errors.As(err, &ee) || ee.Code != reasonEditCredentialAnnotation {
+	if _, err := rt.EditObject(ctx, bc, []byte(bcOriginal), []byte(withAnnotation), "", false); !errors.As(err, &ee) || ee.Code != reasonEditCredentialAnnotation {
 		t.Fatalf("a placeholder last-applied annotation: %v", err)
 	}
 }

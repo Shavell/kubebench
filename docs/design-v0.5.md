@@ -714,10 +714,13 @@ func WriteK8sError(w http.ResponseWriter, err error) // maps apierrors → statu
   `ResolveKind(apiVersion, kind) (gvr, namespaced, error)`,
   `ResolveResource(group, resource)`, `Cluster` (store.Cluster incl. ID),
   `Caps()` and `WaitProbed(ctx)` (the capability probe), `RawGet` (the
-  §4.5 passthrough). `ResolveKind`/`ResolveResource` reset the mapper and
-  retry once on a no-match error (e.g. a CRD installed since the last
-  discovery), at most once per 10 s per runtime, so plugins should prefer
-  them over `Mapper()`.
+  §4.5 passthrough). The runtime watches CustomResourceDefinitions
+  (metadata only) and resets the mapper on every add, change or delete
+  (again 3 s later, as discovery lags the CRD), so e.g. a removed CRD
+  version is not served from the cache. `ResolveKind`/`ResolveResource`
+  also reset the mapper and retry once on a no-match error (e.g. a CRD
+  installed while the runtime could not watch CRDs), at most once per 10 s
+  per runtime, so plugins should prefer them over `Mapper()`.
   `kube.NewRuntimeForTest(cluster, cs, dyn)` builds one around fake clients
   without background work.
 - `WriteK8sError` reports a Kubernetes `401` as `502` (§3.3); a no-match
@@ -1026,10 +1029,17 @@ and `new-resource` with `{namespace?, kind?}` (see 7.2);
   are not part of the patch, so a Secret's labels can be edited without
   revealing it; a value changed to a placeholder is `400 redacted_secret`,
   likewise for the credentials of §7.15's kinds.
+  Optional `"resourceVersion"` in the body (from `GET /api/yaml`; else the
+  original's `metadata.resourceVersion`, if any) goes into the patch as a
+  precondition, so an object that changed on the server since editing
+  started is not overwritten (a merge patch replaces lists such as
+  containers, env or tolerations whole): its result fails with `code:
+  conflict`, reason `edit.changed_on_server` (dry runs too).
   Answers like apply with one result (`configured` or `unchanged`; nothing
   is sent without changes); audit target `<kind>/<ns>/<name>`, detail the
   outcome count.
-- `GET /api/yaml?apiVersion=&kind=&ns=&name=&neat=true` (read). With
+- `GET /api/yaml?apiVersion=&kind=&ns=&name=&neat=true` (read) →
+  `{"yaml","resourceVersion"}` (the version also when neat strips it). With
   `apiVersion`, any kind the cluster serves (RESTMapper; a namespaced kind
   needs `ns`); without it, the kinds v0.4 knew by name (`kind`, `name`
   required). managedFields are always stripped; `neat=true` also strips
@@ -1059,9 +1069,13 @@ and `new-resource` with `{namespace?, kind?}` (see 7.2);
   included.
 - UI, editor plugin (core): the `yaml` tab kind with `{ref: {apiVersion,
   kind, namespace, name}}` shows the object full or neat, copies and
-  downloads it, and edits it: Edit → Review changes (DiffEditor, live neat
-  ↔ edited) → Dry run → Apply through `POST /api/resource/edit`, with the
-  result. The `new-resource` tab applies with server-side apply, where a
+  downloads it, and edits it: Edit → Review changes (DiffEditor, the neat
+  YAML editing started from ↔ edited) → Dry run → Apply through
+  `POST /api/resource/edit`, with the result. The edit carries the
+  resourceVersion it started from; when the object changed on the server
+  meanwhile, the result offers "Review against the server" (the editor
+  starts again from the current version, keeping the user's text, and the
+  diff shows what Apply would send) or "Discard and reload". The `new-resource` tab applies with server-side apply, where a
   conflict offers "Force apply" (ConfirmDialog). Without `ref` it keeps the v0.4
   `{text, readOnly}` behaviour. The `new-resource` tab kind
   (`{namespace?, kind?}`): templates for the namespace, import of files
@@ -1089,7 +1103,9 @@ All write unless noted; audited.
   `POST /api/deployments/rollback?ns=&name=&revision=`;
   `POST /api/deployments/pause?ns=&name=&paused=true|false`.
 - `POST /api/workloads/restart?kind=Deployment|StatefulSet|DaemonSet&ns=&name=`;
-  `POST /api/workloads/scale?kind=Deployment|StatefulSet|ReplicaSet&ns=&name=&replicas=`.
+  `POST /api/workloads/scale?kind=Deployment|StatefulSet|ReplicaSet&ns=&name=&replicas=`,
+  or with `apiVersion=` any kind whose API has a `scale` subresource
+  (discovery; e.g. an Argo Rollout or another custom resource).
 - Pods: `DELETE /api/pods?…&force=true` (grace 0); `POST /api/pods/bulk-delete`
   `{"items":[{"namespace","name"}],"force":bool}`; `POST /api/pods/debug?ns=&pod=&image=&target=` (exec)
   → ephemeral container name (attach via 7.1 with `container=`).
@@ -1126,11 +1142,19 @@ Details settled by the implementation:
   "images","changeCause","created","replicas","readyReplicas","current"}]}`,
   newest first. The current revision is the ReplicaSet whose pod template the
   Deployment has (the revision annotations lag behind during a rollout).
-- Rollback (kubectl rollout undo): `409 conflict` while paused or for the
+- Rollback (kubectl rollout undo): the revision's pod template (without
+  its `pod-template-hash` label) replaces the Deployment's, and the
+  ReplicaSet's annotations are merged into the Deployment's key by key: its
+  values win, the Deployment's other annotations stay (kubectl replaces
+  them wholesale), the bookkeeping ones (`deployment.kubernetes.io/*`,
+  last-applied) stay the Deployment's, and a `kubernetes.io/change-cause`
+  the revision lacks is removed. `409 conflict` while paused or for the
   current revision, `404 not_found` for a revision the Deployment does not
   have.
-- Restart and scale check `kind` (`400` otherwise); scale goes through the
-  `scale` subresource. `/api/deployments/scale|restart` keep working.
+- Restart and scale check `kind` (`400` otherwise; for scale with
+  `apiVersion`, a kind without a `scale` subresource, and `404 not_found`
+  for one the cluster does not serve); scale goes through the `scale`
+  subresource, so RBAC needs `patch` on `<resource>/scale` only. `/api/deployments/scale|restart` keep working.
 - `DELETE /api/pods?force=true` deletes with grace period 0. Bulk delete
   takes 1–200 items (mock mode too; the list's Delete button is disabled
   beyond 200 selected Pods, with the reason as tooltip) and answers `{"results":[{"namespace","name","error"?}]}`
@@ -1547,8 +1571,11 @@ start lazily and stop when unused. Frontend: scoped invalidation
   the server ends the stream: the cluster's runtime was rebuilt or removed,
   the caller's session/assignment ended (checked every heartbeat, like
   log streams) or the server shuts down (§7.1). Clients may reconnect after `end`.
-- **Hub** (`internal/watch`, one per Runtime, closed with it): one dynamic
-  informer per resource, keeping only object metadata, started on the
+- **Hub** (`internal/watch`, one per Runtime, closed with it): one
+  metadata informer per resource (`PartialObjectMetadata` lists and
+  watches, so Secret values never leave the API server; an aggregated API
+  that answers `406`/`415` is watched as whole objects instead), its cache
+  keeping only names, namespaces, UIDs and resource versions, started on the
   first subscription and stopped 5 min after the last subscriber left.
   Limits: 16 watch streams per user (`429 rate_limited`), 512 subscribers
   and 64 informers per cluster, 32 resource types per user across their

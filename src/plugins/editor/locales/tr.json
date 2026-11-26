@@ -30,7 +30,9 @@
     "discardTitle": "Değişiklikleriniz atılsın mı?",
     "discardMessage": "{{name}} üzerindeki düzenlemeleriniz uygulanmadı ve kaybolacak.",
     "discard": "At",
-    "applied": "{{name}} uygulandı"
+    "applied": "{{name}} uygulandı",
+    "rebasedHint": "Metniniz artık sunucudaki güncel sürümle karşılaştırılıyor. Uygula gösterilen farkları gönderir; yani sunucuda yapılmış ve metninizde olmayan değişiklikleri de geri alır.",
+    "reloadMessage": "{{name}} üzerindeki düzenlemeleriniz atılır ve düzenleyici sunucudaki güncel sürümden yeniden başlar."
   },
   "apply": {
     "dryRunTitle": "Deneme çalıştırması",
@@ -64,7 +66,11 @@
     "conflictHint": "Manifest, başka bir alan yöneticisinin (bir controller, kubectl, bir GitOps aracı) ayarladığı alanları değiştiriyor; yukarıdaki hataya bakın. Zorla uygula bu alanların üzerine yazar ve sahipliklerini KubeBench'e geçirir, ancak asıl yöneticileri onları geri değiştirebilir.",
     "force": "Zorla uygula",
     "forceTitle": "{{name}} zorla uygulansın mı?",
-    "forceMessage": "Başka alan yöneticilerinin sahip olduğu alanların üzerine manifestinizdeki değerler yazılır ve bu alanların sahibi KubeBench olur."
+    "forceMessage": "Başka alan yöneticilerinin sahip olduğu alanların üzerine manifestinizdeki değerler yazılır ve bu alanların sahibi KubeBench olur.",
+    "changedTitle": "Sunucuda değişti",
+    "changedHint": "Nesne, düzenlemeye başladıktan sonra (bir controller, başka bir kullanıcı veya bir araç tarafından) değiştirildi; bu yüzden hiçbir şey uygulanmadı. Değişikliklerinizi güncel sürümle karşılaştırın veya atıp yeniden yükleyin.",
+    "changedReview": "Sunucuyla karşılaştır",
+    "changedReload": "At ve yeniden yükle"
   },
   "newResource": {
     "title": "Yeni kaynak",

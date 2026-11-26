@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { openYamlTab } from '@/core/plugin/editorTabs'
 import { resourceActionItems } from '@/core/plugin/resourceActions'
@@ -5,6 +6,7 @@ import { useProviderQuery, useProviders } from '@/data/DataContext'
 import type { TabDescriptor } from '@/core/plugin/types'
 import { CORE_NS } from '@/i18n'
 import { Badge } from '@/shared/Badge'
+import { Checkbox } from '@/shared/form'
 import { showContextMenu } from '@/shared/contextMenu'
 import { copyMenuItems } from '@/shared/copyActions'
 import { Table, type Column } from '@/shared/Table'
@@ -13,12 +15,16 @@ import { EmptyState } from '@/shared/EmptyState'
 import { Unavailable } from '@/shared/Unavailable'
 import type { CustomResource } from '@/data/types'
 import { NS } from '../i18n'
+import { printerColumns, printerSortValue } from '../printerColumns'
 import '@/shared/tabPage.css'
+import '../crd.css'
 
 export function CustomResourceListPage({ tab }: { tab: TabDescriptor }) {
   const { t } = useTranslation(NS)
   const crdName = tab.props?.crdName as string
   const providers = useProviders()
+  // Like `kubectl get -o wide`: printer columns of priority > 0 on request.
+  const [wide, setWide] = useState(false)
 
   const { data: crds } = useProviderQuery((p) => p.crd.listCrds(), [], { topics: ['customresourcedefinitions.apiextensions.k8s.io'] })
   const { data, loading, error, errorCode } = useProviderQuery(
@@ -32,8 +38,8 @@ export function CustomResourceListPage({ tab }: { tab: TabDescriptor }) {
   if (loading) return <div className="page-loading">{t('instances.loading', { crd: crdName })}</div>
 
   const rows = data ?? []
-  // CRD-specific printer columns: their headers are the CRD's own column names.
-  const extraKeys = [...new Set(rows.flatMap((r) => Object.keys(r.extra)))]
+  // The CRD's printer columns; their headers are the CRD's own column names.
+  const { shown: shownColumns, hasWide } = printerColumns(crd, rows, wide)
 
   const columns: Column<CustomResource>[] = [
     { key: 'name', header: t('common.name', { ns: CORE_NS }), render: (r) => r.name, sortValue: (r) => r.name },
@@ -44,13 +50,15 @@ export function CustomResourceListPage({ tab }: { tab: TabDescriptor }) {
       sortValue: (r) => r.namespace ?? '',
     },
     { key: 'status', header: t('common.status', { ns: CORE_NS }), render: (r) => <Badge>{r.status}</Badge> },
-    ...extraKeys.map(
-      (key): Column<CustomResource> => ({
-        key,
-        header: key,
-        render: (r) => r.extra[key] ?? '—',
-      }),
-    ),
+    ...shownColumns.map((col): Column<CustomResource> => {
+      const sortKey = printerSortValue(col)
+      return {
+        key: `extra:${col.name}`,
+        header: col.name,
+        render: (r) => r.extra[col.name] ?? '—',
+        sortValue: sortKey && ((r) => sortKey(r.extra[col.name])),
+      }
+    }),
     { key: 'age', header: t('common.age', { ns: CORE_NS }), render: (r) => r.age },
   ]
 
@@ -93,8 +101,11 @@ export function CustomResourceListPage({ tab }: { tab: TabDescriptor }) {
 
   return (
     <div className="page">
-      <Toolbar title={`${crd?.kind ?? crdName} · ${crdName}`} />
+      <Toolbar title={`${crd?.kind ?? crdName} · ${crdName}`}>
+        {hasWide && <Checkbox className="crd-toolbar-check" checked={wide} onChange={setWide} label={t('instances.allColumns')} />}
+      </Toolbar>
       {content}
     </div>
   )
 }
+

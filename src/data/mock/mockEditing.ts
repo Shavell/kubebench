@@ -3,7 +3,7 @@ import { englishWarnings } from '@/core/reasons'
 import { ApiError } from '../apiClient'
 import { reasonError } from '../reasonError'
 import type { ClusterProvider } from '../providers'
-import type { ApplyOptions, ApplyResult, KubeObject, MetadataPatch, ObjectRef } from '../types'
+import type { ApplyOptions, ApplyResult, KubeObject, MetadataPatch, ObjectRef, YamlDocument } from '../types'
 import { credentialFields, credentialPlaceholder } from './credentials'
 import { delay, delayReject } from './delay'
 import { namespaces } from './mockCluster'
@@ -269,7 +269,18 @@ function checkPatchValues(ref: ObjectRef, patch: Manifest): void {
   }
 }
 
-function editObject(ref: ObjectRef, original: string, edited: string, dryRun: boolean): ApplyResult {
+/**
+ * The mock's resourceVersion of a manifest: a hash of its neat content, so
+ * it changes with every edit (not with the simulated status) and stays
+ * deterministic.
+ */
+export function mockResourceVersion(manifest: Manifest): string {
+  let hash = 5381
+  for (const ch of JSON.stringify(neat(manifest))) hash = ((hash * 33) ^ ch.charCodeAt(0)) >>> 0
+  return String(hash)
+}
+
+function editObject(ref: ObjectRef, original: string, edited: string, dryRun: boolean, resourceVersion?: string): ApplyResult {
   const { kind, namespace } = resolve(ref)
   const from = parseEdited(original, 'original', ref, namespace)
   const to = parseEdited(edited, 'edited', ref, namespace)
@@ -283,6 +294,11 @@ function editObject(ref: ObjectRef, original: string, edited: string, dryRun: bo
   const existing = readObject(kind, namespace, ref.name)
   if (!existing) return { ...result, error: notFound(kind, ref.name).message, code: 'kubernetes' }
   if (Object.keys(patch).length === 0) return { ...result, action: 'unchanged' }
+  if (resourceVersion && resourceVersion !== mockResourceVersion(existing)) {
+    const params = { kind: ref.kind, name: namespace ? `${namespace}/${ref.name}` : ref.name }
+    const error = `Operation cannot be fulfilled on ${kind.key ?? `${kind.kind.toLowerCase()}s`} "${ref.name}": the object has been modified; please apply your changes to the latest version and try again`
+    return { ...result, error, code: 'conflict', reason: 'edit.changed_on_server', params }
+  }
   const next = applyMergePatch(existing, patch)
   const action = deepEqual(neat(existing), neat(next)) ? 'unchanged' : 'configured'
   if (!dryRun) writeObject(kind, namespace, ref.name, next)
@@ -339,17 +355,20 @@ function revealObject(namespace: string, name: string): KubeObject {
 
 // --- provider -------------------------------------------------------------------
 
+function yamlDocument(ref: ObjectRef, wantNeat: boolean): YamlDocument {
+  const { kind, namespace } = resolve(ref)
+  const manifest = readObject(kind, namespace, ref.name)
+  if (!manifest) throw notFound(kind, ref.name)
+  const yaml = dump(wantNeat ? neat(manifest) : manifest, { lineWidth: -1, noRefs: true })
+  return { yaml, resourceVersion: mockResourceVersion(manifest) }
+}
+
 export const mockEditing: Pick<
   ClusterProvider,
-  'getYaml' | 'applyYaml' | 'editYaml' | 'deleteResource' | 'patchMetadata' | 'revealSecret'
+  'getYaml' | 'getYamlDocument' | 'applyYaml' | 'editYaml' | 'deleteResource' | 'patchMetadata' | 'revealSecret'
 > = {
-  getYaml: (ref, options = {}) =>
-    respond(() => {
-      const { kind, namespace } = resolve(ref)
-      const manifest = readObject(kind, namespace, ref.name)
-      if (!manifest) throw notFound(kind, ref.name)
-      return dump(options.neat ? neat(manifest) : manifest, { lineWidth: -1, noRefs: true })
-    }),
+  getYaml: (ref, options = {}) => respond(() => yamlDocument(ref, Boolean(options.neat)).yaml),
+  getYamlDocument: (ref, options = {}) => respond(() => yamlDocument(ref, Boolean(options.neat))),
   applyYaml: (manifests, options = {}) =>
     respond(() => {
       const objects = parseManifests(manifests)
@@ -357,7 +376,7 @@ export const mockEditing: Pick<
       return objects.map((obj) => applyObject(obj, options))
     }),
   editYaml: (ref, original, edited, options = {}) =>
-    respond(() => [editObject(ref, original, edited, Boolean(options.dryRun))]),
+    respond(() => [editObject(ref, original, edited, Boolean(options.dryRun), options.resourceVersion)]),
   deleteResource: (ref, options = {}) =>
     respond(() => {
       const { kind, namespace } = resolve(ref)

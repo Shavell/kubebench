@@ -125,6 +125,7 @@
     "not_terminated": "evicted, but the pod had not terminated when the drain ended"
   },
   "edit": {
+    "changed_on_server": "{{kind}} {{name}} changed on the server since you started editing; reload it and apply your changes to the current version",
     "credential_annotation_placeholder": "{{kind}} {{name}}: the {{annotation}} annotation holds a redaction placeholder; remove the annotation",
     "credential_placeholder": "{{kind}} {{name}}: {{field}} is set to a redaction placeholder; leave it and the list holding it unchanged to keep the value, or enter the real value",
     "empty": "the edited manifest is empty",
@@ -480,6 +481,6 @@
   "workload": {
     "replicas_negative": "replicas must be at least 0",
     "restart_kind": "only a Deployment, StatefulSet or DaemonSet can be restarted, not \"{{kind}}\"",
-    "scale_kind": "only a Deployment, StatefulSet or ReplicaSet can be scaled, not \"{{kind}}\""
+    "scale_kind": "{{kind}} cannot be scaled: it has no scale subresource"
   }
 }

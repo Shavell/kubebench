@@ -252,11 +252,11 @@ All `read` unless stated.
 | GET | `/api/services` | `?ns=` | `Service[]` |
 | GET | `/api/resource` | `?key=<catalog key>&ns=` | generic list of a built-in kind (`configmaps`, `secrets`, `statefulsets`, `ingresses`, `persistentvolumeclaims`, `clusterroles`, …; see `backend/internal/kube/catalog.go`); OpenShift's `routes`, `projects`, `securitycontextconstraints`, `deploymentconfigs`, `buildconfigs`, `builds`, `imagestreams`, `imagestreamtags` (§7.15) list as empty on clusters that do not serve them |
 | GET | `/api/resource/get` | `?key=&ns=&name=` | one object of that kind |
-| GET | `/api/yaml` | `?apiVersion=&kind=&ns=&name=&neat=true` | `{"yaml"}`; without `apiVersion` only the kinds v0.4 knew; `neat` strips server-maintained fields |
+| GET | `/api/yaml` | `?apiVersion=&kind=&ns=&name=&neat=true` | `{"yaml","resourceVersion"}`; without `apiVersion` only the kinds v0.4 knew; `neat` strips server-maintained fields (`resourceVersion` is still returned beside the YAML) |
 | GET | `/api/events` | `?kind=&ns=&name=&uid=` (`uid` optional: defaults to the current object's UID) | `K8sEvent[]` about that object (that namespace and incarnation), newest first; `count` and `age` follow an event `series` |
 | GET | `/api/logs` | `?ns=&pod=&container=&tail=` (default 300, max 5000) `&previous=&sinceSeconds=` | `string[]` (lines) |
-| GET | `/api/crds` | — | `CrdDefinition[]` |
-| GET | `/api/crds/instances` | `?crd=<name>` | `CustomResource[]` |
+| GET | `/api/crds` | — | `CrdDefinition[]`; `printerColumns` `[{name, type, description?, priority}]` are the `additionalPrinterColumns` of the listed (first served) version in order, without Name, Namespace and Age |
+| GET | `/api/crds/instances` | `?crd=<name>` | `CustomResource[]`; `extra` maps each printer column to its value, evaluated with full JSONPath (filters, indexes) and formatted by type like `kubectl get` (a `date` as an age); a column without a value is missing |
 | GET | `/api/k8s/{path...}` | the Kubernetes API's own query | raw JSON (passthrough, below) |
 
 Secret values are redacted on every read route: `data` and `stringData`
@@ -318,7 +318,7 @@ fields (counts, capacity, requests, limits) are always present.
 | Method | Path | Level | Parameters | Answer |
 |---|---|---|---|---|
 | POST | `/api/resource/apply` | write, dry-run | `?ns=&force=&dryRun=`; body YAML or JSON, any number of documents, ≤ 4 MiB | `{"results":[{"apiVersion","kind","namespace"?,"name","action"?:"created"\|"configured"\|"unchanged","error"?,"code"?,"reason"?,"params"?,"warnings"?,"warningReasons"?}]}` (server-side apply, field manager `kubebench`) |
-| POST | `/api/resource/edit` | write, dry-run | `?apiVersion=&kind=` or `?key=`, `&ns=&name=&dryRun=`; body `{"original","edited"}` | as apply, one result (sent as a JSON merge patch) |
+| POST | `/api/resource/edit` | write, dry-run | `?apiVersion=&kind=` or `?key=`, `&ns=&name=&dryRun=`; body `{"original","edited","resourceVersion"?}` | as apply, one result (sent as a JSON merge patch with `resourceVersion` — or the original's `metadata.resourceVersion` — as precondition: an object changed since fails with `code: conflict`, `reason: edit.changed_on_server`) |
 | DELETE | `/api/resource` | write | `?apiVersion=&kind=` or `?key=`, `&ns=&name=&propagation=Background\|Foreground\|Orphan&gracePeriod=` | `{"ok":true}`; namespaces use `DELETE /api/namespaces` |
 | PATCH | `/api/resource/metadata` | write | the same object parameters; body `{"labels":{…},"annotations":{…}}` (`null` removes a key) | `{"ok":true}` |
 | POST | `/api/secrets/reveal` | exec | `?ns=&name=` | the Secret with its `data` (base64), `Cache-Control: no-store` |
@@ -336,7 +336,7 @@ fields (counts, capacity, requests, limits) are always present.
 | POST | `/api/deployments/rollback` | write | `?ns=&name=&revision=` | `{"ok":true}`; `409` while paused or for the current revision |
 | POST | `/api/deployments/pause` | write | `?ns=&name=&paused=true\|false` (default true) | `{"ok":true}` |
 | POST | `/api/workloads/restart` | write | `?kind=Deployment\|StatefulSet\|DaemonSet&ns=&name=` | `{"ok":true}` |
-| POST | `/api/workloads/scale` | write | `?kind=Deployment\|StatefulSet\|ReplicaSet&ns=&name=&replicas=` | `{"ok":true}` |
+| POST | `/api/workloads/scale` | write | `?kind=Deployment\|StatefulSet\|ReplicaSet&ns=&name=&replicas=`, or `?apiVersion=&kind=` for any kind with a `scale` subresource (discovered, e.g. an Argo Rollout) | `{"ok":true}`; `400` for a kind without a scale subresource |
 | POST | `/api/nodes/cordon` | write | `?name=&unschedulable=true\|false` (default true) | `{"ok":true}` |
 | POST | `/api/nodes/drain` | write | `?name=&ignoreDaemonSets=true&deleteEmptyDirData=false&force=false&gracePeriod=-1&timeoutSeconds=120` | `{"node","cordoned","completed","evicted","failed","blockedByPDB","skipped","errors"}` (`DrainResult`) |
 | PUT | `/api/nodes/taints` | write | `?name=`; body `{"taints":[{"key","value","effect"}]}` | `{"taints":[…]}` |

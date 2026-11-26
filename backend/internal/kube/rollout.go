@@ -5,8 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -107,7 +109,8 @@ func (r *Runtime) DeploymentHistory(ctx context.Context, namespace, name string)
 // RollbackDeployment rolls a Deployment back to an earlier revision, like
 // kubectl rollout undo --to-revision: the pod template of that revision's
 // ReplicaSet (minus its pod-template-hash label) and its annotations go
-// back into the Deployment, which then rolls out as a new revision. A
+// back into the Deployment (merged into the Deployment's own,
+// rollbackAnnotationOps), which then rolls out as a new revision. A
 // paused Deployment and the current revision (the ReplicaSet whose
 // template the Deployment already has) are refused.
 func (r *Runtime) RollbackDeployment(ctx context.Context, namespace, name string, revision int64) error {
@@ -138,11 +141,9 @@ func (r *Runtime) RollbackDeployment(ctx context.Context, namespace, name string
 
 	template := target.Spec.Template.DeepCopy()
 	delete(template.Labels, appsv1.DefaultDeploymentUniqueLabelKey)
-	patch, err := json.Marshal([]map[string]any{
-		{"op": "replace", "path": "/spec/template", "value": template},
-		// "add" also creates the map when the Deployment has none.
-		{"op": "add", "path": "/metadata/annotations", "value": rollbackAnnotations(d, target)},
-	})
+	ops := append([]map[string]any{{"op": "replace", "path": "/spec/template", "value": template}},
+		rollbackAnnotationOps(d, target)...)
+	patch, err := json.Marshal(ops)
 	if err != nil {
 		return err
 	}
@@ -150,22 +151,47 @@ func (r *Runtime) RollbackDeployment(ctx context.Context, namespace, name string
 	return err
 }
 
-// rollbackAnnotations are the Deployment's annotations after a rollback to
-// rs: the ReplicaSet's (e.g. its change-cause), except the bookkeeping
-// ones, which the Deployment keeps.
-func rollbackAnnotations(d *appsv1.Deployment, rs *appsv1.ReplicaSet) map[string]string {
-	out := map[string]string{}
+// rollbackAnnotationOps are the JSON patch operations that bring the
+// annotations of the ReplicaSet rs (those the Deployment had when it made
+// that revision, e.g. its change-cause) back into the Deployment d, like
+// kubectl rollout undo, except the bookkeeping ones
+// (rollbackSkippedAnnotations), which the Deployment keeps. Unlike kubectl,
+// which replaces the annotations wholesale, the Deployment's other
+// annotations stay: each key is set on its own, so annotations added since
+// (or by others meanwhile) survive. Only the change-cause, which describes
+// the revision, goes when rs has none, so that the revision rolled back to
+// does not inherit the cause of the one rolled back from.
+func rollbackAnnotationOps(d *appsv1.Deployment, rs *appsv1.ReplicaSet) []map[string]any {
+	taken := map[string]string{}
 	for k, v := range rs.Annotations {
 		if !slices.Contains(rollbackSkippedAnnotations, k) {
-			out[k] = v
+			taken[k] = v
 		}
 	}
-	for _, k := range rollbackSkippedAnnotations {
-		if v, ok := d.Annotations[k]; ok {
-			out[k] = v
+	if len(d.Annotations) == 0 {
+		if len(taken) == 0 {
+			return nil
+		}
+		// "add" creates the map the Deployment does not have.
+		return []map[string]any{{"op": "add", "path": "/metadata/annotations", "value": taken}}
+	}
+	var ops []map[string]any
+	for _, k := range slices.Sorted(maps.Keys(taken)) {
+		if old, ok := d.Annotations[k]; !ok || old != taken[k] {
+			ops = append(ops, map[string]any{"op": "add", "path": "/metadata/annotations/" + jsonPointerEscape(k), "value": taken[k]})
 		}
 	}
-	return out
+	if _, had := d.Annotations[changeCauseAnnotation]; had {
+		if _, has := taken[changeCauseAnnotation]; !has {
+			ops = append(ops, map[string]any{"op": "remove", "path": "/metadata/annotations/" + jsonPointerEscape(changeCauseAnnotation)})
+		}
+	}
+	return ops
+}
+
+// jsonPointerEscape escapes a key for a JSON pointer (RFC 6901).
+func jsonPointerEscape(key string) string {
+	return strings.ReplaceAll(strings.ReplaceAll(key, "~", "~0"), "/", "~1")
 }
 
 // PauseDeployment pauses or resumes a Deployment's rollouts (kubectl

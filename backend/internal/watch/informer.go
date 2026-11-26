@@ -7,9 +7,9 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic/dynamicinformer"
+	"k8s.io/client-go/metadata/metadatainformer"
 	"k8s.io/client-go/tools/cache"
 
 	"kubebench/internal/reason"
@@ -29,6 +29,10 @@ type informer struct {
 	idle   *time.Timer                // armed while there are no subscribers
 	// idleSince is when the last subscriber left, while subs is empty.
 	idleSince time.Time
+	// full is set when the resource cannot be listed as metadata only
+	// (an aggregated API without PartialObjectMetadata support): the
+	// informer then lists whole objects and strips them. Only run uses it.
+	full bool
 }
 
 // startInformer creates the informer of gvr and starts its goroutine.
@@ -104,9 +108,17 @@ func (h *Hub) run(ctx context.Context, inf *informer) {
 	runCtx, stop := context.WithCancel(ctx)
 	defer stop()
 
-	si := dynamicinformer.NewFilteredDynamicInformer(h.dyn, inf.gvr, metav1.NamespaceAll, 0, cache.Indexers{}, nil).Informer()
-	// Only names and versions are kept: a change event needs no more, and
-	// the cache must not hold e.g. Secret values.
+	// A metadata informer: change events need no more than names and
+	// versions, and e.g. Secret values never leave the API server.
+	var si cache.SharedIndexInformer
+	if inf.full {
+		si = dynamicinformer.NewFilteredDynamicInformer(h.dyn, inf.gvr, metav1.NamespaceAll, 0, cache.Indexers{}, nil).Informer()
+	} else {
+		si = metadatainformer.NewFilteredMetadataInformer(h.meta, inf.gvr, metav1.NamespaceAll, 0, cache.Indexers{}, nil).Informer()
+	}
+	// Only names and versions are kept in the cache, not labels,
+	// annotations (kubectl's last-applied-configuration of a Secret holds
+	// its values) or managed fields.
 	_ = si.SetTransform(stripObject)
 	_ = si.SetWatchErrorHandlerWithContext(func(_ context.Context, _ *cache.Reflector, err error) {
 		if denied(err) {
@@ -144,13 +156,25 @@ func (h *Hub) run(ctx context.Context, inf *informer) {
 	<-ran
 }
 
-// probe lists one object of inf's resource: a denial makes the topic
-// polled for good, other failures until a retry succeeds. It reports
-// whether the informer may start.
+// probe lists the metadata of one object of inf's resource: a denial
+// makes the topic polled for good, other failures until a retry succeeds.
+// A resource that cannot be listed as metadata is probed again, and then
+// watched, as whole objects. It reports whether the informer may start.
 func (h *Hub) probe(ctx context.Context, inf *informer) bool {
 	for {
 		pctx, cancel := context.WithTimeout(ctx, h.opts.ProbeTimeout)
-		_, err := h.dyn.Resource(inf.gvr).List(pctx, metav1.ListOptions{Limit: 1})
+		var err error
+		if !inf.full {
+			_, err = h.meta.Resource(inf.gvr).List(pctx, metav1.ListOptions{Limit: 1})
+			if noMetadata(err) && h.dyn != nil {
+				h.opts.Logf("[watch] cluster=%s informer %s: no metadata-only lists, watching whole objects: %v",
+					h.opts.Cluster, gvrName(inf.gvr), err)
+				inf.full = true
+			}
+		}
+		if inf.full {
+			_, err = h.dyn.Resource(inf.gvr).List(pctx, metav1.ListOptions{Limit: 1})
+		}
 		cancel()
 		switch {
 		case ctx.Err() != nil:
@@ -172,6 +196,12 @@ func (h *Hub) probe(ctx context.Context, inf *informer) bool {
 	}
 }
 
+// noMetadata reports an API server that cannot serve
+// PartialObjectMetadata lists (some aggregated APIs).
+func noMetadata(err error) bool {
+	return apierrors.IsNotAcceptable(err) || apierrors.IsUnsupportedMediaType(err)
+}
+
 // denied reports a failure that retrying with the same credential does
 // not fix: no permission, or a resource that cannot be listed or watched.
 func denied(err error) bool {
@@ -189,14 +219,21 @@ func deniedReason(gvr schema.GroupVersionResource, err error) *reason.Error {
 // stripObject keeps what change events need of an object: its name,
 // namespace, uid and resource version.
 func stripObject(obj any) (any, error) {
-	u, ok := obj.(*unstructured.Unstructured)
-	if !ok {
-		return obj, nil // e.g. a deletion tombstone of an already stripped object
+	if _, ok := obj.(cache.DeletedFinalStateUnknown); ok {
+		return obj, nil
+	}
+	m, err := meta.Accessor(obj)
+	if err != nil {
+		return obj, nil
+	}
+	var typeMeta metav1.TypeMeta
+	if t, err := meta.TypeAccessor(obj); err == nil {
+		typeMeta = metav1.TypeMeta{APIVersion: t.GetAPIVersion(), Kind: t.GetKind()}
 	}
 	return &metav1.PartialObjectMetadata{
-		TypeMeta: metav1.TypeMeta{APIVersion: u.GetAPIVersion(), Kind: u.GetKind()},
+		TypeMeta: typeMeta,
 		ObjectMeta: metav1.ObjectMeta{
-			Name: u.GetName(), Namespace: u.GetNamespace(), UID: u.GetUID(), ResourceVersion: u.GetResourceVersion(),
+			Name: m.GetName(), Namespace: m.GetNamespace(), UID: m.GetUID(), ResourceVersion: m.GetResourceVersion(),
 		},
 	}, nil
 }

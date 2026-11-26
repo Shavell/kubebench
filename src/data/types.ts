@@ -334,6 +334,20 @@ export interface CrdDefinition {
   scope: 'Namespaced' | 'Cluster'
   shortNames: string[]
   age: string
+  /**
+   * additionalPrinterColumns of the listed (first served) version, in order:
+   * the keys of `CustomResource.extra`. Name, Namespace and Age are left out.
+   */
+  printerColumns: PrinterColumn[]
+}
+
+/** One CRD printer column. Like `kubectl get`, priority 0 shows by default, higher ones with -o wide. */
+export interface PrinterColumn {
+  name: string
+  /** integer, number, string, boolean or date (the value is then an age). */
+  type: string
+  description?: string
+  priority: number
 }
 
 export interface CustomResource {
@@ -342,7 +356,10 @@ export interface CustomResource {
   crdName: string
   status: string
   age: string
-  /** CRD-specific columns shown in the list, e.g. { Secret: "shop-tls" }. */
+  /**
+   * Printer column values by column name, formatted like `kubectl get` (a date as
+   * an age), e.g. { Secret: "shop-tls" }. A column without a value is missing.
+   */
   extra: Record<string, string>
 }
 
@@ -405,6 +422,12 @@ export interface ObjectRef {
 export type ApplyAction = 'created' | 'configured' | 'unchanged'
 
 /** The outcome of one object of POST /api/resource/apply. */
+/** An object's YAML with the resourceVersion it was read at (also when `neat` leaves it out). */
+export interface YamlDocument {
+  yaml: string
+  resourceVersion?: string
+}
+
 export interface ApplyResult {
   apiVersion: string
   kind: string
@@ -416,8 +439,10 @@ export interface ApplyResult {
   error?: string
   /**
    * §3.3 code of `error`: `conflict` means fields the manifest changes are
-   * owned by another field manager (a forced apply takes them over);
-   * `not_found` a kind the cluster does not serve.
+   * owned by another field manager (a forced apply takes them over), or,
+   * for an edit (reason `edit.changed_on_server`), that the object changed
+   * on the server since editing started; `not_found` a kind the cluster
+   * does not serve.
    */
   code?: string
   /** Reason code and parameters of `error` when KubeBench explains it itself (§3.3). */
