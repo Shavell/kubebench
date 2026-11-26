@@ -2,7 +2,9 @@ package kube
 
 import (
 	"context"
+	"encoding/json"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -148,5 +150,94 @@ func TestCrdWithoutPrinterColumns(t *testing.T) {
 	crds, err := rt.ListCrds(context.Background())
 	if err != nil || len(crds) != 1 || crds[0].PrinterColumns == nil || len(crds[0].PrinterColumns) != 0 {
 		t.Fatalf("ListCrds = %+v, %v", crds, err)
+	}
+}
+
+// A version with a scale subresource lists its paths, and each object its
+// desired replicas read at specReplicasPath.
+func TestCrdScaleSubresource(t *testing.T) {
+	crd := widgetsCRD()
+	versions, _, _ := unstructured.NestedSlice(crd.Object, "spec", "versions")
+	versions[1].(map[string]any)["subresources"] = map[string]any{
+		"status": map[string]any{},
+		"scale": map[string]any{
+			"specReplicasPath":   ".spec.size",
+			"statusReplicasPath": ".status.size",
+			"labelSelectorPath":  ".status.selector",
+		},
+	}
+	_ = unstructured.SetNestedSlice(crd.Object, versions, "spec", "versions")
+	rt := crdRuntime(t, crd,
+		widget("w1", map[string]any{"size": int64(3)}, map[string]any{"size": int64(2)}),
+		widget("w2", map[string]any{"size": "big"}, map[string]any{}),
+	)
+	ctx := context.Background()
+
+	crds, err := rt.ListCrds(ctx)
+	if err != nil || len(crds) != 1 {
+		t.Fatalf("ListCrds = %v, %v", crds, err)
+	}
+	want := &CrdScale{SpecReplicasPath: ".spec.size", StatusReplicasPath: ".status.size", LabelSelectorPath: ".status.selector"}
+	if !reflect.DeepEqual(crds[0].Scale, want) {
+		t.Fatalf("scale = %+v, want %+v", crds[0].Scale, want)
+	}
+	// The JSON of GET /api/crds (CrdDefinition.scale in src/data/types.ts).
+	body, _ := json.Marshal(crds[0])
+	if !strings.Contains(string(body), `"scale":{"specReplicasPath":".spec.size","statusReplicasPath":".status.size","labelSelectorPath":".status.selector"}`) {
+		t.Fatalf("JSON = %s", body)
+	}
+
+	items, err := rt.ListCustomResources(ctx, "widgets.compat.example.com")
+	if err != nil || len(items) != 2 {
+		t.Fatalf("ListCustomResources = %v, %v", items, err)
+	}
+	for _, it := range items {
+		switch it.Name {
+		case "w1":
+			if it.Replicas == nil || *it.Replicas != 3 {
+				t.Errorf("w1 replicas = %v, want 3", it.Replicas)
+			}
+		case "w2":
+			// No integer at the path: no value rather than a made-up 0.
+			if it.Replicas != nil {
+				t.Errorf("w2 replicas = %v, want none", *it.Replicas)
+			}
+		}
+	}
+}
+
+// Without a scale subresource (only on another, unlisted version) the CRD
+// lists no scale and its objects no replicas, so the UI offers no Scale.
+func TestCrdWithoutScaleSubresource(t *testing.T) {
+	crd := widgetsCRD()
+	versions, _, _ := unstructured.NestedSlice(crd.Object, "spec", "versions")
+	versions[0].(map[string]any)["subresources"] = map[string]any{
+		"scale": map[string]any{"specReplicasPath": ".spec.size", "statusReplicasPath": ".status.size"},
+	}
+	_ = unstructured.SetNestedSlice(crd.Object, versions, "spec", "versions")
+	rt := crdRuntime(t, crd, widget("w1", map[string]any{"size": int64(3)}, map[string]any{}))
+	ctx := context.Background()
+	crds, err := rt.ListCrds(ctx)
+	if err != nil || len(crds) != 1 || crds[0].Scale != nil {
+		t.Fatalf("ListCrds = %+v, %v", crds, err)
+	}
+	if body, _ := json.Marshal(crds[0]); strings.Contains(string(body), `"scale"`) {
+		t.Fatalf("JSON = %s", body)
+	}
+	items, err := rt.ListCustomResources(ctx, "widgets.compat.example.com")
+	if err != nil || len(items) != 1 || items[0].Replicas != nil {
+		t.Fatalf("ListCustomResources = %+v, %v", items, err)
+	}
+}
+
+// apiextensions.k8s.io/v1beta1 kept the subresources on the CRD spec.
+func TestCrdScaleV1beta1(t *testing.T) {
+	crd := map[string]any{"spec": map[string]any{
+		"versions":     []any{map[string]any{"name": "v1", "served": true}},
+		"subresources": map[string]any{"scale": map[string]any{"specReplicasPath": ".spec.replicas", "statusReplicasPath": ".status.replicas"}},
+	}}
+	_, _, scale := listedVersion(crd)
+	if scale == nil || scale.SpecReplicasPath != ".spec.replicas" || scale.StatusReplicasPath != ".status.replicas" {
+		t.Fatalf("scale = %+v", scale)
 	}
 }

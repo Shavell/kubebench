@@ -32,6 +32,19 @@ type CrdInfo struct {
 	// CustomResourceInfo.Extra. Name, Namespace and Age are left out: the
 	// list has them already.
 	PrinterColumns []PrinterColumn `json:"printerColumns"`
+	// Scale is the scale subresource of the listed version; nil when it
+	// has none, so the kind cannot be scaled (POST /api/workloads/scale
+	// with apiVersion=<group>/<listed version>).
+	Scale *CrdScale `json:"scale,omitempty"`
+}
+
+// CrdScale describes a CRD version's scale subresource
+// (spec.versions[].subresources.scale): the JSON paths, like
+// ".spec.replicas", that the API server maps to the Scale object.
+type CrdScale struct {
+	SpecReplicasPath   string `json:"specReplicasPath"`
+	StatusReplicasPath string `json:"statusReplicasPath"`
+	LabelSelectorPath  string `json:"labelSelectorPath,omitempty"`
 }
 
 // PrinterColumn describes one additionalPrinterColumn. Like kubectl, the
@@ -53,12 +66,18 @@ type CustomResourceInfo struct {
 	// Extra holds the formatted printer column values by column name;
 	// a column without a value is missing.
 	Extra map[string]string `json:"extra"`
+	// Replicas is the value at the scale subresource's specReplicasPath
+	// (the desired replicas); nil when the CRD has no scale subresource
+	// or the object has no integer there.
+	Replicas *int64 `json:"replicas,omitempty"`
 }
 
 type crdSpec struct {
 	group, kind, plural, scope string
 	version                    string
 	printerColumns             []printerColumn
+	scale                      *CrdScale
+	specReplicas               *jsonpath.JSONPath
 }
 
 type printerColumn struct {
@@ -77,15 +96,20 @@ func (r *Runtime) crdSpec(ctx context.Context, crdName string) (*crdSpec, error)
 		plural: str(obj.Object, "spec", "names", "plural"),
 		scope:  str(obj.Object, "spec", "scope"),
 	}
-	spec.version, spec.printerColumns = listedVersion(obj.Object)
+	spec.version, spec.printerColumns, spec.scale = listedVersion(obj.Object)
+	if spec.scale != nil {
+		// Like the printer columns: a path that does not parse gives no value.
+		spec.specReplicas, _ = parseColumnPath("replicas", spec.scale.SpecReplicasPath)
+	}
 	return spec, nil
 }
 
 // listedVersion picks the version of a CRD that lists use, the first
-// served one (or the first one when none is served), and parses its
-// printer columns. Columns whose JSONPath does not parse are left out,
-// as the API server leaves them out of its tables.
-func listedVersion(crd map[string]any) (string, []printerColumn) {
+// served one (or the first one when none is served), parses its printer
+// columns and reads its scale subresource (nil without one). Columns
+// whose JSONPath does not parse are left out, as the API server leaves
+// them out of its tables.
+func listedVersion(crd map[string]any) (string, []printerColumn, *CrdScale) {
 	versions, _, _ := unstructured.NestedSlice(crd, "spec", "versions")
 	var version map[string]any
 	for _, v := range versions {
@@ -102,9 +126,16 @@ func listedVersion(crd map[string]any) (string, []printerColumn) {
 		}
 	}
 	if version == nil {
-		return "", nil
+		return "", nil, nil
 	}
 	name, _ := version["name"].(string)
+	scale := scaleOf(version)
+	if scale == nil {
+		// apiextensions.k8s.io/v1beta1 kept the subresources on the CRD.
+		if top, ok := crd["spec"].(map[string]any); ok {
+			scale = scaleOf(top)
+		}
+	}
 	cols, _ := version["additionalPrinterColumns"].([]any)
 	if len(cols) == 0 {
 		// apiextensions.k8s.io/v1beta1 kept the columns on the CRD.
@@ -135,7 +166,40 @@ func listedVersion(crd map[string]any) (string, []printerColumn) {
 		col.path = path
 		out = append(out, col)
 	}
-	return name, out
+	return name, out, scale
+}
+
+// scaleOf reads subresources.scale of a CRD version (or a v1beta1 spec).
+func scaleOf(m map[string]any) *CrdScale {
+	scale, found, _ := unstructured.NestedMap(m, "subresources", "scale")
+	if !found || scale == nil {
+		return nil
+	}
+	return &CrdScale{
+		SpecReplicasPath:   strField(scale, "specReplicasPath"),
+		StatusReplicasPath: strField(scale, "statusReplicasPath"),
+		LabelSelectorPath:  strField(scale, "labelSelectorPath"),
+	}
+}
+
+// replicasAt is the integer at path in obj (the scale subresource's
+// specReplicasPath), or nil.
+func replicasAt(path *jsonpath.JSONPath, obj map[string]any) *int64 {
+	if path == nil {
+		return nil
+	}
+	results, err := path.FindResults(obj)
+	if err != nil || len(results) == 0 || len(results[0]) == 0 {
+		return nil
+	}
+	switch v := results[0][0].Interface().(type) {
+	case int64:
+		return &v
+	case float64:
+		n := int64(v)
+		return &n
+	}
+	return nil
 }
 
 func strField(m map[string]any, key string) string {
@@ -180,7 +244,7 @@ func (r *Runtime) ListCrds(ctx context.Context) ([]CrdInfo, error) {
 				}
 			}
 		}
-		_, cols := listedVersion(item.Object)
+		_, cols, scale := listedVersion(item.Object)
 		shortNames, _, _ := unstructured.NestedStringSlice(item.Object, "spec", "names", "shortNames")
 		if shortNames == nil {
 			shortNames = []string{}
@@ -194,6 +258,7 @@ func (r *Runtime) ListCrds(ctx context.Context) ([]CrdInfo, error) {
 			ShortNames:     shortNames,
 			Age:            FormatAge(item.GetCreationTimestamp().Time),
 			PrinterColumns: columnInfos(cols),
+			Scale:          scale,
 		})
 	}
 	return out, nil
@@ -224,6 +289,7 @@ func (r *Runtime) ListCustomResources(ctx context.Context, crdName string) ([]Cu
 			Status:    crStatus(&item),
 			Age:       FormatAge(item.GetCreationTimestamp().Time),
 			Extra:     extra,
+			Replicas:  replicasAt(spec.specReplicas, item.Object),
 		})
 	}
 	return out, nil
