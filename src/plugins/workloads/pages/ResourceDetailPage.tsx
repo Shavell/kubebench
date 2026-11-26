@@ -34,10 +34,30 @@ function ResourceDetail({ tab }: { tab: TabDescriptor }) {
   const closeTab = useLayoutStore((s) => s.closeTab)
   const closeThisTab = () => closeTab(tab.id)
 
-  const pods = useProviderQuery((p) => p.cluster.listPods(), [], { topics: ['pods'] })
-  const nodes = useProviderQuery((p) => p.cluster.listNodes(), [], { topics: ['nodes'] })
-  const deployments = useProviderQuery((p) => p.cluster.listDeployments(), [], { topics: ['deployments'] })
-  const services = useProviderQuery((p) => p.cluster.listServices(), [], { topics: ['services'] })
+  // Only the list of the object's kind, in its namespace, is read (and
+  // re-read on live updates); the others resolve to null at once.
+  const ns = namespace ?? undefined
+  const scope = (of: string, topic: string) => (kind === of ? { topics: [topic], namespace: ns } : undefined)
+  const pods = useProviderQuery(
+    (p) => (kind === 'Pod' ? p.cluster.listPods(ns) : Promise.resolve(null)),
+    [kind, ns],
+    scope('Pod', 'pods'),
+  )
+  const nodes = useProviderQuery(
+    (p) => (kind === 'Node' ? p.cluster.listNodes() : Promise.resolve(null)),
+    [kind],
+    scope('Node', 'nodes'),
+  )
+  const deployments = useProviderQuery(
+    (p) => (kind === 'Deployment' ? p.cluster.listDeployments(ns) : Promise.resolve(null)),
+    [kind, ns],
+    scope('Deployment', 'deployments'),
+  )
+  const services = useProviderQuery(
+    (p) => (kind === 'Service' ? p.cluster.listServices(ns) : Promise.resolve(null)),
+    [kind, ns],
+    scope('Service', 'services'),
+  )
 
   /** Shown until the object turns up: why its list failed, else a loading line. */
   const pending = (query: QueryState<unknown>) =>

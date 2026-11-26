@@ -1,4 +1,4 @@
-import { apiDelete, apiGet, apiPost, type QueryParams } from '../apiClient'
+import { apiDelete, apiGet, apiGetList, apiPost, type QueryParams } from '../apiClient'
 import type { ClusterProvider } from '../providers'
 import type { LiveCapabilities } from '../types'
 import { apiEditing } from './editing'
@@ -20,11 +20,12 @@ function k8sGet<T>(path: string, params?: QueryParams): Promise<T> {
 
 export function createApiCluster(capabilities: LiveCapabilities): ClusterProvider {
   return {
-    listNodes: () => apiGet('/nodes'),
-    listNamespaces: () => apiGet('/namespaces'),
-    listPods: (ns) => apiGet('/pods', { ns }),
-    listDeployments: (ns) => apiGet('/deployments', { ns }),
-    listServices: (ns) => apiGet('/services', { ns }),
+    listNodes: (options) => apiGetList('/nodes', { limit: options?.limit }),
+    listNamespaces: (options) => apiGetList('/namespaces', { limit: options?.limit }),
+    listPods: (ns, options) => apiGetList('/pods', { ns, limit: options?.limit }),
+    listDeployments: (ns, options) => apiGetList('/deployments', { ns, limit: options?.limit }),
+    listServices: (ns, options) => apiGetList('/services', { ns, limit: options?.limit }),
+    countResource: async (topic, ns) => (await apiGet<{ count: number }>('/count', { topic, ns })).count,
     getResourceYaml: async (kind, ns, name) =>
       (await apiGet<{ yaml: string }>('/yaml', { kind, ns, name })).yaml,
     // kind keeps objects of different kinds with the same name apart (§4.4).
@@ -38,7 +39,7 @@ export function createApiCluster(capabilities: LiveCapabilities): ClusterProvide
         previous: options.previous,
         sinceSeconds: options.sinceSeconds,
       }),
-    listResource: (key, ns) => apiGet('/resource', { key, ns }),
+    listResource: (key, ns, options) => apiGetList('/resource', { key, ns, limit: options?.limit }),
     getResource: (key, ns, name) => apiGet('/resource/get', { key, ns, name }),
     execCommand: (ns, pod, container, cmd) =>
       capabilities.exec

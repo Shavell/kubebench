@@ -595,7 +595,10 @@ route answers `409 no_cluster` instead. Without any usable cluster,
   from the cache of the live-update informer of that resource when one
   runs live (§7.10; it holds names and namespaces), else from a paged
   metadata-only list (which stops after the first page when the cluster
-  reports `remainingItemCount`).
+  reports `remainingItemCount`). The explorer's badges use it
+  (`cluster.countResource`) instead of listing every Pod, Deployment,
+  Service, Node and Namespace of the cluster, and a detail page reads only
+  the list of its object's kind, in its namespace.
 
 ### 4.5 Kubernetes read passthrough (for external plugins)
 
