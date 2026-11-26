@@ -25,8 +25,11 @@ make build && ./bin/kubebench                       # the production binary with
 
 - The dev server falls back to deterministic demo data while the backend is
   down; `?demo` forces it. Production builds never use demo data.
-- Use a **disposable** cluster for anything that changes objects. Never
-  point a development backend at a cluster you cannot afford to break.
+- Test anything that changes cluster state only on a **disposable** local
+  cluster (k3d or kind), and always pass that cluster's kubeconfig
+  explicitly (`--kubeconfig` or `KUBECONFIG`) so that a shared or
+  production context is never used. Clean up what the test created (or
+  delete the cluster) afterwards.
 - `backend/internal/web/dist/` holds only `.gitkeep` in git. `make build`
   copies the frontend there; do not commit the copy (`make clean` removes it).
 
@@ -47,6 +50,14 @@ contract [docs/design-v0.5.md](docs/design-v0.5.md). When code and contract
 disagree, fix one of them in the same change.
 
 ## Rules
+
+**Language and wording**
+
+- Repository documentation, code comments, commit messages and pull
+  requests are in English only. The UI is multi-language (`en`, `tr`,
+  `de`; see [docs/i18n.md](docs/i18n.md)).
+- Docs, CHANGELOG entries, commit messages and pull requests describe
+  KubeBench on its own and do not name other products.
 
 **Layering (frontend)**
 

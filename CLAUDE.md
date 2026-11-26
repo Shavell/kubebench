@@ -75,9 +75,12 @@ Rules that matter here:
 - User-visible changes get a line under `## [Unreleased]` in `CHANGELOG.md`
   (Keep a Changelog; the bundled changelog feeds What's new).
 - Commits: Conventional Commits; never push or touch remotes unless asked.
+  Docs, comments, commits and pull requests are English only and never
+  name other products (CONTRIBUTING.md "Language and wording").
 - Dev: `npm run dev` (:5173) + `npm run server:go` (:9876). The dev server
   falls back to mock mode when the backend is down; production builds show
   a boot error instead; `?demo` forces mock mode. Test mutations only on
-  disposable clusters.
+  disposable local clusters (k3d/kind) with an explicit `--kubeconfig`/
+  `KUBECONFIG`, never a shared context; clean up afterwards.
 - `backend/internal/web/dist/` holds only `.gitkeep` in git; `make build`
   and `docker build` copy the frontend in.

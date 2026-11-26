@@ -11,8 +11,8 @@ Goals, in priority order:
 2. **Plugin platform** — backend + frontend plugin contracts, enable/disable,
    capability detection, runtime-loaded external (frontend) plugins.
 3. **Multi-language UI** — i18next, English + Turkish + German, per-plugin namespaces.
-4. **Daily operations parity** (inspired by the KubelizeMe comparison, see
-   `docs/notes/kubelizeme-comparison.md`): real PTY shell, streaming logs,
+4. **Daily operations parity** with what operators expect from a
+   Kubernetes IDE: real PTY shell, streaming logs,
    YAML apply/dry-run/diff, node/workload operations, Helm install/upgrade.
 5. **New plugins**: Argo CD, Storage (PV/PVC creator), Security posture,
    Access (RBAC), Topology.

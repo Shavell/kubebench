@@ -216,6 +216,14 @@ pull request; scheduled runs are weekly, on Mondays.
 | `scorecard.yml` (Scorecard) | push to `main`, weekly, branch protection changes | [OpenSSF Scorecard](https://scorecard.dev/viewer/?uri=github.com/Shavell/kubebench), published for the README badge |
 
 CodeQL, Trivy and Scorecard report to **Security > Code scanning**.
+Every open alert is triaged: it is either fixed in a pull request, or a
+maintainer dismisses it with GitHub's reason ("false positive", "used in
+tests" or "won't fix") and a comment that explains why. Findings in
+test-only code (for example `backend/internal/identity/oidcauth/oidctest`)
+are dismissed as "used in tests" rather than hidden by configuration.
+Scorecard's process alerts (CII Best Practices, Code-Review,
+Branch-Protection) stay open as reminders. The `main` ruleset blocks
+merging while a CodeQL alert of high severity or worse is open.
 
 Because they publish, these run only on a deliberate action: **Release**
 on a pushed `v*` tag or by hand, **Helm chart** by hand. **Container
@@ -261,5 +269,8 @@ Actions are pinned by full commit SHA with the version as a comment
 (`uses: actions/checkout@<sha> # v7.0.1`); Dependabot updates both.
 Dependabot (`.github/dependabot.yml`) opens grouped weekly update pull
 requests for npm, Go modules, GitHub Actions and the Dockerfile base
-images. Dependabot alerts and security updates, secret scanning and push
+images. They are merged one at a time (squash) once their checks pass;
+when a later one conflicts after an earlier merge, comment
+`@dependabot rebase` on it. Dependabot closes the pull requests that an
+earlier merge made unnecessary by itself. Dependabot alerts and security updates, secret scanning and push
 protection are enabled on the repository.
