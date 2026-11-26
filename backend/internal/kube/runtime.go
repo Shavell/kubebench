@@ -285,6 +285,15 @@ func restConfigFor(cluster *store.Cluster) (*rest.Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	if wrap == nil {
+		var user *clientcmdapi.AuthInfo
+		if ctx, ok := apiConfig.Contexts[contextName]; ok {
+			user = apiConfig.AuthInfos[ctx.AuthInfo]
+		}
+		if wrap, err = oidcAuth(user, cluster.ID, cluster.Name); err != nil {
+			return nil, err
+		}
+	}
 	config, err := clientcmd.NewNonInteractiveClientConfig(
 		*apiConfig, contextName, &clientcmd.ConfigOverrides{}, nil,
 	).ClientConfig()

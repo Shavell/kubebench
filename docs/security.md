@@ -247,10 +247,24 @@ the files it names would let any admin run commands or read files as the
 server's account.
 
 - `KUBEBENCH_ALLOW_KUBECONFIG_EXEC=false` (default): pasted kubeconfigs
-  whose selected context runs an exec credential plugin or auth provider,
-  or references server-side files (CA, client certificate or key, token
-  file), are refused. Turn it on only if every admin may run commands as
-  the KubeBench user.
+  whose selected context runs an exec credential plugin, or references
+  server-side files (CA, client certificate or key, token file, an `oidc`
+  auth provider's `idp-certificate-authority`), are refused. Turn it on
+  only if every admin may run commands as the KubeBench user.
+- The legacy `oidc` auth provider (`auth-provider: {name: oidc}`) is
+  handled in process and allowed in pasted kubeconfigs when its CA is
+  embedded (`idp-certificate-authority-data`) or absent: it runs no
+  command and reads no file. It refreshes an expired ID token by sending
+  the kubeconfig's refresh token (and client secret) to the issuer the
+  kubeconfig names, from the server's network, as KubeBench already
+  connects to the API server the kubeconfig names; it follows no
+  redirects and gives up after 30 s. The credentials are the admin's own,
+  not the server's. Refreshed tokens stay in memory, per cluster: they
+  are never written to a file or back to the stored kubeconfig, and two
+  clusters never share them. If the identity provider rotates refresh
+  tokens, the stored one may be spent after a restart; paste fresh tokens
+  then (the server logs when it saw a rotation). Other auth providers
+  (`gcp`, `azure`, removed from client-go) are refused for every source.
 - `KUBEBENCH_ALLOW_PATH_KUBECONFIG` (default on outside a cluster, off
   inside): admins may add clusters by a path on the server. Such
   kubeconfigs are the server's own files and may use exec plugins; they are

@@ -99,6 +99,7 @@
   "clusters": {
     "address_only": "address-only entries cannot be activated",
     "ambient_identity": "the kubeconfig signs in to {{provider}} with the KubeBench server's own cloud identity, which this server does not allow (KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY); give the cluster its own credentials (an access key, a service-account key or a service principal)",
+    "auth_provider_unsupported": "the kubeconfig uses the auth provider \"{{name}}\", which KubeBench does not support; use a token, a client certificate, an oidc auth provider or an exec credential plugin",
     "connect_failed": "cannot connect to cluster \"{{name}}\": {{detail}}",
     "credentials_kubeconfig_only": "cloud credentials apply to kubeconfig clusters only",
     "exists": "cluster \"{{name}}\": already exists",
@@ -111,6 +112,7 @@
     "no_access": "you have no access to cluster \"{{name}}\"",
     "not_found": "cluster \"{{name}}\" not found",
     "nothing_to_update": "nothing to update: send name, readOnly, environment and/or credentials",
+    "oidc_incomplete": "the kubeconfig's oidc auth provider lacks {{field}}",
     "path_disabled": "adding clusters by server-side path is disabled (KUBEBENCH_ALLOW_PATH_KUBECONFIG); paste the kubeconfig instead",
     "path_written": "{{path}} is inside {{dir}}, which KubeBench writes with content from requests; add a kubeconfig of the server's own instead",
     "read_kubeconfig": "cannot read the kubeconfig {{path}}: {{detail}}",

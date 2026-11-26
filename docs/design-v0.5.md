@@ -92,7 +92,7 @@ cluster-to-cluster compare, port-forward, light/dark per-plugin theming.
 | `KUBEBENCH_SESSION_TTL` | `168h` | Session lifetime (Go duration) |
 | `KUBEBENCH_AUDIT_RETENTION_DAYS` | `90` | Audit rows older than this are pruned daily (0 = keep forever) |
 | `KUBEBENCH_ALLOW_PATH_KUBECONFIG` | `true` outside a cluster, `false` in-cluster | Allow adding clusters by server-side file path |
-| `KUBEBENCH_ALLOW_KUBECONFIG_EXEC` | `false` | Let pasted kubeconfigs run exec credential plugins and auth providers and read server-side files (certificate, key and token files). This gives every admin command execution as the server's account |
+| `KUBEBENCH_ALLOW_KUBECONFIG_EXEC` | `false` | Let pasted kubeconfigs run exec credential plugins and read server-side files (including an oidc auth provider's `idp-certificate-authority` file) (certificate, key and token files). This gives every admin command execution as the server's account |
 | `KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY` | `false` | Let pasted EKS, GKE and AKS kubeconfigs sign in with the server's own cloud identity (§7.12). This gives every admin that identity's token |
 | `KUBECONFIG` | — | Dev/VM convenience: seeds the inventory on first run (a path list is merged the way kubectl merges it) |
 | `KUBEBENCH_NAMESPACE` | in a pod: the pod's namespace | The namespace KubeBench runs in; deleting a namespace of that name is refused unless forced (§7.3) |
@@ -526,9 +526,20 @@ route answers `409 no_cluster` instead. Without any usable cluster,
   unless `features.pathKubeconfig`. Unless `KUBEBENCH_ALLOW_KUBECONFIG_EXEC`
   is set, pasted kubeconfigs whose selected context reads server-side files
   (certificate authority, client certificate/key, token file) or runs exec
-  plugins or auth providers are rejected the same way: pasted content is
+  plugins are rejected the same way: pasted content is
   untrusted, and would otherwise run commands or read files as the server's
-  account. A kubeconfig added by path is one of the server's own files and
+  account. The legacy `oidc` auth provider is handled in process
+  (`backend/internal/kube/oidcauth.go`): it runs nothing, so a pasted
+  kubeconfig may use it unless it names an `idp-certificate-authority`
+  file (embed `idp-certificate-authority-data` instead). Any other auth
+  provider, and an `oidc` provider without `idp-issuer-url`, `client-id`
+  or a token, is refused for every source with `400 bad_request`
+  (`clusters.auth_provider_unsupported`, `clusters.oidc_incomplete`).
+  The provider refreshes an expired ID token with the refresh token at the
+  issuer's token endpoint (discovery, 30 s limit, no redirects); refreshed
+  tokens are kept in memory per cluster (also across runtime rebuilds of
+  an unchanged kubeconfig), never written to a file or the stored
+  kubeconfig. A kubeconfig added by path is one of the server's own files and
   may use them, unless it lies in a directory KubeBench writes with
   content from requests (a plugin's data directory under
   `KUBEBENCH_DATA_DIR`, e.g. the Helm repository cache, or

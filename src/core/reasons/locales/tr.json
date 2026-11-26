@@ -99,6 +99,7 @@
   "clusters": {
     "address_only": "Yalnızca adres içeren kayıtlar etkinleştirilemez",
     "ambient_identity": "Kubeconfig, KubeBench sunucusunun kendi bulut kimliğiyle {{provider}} oturumu açıyor; bu sunucu buna izin vermiyor (KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY). Cluster'a kendi kimlik bilgilerini verin (bir erişim anahtarı, bir service account anahtarı veya bir service principal)",
+    "auth_provider_unsupported": "Kubeconfig, KubeBench'in desteklemediği \"{{name}}\" auth provider'ını kullanıyor; bir token, istemci sertifikası, oidc auth provider'ı veya exec credential plugin'i kullanın",
     "connect_failed": "\"{{name}}\" cluster'ına bağlanılamıyor: {{detail}}",
     "credentials_kubeconfig_only": "Bulut kimlik bilgileri yalnızca kubeconfig cluster'larına uygulanır",
     "exists": "\"{{name}}\" cluster'ı zaten var",
@@ -111,6 +112,7 @@
     "no_access": "\"{{name}}\" cluster'ına erişiminiz yok",
     "not_found": "\"{{name}}\" cluster'ı bulunamadı",
     "nothing_to_update": "Güncellenecek bir şey yok: name, readOnly, environment ve/veya credentials gönderin",
+    "oidc_incomplete": "Kubeconfig'teki oidc auth provider'ında {{field}} eksik",
     "path_disabled": "Sunucu tarafındaki bir yol ile cluster eklemek kapalı (KUBEBENCH_ALLOW_PATH_KUBECONFIG); bunun yerine kubeconfig'i yapıştırın",
     "path_written": "{{path}}, KubeBench'in isteklerden gelen içerikle yazdığı {{dir}} içinde; bunun yerine sunucunun kendi kubeconfig'ini ekleyin",
     "read_kubeconfig": "{{path}} kubeconfig'i okunamıyor: {{detail}}",
