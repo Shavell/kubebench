@@ -1094,7 +1094,13 @@ Details settled by the implementation:
   "images","changeCause","created","replicas","readyReplicas","current"}]}`,
   newest first. The current revision is the ReplicaSet whose pod template the
   Deployment has (the revision annotations lag behind during a rollout).
-- Rollback (kubectl rollout undo): `409 conflict` while paused or for the
+- Rollback (kubectl rollout undo): the revision's pod template (without
+  its `pod-template-hash` label) replaces the Deployment's, and the
+  ReplicaSet's annotations are merged into the Deployment's key by key: its
+  values win, the Deployment's other annotations stay (kubectl replaces
+  them wholesale), the bookkeeping ones (`deployment.kubernetes.io/*`,
+  last-applied) stay the Deployment's, and a `kubernetes.io/change-cause`
+  the revision lacks is removed. `409 conflict` while paused or for the
   current revision, `404 not_found` for a revision the Deployment does not
   have.
 - Restart and scale check `kind` (`400` otherwise); scale goes through the

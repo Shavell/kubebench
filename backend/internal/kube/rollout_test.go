@@ -2,6 +2,7 @@ package kube
 
 import (
 	"context"
+	"encoding/json"
 	"strconv"
 	"testing"
 	"time"
@@ -112,12 +113,47 @@ func TestRollbackDeployment(t *testing.T) {
 		t.Fatalf("template labels = %v (pod-template-hash must go)", d.Spec.Template.Labels)
 	}
 	// kubectl rollout undo semantics: the ReplicaSet's change-cause comes
-	// back, the Deployment keeps its revision bookkeeping.
-	if d.Annotations[changeCauseAnnotation] != "first release" || d.Annotations[revisionAnnotation] != "3" {
+	// back, the Deployment keeps its revision bookkeeping; unlike kubectl,
+	// its own other annotations stay.
+	if d.Annotations[changeCauseAnnotation] != "first release" || d.Annotations[revisionAnnotation] != "3" ||
+		d.Annotations["team"] != "shop" || len(d.Annotations) != 3 {
 		t.Fatalf("annotations = %v", d.Annotations)
 	}
-	if _, kept := d.Annotations["team"]; kept {
-		t.Fatalf("annotations come from the ReplicaSet: %v", d.Annotations)
+}
+
+func TestRollbackAnnotationOps(t *testing.T) {
+	rs := func(annotations map[string]string) *appsv1.ReplicaSet {
+		return &appsv1.ReplicaSet{ObjectMeta: metav1.ObjectMeta{Annotations: annotations}}
+	}
+	dep := func(annotations map[string]string) *appsv1.Deployment {
+		return &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Annotations: annotations}}
+	}
+	for _, tc := range []struct {
+		name string
+		d    *appsv1.Deployment
+		rs   *appsv1.ReplicaSet
+		want string
+	}{
+		{"no annotations on either side", dep(nil), rs(map[string]string{revisionAnnotation: "1"}), `null`},
+		{"the Deployment has none: the map is added", dep(nil),
+			rs(map[string]string{revisionAnnotation: "1", "a/b": "x"}),
+			`[{"op":"add","path":"/metadata/annotations","value":{"a/b":"x"}}]`},
+		{"changed and new keys are set one by one, unchanged and own ones left alone",
+			dep(map[string]string{revisionAnnotation: "4", "team": "shop", "same": "1", "example.com/tier": "new"}),
+			rs(map[string]string{revisionAnnotation: "1", "same": "1", "example.com/tier": "old", "x~y": "z"}),
+			`[{"op":"add","path":"/metadata/annotations/example.com~1tier","value":"old"},{"op":"add","path":"/metadata/annotations/x~0y","value":"z"}]`},
+		{"a change-cause the revision lacks goes",
+			dep(map[string]string{changeCauseAnnotation: "v4", "team": "shop"}), rs(map[string]string{revisionAnnotation: "1"}),
+			`[{"op":"remove","path":"/metadata/annotations/kubernetes.io~1change-cause"}]`},
+		{"the bookkeeping stays the Deployment's",
+			dep(map[string]string{revisionAnnotation: "4", "kubectl.kubernetes.io/last-applied-configuration": "{}"}),
+			rs(map[string]string{revisionAnnotation: "1", "kubectl.kubernetes.io/last-applied-configuration": "{old}", "deployment.kubernetes.io/desired-replicas": "3"}),
+			`null`},
+	} {
+		got, _ := json.Marshal(rollbackAnnotationOps(tc.d, tc.rs))
+		if string(got) != tc.want {
+			t.Errorf("%s: ops = %s, want %s", tc.name, got, tc.want)
+		}
 	}
 }
 
