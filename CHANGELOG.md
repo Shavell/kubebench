@@ -18,8 +18,6 @@ those commits.
 
 ## [0.8.3] - 2026-11-26
 
-Fixes from a compatibility check against Headlamp.
-
 ### Added
 
 - Clusters added with namespace-scoped credentials: KubeBench starts in

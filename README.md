@@ -221,7 +221,6 @@ packages, snapshot release). Contribution rules: [CONTRIBUTING.md](CONTRIBUTING.
 | [docs/i18n.md](docs/i18n.md) | Translations and adding a language |
 | [docs/releasing.md](docs/releasing.md) | Versioning and cutting a release |
 | [docs/design-v0.5.md](docs/design-v0.5.md) | The v0.5 implementation contract |
-| [docs/notes/kubelizeme-comparison.md](docs/notes/kubelizeme-comparison.md) | How KubeBench compares with KubelizeMe |
 | [CHANGELOG.md](CHANGELOG.md) | Release history |
 | [ROADMAP.md](ROADMAP.md) | What is in progress and what may come next |
 
