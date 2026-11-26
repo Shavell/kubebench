@@ -8,12 +8,20 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // LogSource is one container whose log a stream follows.
 type LogSource struct {
 	Pod       string
 	Container string
+	// UID is the pod's UID when known (selector streams): a pod recreated
+	// under the same name is another source.
+	UID types.UID
+	// Started reports that the container has run (it is running or has
+	// terminated), so it has a log to open: a pod still being created
+	// has none yet.
+	Started bool
 }
 
 // String is "pod/container", the prefix of the source's lines when a
@@ -65,7 +73,8 @@ func (r *Runtime) SelectorLogSources(ctx context.Context, namespace, selector, c
 		}
 		matched++
 		if len(sources) < limit {
-			sources = append(sources, LogSource{Pod: pods[i].Name, Container: name})
+			sources = append(sources, LogSource{Pod: pods[i].Name, Container: name, UID: pods[i].UID,
+				Started: containerStarted(&pods[i], name)})
 		}
 	}
 	return sources, matched, nil
@@ -85,4 +94,15 @@ func (r *Runtime) FollowLog(ctx context.Context, namespace string, src LogSource
 		opts.SinceSeconds = &o.SinceSeconds
 	}
 	return r.CS.CoreV1().Pods(namespace).GetLogs(src.Pod, opts).Stream(ctx)
+}
+
+// containerStarted reports whether the named container of pod is running
+// or has terminated, now or before.
+func containerStarted(pod *corev1.Pod, name string) bool {
+	for _, st := range pod.Status.ContainerStatuses {
+		if st.Name == name {
+			return st.State.Running != nil || st.State.Terminated != nil || st.LastTerminationState.Terminated != nil
+		}
+	}
+	return false
 }

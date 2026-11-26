@@ -31,8 +31,14 @@ export function streamLogs(request: LogStreamRequest, handlers: LogStreamHandler
 
   source.addEventListener('pods', (event) => {
     if (finished) return
-    opened = true
     const { pods, total } = JSON.parse(event.data) as { pods: string[]; total: number }
+    // The first event opens the stream; later ones (selector streams) say
+    // which pods it follows now.
+    if (opened) {
+      handlers.onPods?.(pods, total)
+      return
+    }
+    opened = true
     handlers.onOpen(pods, total)
   })
   source.addEventListener('message', (event) => {

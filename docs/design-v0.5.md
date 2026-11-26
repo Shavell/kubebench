@@ -92,7 +92,7 @@ cluster-to-cluster compare, port-forward, light/dark per-plugin theming.
 | `KUBEBENCH_SESSION_TTL` | `168h` | Session lifetime (Go duration) |
 | `KUBEBENCH_AUDIT_RETENTION_DAYS` | `90` | Audit rows older than this are pruned daily (0 = keep forever) |
 | `KUBEBENCH_ALLOW_PATH_KUBECONFIG` | `true` outside a cluster, `false` in-cluster | Allow adding clusters by server-side file path |
-| `KUBEBENCH_ALLOW_KUBECONFIG_EXEC` | `false` | Let pasted kubeconfigs run exec credential plugins and auth providers and read server-side files (certificate, key and token files). This gives every admin command execution as the server's account |
+| `KUBEBENCH_ALLOW_KUBECONFIG_EXEC` | `false` | Let pasted kubeconfigs run exec credential plugins and read server-side files (including an oidc auth provider's `idp-certificate-authority` file) (certificate, key and token files). This gives every admin command execution as the server's account |
 | `KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY` | `false` | Let pasted EKS, GKE and AKS kubeconfigs sign in with the server's own cloud identity (§7.12). This gives every admin that identity's token |
 | `KUBECONFIG` | — | Dev/VM convenience: seeds the inventory on first run (a path list is merged the way kubectl merges it) |
 | `KUBEBENCH_NAMESPACE` | in a pod: the pod's namespace | The namespace KubeBench runs in; deleting a namespace of that name is refused unless forced (§7.3) |
@@ -299,6 +299,14 @@ error text. Pruned per `KUBEBENCH_AUDIT_RETENTION_DAYS`.
 - Requests must be read within 1 minute (`ReadTimeout`; headers within
   10 s). The deadline ends once the request has been read, so streams and
   long operations are not limited.
+- Core routes that work on a cluster (levels read, write, exec, browse)
+  run under a request deadline, `KUBEBENCH_REQUEST_TIMEOUT` (default 30 s,
+  `0` = none): a hung API server ends them with `504 kubernetes`. Routes
+  registered `longRunning` are exempt: log streams, live updates (SSE),
+  terminals, one-shot exec, drain, debug containers and the passthrough,
+  which bound their own duration where they need to. Plugin routes bound
+  their own work (Helm operations carry their own timeouts). The server
+  sets no `WriteTimeout`, which would cut streams.
 - The SQLite file and its `-wal`/`-shm` files are created `0600` (existing
   ones are tightened on start): they hold cluster credentials and sessions.
 - Non-GET requests with an `Origin` header that does not match the request
@@ -527,9 +535,20 @@ route answers `409 no_cluster` instead. Without any usable cluster,
   unless `features.pathKubeconfig`. Unless `KUBEBENCH_ALLOW_KUBECONFIG_EXEC`
   is set, pasted kubeconfigs whose selected context reads server-side files
   (certificate authority, client certificate/key, token file) or runs exec
-  plugins or auth providers are rejected the same way: pasted content is
+  plugins are rejected the same way: pasted content is
   untrusted, and would otherwise run commands or read files as the server's
-  account. A kubeconfig added by path is one of the server's own files and
+  account. The legacy `oidc` auth provider is handled in process
+  (`backend/internal/kube/oidcauth.go`): it runs nothing, so a pasted
+  kubeconfig may use it unless it names an `idp-certificate-authority`
+  file (embed `idp-certificate-authority-data` instead). Any other auth
+  provider, and an `oidc` provider without `idp-issuer-url`, `client-id`
+  or a token, is refused for every source with `400 bad_request`
+  (`clusters.auth_provider_unsupported`, `clusters.oidc_incomplete`).
+  The provider refreshes an expired ID token with the refresh token at the
+  issuer's token endpoint (discovery, 30 s limit, no redirects); refreshed
+  tokens are kept in memory per cluster (also across runtime rebuilds of
+  an unchanged kubeconfig), never written to a file or the stored
+  kubeconfig. A kubeconfig added by path is one of the server's own files and
   may use them, unless it lies in a directory KubeBench writes with
   content from requests (a plugin's data directory under
   `KUBEBENCH_DATA_DIR`, e.g. the Helm repository cache, or
@@ -546,8 +565,14 @@ route answers `409 no_cluster` instead. Without any usable cluster,
 
 ### 4.4 Resources (fixes)
 
-- `/api/events?kind=&ns=&name=` filters on `involvedObject.kind` as well as
-  name (fixes cross-kind mixing, e.g. Deployment `web` vs Service `web`).
+- `/api/events?kind=&ns=&name=&uid=` filters on `involvedObject.kind` as well as
+  name (fixes cross-kind mixing, e.g. Deployment `web` vs Service `web`),
+  on `involvedObject.namespace` when `ns` is given, and on
+  `involvedObject.uid`: the `uid` given, else the current object's (looked
+  up; skipped when it cannot be read), so events of a deleted object of
+  the same name are left out. Newest first; an events.k8s.io-style
+  `series` gives the count and last-seen time (`series.lastObservedTime`,
+  else `lastTimestamp`, else `eventTime`).
 - `/api/logs` accepts `tail` (default 300, max 5000), `previous=true`,
   `sinceSeconds`.
 - Secret values are redacted on every read route (`/api/resource`,
@@ -935,9 +960,16 @@ and `new-resource` with `{namespace?, kind?}` (see 7.2);
   (read) — Server-Sent Events: first `event: pods` with
   `{"pods":["<pod>/<container>"],"total":N}` (followed containers, matching
   pods), then `data:` one log line per event, `event: error` (a reason
-  message, §3.3), `event: end`, `: ping` every 15 s. Also `?selector=<labelSelector>` (≤10 pods, lines
-  prefixed `[pod/container]`). Failures before the stream starts are JSON
-  errors (§3.3).
+  message, §3.3), `event: end`, `: ping` every 15 s. Also `?selector=<labelSelector>` (≤10 pods at
+  once, lines prefixed `[pod/container]`). A live selector stream (not
+  `previous`) lists the matching pods again every 5 s: pods that start to
+  match (new, rescheduled, or recreated under the same name, told apart by
+  UID) are followed from their `tail` once their container has run (a pod
+  still being created waits for a later round), up to 10 at once; the logs of pods
+  that no longer match are closed; each change sends another `event: pods`.
+  A log that ended is not reopened, and such a stream sends no `event:
+  end` (it ends with the client, a lost access or the server's shutdown).
+  Failures before the stream starts are JSON errors (§3.3).
 - Both are authorized when they start and checked again at every ping
   (terminal) or heartbeat (logs): once the session ends (logout, password
   change, user deleted), a password change is due, the cluster is removed,

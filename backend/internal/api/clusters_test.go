@@ -3,8 +3,10 @@ package api
 import (
 	"errors"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 
@@ -203,4 +205,91 @@ func TestAddClusterByPathRefusesRequestWrittenFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 	expect(t, e.do(http.MethodPost, "/api/clusters", "admin", map[string]string{"name": "own", "path": own}), http.StatusOK, "")
+}
+
+// kubeconfigWithAuthProvider replaces the test user's token with an auth
+// provider named name and the given settings.
+func kubeconfigWithAuthProvider(name string, cfg map[string]string) string {
+	var b strings.Builder
+	b.WriteString("    auth-provider:\n      name: " + name + "\n      config:\n")
+	keys := make([]string, 0, len(cfg))
+	for k := range cfg {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		b.WriteString("        " + k + ": " + cfg[k] + "\n")
+	}
+	return strings.Replace(testKubeconfig, "    token: not-a-real-token\n", b.String(), 1)
+}
+
+// The legacy oidc auth provider runs nothing, so a pasted kubeconfig may
+// use it as long as its CA is embedded; other providers are refused
+// whatever the source, with a reason that says so.
+func TestAddClusterAuthProviders(t *testing.T) {
+	oidc := map[string]string{
+		"idp-issuer-url": "https://idp.example.com/realms/k8s",
+		"client-id":      "kubernetes",
+		"id-token":       "eyJhbGciOiJSUzI1NiJ9.e30.sig",
+		"refresh-token":  "abc",
+	}
+	with := func(extra map[string]string) map[string]string {
+		m := map[string]string{}
+		for k, v := range oidc {
+			m[k] = v
+		}
+		for k, v := range extra {
+			if v == "" {
+				delete(m, k)
+			} else {
+				m[k] = v
+			}
+		}
+		return m
+	}
+	add := func(e *testEnv, name, content string) *httptest.ResponseRecorder {
+		return e.do(http.MethodPost, "/api/clusters", "admin", map[string]string{"name": name, "content": content})
+	}
+	reasonOf := func(rec *httptest.ResponseRecorder) string {
+		return decode[plugin.ErrorBody](t, rec).Reason
+	}
+
+	e := newTestEnv(t, nil)
+	expect(t, add(e, "oidc", kubeconfigWithAuthProvider("oidc", oidc)), http.StatusOK, "")
+	expect(t, add(e, "oidc-ca-data", kubeconfigWithAuthProvider("oidc", with(map[string]string{
+		"idp-certificate-authority-data": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCg==",
+	}))), http.StatusOK, "")
+
+	rec := add(e, "oidc-ca-file", kubeconfigWithAuthProvider("oidc", with(map[string]string{
+		"idp-certificate-authority": "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt",
+	})))
+	expect(t, rec, http.StatusForbidden, plugin.CodeForbidden)
+	if got := reasonOf(rec); got != "clusters.server_side_references" ||
+		!strings.Contains(rec.Body.String(), "idp-certificate-authority file") {
+		t.Fatalf("CA file refusal: %s", rec.Body.String())
+	}
+
+	for name, content := range map[string]string{
+		"gcp":       kubeconfigWithAuthProvider("gcp", map[string]string{"cmd-path": "/usr/bin/gcloud"}),
+		"no-issuer": kubeconfigWithAuthProvider("oidc", with(map[string]string{"idp-issuer-url": ""})),
+		"no-token":  kubeconfigWithAuthProvider("oidc", with(map[string]string{"id-token": "", "refresh-token": ""})),
+	} {
+		rec := add(e, name, content)
+		expect(t, rec, http.StatusBadRequest, plugin.CodeBadRequest)
+		want := "clusters.oidc_incomplete"
+		if name == "gcp" {
+			want = "clusters.auth_provider_unsupported"
+		}
+		if got := reasonOf(rec); got != want {
+			t.Errorf("%s: reason %q, want %q (%s)", name, got, want, rec.Body.String())
+		}
+	}
+
+	// The CA file is fine where reading the server's files is allowed.
+	trusting := newTestEnv(t, map[string]string{"KUBEBENCH_ALLOW_KUBECONFIG_EXEC": "true"})
+	expect(t, add(trusting, "oidc-ca-file", kubeconfigWithAuthProvider("oidc", with(map[string]string{
+		"idp-certificate-authority": "/etc/ssl/idp.pem",
+	}))), http.StatusOK, "")
+	// An unsupported provider fails whatever the opt-in.
+	expect(t, add(trusting, "gcp", kubeconfigWithAuthProvider("gcp", nil)), http.StatusBadRequest, plugin.CodeBadRequest)
 }

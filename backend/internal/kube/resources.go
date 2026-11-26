@@ -4,16 +4,20 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/remotecommand"
+	utilexec "k8s.io/client-go/util/exec"
 	"k8s.io/kubectl/pkg/scheme"
 )
 
@@ -78,9 +82,14 @@ func (r *Runtime) ListServices(ctx context.Context, namespace string) ([]Service
 }
 
 // ListEvents lists the events in namespace ("" = all) about objects of the
-// given kind and name; empty filters match everything. Filtering on the
-// kind keeps e.g. Deployment "web" and Service "web" apart.
-func (r *Runtime) ListEvents(ctx context.Context, namespace, kind, name string) ([]EventInfo, error) {
+// given kind and name, newest first; empty filters match everything.
+// Filtering on the kind keeps e.g. Deployment "web" and Service "web"
+// apart, on the namespace the objects of that name in other namespaces.
+// uid selects one incarnation of the object; when it is empty and kind
+// and name are given, the current object's UID is looked up, so events of
+// a deleted object of the same name are left out. When the object cannot
+// be read (gone, not allowed) its events are matched by name alone.
+func (r *Runtime) ListEvents(ctx context.Context, namespace, kind, name, uid string) ([]EventInfo, error) {
 	var terms []fields.Selector
 	if kind != "" {
 		terms = append(terms, fields.OneTermEqualSelector("involvedObject.kind", kind))
@@ -88,16 +97,38 @@ func (r *Runtime) ListEvents(ctx context.Context, namespace, kind, name string) 
 	if name != "" {
 		terms = append(terms, fields.OneTermEqualSelector("involvedObject.name", name))
 	}
+	if namespace != "" {
+		terms = append(terms, fields.OneTermEqualSelector("involvedObject.namespace", namespace))
+	}
+	if uid == "" && kind != "" && name != "" {
+		uid = r.objectUID(ctx, kind, namespace, name)
+	}
+	if uid != "" {
+		terms = append(terms, fields.OneTermEqualSelector("involvedObject.uid", uid))
+	}
 	opts := metav1.ListOptions{FieldSelector: fields.AndSelectors(terms...).String()}
 	list, err := r.CS.CoreV1().Events(namespace).List(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
+	sort.SliceStable(list.Items, func(i, j int) bool {
+		return eventLastSeen(&list.Items[i]).After(eventLastSeen(&list.Items[j]))
+	})
 	out := []EventInfo{}
 	for i := range list.Items {
 		out = append(out, MapEvent(&list.Items[i]))
 	}
 	return out, nil
+}
+
+// objectUID is the UID of the object, or "" when it cannot be read.
+func (r *Runtime) objectUID(ctx context.Context, kind, namespace, name string) string {
+	obj, err := r.objectByKind(ctx, kind, namespace, name)
+	if err != nil {
+		return ""
+	}
+	uid, _, _ := unstructured.NestedString(obj, "metadata", "uid")
+	return uid
 }
 
 // objectByKind fetches an object by kind alone, as the YAML views of
@@ -198,34 +229,43 @@ func (r *Runtime) ScaleDeployment(ctx context.Context, namespace, name string, r
 	return err
 }
 
-// Exec runs one command through sh -c and returns combined output lines.
-func (r *Runtime) Exec(ctx context.Context, namespace, pod, container, command string) ([]string, error) {
-	req := r.CS.CoreV1().RESTClient().Post().
-		Resource("pods").Namespace(namespace).Name(pod).SubResource("exec").
-		VersionedParams(&corev1.PodExecOptions{
-			Container: container,
-			Command:   []string{"sh", "-c", command},
-			Stdout:    true,
-			Stderr:    true,
-		}, scheme.ParameterCodec)
+// execTimeout bounds a one-shot Exec.
+const execTimeout = 20 * time.Second
 
-	executor, err := remotecommand.NewSPDYExecutor(r.Config, "POST", req.URL())
+// Exec runs one command through sh -c and returns combined output lines.
+// A command that ran and exited non-zero is an answer, not an error: its
+// output (or, when it printed nothing, "command terminated with exit code
+// N") is returned. Failing to run it (pod or container missing, RBAC, the
+// upgrade refused, the time limit) is returned as the error.
+func (r *Runtime) Exec(ctx context.Context, namespace, pod, container, command string) ([]string, error) {
+	executor, err := r.execExecutor(&corev1.PodExecOptions{
+		Container: container,
+		Command:   []string{"sh", "-c", command},
+		Stdout:    true,
+		Stderr:    true,
+	}, namespace, pod)
 	if err != nil {
 		return nil, err
 	}
-	var stdout, stderr bytes.Buffer
-	execCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	execCtx, cancel := context.WithTimeout(ctx, execTimeout)
 	defer cancel()
-	err = executor.StreamWithContext(execCtx, remotecommand.StreamOptions{
+	return runOneShot(execCtx, executor)
+}
+
+func runOneShot(ctx context.Context, executor remotecommand.Executor) ([]string, error) {
+	var stdout, stderr bytes.Buffer
+	err := executor.StreamWithContext(ctx, remotecommand.StreamOptions{
 		Stdout: &stdout, Stderr: &stderr,
 	})
-	output := stdout.String()
-	if stderr.Len() > 0 {
-		output += stderr.String()
+	output := stdout.String() + stderr.String()
+	if err != nil {
+		var exit utilexec.ExitError
+		if !errors.As(err, &exit) {
+			return nil, err
+		}
+		if output == "" {
+			output = err.Error()
+		}
 	}
-	if err != nil && output == "" {
-		output = err.Error()
-	}
-	lines := strings.Split(strings.TrimRight(output, "\n"), "\n")
-	return lines, nil
+	return strings.Split(strings.TrimRight(output, "\n"), "\n"), nil
 }

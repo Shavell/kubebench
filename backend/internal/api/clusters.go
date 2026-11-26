@@ -255,6 +255,11 @@ func (s *Server) checkKubeconfig(content, contextName string, pasted bool) error
 	if !ok {
 		return badRequest(reasonUnknownContext, reason.Params{"context": contextName})
 	}
+	// An auth provider KubeBench cannot use fails whatever the source;
+	// say so now rather than when the cluster is first used.
+	if err := kube.CheckAuthProvider(kc.AuthInfos[ctx.AuthInfo]); err != nil {
+		return refuse(http.StatusBadRequest, plugin.CodeBadRequest, err)
+	}
 	if !pasted || s.cfg.AllowKubeconfigExec {
 		return nil
 	}
@@ -285,7 +290,15 @@ func serverSideReferences(cluster *clientcmdapi.Cluster, user *clientcmdapi.Auth
 		if user.Exec != nil && cloudauth.ProviderFor(user) == "" {
 			refs = append(refs, "an exec credential plugin")
 		}
-		if user.AuthProvider != nil {
+		// The oidc auth provider runs nothing: it refreshes the ID token
+		// at the issuer the kubeconfig names, as the API server it names
+		// is contacted too. Only its CA file would be read on the server.
+		switch {
+		case kube.IsOIDCAuthProvider(user):
+			if user.AuthProvider.Config[kube.OIDCCAFileKey] != "" {
+				refs = append(refs, "an idp-certificate-authority file")
+			}
+		case user.AuthProvider != nil:
 			refs = append(refs, "an auth provider")
 		}
 	}

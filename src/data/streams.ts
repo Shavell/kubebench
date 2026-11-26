@@ -13,7 +13,10 @@ export interface LogStreamRequest {
   namespace: string
   /** One pod … */
   pod?: string
-  /** … or the pods a label selector matches (at most 10; lines start with `[pod/container] `). */
+  /**
+   * … or the pods a label selector matches (at most 10 at once; lines start
+   * with `[pod/container] `). Pods that match later are followed too.
+   */
   selector?: string
   /** Defaults to each pod's default container. */
   container?: string
@@ -30,6 +33,12 @@ export interface LogStreamRequest {
 export interface LogStreamHandlers {
   /** The stream is open: the containers it follows (`pod/container`) and how many pods matched. */
   onOpen(containers: string[], matched: number): void
+  /**
+   * A live selector stream follows other containers now: pods started or
+   * stopped matching (new, rescheduled or deleted pods). Such a stream does
+   * not end when its logs did.
+   */
+  onPods?(containers: string[], matched: number): void
   /** One log line, as the server sent it. */
   onLine(line: string): void
   /** One followed log failed; the others go on until `onEnd`. */

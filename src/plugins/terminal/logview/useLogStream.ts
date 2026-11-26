@@ -113,6 +113,7 @@ export function useLogStream(params: LogStreamParams): LogStreamState {
             setStatus({ state: 'live' })
             if (since) push({ kind: 'notice', text: 'logs.notice.resumed', level: null })
           },
+          onPods: (containers, matched) => setSources({ containers, matched }),
           onLine: (raw) => {
             const line = parseLine(raw, prefixed)
             const source = line.source ?? ''

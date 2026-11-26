@@ -70,7 +70,7 @@ func TestSelectorLogSources(t *testing.T) {
 	)
 	ctx := context.Background()
 	sources, matched, err := rt.SelectorLogSources(ctx, "shop", "app=api", "", 10)
-	want := []LogSource{{"api-a", "app"}, {"api-b", "sidecar"}, {"api-c", "app"}}
+	want := []LogSource{{Pod: "api-a", Container: "app"}, {Pod: "api-b", Container: "sidecar"}, {Pod: "api-c", Container: "app"}}
 	if err != nil || matched != 3 || !slices.Equal(sources, want) {
 		t.Fatalf("sources = %v (%d), %v; want %v", sources, matched, err, want)
 	}
@@ -79,13 +79,13 @@ func TestSelectorLogSources(t *testing.T) {
 		t.Fatalf("limited sources = %v (%d)", sources, matched)
 	}
 	sources, matched, _ = rt.SelectorLogSources(ctx, "shop", "app=api", "sidecar", 10)
-	if matched != 2 || !slices.Equal(sources, []LogSource{{"api-a", "sidecar"}, {"api-b", "sidecar"}}) {
+	if matched != 2 || !slices.Equal(sources, []LogSource{{Pod: "api-a", Container: "sidecar"}, {Pod: "api-b", Container: "sidecar"}}) {
 		t.Fatalf("sidecar sources = %v (%d)", sources, matched)
 	}
 	if sources, matched, _ = rt.SelectorLogSources(ctx, "shop", "app=none", "", 10); len(sources) != 0 || matched != 0 {
 		t.Fatalf("no match = %v (%d)", sources, matched)
 	}
-	if got := (LogSource{"api-a", "app"}).String(); got != "api-a/app" {
+	if got := (LogSource{Pod: "api-a", Container: "app"}).String(); got != "api-a/app" {
 		t.Fatalf("String = %q", got)
 	}
 }
@@ -93,7 +93,7 @@ func TestSelectorLogSources(t *testing.T) {
 func TestFollowLog(t *testing.T) {
 	rt, cs := podRuntime(pod("web", nil, nil, "app"))
 	tail := int64(50)
-	body, err := rt.FollowLog(context.Background(), "shop", LogSource{"web", "app"},
+	body, err := rt.FollowLog(context.Background(), "shop", LogSource{Pod: "web", Container: "app"},
 		LogFollowOptions{TailLines: &tail, Previous: true, Timestamps: true, SinceSeconds: 30})
 	if err != nil {
 		t.Fatal(err)
@@ -108,5 +108,29 @@ func TestFollowLog(t *testing.T) {
 	if opts == nil || !opts.Follow || opts.Container != "app" || *opts.TailLines != 50 || !opts.Previous ||
 		!opts.Timestamps || opts.SinceSeconds == nil || *opts.SinceSeconds != 30 {
 		t.Fatalf("log options = %+v", opts)
+	}
+}
+
+func TestContainerStarted(t *testing.T) {
+	status := func(st corev1.ContainerStatus) *corev1.Pod {
+		st.Name = "app"
+		return &corev1.Pod{Status: corev1.PodStatus{ContainerStatuses: []corev1.ContainerStatus{st}}}
+	}
+	for name, tc := range map[string]struct {
+		pod  *corev1.Pod
+		want bool
+	}{
+		"no status": {&corev1.Pod{}, false},
+		"creating":  {status(corev1.ContainerStatus{State: corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{Reason: "ContainerCreating"}}}), false},
+		"running":   {status(corev1.ContainerStatus{State: corev1.ContainerState{Running: &corev1.ContainerStateRunning{}}}), true},
+		"completed": {status(corev1.ContainerStatus{State: corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{}}}), true},
+		"crash loop": {status(corev1.ContainerStatus{
+			State:                corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{Reason: "CrashLoopBackOff"}},
+			LastTerminationState: corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{ExitCode: 1}},
+		}), true},
+	} {
+		if got := containerStarted(tc.pod, "app"); got != tc.want {
+			t.Errorf("%s: started = %v, want %v", name, got, tc.want)
+		}
 	}
 }

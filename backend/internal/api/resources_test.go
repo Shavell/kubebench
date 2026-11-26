@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8stesting "k8s.io/client-go/testing"
 
 	"kubebench/internal/plugin"
@@ -54,8 +55,40 @@ func TestEventsFilterOnKind(t *testing.T) {
 	if !ok || list.GetResource().Resource != "events" {
 		t.Fatalf("last action = %#v", actions[len(actions)-1])
 	}
-	if got := list.GetListRestrictions().Fields.String(); got != "involvedObject.kind=Deployment,involvedObject.name=web" {
+	// The fake Deployment has no UID: matched by kind, name and namespace.
+	if got := list.GetListRestrictions().Fields.String(); got != "involvedObject.kind=Deployment,involvedObject.name=web,involvedObject.namespace=default" {
 		t.Fatalf("field selector = %q", got)
+	}
+}
+
+// Events of a deleted object of the same name are left out: the current
+// object's UID (or the one the caller names) joins the selector.
+func TestEventsFilterOnUID(t *testing.T) {
+	e := newTestEnv(t, nil)
+	pod, err := e.cs.CoreV1().Pods("default").Get(t.Context(), "web-1", metav1.GetOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	pod.UID = "uid-now"
+	if _, err := e.cs.CoreV1().Pods("default").Update(t.Context(), pod, metav1.UpdateOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	selector := func(target string) string {
+		t.Helper()
+		expect(t, e.do(http.MethodGet, target, "bob", nil), http.StatusOK, "")
+		actions := e.cs.Actions()
+		return actions[len(actions)-1].(k8stesting.ListActionImpl).GetListRestrictions().Fields.String()
+	}
+	base := "involvedObject.kind=Pod,involvedObject.name=web-1,involvedObject.namespace=default,"
+	if got := selector("/api/events?ns=default&kind=Pod&name=web-1"); got != base+"involvedObject.uid=uid-now" {
+		t.Fatalf("looked-up uid: %q", got)
+	}
+	if got := selector("/api/events?ns=default&kind=Pod&name=web-1&uid=uid-old"); got != base+"involvedObject.uid=uid-old" {
+		t.Fatalf("explicit uid: %q", got)
+	}
+	// A gone object is matched by name.
+	if got := selector("/api/events?ns=default&kind=Pod&name=gone"); got != "involvedObject.kind=Pod,involvedObject.name=gone,involvedObject.namespace=default" {
+		t.Fatalf("gone object: %q", got)
 	}
 }
 

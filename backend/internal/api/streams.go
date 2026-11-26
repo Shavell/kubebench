@@ -20,6 +20,9 @@ type streamSettings struct {
 	// logWriteWait bounds one write to a log stream, so that a client
 	// that stops reading ends its stream instead of holding it open.
 	logWriteWait time.Duration
+	// logResolve is how often a selector log stream lists the pods its
+	// selector matches again, to follow new pods and drop deleted ones.
+	logResolve time.Duration
 	// terminalPing is the WebSocket ping interval; a client that answers
 	// none of two pings in a row is gone. The caller's access is checked
 	// again at the same interval.
@@ -46,6 +49,7 @@ func defaultStreamSettings() streamSettings {
 	return streamSettings{
 		logHeartbeat:        15 * time.Second,
 		logWriteWait:        10 * time.Second,
+		logResolve:          5 * time.Second,
 		terminalPing:        30 * time.Second,
 		terminalIdle:        30 * time.Minute,
 		terminalWriteWait:   10 * time.Second,

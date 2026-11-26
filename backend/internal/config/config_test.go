@@ -145,6 +145,7 @@ func TestValidationReportsEveryProblem(t *testing.T) {
 		"KUBEBENCH_TRUST_PROXY":          "maybe",
 		"KUBEBENCH_TLS_CERT":             "/tls/tls.crt",
 		"KUBEBENCH_SESSION_TTL":          "forever",
+		"KUBEBENCH_REQUEST_TIMEOUT":      "10ms",
 		"KUBEBENCH_AUDIT_RETENTION_DAYS": "-1",
 	}), false)
 	if err == nil {
@@ -153,6 +154,7 @@ func TestValidationReportsEveryProblem(t *testing.T) {
 	for _, key := range []string{
 		"PORT", "KUBEBENCH_SECURE_COOKIES", "KUBEBENCH_TRUST_PROXY",
 		"KUBEBENCH_TLS_CERT/KUBEBENCH_TLS_KEY", "KUBEBENCH_SESSION_TTL", "KUBEBENCH_AUDIT_RETENTION_DAYS",
+		"KUBEBENCH_REQUEST_TIMEOUT",
 	} {
 		if !strings.Contains(err.Error(), key+":") {
 			t.Errorf("error does not mention %s: %v", key, err)
@@ -212,6 +214,19 @@ func TestProxyOrigin(t *testing.T) {
 	for _, bad := range []string{"proxy.example.com", "ftp://proxy.example.com", "https://proxy.example.com/sub", "https://proxy.example.com/?a=1", "https://u@proxy.example.com"} {
 		if _, err := FromEnv(env(map[string]string{"KUBEBENCH_PROXY_ORIGIN": bad}), false); err == nil || !strings.Contains(err.Error(), "KUBEBENCH_PROXY_ORIGIN") {
 			t.Errorf("%q: err = %v, want it refused", bad, err)
+		}
+	}
+}
+
+func TestRequestTimeout(t *testing.T) {
+	c, err := FromEnv(env(nil), false)
+	if err != nil || c.RequestTimeout != DefaultRequestTimeout {
+		t.Fatalf("default request timeout: %v, %v", c.RequestTimeout, err)
+	}
+	for raw, want := range map[string]time.Duration{"0": 0, "2m": 2 * time.Minute} {
+		c, err := FromEnv(env(map[string]string{"KUBEBENCH_REQUEST_TIMEOUT": raw}), false)
+		if err != nil || c.RequestTimeout != want {
+			t.Errorf("KUBEBENCH_REQUEST_TIMEOUT=%s: %v, %v", raw, c.RequestTimeout, err)
 		}
 	}
 }

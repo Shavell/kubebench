@@ -52,6 +52,11 @@ type Config struct {
 
 	SessionTTL         time.Duration
 	AuditRetentionDays int
+	// RequestTimeout bounds the non-streaming API requests that work on a
+	// cluster (KUBEBENCH_REQUEST_TIMEOUT): lists, reads and changes. Log
+	// streams, live updates, terminals and the operations with their own
+	// time limit are not affected. Zero disables it.
+	RequestTimeout time.Duration
 
 	AllowPathKubeconfig bool
 	// AllowKubeconfigExec lets pasted kubeconfigs run exec credential
@@ -90,6 +95,9 @@ type Config struct {
 	// Monitoring configures how OpenShift monitoring is reached (v0.8).
 	Monitoring MonitoringConfig
 }
+
+// DefaultRequestTimeout is the default of KUBEBENCH_REQUEST_TIMEOUT.
+const DefaultRequestTimeout = 30 * time.Second
 
 // DefaultUpdateURL lists the releases of KubeBench's GitHub repository.
 const DefaultUpdateURL = "https://api.github.com/repos/Shavell/kubebench/releases"
@@ -155,6 +163,10 @@ func FromEnv(lookup func(string) (string, bool), inCluster bool) (*Config, error
 	c.SessionTTL = p.duration("KUBEBENCH_SESSION_TTL", 168*time.Hour)
 	if c.SessionTTL < time.Minute {
 		p.fail("KUBEBENCH_SESSION_TTL", "must be at least 1m")
+	}
+	c.RequestTimeout = p.duration("KUBEBENCH_REQUEST_TIMEOUT", DefaultRequestTimeout)
+	if c.RequestTimeout != 0 && c.RequestTimeout < time.Second {
+		p.fail("KUBEBENCH_REQUEST_TIMEOUT", "must be 0 (no limit) or at least 1s")
 	}
 	c.AuditRetentionDays = p.integer("KUBEBENCH_AUDIT_RETENTION_DAYS", 90)
 	if c.AuditRetentionDays < 0 {

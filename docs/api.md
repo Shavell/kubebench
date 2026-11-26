@@ -32,6 +32,13 @@ CHANGELOG says how.
 - **Bodies** are JSON (`Content-Type: application/json`) unless stated.
   They must arrive within one minute. Most query parameters that name an
   object are `ns` and `name`.
+- **Request timeout.** Core routes of level `read`, `write`, `exec` and
+  `browse` end after `KUBEBENCH_REQUEST_TIMEOUT` (default 30 s) with
+  `504 kubernetes` when the cluster has not answered by then. Not
+  limited: `GET /api/logs/stream`, `GET /api/watch`, `GET /api/exec/ws`,
+  `POST /api/exec` (20 s of its own), `POST /api/nodes/drain`
+  (`timeoutSeconds`), `POST /api/pods/debug` (waits for the container),
+  the passthrough (60 s of its own) and plugin routes.
 - **Booleans** in query strings are `true` or `false`; anything else is
   `400 bad_request`, except on the passthrough (below).
 - **Mutations without a result** answer `{"ok": true}`.
@@ -225,7 +232,7 @@ an EUS subscription needs: the status stays `end-of-life`) or `ended`;
 |---|---|---|---|---|
 | GET | `/api/clusters` | authed | — | `ClusterEntry[]`: `{"id","name","source","active","context"?,"server"?,"address"?,"error"?,"readOnly","environment","role","platform","allowedNamespaces"}`; admins also get `kubeconfigPath`, `cloudAuth` and `cloudCredentials` (the provider only, never the secrets). Listing never connects to a cluster |
 | POST | `/api/clusters/activate` | authed | `?name=` | `{"ok":true}`; `403` without an assignment, `400` for address bookmarks or a cluster that cannot be reached |
-| POST | `/api/clusters` | admin | `{"name", "content"? \| "path"? \| "address"?, "context"?, "credentials"?, "allowedNamespaces"?: [names]}` (the v0.4 query form `?name=&path=&address=&context=` still works) | `{"ok":true,"id"}`; `path` needs `features.pathKubeconfig`, else `403`, and a path inside a directory KubeBench writes from requests (the plugins' data directories such as the Helm cache, the external plugins directory) is refused with `403`; pasted kubeconfigs that run exec plugins, auth providers or read server files are refused with `403` unless `KUBEBENCH_ALLOW_KUBECONFIG_EXEC=true` (EKS, GKE and AKS stanzas are handled in process); pasted EKS, GKE and AKS kubeconfigs without credentials of their own (none, or an AWS `profile`) are refused with `403` unless `features.ambientCloudIdentity` (`KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY`) |
+| POST | `/api/clusters` | admin | `{"name", "content"? \| "path"? \| "address"?, "context"?, "credentials"?, "allowedNamespaces"?: [names]}` (the v0.4 query form `?name=&path=&address=&context=` still works) | `{"ok":true,"id"}`; `path` needs `features.pathKubeconfig`, else `403`, and a path inside a directory KubeBench writes from requests (the plugins' data directories such as the Helm cache, the external plugins directory) is refused with `403`; pasted kubeconfigs that run exec plugins or read server files are refused with `403` unless `KUBEBENCH_ALLOW_KUBECONFIG_EXEC=true` (EKS, GKE and AKS stanzas and the `oidc` auth provider are handled in process; an `oidc` provider's `idp-certificate-authority` file counts as a server file); auth providers other than `oidc`, and an `oidc` provider without issuer, client ID or token, are refused with `400` for every source; pasted EKS, GKE and AKS kubeconfigs without credentials of their own (none, or an AWS `profile`) are refused with `403` unless `features.ambientCloudIdentity` (`KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY`) |
 | PATCH | `/api/clusters/{id}` | admin | `{"name"?, "readOnly"?, "environment"?: ""\|"development"\|"staging"\|"production", "credentials"?: object\|null, "allowedNamespaces"?: [names]}` | `{"ok":true}`; `allowedNamespaces` (design §7.16) are namespace names (at most 20, `[]` clears them) offered when the credential cannot list namespaces: a UI list, not a security boundary; removing the credentials of an EKS, GKE or AKS kubeconfig, or replacing them with an AWS `profile`, is refused with `403` unless `features.ambientCloudIdentity` |
 | DELETE | `/api/clusters` | admin | `?name=` | `{"ok":true}`; sessions' active cluster and assignments go with it |
 
@@ -261,7 +268,7 @@ All `read` unless stated.
 | GET | `/api/resource` | `?key=<catalog key>&ns=` | generic list of a built-in kind (`configmaps`, `secrets`, `statefulsets`, `ingresses`, `persistentvolumeclaims`, `clusterroles`, …; see `backend/internal/kube/catalog.go`); OpenShift's `routes`, `projects`, `securitycontextconstraints`, `deploymentconfigs`, `buildconfigs`, `builds`, `imagestreams`, `imagestreamtags` (§7.15) list as empty on clusters that do not serve them |
 | GET | `/api/resource/get` | `?key=&ns=&name=` | one object of that kind |
 | GET | `/api/yaml` | `?apiVersion=&kind=&ns=&name=&neat=true` | `{"yaml","resourceVersion"}`; without `apiVersion` only the kinds v0.4 knew; `neat` strips server-maintained fields (`resourceVersion` is still returned beside the YAML) |
-| GET | `/api/events` | `?kind=&ns=&name=` | `K8sEvent[]` about that object |
+| GET | `/api/events` | `?kind=&ns=&name=&uid=` (`uid` optional: defaults to the current object's UID) | `K8sEvent[]` about that object (that namespace and incarnation), newest first; `count` and `age` follow an event `series` |
 | GET | `/api/logs` | `?ns=&pod=&container=&tail=` (default 300, max 5000) `&previous=&sinceSeconds=` | `string[]` (lines) |
 | GET | `/api/crds` | — | `CrdDefinition[]`; `printerColumns` `[{name, type, description?, priority}]` are the `additionalPrinterColumns` of the listed (first served) version in order, without Name, Namespace and Age |
 | GET | `/api/crds/instances` | `?crd=<name>` | `CustomResource[]`; `extra` maps each printer column to its value, evaluated with full JSONPath (filters, indexes) and formatted by type like `kubectl get` (a `date` as an age); a column without a value is missing |
@@ -357,7 +364,7 @@ fields (counts, capacity, requests, limits) are always present.
 
 | Method | Path | Level | Parameters | Protocol |
 |---|---|---|---|---|
-| POST | `/api/exec` | exec | `?ns=&pod=&container=&cmd=` | one-shot command → `string[]` (output lines) |
+| POST | `/api/exec` | exec | `?ns=&pod=&container=&cmd=` | one-shot command (`sh -c`, 20 s, WebSocket with SPDY fallback) → `string[]` (stdout then stderr lines). A non-zero exit still answers `200` with the output (or `command terminated with exit code N`); failing to run the command answers the Kubernetes error (`404`, `403`, `502`, `504` on the time limit) |
 | GET | `/api/exec/ws` | exec | `?ns=&pod=&container=&command=<shell>` | WebSocket terminal (§7.1); audited once as `exec.session` |
 | GET | `/api/logs/stream` | read | `?ns=&pod=&container=&tail=&previous=&timestamps=&sinceSeconds=` or `?ns=&selector=<labels>` (≤ 10 pods) | Server-Sent Events |
 | GET | `/api/watch` | read | `?topics=pods,deployments,applications.argoproj.io,kubebench:notes` (1–32) | Server-Sent Events (§7.10) |
@@ -373,7 +380,12 @@ fields (counts, capacity, requests, limits) are always present.
 - **Log stream events.** `event: pods` `{"pods":["<pod>/<container>"],"total":N}`
   first, then one `data:` line per log line (prefixed `[pod/container]` with
   a selector), `event: error` with a reason message (a failing log, or why
-  the server ended the stream), `event: end`, and `: ping` every 15 s.
+  the server ended the stream), `event: end`, and `: ping` every 15 s. A
+  live selector stream (not `previous`) re-lists its pods every 5 s,
+  follows pods that start to match once their container runs (up to 10 at
+  once), closes the logs of
+  pods that stopped matching, sends another `event: pods` on every change
+  and never sends `event: end`.
 - **Watch events.** `event: status` `{"topic","mode":"starting"|"live"|"polling","reason"?}`,
   `event: change` `{"topic","namespace"}` (batched for 500 ms), `event: end`
   with a reason message; a comment heartbeat every 25 s. Topics starting with

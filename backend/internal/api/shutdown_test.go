@@ -85,7 +85,7 @@ func TestShutdownEndsLogStreams(t *testing.T) {
 		defer close(stopped)
 		streamLogs(ctx, sse, []logFeed{feed("a", func(context.Context) (io.ReadCloser, error) {
 			return logR, nil
-		})}, 1, time.Hour, nil)
+		})}, 1, time.Hour, nil, nil)
 	}()
 	if _, err := io.WriteString(logW, "hello\n"); err != nil {
 		t.Fatal(err)

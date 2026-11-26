@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -107,8 +108,17 @@ func WriteK8sError(w http.ResponseWriter, err error) {
 		err = ForbiddenReason(err)
 	case meta.IsNoMatchError(err):
 		status, code = http.StatusNotFound, CodeNotFound
-	case errors.Is(err, context.DeadlineExceeded):
+	case IsDeadline(err):
 		status = http.StatusGatewayTimeout
 	}
 	WriteError(w, status, code, err)
+}
+
+// IsDeadline reports whether err means that a request's deadline passed:
+// context.DeadlineExceeded, or client-go's rate limiter refusing to wait
+// past the deadline (golang.org/x/time/rate does not wrap the context
+// error).
+func IsDeadline(err error) bool {
+	return errors.Is(err, context.DeadlineExceeded) ||
+		err != nil && strings.Contains(err.Error(), "would exceed context deadline")
 }
