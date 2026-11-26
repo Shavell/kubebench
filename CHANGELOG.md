@@ -16,6 +16,65 @@ those commits.
 
 ## [Unreleased]
 
+Fixes from a compatibility check against Headlamp.
+
+### Added
+
+- Clusters added with namespace-scoped credentials: KubeBench starts in
+  the kubeconfig context's namespace (then in your last choice per
+  cluster) instead of "All namespaces", and an admin can set a cluster's
+  allowed namespaces, which the namespace pickers offer when the
+  credential may not list namespaces. The list only shapes the UI; it is
+  not a security boundary.
+- Scaling (`POST /api/workloads/scale?apiVersion=…`) works for any kind
+  with a `scale` subresource, such as Argo Rollouts and other custom
+  resources.
+- Cluster API requests time out after 30 s
+  (`KUBEBENCH_REQUEST_TIMEOUT`, `0` = no limit) with a 504 instead of
+  hanging on an unresponsive API server; log streams, live updates,
+  terminals, exec, drain and Helm operations are not affected.
+
+### Changed
+
+- The capability probe checks exec and Helm per namespace when the
+  credential lacks them cluster-wide, so a ServiceAccount bound to one
+  namespace keeps its terminal and Helm there.
+- A Kubernetes 403 reads "No permission" with the denied verb, resource
+  and namespace (in your language), and sidebars sum such refusals up as
+  one quiet notice instead of a red banner per count.
+- Live updates watch object metadata only, so Secret values are no
+  longer downloaded by the watch hub.
+
+### Fixed
+
+- YAML editor: an edit of an object that changed on the server since
+  editing started is refused ("changed on the server") instead of
+  silently overwriting the other change; the editor offers to review
+  your text against the current version or to discard it and reload.
+  Dry runs detect it too.
+- Custom resource lists show every printer column of the CRD, in its
+  order, with full JSONPath support (filters such as
+  `[?(@.type=="Ready")]` and indexes), formatted by type like
+  `kubectl get` (dates as ages). Columns with a priority above 0 appear
+  with "Show all columns".
+- Discovery is refreshed whenever a CustomResourceDefinition is added,
+  changed or deleted, so removed CRD versions no longer linger.
+- Rolling a Deployment back no longer drops its annotations: the
+  revision's annotations (such as its change-cause) are merged into the
+  Deployment's own.
+- Kubeconfigs using the legacy `oidc` auth provider work (ID tokens are
+  refreshed in memory, per cluster) and can be pasted when the identity
+  provider's CA is embedded; other auth providers are refused with a
+  clear reason.
+- Object events no longer include events of a deleted object of the same
+  name or of same-name objects in other namespaces; event series show
+  their real count and last-seen time, and events are listed newest
+  first.
+- One-shot exec (`POST /api/exec`) uses WebSocket with SPDY fallback and
+  reports failures to run the command as errors instead of as output.
+- Log streams by label selector follow pods that appear later (new or
+  rescheduled) and stop following deleted pods.
+
 ### Security
 
 - `kubebench healthcheck` verifies the server's TLS certificate against
