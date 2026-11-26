@@ -16,6 +16,19 @@ those commits.
 
 ## [Unreleased]
 
+### Security
+
+- `kubebench healthcheck` verifies the server's TLS certificate against
+  `KUBEBENCH_TLS_CERT` (its only trusted root) instead of skipping
+  verification. Self-signed certificates keep working; a certificate
+  without a subject alternative name, or an expired one, now reports the
+  server as unhealthy.
+- Helm chart uploads check the upload id where the archive path is built,
+  so no id can name a file outside the uploads directory.
+- Log lines that quote request input (failed audit writes, server errors)
+  escape line breaks, so a request can no longer forge log lines.
+- The service browser refuses an in-cluster path that starts with `//`.
+
 ## [0.8.2] - 2026-11-19
 
 ### Added
