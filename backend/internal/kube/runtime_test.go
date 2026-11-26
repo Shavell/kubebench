@@ -265,7 +265,7 @@ func TestManagerClosesRuntimesOutsideTheLock(t *testing.T) {
 	hanging, release := make(chan struct{}), make(chan struct{})
 	var calls atomic.Int32
 	rt.watch.Close()
-	rt.watch = watch.NewHub(rt.Dyn, func(string) (schema.GroupVersionResource, error) {
+	rt.watch = watch.NewHub(rt.meta, rt.Dyn, func(string) (schema.GroupVersionResource, error) {
 		if calls.Add(1) == 2 { // the retry
 			close(hanging)
 			<-release

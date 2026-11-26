@@ -1515,8 +1515,11 @@ start lazily and stop when unused. Frontend: scoped invalidation
   the server ends the stream: the cluster's runtime was rebuilt or removed,
   the caller's session/assignment ended (checked every heartbeat, like
   log streams) or the server shuts down (§7.1). Clients may reconnect after `end`.
-- **Hub** (`internal/watch`, one per Runtime, closed with it): one dynamic
-  informer per resource, keeping only object metadata, started on the
+- **Hub** (`internal/watch`, one per Runtime, closed with it): one
+  metadata informer per resource (`PartialObjectMetadata` lists and
+  watches, so Secret values never leave the API server; an aggregated API
+  that answers `406`/`415` is watched as whole objects instead), its cache
+  keeping only names, namespaces, UIDs and resource versions, started on the
   first subscription and stopped 5 min after the last subscriber left.
   Limits: 16 watch streams per user (`429 rate_limited`), 512 subscribers
   and 64 informers per cluster, 32 resource types per user across their
