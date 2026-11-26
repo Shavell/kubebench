@@ -14,11 +14,11 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	dynamicfake "k8s.io/client-go/dynamic/fake"
+	metafake "k8s.io/client-go/metadata/fake"
 	k8stesting "k8s.io/client-go/testing"
 )
 
@@ -42,13 +42,24 @@ func testResolver(topic string) (schema.GroupVersionResource, error) {
 	return schema.GroupVersionResource{}, &NotServedError{Topic: topic}
 }
 
-func object(gvr schema.GroupVersionResource, kind, namespace, name string) *unstructured.Unstructured {
-	u := &unstructured.Unstructured{}
-	u.SetAPIVersion(gvr.GroupVersion().String())
-	u.SetKind(kind)
-	u.SetNamespace(namespace)
-	u.SetName(name)
-	return u
+func object(gvr schema.GroupVersionResource, kind, namespace, name string) *metav1.PartialObjectMetadata {
+	return &metav1.PartialObjectMetadata{
+		TypeMeta:   metav1.TypeMeta{APIVersion: gvr.GroupVersion().String(), Kind: kind},
+		ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name},
+	}
+}
+
+func newFakeMeta(objects ...k8sruntime.Object) *metafake.FakeMetadataClient {
+	scheme := metafake.NewTestScheme()
+	_ = metav1.AddMetaToScheme(scheme)
+	return metafake.NewSimpleMetadataClient(scheme, objects...)
+}
+
+func create(t *testing.T, m *metafake.FakeMetadataClient, gvr schema.GroupVersionResource, obj *metav1.PartialObjectMetadata) {
+	t.Helper()
+	if _, err := m.Resource(gvr).Namespace(obj.Namespace).(metafake.MetadataClient).CreateFake(obj, metav1.CreateOptions{}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func newFakeDynamic(objects ...k8sruntime.Object) *dynamicfake.FakeDynamicClient {
@@ -76,12 +87,12 @@ func (l *logs) contains(s string) bool {
 	return slices.ContainsFunc(l.lines, func(line string) bool { return strings.Contains(line, s) })
 }
 
-func newTestHub(t *testing.T, dyn *dynamicfake.FakeDynamicClient, opts Options) (*Hub, *logs) {
+func newTestHub(t *testing.T, m *metafake.FakeMetadataClient, opts Options) (*Hub, *logs) {
 	t.Helper()
 	l := &logs{}
 	opts.Cluster = "test"
 	opts.Logf = l.logf
-	h := NewHub(dyn, testResolver, opts)
+	h := NewHub(m, nil, testResolver, opts)
 	t.Cleanup(h.Close)
 	return h, l
 }
@@ -133,8 +144,8 @@ func waitChanges(t *testing.T, sub *Subscription, n int) []Change {
 }
 
 func TestChangesAfterSync(t *testing.T) {
-	dyn := newFakeDynamic(object(podsGVR, "Pod", "default", "existing"))
-	h, l := newTestHub(t, dyn, Options{})
+	m := newFakeMeta(object(podsGVR, "Pod", "default", "existing"))
+	h, l := newTestHub(t, m, Options{})
 	sub := subscribe(t, h, "pods")
 
 	if st := sub.TakeStatuses(); len(st) != 1 || !reflect.DeepEqual(st[0], TopicStatus{Topic: "pods", Mode: ModeStarting}) {
@@ -146,10 +157,8 @@ func TestChangesAfterSync(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	if _, err := dyn.Resource(podsGVR).Namespace("shop").Create(ctx, object(podsGVR, "Pod", "shop", "web"), metav1.CreateOptions{}); err != nil {
-		t.Fatal(err)
-	}
-	if err := dyn.Resource(podsGVR).Namespace("default").Delete(ctx, "existing", metav1.DeleteOptions{}); err != nil {
+	create(t, m, podsGVR, object(podsGVR, "Pod", "shop", "web"))
+	if err := m.Resource(podsGVR).Namespace("default").Delete(ctx, "existing", metav1.DeleteOptions{}); err != nil {
 		t.Fatal(err)
 	}
 	got := waitChanges(t, sub, 2)
@@ -164,8 +173,8 @@ func TestChangesAfterSync(t *testing.T) {
 }
 
 func TestTopicsShareInformers(t *testing.T) {
-	dyn := newFakeDynamic()
-	h, _ := newTestHub(t, dyn, Options{})
+	m := newFakeMeta()
+	h, _ := newTestHub(t, m, Options{})
 	a := subscribe(t, h, "deployments", "deployments.apps")
 	b := subscribe(t, h, "deployments")
 	waitStatus(t, a, "deployments.apps", ModeLive)
@@ -176,10 +185,7 @@ func TestTopicsShareInformers(t *testing.T) {
 		t.Fatalf("stats = %+v, %d", informers, subscribers)
 	}
 
-	if _, err := dyn.Resource(deploymentsGVR).Namespace("x").Create(context.Background(),
-		object(deploymentsGVR, "Deployment", "x", "web"), metav1.CreateOptions{}); err != nil {
-		t.Fatal(err)
-	}
+	create(t, m, deploymentsGVR, object(deploymentsGVR, "Deployment", "x", "web"))
 	if got := waitChanges(t, a, 2); len(got) != 2 {
 		t.Fatalf("a: changes = %v", got)
 	}
@@ -189,7 +195,7 @@ func TestTopicsShareInformers(t *testing.T) {
 }
 
 func TestUnknownTopicIsPolled(t *testing.T) {
-	h, _ := newTestHub(t, newFakeDynamic(), Options{})
+	h, _ := newTestHub(t, newFakeMeta(), Options{})
 	sub := subscribe(t, h, "widgets.example.com")
 	st := sub.TakeStatuses()
 	if len(st) != 1 || st[0].Mode != ModePolling || st[0].Reason != "the cluster does not serve widgets.example.com" {
@@ -201,11 +207,11 @@ func TestUnknownTopicIsPolled(t *testing.T) {
 }
 
 func TestListDeniedIsPolled(t *testing.T) {
-	dyn := newFakeDynamic()
-	dyn.PrependReactor("list", "pods", func(k8stesting.Action) (bool, k8sruntime.Object, error) {
+	m := newFakeMeta()
+	m.PrependReactor("list", "pods", func(k8stesting.Action) (bool, k8sruntime.Object, error) {
 		return true, nil, apierrors.NewForbidden(schema.GroupResource{Resource: "pods"}, "", errors.New("RBAC"))
 	})
-	h, _ := newTestHub(t, dyn, Options{})
+	h, _ := newTestHub(t, m, Options{})
 	sub := subscribe(t, h, "pods")
 	st := waitStatus(t, sub, "pods", ModePolling)
 	if st.Reason != "the cluster credential may not list and watch pods" {
@@ -214,11 +220,11 @@ func TestListDeniedIsPolled(t *testing.T) {
 }
 
 func TestWatchDeniedIsPolled(t *testing.T) {
-	dyn := newFakeDynamic()
-	dyn.PrependWatchReactor("pods", func(k8stesting.Action) (bool, watch.Interface, error) {
+	m := newFakeMeta()
+	m.PrependWatchReactor("pods", func(k8stesting.Action) (bool, watch.Interface, error) {
 		return true, nil, apierrors.NewForbidden(schema.GroupResource{Resource: "pods"}, "", errors.New("RBAC"))
 	})
-	h, l := newTestHub(t, dyn, Options{})
+	h, l := newTestHub(t, m, Options{})
 	sub := subscribe(t, h, "pods")
 	waitStatus(t, sub, "pods", ModePolling)
 	// The informer gave up: it neither retries nor turns live again.
@@ -235,7 +241,7 @@ func TestWatchDeniedIsPolled(t *testing.T) {
 }
 
 func TestIdleInformerStops(t *testing.T) {
-	h, l := newTestHub(t, newFakeDynamic(), Options{Idle: 50 * time.Millisecond})
+	h, l := newTestHub(t, newFakeMeta(), Options{Idle: 50 * time.Millisecond})
 	first, err := h.Subscribe(1, []string{"pods"})
 	if err != nil {
 		t.Fatal(err)
@@ -275,8 +281,7 @@ func TestIdleInformerStops(t *testing.T) {
 
 func TestCloseEndsSubscriptionsAndInformers(t *testing.T) {
 	before := runtime.NumGoroutine()
-	dyn := newFakeDynamic()
-	h := NewHub(dyn, testResolver, Options{Logf: func(string, ...any) {}})
+	h := NewHub(newFakeMeta(), nil, testResolver, Options{Logf: func(string, ...any) {}})
 	sub, err := h.Subscribe(1, []string{"pods", "deployments", "namespaces"})
 	if err != nil {
 		t.Fatal(err)
@@ -335,7 +340,7 @@ func assertNoLeak(t *testing.T, before int) {
 }
 
 func TestLimits(t *testing.T) {
-	h, _ := newTestHub(t, newFakeDynamic(), Options{MaxSubscribers: 1, MaxInformers: 1})
+	h, _ := newTestHub(t, newFakeMeta(), Options{MaxSubscribers: 1, MaxInformers: 1})
 	sub := subscribe(t, h, "pods", "deployments")
 	st := sub.TakeStatuses()
 	if len(st) != 2 || st[0].Topic != "deployments" || st[0].Mode != ModePolling || st[1].Mode != ModeStarting {
@@ -347,7 +352,7 @@ func TestLimits(t *testing.T) {
 }
 
 func TestPendingChangesCollapse(t *testing.T) {
-	h := NewHub(newFakeDynamic(), testResolver, Options{})
+	h := NewHub(newFakeMeta(), nil, testResolver, Options{})
 	sub := newSubscription(h, 1)
 	for i := range maxPendingChanges {
 		sub.addChange(Change{Topic: "pods", Namespace: fmt.Sprintf("ns-%d", i)})
@@ -401,7 +406,7 @@ func TestTransientResolveFailureIsRetried(t *testing.T) {
 		}
 		return testResolver(topic)
 	}
-	h := NewHub(newFakeDynamic(), resolve, Options{Retry: 10 * time.Millisecond, Logf: func(string, ...any) {}})
+	h := NewHub(newFakeMeta(), nil, resolve, Options{Retry: 10 * time.Millisecond, Logf: func(string, ...any) {}})
 	t.Cleanup(h.Close)
 	sub := subscribe(t, h, "pods", "widgets.example.com")
 	st := sub.TakeStatuses()
@@ -420,7 +425,7 @@ func TestResolveRetryEndsWithSubscription(t *testing.T) {
 	failing := func(string) (schema.GroupVersionResource, error) {
 		return schema.GroupVersionResource{}, errors.New("connection refused")
 	}
-	h := NewHub(newFakeDynamic(), failing, Options{Retry: 5 * time.Millisecond, Logf: func(string, ...any) {}})
+	h := NewHub(newFakeMeta(), nil, failing, Options{Retry: 5 * time.Millisecond, Logf: func(string, ...any) {}})
 	sub, err := h.Subscribe(1, []string{"pods"})
 	if err != nil {
 		t.Fatal(err)
@@ -434,7 +439,7 @@ func TestResolveRetryEndsWithSubscription(t *testing.T) {
 // One owner watches at most MaxOwnerTypes resource types across its
 // subscriptions; other owners are not limited by it.
 func TestOwnerTypeLimit(t *testing.T) {
-	h, _ := newTestHub(t, newFakeDynamic(), Options{MaxOwnerTypes: 2})
+	h, _ := newTestHub(t, newFakeMeta(), Options{MaxOwnerTypes: 2})
 	first, err := h.Subscribe(1, []string{"pods", "deployments"})
 	if err != nil {
 		t.Fatal(err)

@@ -18,6 +18,7 @@ import (
 	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/metadata"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
@@ -53,7 +54,8 @@ type Runtime struct {
 	Sampler *Sampler
 
 	opts      Options
-	watch     *watch.Hub // live updates (§7.10); see Watch
+	meta      metadata.Interface // object metadata only (live updates)
+	watch     *watch.Hub         // live updates (§7.10); see Watch
 	discovery discovery.CachedDiscoveryInterface
 	mapper    *restmapper.DeferredDiscoveryRESTMapper
 	resetMu   sync.Mutex    // guards lastReset
@@ -101,39 +103,49 @@ func newRuntime(cluster store.Cluster, opts Options) (*Runtime, error) {
 	// manager of changes made without an explicit one.
 	config.UserAgent = FieldManager
 
-	cs, dyn, metrics, err := clientsFor(config)
+	c, err := clientsFor(config)
 	if err != nil {
 		return nil, err
 	}
-	rt := assemble(cluster, config, cs, dyn, metrics)
+	rt := assemble(cluster, config, c.cs, c.dyn, c.meta, c.metrics)
 	rt.opts = opts
 	rt.Sampler.start()
 	go rt.watchProm(rt.stop)
+	go rt.watchCRDs(rt.stop, c.meta)
 	go rt.probeCapabilities()
 	go rt.detectCloudOnce()
 	return rt, nil
 }
 
-// clientsFor builds the typed, dynamic and metrics clients over one HTTP
-// client that does not follow redirects (see httpClientFor).
-func clientsFor(config *rest.Config) (kubernetes.Interface, dynamic.Interface, metricsv.Interface, error) {
+// clients are the API clients of one cluster.
+type clients struct {
+	cs      kubernetes.Interface
+	dyn     dynamic.Interface
+	meta    metadata.Interface
+	metrics metricsv.Interface
+}
+
+// clientsFor builds the typed, dynamic, metadata-only and metrics clients
+// over one HTTP client that does not follow redirects (see httpClientFor).
+func clientsFor(config *rest.Config) (*clients, error) {
 	httpClient, err := httpClientFor(config)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
-	cs, err := kubernetes.NewForConfigAndClient(config, httpClient)
-	if err != nil {
-		return nil, nil, nil, err
+	c := &clients{}
+	if c.cs, err = kubernetes.NewForConfigAndClient(config, httpClient); err != nil {
+		return nil, err
 	}
-	dyn, err := dynamic.NewForConfigAndClient(config, httpClient)
-	if err != nil {
-		return nil, nil, nil, err
+	if c.dyn, err = dynamic.NewForConfigAndClient(config, httpClient); err != nil {
+		return nil, err
 	}
-	metrics, err := metricsv.NewForConfigAndClient(config, httpClient)
-	if err != nil {
-		return nil, nil, nil, err
+	if c.meta, err = metadata.NewForConfigAndClient(metadata.ConfigFor(config), httpClient); err != nil {
+		return nil, err
 	}
-	return cs, dyn, metrics, nil
+	if c.metrics, err = metricsv.NewForConfigAndClient(config, httpClient); err != nil {
+		return nil, err
+	}
+	return c, nil
 }
 
 // NewRuntimeForTest builds a Runtime around injected (usually fake)
@@ -145,7 +157,8 @@ func clientsFor(config *rest.Config) (kubernetes.Interface, dynamic.Interface, m
 // need metrics set Metrics and call SampleForTest; tests of RawGet set
 // Config before using the runtime.
 func NewRuntimeForTest(cluster store.Cluster, cs kubernetes.Interface, dyn dynamic.Interface) *Runtime {
-	rt := assemble(cluster, &rest.Config{Host: "https://kubebench.invalid"}, cs, dyn, nil)
+	config := &rest.Config{Host: "https://kubebench.invalid"}
+	rt := assemble(cluster, config, cs, dyn, metadata.NewForConfigOrDie(config), nil)
 	close(rt.probed)
 	rt.promOnce.Do(func() { close(rt.promDone) })
 	rt.Sampler.status = reason.New(reasonMetricsMissing, nil)
@@ -197,13 +210,14 @@ func (r *Runtime) SampleForTest(ctx context.Context, now time.Time) {
 }
 
 func assemble(cluster store.Cluster, config *rest.Config, cs kubernetes.Interface,
-	dyn dynamic.Interface, metrics metricsv.Interface) *Runtime {
+	dyn dynamic.Interface, meta metadata.Interface, metrics metricsv.Interface) *Runtime {
 	cached := memory.NewMemCacheClient(cs.Discovery())
 	rt := &Runtime{
 		Cluster:   cluster,
 		Config:    config,
 		CS:        cs,
 		Dyn:       dyn,
+		meta:      meta,
 		Metrics:   metrics,
 		discovery: cached,
 		mapper:    restmapper.NewDeferredDiscoveryRESTMapper(cached),
@@ -213,7 +227,7 @@ func assemble(cluster store.Cluster, config *rest.Config, cs kubernetes.Interfac
 		platform:  cloudState{done: make(chan struct{})},
 	}
 	rt.Sampler = newSampler(rt)
-	rt.watch = watch.NewHub(dyn, rt.resolveTopic, watch.Options{Cluster: cluster.Name})
+	rt.watch = watch.NewHub(meta, dyn, rt.resolveTopic, watch.Options{Cluster: cluster.Name})
 	return rt
 }
 

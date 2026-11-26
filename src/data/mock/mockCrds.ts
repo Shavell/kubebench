@@ -9,6 +9,7 @@ export const crds: CrdDefinition[] = [
     scope: 'Namespaced',
     shortNames: ['cert', 'certs'],
     age: '77d',
+    printerColumns: [{ name: 'Secret', type: 'string', priority: 0 }, { name: 'Issuer', type: 'string', priority: 1 }],
   },
   {
     name: 'issuers.cert-manager.io',
@@ -18,6 +19,7 @@ export const crds: CrdDefinition[] = [
     scope: 'Namespaced',
     shortNames: ['iss'],
     age: '77d',
+    printerColumns: [{ name: 'Type', type: 'string', priority: 0 }],
   },
   {
     name: 'servicemonitors.monitoring.coreos.com',
@@ -27,6 +29,7 @@ export const crds: CrdDefinition[] = [
     scope: 'Namespaced',
     shortNames: ['smon'],
     age: '61d',
+    printerColumns: [{ name: 'Port', type: 'string', priority: 0 }, { name: 'Interval', type: 'string', priority: 1 }],
   },
   {
     name: 'ingressroutes.traefik.io',
@@ -36,6 +39,7 @@ export const crds: CrdDefinition[] = [
     scope: 'Namespaced',
     shortNames: [],
     age: '58d',
+    printerColumns: [{ name: 'EntryPoints', type: 'string', priority: 0 }, { name: 'Host', type: 'string', priority: 0 }],
   },
 ]
 

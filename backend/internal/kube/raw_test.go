@@ -31,18 +31,21 @@ func TestClientsDoNotFollowRedirects(t *testing.T) {
 	defer api.Close()
 	config := &rest.Config{Host: api.URL, BearerToken: "stored-cluster-credential"}
 
-	cs, dyn, metrics, err := clientsFor(config)
+	c, err := clientsFor(config)
 	if err != nil {
 		t.Fatal(err)
 	}
 	ctx := context.Background()
-	if _, err := cs.CoreV1().Services("monitoring").ProxyGet("http", "prometheus", "9090", "api/v1/query", nil).DoRaw(ctx); err == nil {
+	if _, err := c.cs.CoreV1().Services("monitoring").ProxyGet("http", "prometheus", "9090", "api/v1/query", nil).DoRaw(ctx); err == nil {
 		t.Error("the typed client accepted a redirect")
 	}
-	if _, err := dyn.Resource(Catalog["configmaps"].GVR).List(ctx, metav1.ListOptions{}); err == nil {
+	if _, err := c.dyn.Resource(Catalog["configmaps"].GVR).List(ctx, metav1.ListOptions{}); err == nil {
 		t.Error("the dynamic client accepted a redirect")
 	}
-	if _, err := metrics.MetricsV1beta1().NodeMetricses().List(ctx, metav1.ListOptions{}); err == nil {
+	if _, err := c.meta.Resource(Catalog["configmaps"].GVR).List(ctx, metav1.ListOptions{}); err == nil {
+		t.Error("the metadata client accepted a redirect")
+	}
+	if _, err := c.metrics.MetricsV1beta1().NodeMetricses().List(ctx, metav1.ListOptions{}); err == nil {
 		t.Error("the metrics client accepted a redirect")
 	}
 

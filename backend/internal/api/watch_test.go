@@ -13,10 +13,8 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	dynamicfake "k8s.io/client-go/dynamic/fake"
+	metafake "k8s.io/client-go/metadata/fake"
 
 	"kubebench/internal/store"
 	"kubebench/internal/watch"
@@ -24,15 +22,16 @@ import (
 
 var watchPodsGVR = schema.GroupVersionResource{Version: "v1", Resource: "pods"}
 
-// watchEnv is a test env whose cluster runtime watches a dynamic fake
+// watchEnv is a test env whose cluster runtime watches a metadata fake
 // serving pods, with short stream timings. It returns the fake and a
 // server running the API.
-func watchEnv(t *testing.T) (*testEnv, *dynamicfake.FakeDynamicClient, *httptest.Server) {
+func watchEnv(t *testing.T) (*testEnv, *metafake.FakeMetadataClient, *httptest.Server) {
 	t.Helper()
 	e := newTestEnv(t, nil)
 	e.srv.streams.watchTimings = watchTimings{heartbeat: 50 * time.Millisecond, debounce: 20 * time.Millisecond}
-	dyn := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(k8sruntime.NewScheme(),
-		map[schema.GroupVersionResource]string{watchPodsGVR: "PodList"})
+	scheme := metafake.NewTestScheme()
+	_ = metav1.AddMetaToScheme(scheme)
+	meta := metafake.NewSimpleMetadataClient(scheme)
 	cluster, err := e.store.GetCluster(e.cluster)
 	if err != nil {
 		t.Fatal(err)
@@ -41,7 +40,7 @@ func watchEnv(t *testing.T) (*testEnv, *dynamicfake.FakeDynamicClient, *httptest
 	if err != nil {
 		t.Fatal(err)
 	}
-	rt.SetWatchForTest(watch.NewHub(dyn, func(topic string) (schema.GroupVersionResource, error) {
+	rt.SetWatchForTest(watch.NewHub(meta, nil, func(topic string) (schema.GroupVersionResource, error) {
 		if topic == "pods" {
 			return watchPodsGVR, nil
 		}
@@ -50,7 +49,7 @@ func watchEnv(t *testing.T) (*testEnv, *dynamicfake.FakeDynamicClient, *httptest
 	srv := httptest.NewServer(e.handler)
 	t.Cleanup(srv.Close)
 	t.Cleanup(rt.Close)
-	return e, dyn, srv
+	return e, meta, srv
 }
 
 type unknownTopic struct{ topic string }
@@ -119,14 +118,13 @@ func nextEvent(t *testing.T, events <-chan sseEvent, name string) string {
 	}
 }
 
-func createPod(t *testing.T, dyn *dynamicfake.FakeDynamicClient, namespace, name string) {
+func createPod(t *testing.T, meta *metafake.FakeMetadataClient, namespace, name string) {
 	t.Helper()
-	pod := &unstructured.Unstructured{}
-	pod.SetAPIVersion("v1")
-	pod.SetKind("Pod")
-	pod.SetNamespace(namespace)
-	pod.SetName(name)
-	if _, err := dyn.Resource(watchPodsGVR).Namespace(namespace).Create(context.Background(), pod, metav1.CreateOptions{}); err != nil {
+	pod := &metav1.PartialObjectMetadata{
+		TypeMeta:   metav1.TypeMeta{APIVersion: "v1", Kind: "Pod"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name},
+	}
+	if _, err := meta.Resource(watchPodsGVR).Namespace(namespace).(metafake.MetadataClient).CreateFake(pod, metav1.CreateOptions{}); err != nil {
 		t.Fatal(err)
 	}
 }

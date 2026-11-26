@@ -34,7 +34,7 @@ func TestDetectCloud(t *testing.T) {
 
 // A fresh runtime reports no detection until the first one finished.
 func TestCloudPending(t *testing.T) {
-	rt := assemble(store.Cluster{ID: 1}, &rest.Config{Host: "https://10.0.0.1:6443"}, fake.NewClientset(), nil, nil)
+	rt := assemble(store.Cluster{ID: 1}, &rest.Config{Host: "https://10.0.0.1:6443"}, fake.NewClientset(), nil, nil, nil)
 	if _, ok := rt.Cloud(); ok {
 		t.Fatal("detection reported before it ran")
 	}
