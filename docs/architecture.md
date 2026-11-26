@@ -170,8 +170,14 @@ build; a production build whose backend is unreachable shows a boot error.
 
 Queries declare the topics they read (`scope: {topics, namespace}`).
 Mutations call `refreshData()`, which re-runs every query; the live-update
-stream calls `refreshTopics(changes)`, which re-runs only the affected ones.
-The stream subscribes to the union of the mounted queries' topics.
+stream calls `refreshTopics(changes)`, which re-runs only the affected ones,
+paced (`src/data/invalidation.ts`, design §7.10): queries that cannot be
+seen (hidden pages, a background browser tab) refresh once when shown, a
+query never re-reads while its read runs, and continuous changes back off
+to one refresh per 5 s. The stream subscribes to the union of the mounted
+queries' topics. List views read at most 2,000 rows (`limit`, "Load more")
+from the API server's watch cache; the explorer's badges are server-side
+counts (design §4.4).
 
 ### i18n and themes
 
