@@ -64,8 +64,9 @@ cluster-to-cluster compare, port-forward, light/dark per-plugin theming.
 - `kubebench --version` prints `kubebench <version> (<commit>, <date>)`.
 - `kubebench healthcheck` performs `GET /healthz` on the listen address
   (`KUBEBENCH_LISTEN_ADDR`, else `:$PORT`; `127.0.0.1` when it names no
-  host or an unspecified one; honours `KUBEBENCH_TLS_*` → https with
-  `InsecureSkipVerify`) and exits 0/1 (2 for an invalid configuration) —
+  host or an unspecified one; honours `KUBEBENCH_TLS_*` → https, verifying
+  the server against the configured certificate as the only trusted root
+  and one of its own names, so self-signed certificates work) and exits 0/1 (2 for an invalid configuration) —
   used by Docker `HEALTHCHECK` (distroless has no shell/curl) and by
   `install.sh` to wait for the service.
 - `GET /api/version` (public) → `{"version","commit","date"}`.

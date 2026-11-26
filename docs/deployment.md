@@ -505,6 +505,10 @@ Caddy does all of this with `reverse_proxy 127.0.0.1:9876`.
 **Native TLS**: set `KUBEBENCH_TLS_CERT` and `KUBEBENCH_TLS_KEY` to files the
 `kubebench` user can read (e.g. `/etc/kubebench/tls.{crt,key}`,
 `root:kubebench 0640`); the session cookie becomes `Secure` automatically.
+`kubebench healthcheck` verifies the server against this certificate (as
+its only trusted root, for one of the names it lists), so a self-signed
+certificate works; it needs a subject alternative name and must not have
+expired.
 The service has no capabilities, so listen on a port above 1023, or allow
 port 443 with a drop-in (`systemctl edit kubebench`):
 
