@@ -68,11 +68,14 @@ func detectedNamespaces(c *store.Cluster) []string {
 
 // candidateNamespaces are the namespaces the UI offers when the credential
 // cannot list them: the allowed namespaces when set, else the detected
-// ones; at most MaxProbeNamespaces.
+// ones; at most MaxProbeNamespaces, never nil.
 func candidateNamespaces(c *store.Cluster) []string {
 	names := c.Namespaces()
 	if len(names) == 0 {
 		names = detectedNamespaces(c)
+	}
+	if names == nil {
+		names = []string{}
 	}
 	if len(names) > MaxProbeNamespaces {
 		names = names[:MaxProbeNamespaces]
