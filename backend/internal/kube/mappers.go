@@ -324,15 +324,27 @@ func MapService(s *corev1.Service) ServiceInfo {
 	}
 }
 
+// eventLastSeen is when the event last occurred: the series' last
+// observation for an events.k8s.io-style series, else lastTimestamp, else
+// eventTime, else when it was recorded.
+func eventLastSeen(e *corev1.Event) time.Time {
+	if e.Series != nil && !e.Series.LastObservedTime.IsZero() {
+		return e.Series.LastObservedTime.Time
+	}
+	for _, t := range []time.Time{e.LastTimestamp.Time, e.EventTime.Time} {
+		if !t.IsZero() {
+			return t
+		}
+	}
+	return e.CreationTimestamp.Time
+}
+
 func MapEvent(e *corev1.Event) EventInfo {
-	when := e.LastTimestamp.Time
-	if when.IsZero() {
-		when = e.EventTime.Time
-	}
-	if when.IsZero() {
-		when = e.CreationTimestamp.Time
-	}
+	when := eventLastSeen(e)
 	count := e.Count
+	if e.Series != nil && e.Series.Count > count {
+		count = e.Series.Count
+	}
 	if count == 0 {
 		count = 1
 	}

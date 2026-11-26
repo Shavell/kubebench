@@ -253,7 +253,7 @@ All `read` unless stated.
 | GET | `/api/resource` | `?key=<catalog key>&ns=` | generic list of a built-in kind (`configmaps`, `secrets`, `statefulsets`, `ingresses`, `persistentvolumeclaims`, `clusterroles`, …; see `backend/internal/kube/catalog.go`); OpenShift's `routes`, `projects`, `securitycontextconstraints`, `deploymentconfigs`, `buildconfigs`, `builds`, `imagestreams`, `imagestreamtags` (§7.15) list as empty on clusters that do not serve them |
 | GET | `/api/resource/get` | `?key=&ns=&name=` | one object of that kind |
 | GET | `/api/yaml` | `?apiVersion=&kind=&ns=&name=&neat=true` | `{"yaml"}`; without `apiVersion` only the kinds v0.4 knew; `neat` strips server-maintained fields |
-| GET | `/api/events` | `?kind=&ns=&name=` | `K8sEvent[]` about that object |
+| GET | `/api/events` | `?kind=&ns=&name=&uid=` (`uid` optional: defaults to the current object's UID) | `K8sEvent[]` about that object (that namespace and incarnation), newest first; `count` and `age` follow an event `series` |
 | GET | `/api/logs` | `?ns=&pod=&container=&tail=` (default 300, max 5000) `&previous=&sinceSeconds=` | `string[]` (lines) |
 | GET | `/api/crds` | — | `CrdDefinition[]` |
 | GET | `/api/crds/instances` | `?crd=<name>` | `CustomResource[]` |

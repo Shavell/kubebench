@@ -556,8 +556,14 @@ route answers `409 no_cluster` instead. Without any usable cluster,
 
 ### 4.4 Resources (fixes)
 
-- `/api/events?kind=&ns=&name=` filters on `involvedObject.kind` as well as
-  name (fixes cross-kind mixing, e.g. Deployment `web` vs Service `web`).
+- `/api/events?kind=&ns=&name=&uid=` filters on `involvedObject.kind` as well as
+  name (fixes cross-kind mixing, e.g. Deployment `web` vs Service `web`),
+  on `involvedObject.namespace` when `ns` is given, and on
+  `involvedObject.uid`: the `uid` given, else the current object's (looked
+  up; skipped when it cannot be read), so events of a deleted object of
+  the same name are left out. Newest first; an events.k8s.io-style
+  `series` gives the count and last-seen time (`series.lastObservedTime`,
+  else `lastTimestamp`, else `eventTime`).
 - `/api/logs` accepts `tail` (default 300, max 5000), `previous=true`,
   `sinceSeconds`.
 - Secret values are redacted on every read route (`/api/resource`,

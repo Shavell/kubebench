@@ -5,11 +5,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -78,9 +80,14 @@ func (r *Runtime) ListServices(ctx context.Context, namespace string) ([]Service
 }
 
 // ListEvents lists the events in namespace ("" = all) about objects of the
-// given kind and name; empty filters match everything. Filtering on the
-// kind keeps e.g. Deployment "web" and Service "web" apart.
-func (r *Runtime) ListEvents(ctx context.Context, namespace, kind, name string) ([]EventInfo, error) {
+// given kind and name, newest first; empty filters match everything.
+// Filtering on the kind keeps e.g. Deployment "web" and Service "web"
+// apart, on the namespace the objects of that name in other namespaces.
+// uid selects one incarnation of the object; when it is empty and kind
+// and name are given, the current object's UID is looked up, so events of
+// a deleted object of the same name are left out. When the object cannot
+// be read (gone, not allowed) its events are matched by name alone.
+func (r *Runtime) ListEvents(ctx context.Context, namespace, kind, name, uid string) ([]EventInfo, error) {
 	var terms []fields.Selector
 	if kind != "" {
 		terms = append(terms, fields.OneTermEqualSelector("involvedObject.kind", kind))
@@ -88,16 +95,38 @@ func (r *Runtime) ListEvents(ctx context.Context, namespace, kind, name string) 
 	if name != "" {
 		terms = append(terms, fields.OneTermEqualSelector("involvedObject.name", name))
 	}
+	if namespace != "" {
+		terms = append(terms, fields.OneTermEqualSelector("involvedObject.namespace", namespace))
+	}
+	if uid == "" && kind != "" && name != "" {
+		uid = r.objectUID(ctx, kind, namespace, name)
+	}
+	if uid != "" {
+		terms = append(terms, fields.OneTermEqualSelector("involvedObject.uid", uid))
+	}
 	opts := metav1.ListOptions{FieldSelector: fields.AndSelectors(terms...).String()}
 	list, err := r.CS.CoreV1().Events(namespace).List(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
+	sort.SliceStable(list.Items, func(i, j int) bool {
+		return eventLastSeen(&list.Items[i]).After(eventLastSeen(&list.Items[j]))
+	})
 	out := []EventInfo{}
 	for i := range list.Items {
 		out = append(out, MapEvent(&list.Items[i]))
 	}
 	return out, nil
+}
+
+// objectUID is the UID of the object, or "" when it cannot be read.
+func (r *Runtime) objectUID(ctx context.Context, kind, namespace, name string) string {
+	obj, err := r.objectByKind(ctx, kind, namespace, name)
+	if err != nil {
+		return ""
+	}
+	uid, _, _ := unstructured.NestedString(obj, "metadata", "uid")
+	return uid
 }
 
 // objectByKind fetches an object by kind alone, as the YAML views of

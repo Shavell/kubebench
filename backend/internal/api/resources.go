@@ -65,10 +65,11 @@ func (s *Server) handleYAML(w http.ResponseWriter, r *http.Request, c *call) {
 }
 
 // handleEvents lists the events about one object; kind keeps objects of
-// different kinds with the same name apart.
+// different kinds with the same name apart, uid (looked up when not given)
+// one incarnation of the object from earlier ones.
 func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request, c *call) {
 	q := r.URL.Query()
-	out, err := c.rt.ListEvents(r.Context(), q.Get("ns"), q.Get("kind"), q.Get("name"))
+	out, err := c.rt.ListEvents(r.Context(), q.Get("ns"), q.Get("kind"), q.Get("name"), q.Get("uid"))
 	writeResult(w, out, err)
 }
 
