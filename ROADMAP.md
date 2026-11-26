@@ -106,9 +106,8 @@ service browser (a frontend plugin on new core proxy routes).
 
 ## Next (candidates)
 
-Collected from the [comparison notes](docs/notes/kubelizeme-comparison.md#4-still-missing-after-v05-roadmap),
-the [v0.5 design contract](docs/design-v0.5.md) (its "out of scope" list),
-the [v0.5 hand-off](docs/dev/v0.5-handoff.md#95-known-limitations-after-the-w4-review)
+Collected from the [v0.5 design contract](docs/design-v0.5.md) (its "out of
+scope" list), the [v0.5 hand-off](docs/dev/v0.5-handoff.md#95-known-limitations-after-the-w4-review)
 and the limitations documented in [docs/security.md](docs/security.md).
 
 ### Operations
@@ -161,7 +160,6 @@ and the limitations documented in [docs/security.md](docs/security.md).
 | Item | Value | Size |
 |---|---|---|
 | APT and YUM repositories | Upgrade VM installs with the system package manager | M |
-| Automatic CI triggers | Turn the manual-only GitHub Actions workflows on for pushes, pull requests and tags ([docs/releasing.md](docs/releasing.md#turning-ci-on)) | S |
 
 ## Done
 
