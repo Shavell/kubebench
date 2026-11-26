@@ -478,6 +478,6 @@
   "workload": {
     "replicas_negative": "replicas muss mindestens 0 sein",
     "restart_kind": "Nur ein Deployment, StatefulSet oder DaemonSet kann neu gestartet werden, nicht \"{{kind}}\"",
-    "scale_kind": "Nur ein Deployment, StatefulSet oder ReplicaSet kann skaliert werden, nicht \"{{kind}}\""
+    "scale_kind": "{{kind}} kann nicht skaliert werden: es hat keine scale-Subressource"
   }
 }

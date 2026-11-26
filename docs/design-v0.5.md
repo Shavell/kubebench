@@ -1057,7 +1057,9 @@ All write unless noted; audited.
   `POST /api/deployments/rollback?ns=&name=&revision=`;
   `POST /api/deployments/pause?ns=&name=&paused=true|false`.
 - `POST /api/workloads/restart?kind=Deployment|StatefulSet|DaemonSet&ns=&name=`;
-  `POST /api/workloads/scale?kind=Deployment|StatefulSet|ReplicaSet&ns=&name=&replicas=`.
+  `POST /api/workloads/scale?kind=Deployment|StatefulSet|ReplicaSet&ns=&name=&replicas=`,
+  or with `apiVersion=` any kind whose API has a `scale` subresource
+  (discovery; e.g. an Argo Rollout or another custom resource).
 - Pods: `DELETE /api/pods?…&force=true` (grace 0); `POST /api/pods/bulk-delete`
   `{"items":[{"namespace","name"}],"force":bool}`; `POST /api/pods/debug?ns=&pod=&image=&target=` (exec)
   → ephemeral container name (attach via 7.1 with `container=`).
@@ -1103,8 +1105,10 @@ Details settled by the implementation:
   the revision lacks is removed. `409 conflict` while paused or for the
   current revision, `404 not_found` for a revision the Deployment does not
   have.
-- Restart and scale check `kind` (`400` otherwise); scale goes through the
-  `scale` subresource. `/api/deployments/scale|restart` keep working.
+- Restart and scale check `kind` (`400` otherwise; for scale with
+  `apiVersion`, a kind without a `scale` subresource, and `404 not_found`
+  for one the cluster does not serve); scale goes through the `scale`
+  subresource, so RBAC needs `patch` on `<resource>/scale` only. `/api/deployments/scale|restart` keep working.
 - `DELETE /api/pods?force=true` deletes with grace period 0. Bulk delete
   takes 1–200 items (mock mode too; the list's Delete button is disabled
   beyond 200 selected Pods, with the reason as tooltip) and answers `{"results":[{"namespace","name","error"?}]}`

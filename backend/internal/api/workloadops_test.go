@@ -14,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"kubebench/internal/kube"
+	"kubebench/internal/kube/kubetest"
 	"kubebench/internal/plugin"
 )
 
@@ -147,6 +148,10 @@ func TestRestartAndScaleThroughTheAPI(t *testing.T) {
 	} {
 		expect(t, e.do(http.MethodPost, target, "alice", nil), http.StatusBadRequest, plugin.CodeBadRequest)
 	}
+	// With an apiVersion the kind is resolved through discovery.
+	e.cs.Fake.Resources = kubetest.Resources(kubetest.Kinds)
+	expect(t, e.do(http.MethodPost, "/api/workloads/scale?apiVersion=example.com/v1&kind=Gadget&ns=default&name=g&replicas=1", "alice", nil),
+		http.StatusNotFound, plugin.CodeNotFound)
 }
 
 func TestCronJobsThroughTheAPI(t *testing.T) {

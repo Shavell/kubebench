@@ -329,7 +329,7 @@ fields (counts, capacity, requests, limits) are always present.
 | POST | `/api/deployments/rollback` | write | `?ns=&name=&revision=` | `{"ok":true}`; `409` while paused or for the current revision |
 | POST | `/api/deployments/pause` | write | `?ns=&name=&paused=true\|false` (default true) | `{"ok":true}` |
 | POST | `/api/workloads/restart` | write | `?kind=Deployment\|StatefulSet\|DaemonSet&ns=&name=` | `{"ok":true}` |
-| POST | `/api/workloads/scale` | write | `?kind=Deployment\|StatefulSet\|ReplicaSet&ns=&name=&replicas=` | `{"ok":true}` |
+| POST | `/api/workloads/scale` | write | `?kind=Deployment\|StatefulSet\|ReplicaSet&ns=&name=&replicas=`, or `?apiVersion=&kind=` for any kind with a `scale` subresource (discovered, e.g. an Argo Rollout) | `{"ok":true}`; `400` for a kind without a scale subresource |
 | POST | `/api/nodes/cordon` | write | `?name=&unschedulable=true\|false` (default true) | `{"ok":true}` |
 | POST | `/api/nodes/drain` | write | `?name=&ignoreDaemonSets=true&deleteEmptyDirData=false&force=false&gracePeriod=-1&timeoutSeconds=120` | `{"node","cordoned","completed","evicted","failed","blockedByPDB","skipped","errors"}` (`DrainResult`) |
 | PUT | `/api/nodes/taints` | write | `?name=`; body `{"taints":[{"key","value","effect"}]}` | `{"taints":[…]}` |

@@ -478,6 +478,6 @@
   "workload": {
     "replicas_negative": "replicas en az 0 olmalı",
     "restart_kind": "Yalnızca bir Deployment, StatefulSet veya DaemonSet yeniden başlatılabilir, \"{{kind}}\" değil",
-    "scale_kind": "Yalnızca bir Deployment, StatefulSet veya ReplicaSet ölçeklenebilir, \"{{kind}}\" değil"
+    "scale_kind": "{{kind}} ölçeklenemez: scale alt kaynağı yok"
   }
 }

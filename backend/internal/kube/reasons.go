@@ -12,7 +12,7 @@ var (
 	reasonNamespaceSystem    = reason.Define("namespace.system", "{{name}} is a system namespace; KubeBench deletes it only when forced")
 	reasonNamespaceOwn       = reason.Define("namespace.own", "{{name}} is the namespace KubeBench runs in; KubeBench deletes it only when forced")
 	reasonRestartKind        = reason.Define("workload.restart_kind", "only a Deployment, StatefulSet or DaemonSet can be restarted, not \"{{kind}}\"")
-	reasonScaleKind          = reason.Define("workload.scale_kind", "only a Deployment, StatefulSet or ReplicaSet can be scaled, not \"{{kind}}\"")
+	reasonScaleKind          = reason.Define("workload.scale_kind", "{{kind}} cannot be scaled: it has no scale subresource")
 	reasonReplicasNegative   = reason.Define("workload.replicas_negative", "replicas must be at least 0")
 	reasonRolloutPaused      = reason.Define("rollout.paused", "Deployment {{name}} is paused; resume it before rolling back")
 	reasonRolloutNoRevision  = reason.Define("rollout.no_revision", "Deployment {{name}} has no revision {{revision}}")
