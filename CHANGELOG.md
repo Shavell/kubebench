@@ -16,6 +16,8 @@ those commits.
 
 ## [Unreleased]
 
+## [0.8.3] - 2026-11-26
+
 Fixes from a compatibility check against Headlamp.
 
 ### Added
@@ -600,7 +602,8 @@ resource names, the forced password change, the moved Helm routes).
 - Container image and Helm chart for running KubeBench inside the cluster it
   manages.
 
-[Unreleased]: https://github.com/Shavell/kubebench/compare/v0.8.2...HEAD
+[Unreleased]: https://github.com/Shavell/kubebench/compare/v0.8.3...HEAD
+[0.8.3]: https://github.com/Shavell/kubebench/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/Shavell/kubebench/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/Shavell/kubebench/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/Shavell/kubebench/compare/v0.7.0...v0.8.0
