@@ -16,6 +16,19 @@ those commits.
 
 ## [Unreleased]
 
+## [0.8.4] - 2026-11-26
+
+Contains everything listed under 0.8.3, which was tagged but not
+published.
+
+### Changed
+
+- The documentation describes KubeBench on its own: the product
+  comparison notes and the internal development prompts are removed, and
+  the project's practices (code scanning triage, dependency updates,
+  language and wording rules, test clusters) are written down in
+  CONTRIBUTING.md and docs/releasing.md.
+
 ## [0.8.3] - 2026-11-26
 
 ### Added
@@ -600,7 +613,8 @@ resource names, the forced password change, the moved Helm routes).
 - Container image and Helm chart for running KubeBench inside the cluster it
   manages.
 
-[Unreleased]: https://github.com/Shavell/kubebench/compare/v0.8.3...HEAD
+[Unreleased]: https://github.com/Shavell/kubebench/compare/v0.8.4...HEAD
+[0.8.4]: https://github.com/Shavell/kubebench/compare/v0.8.3...v0.8.4
 [0.8.3]: https://github.com/Shavell/kubebench/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/Shavell/kubebench/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/Shavell/kubebench/compare/v0.8.0...v0.8.1
