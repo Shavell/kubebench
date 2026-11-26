@@ -20,6 +20,7 @@ exits with status 2. Values are trimmed; an empty value counts as unset.
 | `KUBEBENCH_TRUST_PROXY` | `false` | Honour `X-Forwarded-Proto`, `X-Forwarded-For` and `X-Forwarded-Host`; enable only behind a reverse proxy that sets them |
 | `KUBEBENCH_TLS_CERT`, `KUBEBENCH_TLS_KEY` | unset | Serve HTTPS directly; set both or neither. Both files are loaded at startup: an unreadable certificate or key is a configuration error |
 | `KUBEBENCH_SESSION_TTL` | `168h` | Session lifetime as a Go duration, at least `1m` |
+| `KUBEBENCH_REQUEST_TIMEOUT` | `30s` | Time limit of API requests that list, read or change cluster objects (Go duration, at least `1s`; `0` = no limit). When the API server has not answered by then the request ends with `504`. Log streams, live updates, terminals, one-shot exec, drain, debug containers, the plugin passthrough and plugin routes (Helm operations have their own timeouts) are not limited by it |
 | `KUBEBENCH_AUDIT_RETENTION_DAYS` | `90` | Audit rows older than this are pruned daily; `0` keeps them forever |
 | `KUBEBENCH_ALLOW_PATH_KUBECONFIG` | `true` outside a cluster, `false` inside | Let admins add clusters by a kubeconfig path on the server |
 | `KUBEBENCH_ALLOW_KUBECONFIG_EXEC` | `false` | Let **pasted** kubeconfigs run exec credential plugins and auth providers and read files on the server. Every admin can then run commands as the server's user. The EKS, GKE and AKS exec stanzas need no opt-in (they are handled in process); kubeconfigs added by path may always use exec plugins |

@@ -80,6 +80,9 @@ func writeErr(w http.ResponseWriter, err error) {
 		plugin.WriteError(w, http.StatusConflict, plugin.CodeConflict, reason.Wrap(err, reasonLastAdmin, nil))
 	case errors.Is(err, store.ErrConflict):
 		plugin.WriteError(w, http.StatusConflict, plugin.CodeConflict, err)
+	case plugin.IsDeadline(err):
+		// The request timeout passed while waiting for the cluster.
+		plugin.WriteK8sError(w, err)
 	default:
 		plugin.WriteError(w, http.StatusInternalServerError, plugin.CodeInternal, err)
 	}

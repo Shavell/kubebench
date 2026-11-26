@@ -295,6 +295,14 @@ error text. Pruned per `KUBEBENCH_AUDIT_RETENTION_DAYS`.
 - Requests must be read within 1 minute (`ReadTimeout`; headers within
   10 s). The deadline ends once the request has been read, so streams and
   long operations are not limited.
+- Core routes that work on a cluster (levels read, write, exec, browse)
+  run under a request deadline, `KUBEBENCH_REQUEST_TIMEOUT` (default 30 s,
+  `0` = none): a hung API server ends them with `504 kubernetes`. Routes
+  registered `longRunning` are exempt: log streams, live updates (SSE),
+  terminals, one-shot exec, drain, debug containers and the passthrough,
+  which bound their own duration where they need to. Plugin routes bound
+  their own work (Helm operations carry their own timeouts). The server
+  sets no `WriteTimeout`, which would cut streams.
 - The SQLite file and its `-wal`/`-shm` files are created `0600` (existing
   ones are tightened on start): they hold cluster credentials and sessions.
 - Non-GET requests with an `Origin` header that does not match the request

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strings"
@@ -33,9 +34,22 @@ const (
 	// run whenever plugin.IsDryRun(r): such requests need only read access
 	// and are not audited.
 	allowDryRun access = 1 << 8
+	// longRunning exempts a route from the request timeout
+	// (config.RequestTimeout): streams, terminals and operations that
+	// bound their own duration.
+	longRunning access = 1 << 9
 )
 
-func (a access) level() access { return a &^ allowDryRun }
+func (a access) level() access { return a &^ (allowDryRun | longRunning) }
+
+// bounded reports whether requests of a route with access a from plugin p
+// run under the request timeout: core routes that work on a cluster,
+// unless marked longRunning. Plugin routes bound their own work (Helm
+// operations carry their own timeouts).
+func (a access) bounded(p plugin.Plugin) bool {
+	level := a.level()
+	return p == nil && a&longRunning == 0 && level >= accessRead && level != accessAdmin
+}
 
 // handlerFunc serves a request after the router authorized it.
 type handlerFunc func(w http.ResponseWriter, r *http.Request, c *call)
@@ -97,6 +111,7 @@ func (s *Server) register(pattern string, a access, p plugin.Plugin, h handlerFu
 	}
 	level := a.level()
 	dryRunnable := a&allowDryRun != 0
+	bounded := a.bounded(p)
 	if dryRunnable && level != accessWrite && level != accessExec {
 		panic("api: only write and exec routes can allow dry runs: " + pattern)
 	}
@@ -159,6 +174,13 @@ func (s *Server) register(pattern string, a access, p plugin.Plugin, h handlerFu
 		if err := c.audit.recordable(); err != nil {
 			writeErr(w, err)
 			return
+		}
+		if bounded && s.cfg.RequestTimeout > 0 {
+			// A hung API server must not pin the request: its calls end
+			// with context.DeadlineExceeded, reported as 504.
+			ctx, cancel := context.WithTimeout(r.Context(), s.cfg.RequestTimeout)
+			defer cancel()
+			r = r.WithContext(ctx)
 		}
 		h(w, r, c)
 	})

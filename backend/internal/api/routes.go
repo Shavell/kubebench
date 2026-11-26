@@ -5,6 +5,10 @@ import "kubebench/internal/svcproxy"
 // routes is the API's route table (docs/design-v0.5.md §3.2, §4). The
 // access level decides session, role, read-only and audit handling.
 func (s *Server) routes() {
+	// Routes that work on a cluster run under the request timeout
+	// (KUBEBENCH_REQUEST_TIMEOUT) unless marked longRunning: streams and
+	// terminals, and operations that bound their own duration.
+
 	// No session.
 	s.handle("GET /healthz", accessPublic, s.handleHealthz)
 	s.handle("GET /api/version", accessPublic, s.handleVersion)
@@ -56,10 +60,10 @@ func (s *Server) routes() {
 	s.handle("GET /api/yaml", accessRead, s.handleYAML)
 	s.handle("GET /api/events", accessRead, s.handleEvents)
 	s.handle("GET /api/logs", accessRead, s.handleLogs)
-	s.handle("GET /api/logs/stream", accessRead, s.handleLogStream)
+	s.handle("GET /api/logs/stream", accessRead|longRunning, s.handleLogStream)
 	s.handle("GET /api/resource", accessRead, s.handleResourceList)
 	s.handle("GET /api/resource/get", accessRead, s.handleResourceGet)
-	s.handle("GET /api/k8s/{path...}", accessRead, s.handlePassthrough)
+	s.handle("GET /api/k8s/{path...}", accessRead|longRunning, s.handlePassthrough)
 	s.handle("GET /api/metrics/sources", accessRead, s.handleMetricSources)
 	s.handle("GET /api/metrics/overview", accessRead, s.handleOverview)
 	s.handle("GET /api/metrics/allocation", accessRead, s.handleAllocation)
@@ -69,15 +73,15 @@ func (s *Server) routes() {
 	s.handle("GET /api/crds", accessRead, s.handleCrds)
 	s.handle("GET /api/crds/instances", accessRead, s.handleCrdInstances)
 	// Live updates (§7.10): change notifications and the informers behind them.
-	s.handle("GET /api/watch", accessRead, s.handleWatch)
+	s.handle("GET /api/watch", accessRead|longRunning, s.handleWatch)
 	s.handle("GET /api/watch/status", accessRead, s.handleWatchStatus)
 
 	// The active cluster: changes (audited).
 	s.handle("DELETE /api/pods", accessWrite, s.handleDeletePod)
 	s.handle("POST /api/deployments/scale", accessWrite, s.handleScale)
 	s.handle("POST /api/deployments/restart", accessWrite, s.handleRestart)
-	s.handle("POST /api/exec", accessExec, s.handleExec)
-	s.handle("GET /api/exec/ws", accessExec, s.handleTerminal)
+	s.handle("POST /api/exec", accessExec|longRunning, s.handleExec)
+	s.handle("GET /api/exec/ws", accessExec|longRunning, s.handleTerminal)
 	s.handle("POST /api/resource/apply", accessWrite|allowDryRun, s.handleApply)
 	s.handle("POST /api/resource/edit", accessWrite|allowDryRun, s.handleEdit)
 	s.handle("DELETE /api/resource", accessWrite, s.handleDeleteResource)
@@ -93,10 +97,10 @@ func (s *Server) routes() {
 	s.handle("POST /api/workloads/restart", accessWrite, s.handleRestartWorkload)
 	s.handle("POST /api/workloads/scale", accessWrite, s.handleScaleWorkload)
 	s.handle("POST /api/nodes/cordon", accessWrite, s.handleCordon)
-	s.handle("POST /api/nodes/drain", accessWrite, s.handleDrain)
+	s.handle("POST /api/nodes/drain", accessWrite|longRunning, s.handleDrain)
 	s.handle("PUT /api/nodes/taints", accessWrite, s.handleSetTaints)
 	s.handle("POST /api/pods/bulk-delete", accessWrite, s.handleBulkDeletePods)
-	s.handle("POST /api/pods/debug", accessExec, s.handleDebugPod)
+	s.handle("POST /api/pods/debug", accessExec|longRunning, s.handleDebugPod)
 	s.handle("POST /api/cronjobs/trigger", accessWrite, s.handleTriggerCronJob)
 	s.handle("POST /api/cronjobs/suspend", accessWrite, s.handleSuspendCronJob)
 	s.handle("POST /api/namespaces", accessWrite, s.handleCreateNamespace)

@@ -32,6 +32,13 @@ CHANGELOG says how.
 - **Bodies** are JSON (`Content-Type: application/json`) unless stated.
   They must arrive within one minute. Most query parameters that name an
   object are `ns` and `name`.
+- **Request timeout.** Core routes of level `read`, `write`, `exec` and
+  `browse` end after `KUBEBENCH_REQUEST_TIMEOUT` (default 30 s) with
+  `504 kubernetes` when the cluster has not answered by then. Not
+  limited: `GET /api/logs/stream`, `GET /api/watch`, `GET /api/exec/ws`,
+  `POST /api/exec` (20 s of its own), `POST /api/nodes/drain`
+  (`timeoutSeconds`), `POST /api/pods/debug` (waits for the container),
+  the passthrough (60 s of its own) and plugin routes.
 - **Booleans** in query strings are `true` or `false`; anything else is
   `400 bad_request`, except on the passthrough (below).
 - **Mutations without a result** answer `{"ok": true}`.
