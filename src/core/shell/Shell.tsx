@@ -1,6 +1,7 @@
 import { LiveUpdates } from '@/core/live/LiveUpdates'
 import { useLayoutStore } from '@/core/store/layoutStore'
 import { UpdatesDialogs } from '@/core/updates/UpdatesDialogs'
+import { QueryActivityContext } from '@/data/DataContext'
 import { ContextMenuHost } from '@/shared/ContextMenuHost'
 import { Toaster } from '@/shared/Toaster'
 import { ActivityBar } from './ActivityBar'
@@ -38,10 +39,13 @@ export function Shell() {
         )}
         <div className="shell__main">
           {/* Hidden, not unmounted, under a maximized panel: open tabs (a
-              service browser's page and history) keep their state. */}
+              service browser's page and history) keep their state; their
+              queries wait for live updates until shown. */}
           <div className="shell__editors" hidden={panelVisible && panelMaximized}>
-            <EditorArea />
-            <SideEditorGroup />
+            <QueryActivityContext value={!(panelVisible && panelMaximized)}>
+              <EditorArea />
+              <SideEditorGroup />
+            </QueryActivityContext>
           </div>
           {panelVisible && (
             <div

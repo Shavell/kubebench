@@ -1625,7 +1625,18 @@ start lazily and stop when unused. Frontend: scoped invalidation
   `data.usePluginQuery`). `refreshData()` re-runs every query (mutations);
   `refreshTopics(changes)` only the queries of a changed topic in that
   namespace (the TS signature keeps `refreshData()` argument-free because
-  it is used as an event handler). The stream subscribes to the union of
+  it is used as an event handler). Refreshes are paced
+  (`src/data/invalidation.ts`): a query that cannot be seen (a hidden page
+  of the side editor group, the editors under a maximized panel, or a
+  browser tab in the background, `document.visibilityState`) is only
+  marked stale and refreshes once when shown; a live refresh never
+  overlaps a running read of the same query (changes meanwhile make one
+  more refresh after it); live refreshes of one query that follow each
+  other within 10 s wait 1 s, 2 s, 4 s, then 5 s (and at least as long as
+  its last read took), so a namespace that changes all the time re-lists a
+  view about every 5 s instead of after every 500 ms batch. `refreshData()`
+  refreshes visible queries at once (hidden ones when shown); timer
+  refreshes of polled topics are paced like live ones. The stream subscribes to the union of
   the mounted queries' topics (`live.watch` provider; the mock reports all
   topics live), opens a replacement before closing the old stream when
   topics are added, refreshes a topic once its informer synced and every
