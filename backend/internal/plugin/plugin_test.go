@@ -13,6 +13,7 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"kubebench/internal/kube"
@@ -104,6 +105,37 @@ func TestWriteK8sError(t *testing.T) {
 		if status != tc.status || body.Code != tc.code || body.Error != tc.err.Error() {
 			t.Errorf("%s: %d %+v, want %d %s", tc.name, status, body, tc.status, tc.code)
 		}
+	}
+}
+
+// A 403 says what the credential may not do (§7.16).
+func TestWriteK8sErrorForbidden(t *testing.T) {
+	denial := func(scope string) error {
+		return &apierrors.StatusError{ErrStatus: metav1.Status{
+			Status: metav1.StatusFailure, Code: http.StatusForbidden, Reason: metav1.StatusReasonForbidden,
+			Message: `deployments.apps is forbidden: User "system:serviceaccount:team-a:alice" cannot list resource "deployments" in API group "apps" ` + scope,
+		}}
+	}
+	for _, tc := range []struct {
+		name, reason, text string
+		err                error
+	}{
+		{"namespace", "kubernetes.forbidden_namespace",
+			`no permission to list deployments.apps in namespace "default" (Kubernetes RBAC of system:serviceaccount:team-a:alice)`,
+			denial(`in the namespace "default"`)},
+		{"cluster", "kubernetes.forbidden_cluster",
+			`no permission to list deployments.apps at the cluster scope (Kubernetes RBAC of system:serviceaccount:team-a:alice)`,
+			denial("at the cluster scope")},
+		{"other wording", "kubernetes.forbidden", `pods "web" is forbidden: no`,
+			apierrors.NewForbidden(schema.GroupResource{Resource: "pods"}, "web", errors.New("no"))},
+	} {
+		status, body := errorOf(t, func(w http.ResponseWriter) { WriteK8sError(w, tc.err) })
+		if status != http.StatusForbidden || body.Code != CodeKubernetes || body.Reason != tc.reason || body.Error != tc.text {
+			t.Errorf("%s: %d %+v", tc.name, status, body)
+		}
+	}
+	if body := ForbiddenReason(denial("at the cluster scope")); !apierrors.IsForbidden(body) {
+		t.Fatalf("the cause is kept: %v", body)
 	}
 }
 

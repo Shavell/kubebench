@@ -110,12 +110,13 @@
     "invalid_name": "Cluster adı 1-63 karakter olmalı",
     "no_access": "\"{{name}}\" cluster'ına erişiminiz yok",
     "not_found": "\"{{name}}\" cluster'ı bulunamadı",
-    "nothing_to_update": "Güncellenecek bir şey yok: name, readOnly, environment ve/veya credentials gönderin",
+    "nothing_to_update": "Güncellenecek bir şey yok: name, readOnly, environment, credentials ve/veya allowedNamespaces gönderin",
     "path_disabled": "Sunucu tarafındaki bir yol ile cluster eklemek kapalı (KUBEBENCH_ALLOW_PATH_KUBECONFIG); bunun yerine kubeconfig'i yapıştırın",
     "path_written": "{{path}}, KubeBench'in isteklerden gelen içerikle yazdığı {{dir}} içinde; bunun yerine sunucunun kendi kubeconfig'ini ekleyin",
     "read_kubeconfig": "{{path}} kubeconfig'i okunamıyor: {{detail}}",
     "server_side_references": "Kubeconfig {{references}} kullanıyor; bu sunucu yapıştırılan kubeconfig'lerde buna izin vermiyor (KUBEBENCH_ALLOW_KUBECONFIG_EXEC). Kimlik bilgilerini *-data alanları veya bir token olarak gömün",
     "source_required": "Kubeconfig içeriği, yolu veya API adresi zorunludur",
+    "too_many_namespaces": "En fazla {{max}} izinli namespace",
     "unknown_context": "\"{{context}}\" context'i kubeconfig'de yok"
   },
   "drain": {
@@ -199,6 +200,11 @@
     "upload_invalid": "Geçersiz chart: {{detail}}",
     "upload_not_found": "{{id}} yüklemesi yok veya süresi doldu; chart'ı yeniden yükleyin",
     "upload_version": "Yüklenen bir chart'ın kendi sürümü vardır; chart.version boş olmalı"
+  },
+  "kubernetes": {
+    "forbidden": "{{detail}}",
+    "forbidden_cluster": "Küme kapsamında {{resource}} için {{verb}} yetkisi yok ({{user}} kullanıcısının Kubernetes RBAC'i)",
+    "forbidden_namespace": "\"{{namespace}}\" namespace'inde {{resource}} için {{verb}} yetkisi yok ({{user}} kullanıcısının Kubernetes RBAC'i)"
   },
   "logs": {
     "invalid_selector": "Geçersiz selector: {{detail}}",

@@ -110,12 +110,13 @@
     "invalid_name": "Ein Clustername hat 1 bis 63 Zeichen",
     "no_access": "Sie haben keinen Zugriff auf den Cluster \"{{name}}\"",
     "not_found": "Cluster \"{{name}}\" nicht gefunden",
-    "nothing_to_update": "Nichts zu aktualisieren: senden Sie name, readOnly, environment und/oder credentials",
+    "nothing_to_update": "Nichts zu aktualisieren: senden Sie name, readOnly, environment, credentials und/oder allowedNamespaces",
     "path_disabled": "Das Hinzufügen von Clustern über einen serverseitigen Pfad ist deaktiviert (KUBEBENCH_ALLOW_PATH_KUBECONFIG); fügen Sie stattdessen die kubeconfig ein",
     "path_written": "{{path}} liegt in {{dir}}, das KubeBench mit Inhalten aus Anfragen beschreibt; fügen Sie stattdessen eine eigene kubeconfig des Servers hinzu",
     "read_kubeconfig": "Die kubeconfig {{path}} kann nicht gelesen werden: {{detail}}",
     "server_side_references": "Die kubeconfig verwendet {{references}}, was dieser Server in eingefügten kubeconfigs nicht erlaubt (KUBEBENCH_ALLOW_KUBECONFIG_EXEC); betten Sie die Anmeldedaten als *-data-Felder oder Token ein",
     "source_required": "kubeconfig-Inhalt, Pfad oder API-Adresse ist erforderlich",
+    "too_many_namespaces": "Höchstens {{max}} erlaubte Namespaces",
     "unknown_context": "Der Context \"{{context}}\" ist nicht in der kubeconfig"
   },
   "drain": {
@@ -199,6 +200,11 @@
     "upload_invalid": "Ungültiges Chart: {{detail}}",
     "upload_not_found": "Der Upload {{id}} existiert nicht oder ist abgelaufen; laden Sie das Chart erneut hoch",
     "upload_version": "Ein hochgeladenes Chart hat seine eigene Version; chart.version muss leer sein"
+  },
+  "kubernetes": {
+    "forbidden": "{{detail}}",
+    "forbidden_cluster": "Keine Berechtigung für {{verb}} auf {{resource}} im gesamten Cluster (Kubernetes-RBAC von {{user}})",
+    "forbidden_namespace": "Keine Berechtigung für {{verb}} auf {{resource}} im Namespace \"{{namespace}}\" (Kubernetes-RBAC von {{user}})"
   },
   "logs": {
     "invalid_selector": "Ungültiger Selector: {{detail}}",
