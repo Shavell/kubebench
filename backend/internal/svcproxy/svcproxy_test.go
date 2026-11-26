@@ -44,12 +44,12 @@ func TestTargetValidate(t *testing.T) {
 }
 
 func TestCleanPath(t *testing.T) {
-	for in, want := range map[string]string{"": "/", "/": "/", "/a/b.js": "/a/b.js", "x": "/x", "/a%20b": "/a%20b"} {
+	for in, want := range map[string]string{"": "/", "/": "/", "/a/b.js": "/a/b.js", "x": "/x", "/a%20b": "/a%20b", "/a//b": "/a//b"} {
 		if got, err := CleanPath(in); err != nil || got != want {
 			t.Errorf("CleanPath(%q) = %q, %v; want %q", in, got, err, want)
 		}
 	}
-	for _, bad := range []string{"/../secrets", "/a/./b", "/%2e%2e/x", "/%2E%2e/x", "/a%2fb", "/a%5Cb", `/a\b`, "/%zz"} {
+	for _, bad := range []string{"/../secrets", "/a/./b", "/%2e%2e/x", "/%2E%2e/x", "/a%2fb", "/a%5Cb", `/a\b`, "/%zz", "//evil.example/x", `/\evil.example`, "//"} {
 		if _, err := CleanPath(bad); err == nil {
 			t.Errorf("CleanPath(%q) passed", bad)
 		}
