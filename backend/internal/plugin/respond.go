@@ -10,6 +10,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 
+	"kubebench/internal/logsafe"
 	"kubebench/internal/reason"
 )
 
@@ -75,7 +76,8 @@ func WriteError(w http.ResponseWriter, status int, code string, err error) {
 	}
 	msg := body.Error
 	if status >= http.StatusInternalServerError {
-		log.Printf("[api] %d %s: %s", status, code, msg)
+		// The message can quote request input: escape line breaks.
+		log.Printf("[api] %d %s: %s", status, logsafe.Text(code), logsafe.Text(msg))
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
