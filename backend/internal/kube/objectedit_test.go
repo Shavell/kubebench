@@ -8,10 +8,15 @@ import (
 	"strings"
 	"testing"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	k8stesting "k8s.io/client-go/testing"
 
 	"kubebench/internal/kube/kubetest"
+	"kubebench/internal/reason"
 )
 
 const cmOriginal = `apiVersion: v1
@@ -44,7 +49,7 @@ func TestEditObjectRemovesFields(t *testing.T) {
 
 	edited := strings.Replace(cmOriginal, `data: {a: "1", b: "2"}`, `data: {a: "10"}`, 1)
 	edited = strings.Replace(edited, "labels: {team: a}", "labels: {team: a, tier: web}", 1)
-	res, err := rt.EditObject(ctx, o, []byte(cmOriginal), []byte(edited), false)
+	res, err := rt.EditObject(ctx, o, []byte(cmOriginal), []byte(edited), "", false)
 	if err != nil || res.Err != nil || res.Action != ActionConfigured {
 		t.Fatalf("edit = %+v, %v", res, err)
 	}
@@ -66,18 +71,89 @@ func TestEditObjectRemovesFields(t *testing.T) {
 	}
 
 	// Nothing edited: unchanged, and nothing is sent.
-	res, err = rt.EditObject(ctx, o, []byte(edited), []byte(edited), false)
+	res, err = rt.EditObject(ctx, o, []byte(edited), []byte(edited), "", false)
 	if err != nil || res.Action != ActionUnchanged || len(patchRequests(dyn)) != 1 {
 		t.Fatalf("an edit without changes = %+v, %v", res, err)
 	}
 
 	// A dry run sends the patch as one and changes nothing.
-	res, err = rt.EditObject(ctx, o, []byte(edited), []byte(cmOriginal), true)
+	res, err = rt.EditObject(ctx, o, []byte(edited), []byte(cmOriginal), "", true)
 	if err != nil || res.Err != nil || res.Action != ActionConfigured {
 		t.Fatalf("dry run = %+v, %v", res, err)
 	}
 	if last := patchRequests(dyn)[1]; !slices.Equal(last.PatchOptions.DryRun, []string{metav1.DryRunAll}) {
 		t.Fatalf("dry run options = %+v", last.PatchOptions)
+	}
+}
+
+// The edit carries the resourceVersion it started from, so the API server
+// refuses it (409) when the object changed since: a merge patch would
+// replace lists whole and silently undo the other change.
+func TestEditObjectResourceVersionPrecondition(t *testing.T) {
+	cm := kubetest.Object("v1", "ConfigMap", "shop", "cm1", map[string]any{"data": map[string]any{"a": "1", "b": "2"}})
+	cm.SetLabels(map[string]string{"team": "a"})
+	rt, dyn := editingRuntime(t, cm)
+	serverVersion := "7"
+	// The fake tracker ignores preconditions; check it like the API server.
+	dyn.PrependReactor("patch", "configmaps", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		var patch struct {
+			Metadata struct {
+				ResourceVersion string `json:"resourceVersion"`
+			} `json:"metadata"`
+		}
+		_ = json.Unmarshal(action.(k8stesting.PatchAction).GetPatch(), &patch)
+		if v := patch.Metadata.ResourceVersion; v != "" && v != serverVersion {
+			return true, nil, apierrors.NewConflict(schema.GroupResource{Resource: "configmaps"}, "cm1",
+				errors.New("the object has been modified; please apply your changes to the latest version and try again"))
+		}
+		return false, nil, nil
+	})
+	ctx := context.Background()
+	o := editTarget(t, rt, "v1", "ConfigMap", "cm1")
+	edited := strings.Replace(cmOriginal, `data: {a: "1", b: "2"}`, `data: {a: "10", b: "2"}`, 1)
+
+	sentPatch := func() string {
+		sent := patchRequests(dyn)
+		return string(sent[len(sent)-1].GetPatch())
+	}
+
+	// Current version: applied, with the precondition in the patch.
+	res, err := rt.EditObject(ctx, o, []byte(cmOriginal), []byte(edited), "7", false)
+	if err != nil || res.Err != nil || res.Action != ActionConfigured {
+		t.Fatalf("edit at the current version = %+v, %v", res, err)
+	}
+	if want := `{"data":{"a":"10"},"metadata":{"resourceVersion":"7"}}`; sentPatch() != want {
+		t.Fatalf("patch = %s, want %s", sentPatch(), want)
+	}
+
+	// Stale version, also in a dry run: a StaleEditError with its reason.
+	for _, dryRun := range []bool{true, false} {
+		res, err = rt.EditObject(ctx, o, []byte(cmOriginal), []byte(edited), "6", dryRun)
+		if err != nil || !IsStaleEdit(res.Err) || !apierrors.IsConflict(res.Err) || IsApplyConflict(res.Err) {
+			t.Fatalf("stale edit (dry run %v) = %+v, %v", dryRun, res, err)
+		}
+		if code, params, _ := reason.Of(res.Err); code != reasonEditStale || params["name"] != "shop/cm1" || params["kind"] != "ConfigMap" {
+			t.Fatalf("stale edit reason = %v %v", code, params)
+		}
+	}
+
+	// Without a version argument the original's metadata.resourceVersion is used.
+	withVersion := strings.Replace(cmOriginal, "  namespace: shop\n", "  namespace: shop\n  resourceVersion: \"6\"\n", 1)
+	res, _ = rt.EditObject(ctx, o, []byte(withVersion), []byte(edited), "", false)
+	if !IsStaleEdit(res.Err) {
+		t.Fatalf("stale edit by the original's resourceVersion = %+v", res)
+	}
+
+	// Without any version there is no precondition (and no stale error).
+	res, err = rt.EditObject(ctx, o, []byte(cmOriginal), []byte(edited), "", false)
+	if err != nil || res.Err != nil || strings.Contains(sentPatch(), "resourceVersion") {
+		t.Fatalf("edit without a version = %+v, %v; patch %s", res, err, sentPatch())
+	}
+
+	// No changes: unchanged, nothing sent, whatever the version.
+	n := len(patchRequests(dyn))
+	if res, err := rt.EditObject(ctx, o, []byte(edited), []byte(edited), "1", false); err != nil || res.Action != ActionUnchanged || len(patchRequests(dyn)) != n {
+		t.Fatalf("an edit without changes = %+v, %v", res, err)
 	}
 }
 
@@ -96,7 +172,7 @@ func TestEditObjectRefusals(t *testing.T) {
 		"invalid":       "data: [",
 		"not an object": "- a\n- b\n",
 	} {
-		_, err := rt.EditObject(ctx, o, []byte(cmOriginal), []byte(edited), false)
+		_, err := rt.EditObject(ctx, o, []byte(cmOriginal), []byte(edited), "", false)
 		var ee *EditError
 		if !errors.As(err, &ee) || ee.Redacted {
 			t.Errorf("%s: %v, want an EditError", name, err)
@@ -105,14 +181,14 @@ func TestEditObjectRefusals(t *testing.T) {
 	// The namespace may be left out: the object's own is meant, so that
 	// is no change.
 	withoutNS := strings.Replace(cmOriginal, "  namespace: shop\n", "", 1)
-	if res, err := rt.EditObject(ctx, o, []byte(cmOriginal), []byte(withoutNS), false); err != nil || res.Action != ActionUnchanged {
+	if res, err := rt.EditObject(ctx, o, []byte(cmOriginal), []byte(withoutNS), "", false); err != nil || res.Action != ActionUnchanged {
 		t.Fatalf("an edit without the namespace: %+v, %v", res, err)
 	}
 	if n := len(patchRequests(dyn)); n != 0 {
 		t.Fatalf("%d patches sent for refused or empty edits", n)
 	}
 	if _, err := rt.EditObject(ctx, editTarget(t, rt, "v1", "ConfigMap", "ghost"), []byte(strings.ReplaceAll(cmOriginal, "cm1", "ghost")),
-		[]byte(strings.ReplaceAll(withoutNS, "cm1", "ghost")), false); err != nil {
+		[]byte(strings.ReplaceAll(withoutNS, "cm1", "ghost")), "", false); err != nil {
 		t.Fatalf("a missing object is the cluster's answer, not a refusal: %v", err)
 	}
 }
@@ -128,7 +204,7 @@ func TestEditObjectSecretPlaceholders(t *testing.T) {
 	original := "apiVersion: v1\nkind: Secret\nmetadata: {name: db, namespace: shop}\ntype: Opaque\ndata: {pin: '<8 bytes, redacted>'}\n"
 
 	labelled := strings.Replace(original, "namespace: shop}", "namespace: shop, labels: {app: db}}", 1)
-	res, err := rt.EditObject(ctx, o, []byte(original), []byte(labelled), false)
+	res, err := rt.EditObject(ctx, o, []byte(original), []byte(labelled), "", false)
 	if err != nil || res.Err != nil {
 		t.Fatalf("label edit = %+v, %v", res, err)
 	}
@@ -138,13 +214,13 @@ func TestEditObjectSecretPlaceholders(t *testing.T) {
 	}
 
 	added := strings.Replace(original, "data: {pin: '<8 bytes, redacted>'}", "data: {pin: '<8 bytes, redacted>', pin2: '<8 bytes, redacted>'}", 1)
-	_, err = rt.EditObject(ctx, o, []byte(original), []byte(added), false)
+	_, err = rt.EditObject(ctx, o, []byte(original), []byte(added), "", false)
 	var ee *EditError
 	if !errors.As(err, &ee) || !ee.Redacted || !strings.Contains(ee.Error(), "data.pin2") {
 		t.Fatalf("a placeholder as a new value: %v", err)
 	}
 	removed := strings.Replace(original, "data: {pin: '<8 bytes, redacted>'}", "data: {}", 1)
-	if res, err := rt.EditObject(ctx, o, []byte(original), []byte(removed), false); err != nil || res.Err != nil {
+	if res, err := rt.EditObject(ctx, o, []byte(original), []byte(removed), "", false); err != nil || res.Err != nil {
 		t.Fatalf("removing a value: %+v, %v", res, err)
 	}
 }

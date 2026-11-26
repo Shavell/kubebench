@@ -123,6 +123,7 @@
     "not_terminated": "Verdrängt, aber der Pod war beim Ende des Drains noch nicht beendet"
   },
   "edit": {
+    "changed_on_server": "{{kind}} {{name}} wurde auf dem Server geändert, seit Sie mit dem Bearbeiten begonnen haben; laden Sie es neu und übernehmen Sie Ihre Änderungen in die aktuelle Version",
     "credential_annotation_placeholder": "{{kind}} {{name}}: Die Annotation {{annotation}} enthält einen Platzhalter der Schwärzung; entfernen Sie die Annotation",
     "credential_placeholder": "{{kind}} {{name}}: {{field}} ist auf einen Platzhalter der Schwärzung gesetzt; lassen Sie ihn und die Liste, die ihn enthält, unverändert, um den Wert zu behalten, oder geben Sie den echten Wert ein",
     "empty": "Das bearbeitete Manifest ist leer",
@@ -478,6 +479,6 @@
   "workload": {
     "replicas_negative": "replicas muss mindestens 0 sein",
     "restart_kind": "Nur ein Deployment, StatefulSet oder DaemonSet kann neu gestartet werden, nicht \"{{kind}}\"",
-    "scale_kind": "Nur ein Deployment, StatefulSet oder ReplicaSet kann skaliert werden, nicht \"{{kind}}\""
+    "scale_kind": "{{kind}} kann nicht skaliert werden: es hat keine scale-Subressource"
   }
 }

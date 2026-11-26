@@ -123,6 +123,7 @@
     "not_terminated": "Tahliye edildi, ancak drain bittiğinde Pod henüz sonlanmamıştı"
   },
   "edit": {
+    "changed_on_server": "{{kind}} {{name}}, düzenlemeye başladığınızdan beri sunucuda değişti; yeniden yükleyin ve değişikliklerinizi güncel sürüme uygulayın",
     "credential_annotation_placeholder": "{{kind}} {{name}}: {{annotation}} annotation'ı bir gizleme yer tutucusu içeriyor; annotation'ı kaldırın",
     "credential_placeholder": "{{kind}} {{name}}: {{field}} bir gizleme yer tutucusuna ayarlanmış; değeri korumak için onu ve onu içeren listeyi değiştirmeyin veya gerçek değeri girin",
     "empty": "Düzenlenen manifest boş",
@@ -478,6 +479,6 @@
   "workload": {
     "replicas_negative": "replicas en az 0 olmalı",
     "restart_kind": "Yalnızca bir Deployment, StatefulSet veya DaemonSet yeniden başlatılabilir, \"{{kind}}\" değil",
-    "scale_kind": "Yalnızca bir Deployment, StatefulSet veya ReplicaSet ölçeklenebilir, \"{{kind}}\" değil"
+    "scale_kind": "{{kind}} ölçeklenemez: scale alt kaynağı yok"
   }
 }

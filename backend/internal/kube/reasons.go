@@ -12,7 +12,7 @@ var (
 	reasonNamespaceSystem    = reason.Define("namespace.system", "{{name}} is a system namespace; KubeBench deletes it only when forced")
 	reasonNamespaceOwn       = reason.Define("namespace.own", "{{name}} is the namespace KubeBench runs in; KubeBench deletes it only when forced")
 	reasonRestartKind        = reason.Define("workload.restart_kind", "only a Deployment, StatefulSet or DaemonSet can be restarted, not \"{{kind}}\"")
-	reasonScaleKind          = reason.Define("workload.scale_kind", "only a Deployment, StatefulSet or ReplicaSet can be scaled, not \"{{kind}}\"")
+	reasonScaleKind          = reason.Define("workload.scale_kind", "{{kind}} cannot be scaled: it has no scale subresource")
 	reasonReplicasNegative   = reason.Define("workload.replicas_negative", "replicas must be at least 0")
 	reasonRolloutPaused      = reason.Define("rollout.paused", "Deployment {{name}} is paused; resume it before rolling back")
 	reasonRolloutNoRevision  = reason.Define("rollout.no_revision", "Deployment {{name}} has no revision {{revision}}")
@@ -54,6 +54,7 @@ var (
 	reasonOriginalEmpty      = reason.Define("edit.original_empty", "the original manifest is empty")
 	reasonOriginalOther      = reason.Define("edit.original_other_object", "the original manifest describes {{kind}} {{name}}, not the edited {{edited}}; create other objects with New resource")
 	reasonEditRedacted       = reason.Define("edit.secret_placeholder", "Secret {{name}}: {{field}} is set to a redaction placeholder; leave the placeholder unchanged to keep the value, or enter the real value")
+	reasonEditStale          = reason.Define("edit.changed_on_server", "{{kind}} {{name}} changed on the server since you started editing; reload it and apply your changes to the current version")
 	reasonEditAnnotation     = reason.Define("edit.secret_annotation_placeholder", "Secret {{name}}: the {{annotation}} annotation holds a redaction placeholder; remove the annotation")
 	// The credential kinds' (credentials.go) counterparts of the Secret refusals.
 	reasonManifestCredential           = reason.Define("manifest.credential_placeholder", "document {{document}}: {{kind}} {{name}}: {{field}} holds a redaction placeholder, not its value; use the real value")

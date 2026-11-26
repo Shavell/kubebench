@@ -64,7 +64,8 @@ func (s *Server) handleRestartWorkload(w http.ResponseWriter, r *http.Request, c
 	respondOp(w, c.rt.RestartWorkload(r.Context(), q.Get("kind"), ns, name))
 }
 
-// handleScaleWorkload: POST /api/workloads/scale?kind=Deployment|StatefulSet|ReplicaSet&ns=&name=&replicas=.
+// handleScaleWorkload: POST /api/workloads/scale?kind=Deployment|StatefulSet|ReplicaSet&ns=&name=&replicas=,
+// or with apiVersion= any kind with a scale subresource.
 func (s *Server) handleScaleWorkload(w http.ResponseWriter, r *http.Request, c *call) {
 	q := r.URL.Query()
 	ns, name, err := objectParams(q)
@@ -77,7 +78,7 @@ func (s *Server) handleScaleWorkload(w http.ResponseWriter, r *http.Request, c *
 		writeErr(w, badRequest(reason.FieldMin, reason.Params{"field": "replicas", "min": 0}))
 		return
 	}
-	respondOp(w, c.rt.ScaleWorkload(r.Context(), q.Get("kind"), ns, name, int32(replicas)))
+	respondOp(w, c.rt.ScaleWorkload(r.Context(), q.Get("apiVersion"), q.Get("kind"), ns, name, int32(replicas)))
 }
 
 // handleTriggerCronJob: POST /api/cronjobs/trigger?ns=&name= creates a Job

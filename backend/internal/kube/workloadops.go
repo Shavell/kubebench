@@ -16,8 +16,8 @@ import (
 // restart sets; changing it rolls the pods.
 const restartedAtAnnotation = "kubectl.kubernetes.io/restartedAt"
 
-// scalableKinds are the kinds ScaleWorkload scales through their scale
-// subresource.
+// scalableKinds are the kinds ScaleWorkload scales by kind alone, without
+// an apiVersion.
 var scalableKinds = map[string]schema.GroupVersionResource{
 	"Deployment":  gvr("apps", "v1", "deployments"),
 	"StatefulSet": gvr("apps", "v1", "statefulsets"),
@@ -46,19 +46,68 @@ func (r *Runtime) RestartWorkload(ctx context.Context, kind, namespace, name str
 	return err
 }
 
-// ScaleWorkload sets the replicas of a Deployment, StatefulSet or
-// ReplicaSet through its scale subresource, like kubectl scale. Only the
-// scale subresource is patched, so update permission on <kind>/scale is
+// ScaleWorkload sets the replicas of a workload through its scale
+// subresource, like kubectl scale. Without apiVersion kind is a
+// Deployment, StatefulSet or ReplicaSet (apps/v1); with it, any kind the
+// cluster serves with a scale subresource (discovered: e.g. an Argo
+// Rollout or another custom resource whose CRD enables it). Only the scale
+// subresource is patched, so update permission on <resource>/scale is
 // enough.
-func (r *Runtime) ScaleWorkload(ctx context.Context, kind, namespace, name string, replicas int32) error {
-	resource, ok := scalableKinds[kind]
-	if !ok {
-		return opError(OpInvalid, reasonScaleKind, reason.Params{"kind": kind})
-	}
+func (r *Runtime) ScaleWorkload(ctx context.Context, apiVersion, kind, namespace, name string, replicas int32) error {
 	if replicas < 0 {
 		return opError(OpInvalid, reasonReplicasNegative, nil)
 	}
+	resource, namespaced, err := r.scaleResource(apiVersion, kind)
+	if err != nil {
+		return err
+	}
+	client := r.Dyn.Resource(resource)
+	if !namespaced {
+		namespace = ""
+	}
 	patch := []byte(fmt.Sprintf(`{"spec":{"replicas":%d}}`, replicas))
-	_, err := r.Dyn.Resource(resource).Namespace(namespace).Patch(ctx, name, types.MergePatchType, patch, metav1.PatchOptions{FieldManager: FieldManager}, "scale")
+	_, err = client.Namespace(namespace).Patch(ctx, name, types.MergePatchType, patch, metav1.PatchOptions{FieldManager: FieldManager}, "scale")
 	return err
+}
+
+// scaleResource is the resource ScaleWorkload scales kind through, and
+// whether it is namespaced.
+func (r *Runtime) scaleResource(apiVersion, kind string) (schema.GroupVersionResource, bool, error) {
+	if apiVersion == "" {
+		resource, ok := scalableKinds[kind]
+		if !ok {
+			return resource, false, opError(OpInvalid, reasonScaleKind, reason.Params{"kind": kind})
+		}
+		return resource, true, nil
+	}
+	resource, namespaced, err := r.ResolveKind(apiVersion, kind)
+	if err != nil {
+		return resource, false, err
+	}
+	found, err := r.hasSubresource(resource, "scale")
+	if err == nil && !found && r.resetMapper() {
+		// A CRD may have enabled the subresource since discovery was cached.
+		found, err = r.hasSubresource(resource, "scale")
+	}
+	if err != nil {
+		return resource, false, err
+	}
+	if !found {
+		return resource, false, opError(OpInvalid, reasonScaleKind, reason.Params{"kind": kind})
+	}
+	return resource, namespaced, nil
+}
+
+// hasSubresource reports whether discovery lists resource/sub.
+func (r *Runtime) hasSubresource(resource schema.GroupVersionResource, sub string) (bool, error) {
+	list, err := r.discovery.ServerResourcesForGroupVersion(resource.GroupVersion().String())
+	if err != nil {
+		return false, err
+	}
+	for _, res := range list.APIResources {
+		if res.Name == resource.Resource+"/"+sub {
+			return true, nil
+		}
+	}
+	return false, nil
 }

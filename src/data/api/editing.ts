@@ -1,6 +1,6 @@
 import { apiDelete, apiFetch, apiGet, apiPatch, apiPost, type QueryParams } from '../apiClient'
 import type { ClusterProvider } from '../providers'
-import type { ApplyResult, KubeObject, ObjectRef } from '../types'
+import type { ApplyResult, KubeObject, ObjectRef, YamlDocument } from '../types'
 
 /** The query parameters that name an object on the generic endpoints. */
 function objectParams(ref: ObjectRef): QueryParams {
@@ -10,13 +10,16 @@ function objectParams(ref: ObjectRef): QueryParams {
 /** `flag=true`, or nothing: the server reads exactly "true" (dryRun, force, neat). */
 const flag = (on: boolean | undefined) => (on ? 'true' : undefined)
 
+const getYamlDocument = (ref: ObjectRef, options: { neat?: boolean }) =>
+  apiGet<YamlDocument>('/yaml', { ...objectParams(ref), neat: flag(options.neat) })
+
 /** The resource editing endpoints of design §7.2. */
 export const apiEditing: Pick<
   ClusterProvider,
-  'getYaml' | 'applyYaml' | 'editYaml' | 'deleteResource' | 'patchMetadata' | 'revealSecret'
+  'getYaml' | 'getYamlDocument' | 'applyYaml' | 'editYaml' | 'deleteResource' | 'patchMetadata' | 'revealSecret'
 > = {
-  getYaml: async (ref, options = {}) =>
-    (await apiGet<{ yaml: string }>('/yaml', { ...objectParams(ref), neat: flag(options.neat) })).yaml,
+  getYaml: async (ref, options = {}) => (await getYamlDocument(ref, options)).yaml,
+  getYamlDocument: (ref, options = {}) => getYamlDocument(ref, options),
   applyYaml: async (manifests, options = {}) => {
     const body = await apiFetch<{ results: ApplyResult[] }>('/resource/apply', {
       method: 'POST',
@@ -30,7 +33,7 @@ export const apiEditing: Pick<
     (
       await apiPost<{ results: ApplyResult[] }>(
         '/resource/edit',
-        { original, edited },
+        { original, edited, resourceVersion: options.resourceVersion },
         { ...objectParams(ref), dryRun: flag(options.dryRun) },
       )
     ).results,

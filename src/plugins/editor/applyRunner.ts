@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { refreshData, useProviders } from '@/data/DataContext'
 import type { ApplyAction, ApplyOptions, ApplyResult, ObjectRef } from '@/data/types'
 import { describeError, errorCodeOf } from '@/shared/apiErrorText'
+import { isChangedOnServer, isFieldConflict } from './editConflict'
 import { te } from './i18n'
 
 /** The outcome of the last dry run or apply, kept in the tab's session. */
@@ -15,7 +16,10 @@ export interface ApplyOutcome {
 }
 
 export const outcomeFailed = (o: ApplyOutcome) => Boolean(o.refusal) || o.results.some((r) => r.error)
-export const outcomeHasConflict = (o: ApplyOutcome) => o.results.some((r) => r.code === 'conflict')
+/** A server-side apply conflict with another field manager, which Force apply takes over. */
+export const outcomeHasConflict = (o: ApplyOutcome) => o.results.some(isFieldConflict)
+/** An edit refused because the object changed on the server since editing started. */
+export const outcomeChangedOnServer = (o: ApplyOutcome) => o.results.some(isChangedOnServer)
 
 type Tally = Partial<Record<ApplyAction | 'failed', number>>
 
@@ -63,8 +67,9 @@ export function useApplyRunner() {
   const run = (manifests: string, options: ApplyOptions) =>
     execute(Boolean(options.dryRun), Boolean(options.force), () => cluster.applyYaml(manifests, options))
 
-  const runEdit = (ref: ObjectRef, original: string, edited: string, dryRun: boolean) =>
-    execute(dryRun, false, () => cluster.editYaml(ref, original, edited, { dryRun }))
+  /** resourceVersion: the version original was read at; a changed object then fails instead of losing the change. */
+  const runEdit = (ref: ObjectRef, original: string, edited: string, dryRun: boolean, resourceVersion?: string) =>
+    execute(dryRun, false, () => cluster.editYaml(ref, original, edited, { dryRun, resourceVersion }))
 
   return { busy, run, runEdit }
 }
