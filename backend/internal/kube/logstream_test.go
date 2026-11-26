@@ -110,3 +110,27 @@ func TestFollowLog(t *testing.T) {
 		t.Fatalf("log options = %+v", opts)
 	}
 }
+
+func TestContainerStarted(t *testing.T) {
+	status := func(st corev1.ContainerStatus) *corev1.Pod {
+		st.Name = "app"
+		return &corev1.Pod{Status: corev1.PodStatus{ContainerStatuses: []corev1.ContainerStatus{st}}}
+	}
+	for name, tc := range map[string]struct {
+		pod  *corev1.Pod
+		want bool
+	}{
+		"no status": {&corev1.Pod{}, false},
+		"creating":  {status(corev1.ContainerStatus{State: corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{Reason: "ContainerCreating"}}}), false},
+		"running":   {status(corev1.ContainerStatus{State: corev1.ContainerState{Running: &corev1.ContainerStateRunning{}}}), true},
+		"completed": {status(corev1.ContainerStatus{State: corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{}}}), true},
+		"crash loop": {status(corev1.ContainerStatus{
+			State:                corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{Reason: "CrashLoopBackOff"}},
+			LastTerminationState: corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{ExitCode: 1}},
+		}), true},
+	} {
+		if got := containerStarted(tc.pod, "app"); got != tc.want {
+			t.Errorf("%s: started = %v, want %v", name, got, tc.want)
+		}
+	}
+}

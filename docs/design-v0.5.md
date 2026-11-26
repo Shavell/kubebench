@@ -952,7 +952,8 @@ and `new-resource` with `{namespace?, kind?}` (see 7.2);
   once, lines prefixed `[pod/container]`). A live selector stream (not
   `previous`) lists the matching pods again every 5 s: pods that start to
   match (new, rescheduled, or recreated under the same name, told apart by
-  UID) are followed from their `tail`, up to 10 at once; the logs of pods
+  UID) are followed from their `tail` once their container has run (a pod
+  still being created waits for a later round), up to 10 at once; the logs of pods
   that no longer match are closed; each change sends another `event: pods`.
   A log that ended is not reopened, and such a stream sends no `event:
   end` (it ends with the client, a lost access or the server's shutdown).

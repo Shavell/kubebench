@@ -18,19 +18,32 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	k8stesting "k8s.io/client-go/testing"
 
 	"kubebench/internal/kube"
 	"kubebench/internal/plugin"
 )
 
-// addPod creates a pod with the given containers and labels; the fake
-// clientset answers every log request of it with "fake logs".
+// addPod creates a pod with the given containers (running) and labels;
+// the fake clientset answers every log request of it with "fake logs".
 func addPod(t *testing.T, e *testEnv, name string, labels map[string]string, containers ...string) {
 	t.Helper()
-	pod := &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "default", Labels: labels}}
+	addPodWith(t, e, name, "", labels, true, containers...)
+}
+
+// addPodWith is addPod with a UID and, when running is false, containers
+// still being created.
+func addPodWith(t *testing.T, e *testEnv, name, uid string, labels map[string]string, running bool, containers ...string) {
+	t.Helper()
+	pod := &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "default", Labels: labels, UID: types.UID(uid)}}
 	for _, c := range containers {
 		pod.Spec.Containers = append(pod.Spec.Containers, corev1.Container{Name: c})
+		st := corev1.ContainerStatus{Name: c, State: corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{Reason: "ContainerCreating"}}}
+		if running {
+			st.State = corev1.ContainerState{Running: &corev1.ContainerStateRunning{}}
+		}
+		pod.Status.ContainerStatuses = append(pod.Status.ContainerStatuses, st)
 	}
 	if _, err := e.cs.CoreV1().Pods("default").Create(context.Background(), pod, metav1.CreateOptions{}); err != nil {
 		t.Fatal(err)
@@ -305,7 +318,18 @@ func TestLogStreamSelectorFollowsNewPods(t *testing.T) {
 	}
 	waitFor("data: [api-1/app] fake logs")
 
-	addPod(t, e, "api-2", map[string]string{"app": "api"}, "app")
+	// A pod still being created is announced in the total, and followed
+	// once its container runs (no failing log in between).
+	addPodWith(t, e, "api-2", "", map[string]string{"app": "api"}, false, "app")
+	waitFor(`data: {"pods":[],"total":2}`)
+	time.Sleep(50 * time.Millisecond) // a few rounds
+	if strings.Contains(w.String(), "api-2/app") || strings.Contains(w.String(), "event: error") {
+		t.Fatalf("a pod being created was opened: %q", w.String())
+	}
+	if err := e.cs.CoreV1().Pods("default").Delete(ctx, "api-2", metav1.DeleteOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	addPodWith(t, e, "api-2", "", map[string]string{"app": "api"}, true, "app")
 	waitFor(`data: {"pods":["api-2/app"],"total":2}`)
 	waitFor("data: [api-2/app] fake logs")
 
@@ -314,11 +338,7 @@ func TestLogStreamSelectorFollowsNewPods(t *testing.T) {
 		t.Fatal(err)
 	}
 	waitFor(`"total":1}`)
-	pod := &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "api-1", Namespace: "default", UID: "second",
-		Labels: map[string]string{"app": "api"}}, Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "app"}}}}
-	if _, err := e.cs.CoreV1().Pods("default").Create(ctx, pod, metav1.CreateOptions{}); err != nil {
-		t.Fatal(err)
-	}
+	addPodWith(t, e, "api-1", "second", map[string]string{"app": "api"}, true, "app")
 	waitFor(`data: {"pods":["api-1/app"],"total":2}`)
 	for deadline := time.Now().Add(5 * time.Second); strings.Count(w.String(), "data: [api-1/app] fake logs") < 2; time.Sleep(5 * time.Millisecond) {
 		if time.Now().After(deadline) {
@@ -374,7 +394,7 @@ func (f *failingReader) Read(p []byte) (int, error) {
 }
 
 func feed(pod string, open func(context.Context) (io.ReadCloser, error)) logFeed {
-	return logFeed{source: kube.LogSource{Pod: pod, Container: "app"}, prefixed: true, open: open}
+	return logFeed{source: kube.LogSource{Pod: pod, Container: "app", Started: true}, prefixed: true, open: open}
 }
 
 func TestStreamLogsReportsFailingLogs(t *testing.T) {

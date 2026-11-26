@@ -311,7 +311,9 @@ func streamLogs(ctx context.Context, sse *sseWriter, feeds []logFeed, matched in
 			}
 		}
 		for _, f := range found {
-			if key := f.key(); !seen[key] && len(active) < maxStreamPods {
+			// A container still being created has no log yet: it is
+			// picked up by a later round once it runs.
+			if key := f.key(); !seen[key] && f.source.Started && len(active) < maxStreamPods {
 				start(f)
 				changed = true
 			}

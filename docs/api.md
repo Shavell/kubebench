@@ -367,7 +367,8 @@ fields (counts, capacity, requests, limits) are always present.
   a selector), `event: error` with a reason message (a failing log, or why
   the server ended the stream), `event: end`, and `: ping` every 15 s. A
   live selector stream (not `previous`) re-lists its pods every 5 s,
-  follows pods that start to match (up to 10 at once), closes the logs of
+  follows pods that start to match once their container runs (up to 10 at
+  once), closes the logs of
   pods that stopped matching, sends another `event: pods` on every change
   and never sends `event: end`.
 - **Watch events.** `event: status` `{"topic","mode":"starting"|"live"|"polling","reason"?}`,
