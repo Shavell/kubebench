@@ -477,3 +477,35 @@ func TestOwnerTypeLimit(t *testing.T) {
 		t.Fatalf("after close: %v", st)
 	}
 }
+
+// A live informer's cache answers counts; without one, callers list.
+func TestCountFromLiveInformer(t *testing.T) {
+	m := newFakeMeta(
+		object(podsGVR, "Pod", "default", "a"),
+		object(podsGVR, "Pod", "default", "b"),
+		object(podsGVR, "Pod", "shop", "c"),
+	)
+	h, _ := newTestHub(t, m, Options{})
+	if _, ok := h.Count("pods", ""); ok {
+		t.Fatal("counted without an informer")
+	}
+	sub := subscribe(t, h, "pods")
+	waitStatus(t, sub, "pods", ModeLive)
+	for ns, want := range map[string]int{"": 3, "default": 2, "shop": 1, "none": 0} {
+		if n, ok := h.Count("pods", ns); !ok || n != want {
+			t.Errorf("Count(pods, %q) = %d, %v; want %d", ns, n, ok, want)
+		}
+	}
+	create(t, m, namespacesGVR, object(namespacesGVR, "Namespace", "", "shop"))
+	nsSub := subscribe(t, h, "namespaces")
+	waitStatus(t, nsSub, "namespaces", ModeLive)
+	if n, ok := h.Count("namespaces", "shop"); !ok || n != 1 {
+		t.Errorf("a cluster-scoped count ignores the namespace: %d, %v", n, ok)
+	}
+	if _, ok := h.Count("deployments", ""); ok {
+		t.Error("counted deployments, which no informer watches")
+	}
+	if _, ok := h.Count("widgets", ""); ok {
+		t.Error("counted an unknown topic")
+	}
+}

@@ -119,7 +119,7 @@ func TestCrdPrinterColumns(t *testing.T) {
 		t.Fatalf("versions = %v", crds[0].Versions)
 	}
 
-	items, err := rt.ListCustomResources(ctx, "widgets.compat.example.com")
+	items, _, err := rt.ListCustomResources(ctx, "widgets.compat.example.com", 0)
 	if err != nil || len(items) != 2 {
 		t.Fatalf("ListCustomResources = %v, %v", items, err)
 	}

@@ -227,12 +227,12 @@ func columnInfos(cols []printerColumn) []PrinterColumn {
 }
 
 func (r *Runtime) ListCrds(ctx context.Context) ([]CrdInfo, error) {
-	list, err := r.Dyn.Resource(crdGVR).List(ctx, metav1.ListOptions{})
+	items, _, err := pagedList(ctx, 0, unstructuredPage(r.Dyn.Resource(crdGVR)))
 	if err != nil {
 		return nil, err
 	}
 	out := []CrdInfo{}
-	for _, item := range list.Items {
+	for _, item := range items {
 		versions := []string{}
 		vs, _, _ := unstructured.NestedSlice(item.Object, "spec", "versions")
 		for _, v := range vs {
@@ -264,18 +264,20 @@ func (r *Runtime) ListCrds(ctx context.Context) ([]CrdInfo, error) {
 	return out, nil
 }
 
-func (r *Runtime) ListCustomResources(ctx context.Context, crdName string) ([]CustomResourceInfo, error) {
+// ListCustomResources lists the objects of a CRD for a view: at most limit
+// (0 = all), see pagedList.
+func (r *Runtime) ListCustomResources(ctx context.Context, crdName string, limit int) ([]CustomResourceInfo, *Truncated, error) {
 	spec, err := r.crdSpec(ctx, crdName)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	gvr := schema.GroupVersionResource{Group: spec.group, Version: spec.version, Resource: spec.plural}
-	list, err := r.Dyn.Resource(gvr).List(ctx, metav1.ListOptions{})
+	items, cut, err := pagedList(ctx, limit, unstructuredPage(r.Dyn.Resource(gvr)))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	out := []CustomResourceInfo{}
-	for _, item := range list.Items {
+	for _, item := range items {
 		extra := map[string]string{}
 		for _, col := range spec.printerColumns {
 			if value, ok := col.value(item.Object); ok {
@@ -292,7 +294,7 @@ func (r *Runtime) ListCustomResources(ctx context.Context, crdName string) ([]Cu
 			Replicas:  replicasAt(spec.specReplicas, item.Object),
 		})
 	}
-	return out, nil
+	return out, cut, nil
 }
 
 // GetCustomResourceByKind resolves the CRD by kind and fetches one object.

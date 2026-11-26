@@ -9,35 +9,35 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/client-go/dynamic"
 )
 
 // ListGeneric lists any catalog resource via the dynamic client and
 // returns the raw objects (the frontend renders columns from them).
 // Secret data values and the credentials of the credential kinds (a
-// Route's TLS key, webhook secrets) are redacted; keys are kept.
-func (r *Runtime) ListGeneric(ctx context.Context, key, namespace string) ([]map[string]any, error) {
+// Route's TLS key, webhook secrets) are redacted; keys are kept. At most
+// limit objects (0 = all) are returned, see pagedList.
+func (r *Runtime) ListGeneric(ctx context.Context, key, namespace string, limit int) ([]map[string]any, *Truncated, error) {
 	rt, ok := Catalog[key]
 	if !ok {
-		return nil, unknownResource(key)
+		return nil, nil, unknownResource(key)
 	}
-	var list *unstructured.UnstructuredList
-	var err error
+	var res dynamic.ResourceInterface = r.Dyn.Resource(rt.GVR)
 	if rt.Namespaced && namespace != "" {
-		list, err = r.Dyn.Resource(rt.GVR).Namespace(namespace).List(ctx, metav1.ListOptions{})
-	} else {
-		list, err = r.Dyn.Resource(rt.GVR).List(ctx, metav1.ListOptions{})
+		res = r.Dyn.Resource(rt.GVR).Namespace(namespace)
 	}
+	items, cut, err := pagedList(ctx, limit, unstructuredPage(res))
 	if err != nil {
 		// A type not served by this cluster (older version / not installed)
 		// reads as empty rather than an error.
 		if apierrors.IsNotFound(err) || meta.IsNoMatchError(err) {
-			return []map[string]any{}, nil
+			return []map[string]any{}, nil, nil
 		}
-		return nil, err
+		return nil, nil, err
 	}
-	out := make([]map[string]any, 0, len(list.Items))
-	for i := range list.Items {
-		obj := list.Items[i].Object
+	out := make([]map[string]any, 0, len(items))
+	for i := range items {
+		obj := items[i].Object
 		obj["managedFields"] = nil
 		if meta, ok := obj["metadata"].(map[string]any); ok {
 			delete(meta, "managedFields")
@@ -45,7 +45,18 @@ func (r *Runtime) ListGeneric(ctx context.Context, key, namespace string) ([]map
 		redactObject(rt.GVR.GroupResource(), obj)
 		out = append(out, obj)
 	}
-	return out, nil
+	return out, cut, nil
+}
+
+// unstructuredPage lists one page of res for pagedList.
+func unstructuredPage(res dynamic.ResourceInterface) listPage[unstructured.Unstructured] {
+	return func(ctx context.Context, opts metav1.ListOptions) ([]unstructured.Unstructured, metav1.ListMeta, error) {
+		l, err := res.List(ctx, opts)
+		if err != nil {
+			return nil, metav1.ListMeta{}, err
+		}
+		return l.Items, metav1.ListMeta{Continue: l.GetContinue(), RemainingItemCount: l.GetRemainingItemCount()}, nil
+	}
 }
 
 // GetGeneric fetches one catalog object (used for the detail view),

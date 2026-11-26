@@ -40,7 +40,7 @@ func TestSecretValuesAreRedactedOnEveryReadPath(t *testing.T) {
 	rt := NewRuntimeForTest(store.Cluster{ID: 1, Name: "test"}, fake.NewClientset(), dyn)
 	ctx := context.Background()
 
-	list, err := rt.ListGeneric(ctx, "secrets", "shop")
+	list, _, err := rt.ListGeneric(ctx, "secrets", "shop", 0)
 	if err != nil || len(list) != 1 {
 		t.Fatalf("ListGeneric = %v, %v", list, err)
 	}

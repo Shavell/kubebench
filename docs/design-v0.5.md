@@ -579,6 +579,23 @@ route answers `409 no_cluster` instead. Without any usable cluster,
   `/api/resource/get`, `/api/yaml`): `data`, `stringData` and kubectl's
   `last-applied-configuration` annotation, which repeats them. So are the
   credentials of the OpenShift kinds that hold them inline (§7.15).
+- **Lists**. The list routes of the views (`/api/nodes`,
+  `/api/namespaces`, `/api/pods`, `/api/deployments`, `/api/services`,
+  `/api/resource`, `/api/crds/instances`) and the overview/allocation
+  read the API server's watch cache (`resourceVersion=0`, as informers do)
+  instead of a quorum read from etcd: a view may lag the latest write by
+  moments, which the next live update corrects. They read in pages of 500
+  (`limit`/`continue`; a watch cache that cannot page answers at once; an
+  expired continue token restarts the list once, unpaged). `limit=N`
+  returns at most N objects and stops reading pages once it has them; a
+  cut list keeps its JSON array body and sets
+  `X-KubeBench-List-Remaining: <n>|unknown`. Without `limit` lists are
+  complete, so existing clients see no change.
+- **Counts**. `GET /api/count?topic=&ns=` returns `{"count"}`:
+  from the cache of the live-update informer of that resource when one
+  runs live (§7.10; it holds names and namespaces), else from a paged
+  metadata-only list (which stops after the first page when the cluster
+  reports `remainingItemCount`).
 
 ### 4.5 Kubernetes read passthrough (for external plugins)
 
@@ -1601,7 +1618,8 @@ start lazily and stop when unused. Frontend: scoped invalidation
   streams (beyond it the topic is polled). `GET /api/watch/status` (read) lists the
   informers `{resource, mode, reason?, subscribers, idleSince?}` and the
   subscriber count, for diagnostics. Lists are still served by direct API
-  calls, not from the informer caches.
+  calls (from the API server's watch cache, §4.4), not from the informer
+  caches, which hold metadata only; counts are (`GET /api/count`).
 - **Frontend**: queries declare `scope: {topics, namespace?}`
   (`useQuery`/`useProviderQuery`/`usePluginQuery`, SDK
   `data.usePluginQuery`). `refreshData()` re-runs every query (mutations);

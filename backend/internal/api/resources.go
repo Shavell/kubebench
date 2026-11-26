@@ -16,30 +16,24 @@ const (
 	maxLogTail     = 5000
 )
 
-func (s *Server) handleNodes(w http.ResponseWriter, r *http.Request, c *call) {
-	out, err := c.rt.ListNodes(r.Context())
-	writeResult(w, out, err)
-}
-
-func (s *Server) handleNamespaces(w http.ResponseWriter, r *http.Request, c *call) {
-	out, err := c.rt.ListNamespaces(r.Context())
-	writeResult(w, out, err)
-}
-
-func (s *Server) handlePods(w http.ResponseWriter, r *http.Request, c *call) {
-	out, err := c.rt.ListPods(r.Context(), r.URL.Query().Get("ns"))
-	writeResult(w, out, err)
-}
-
-func (s *Server) handleDeployments(w http.ResponseWriter, r *http.Request, c *call) {
-	out, err := c.rt.ListDeployments(r.Context(), r.URL.Query().Get("ns"))
-	writeResult(w, out, err)
-}
-
-func (s *Server) handleServices(w http.ResponseWriter, r *http.Request, c *call) {
-	out, err := c.rt.ListServices(r.Context(), r.URL.Query().Get("ns"))
-	writeResult(w, out, err)
-}
+// The list routes of the built-in views take limit (lists.go).
+var (
+	handleNodes = listHandler(func(r *http.Request, c *call, limit int) ([]kube.NodeInfo, *kube.Truncated, error) {
+		return c.rt.ListNodes(r.Context(), limit)
+	})
+	handleNamespaces = listHandler(func(r *http.Request, c *call, limit int) ([]kube.NamespaceInfo, *kube.Truncated, error) {
+		return c.rt.ListNamespaces(r.Context(), limit)
+	})
+	handlePods = listHandler(func(r *http.Request, c *call, limit int) ([]kube.PodInfo, *kube.Truncated, error) {
+		return c.rt.ListPods(r.Context(), r.URL.Query().Get("ns"), limit)
+	})
+	handleDeployments = listHandler(func(r *http.Request, c *call, limit int) ([]kube.DeploymentInfo, *kube.Truncated, error) {
+		return c.rt.ListDeployments(r.Context(), r.URL.Query().Get("ns"), limit)
+	})
+	handleServices = listHandler(func(r *http.Request, c *call, limit int) ([]kube.ServiceInfo, *kube.Truncated, error) {
+		return c.rt.ListServices(r.Context(), r.URL.Query().Get("ns"), limit)
+	})
+)
 
 // handleYAML renders one object (§7.2): by apiVersion and kind for any
 // kind the cluster serves, or by kind alone for the kinds v0.4 knew;
@@ -173,8 +167,13 @@ func (s *Server) handleResourceList(w http.ResponseWriter, r *http.Request, c *c
 		writeErr(w, err)
 		return
 	}
-	out, err := c.rt.ListGeneric(r.Context(), q.Get("key"), q.Get("ns"))
-	writeResult(w, out, err)
+	limit, err := listLimit(q)
+	if err != nil {
+		writeErr(w, err)
+		return
+	}
+	out, cut, err := c.rt.ListGeneric(r.Context(), q.Get("key"), q.Get("ns"), limit)
+	writeList(w, out, cut, err)
 }
 
 func (s *Server) handleResourceGet(w http.ResponseWriter, r *http.Request, c *call) {

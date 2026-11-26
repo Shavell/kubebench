@@ -258,20 +258,32 @@ write-only.
 
 All `read` unless stated.
 
+**Lists** (design §4.4, "Lists"). The list routes below read the API
+server's watch cache (`resourceVersion=0`, no quorum read from etcd), in
+pages of 500. They take an optional `limit` (at least 1): at most that
+many objects are returned, in the cluster's order (namespace, then name).
+A list cut at its limit answers the same JSON array with the header
+`X-KubeBench-List-Remaining: <n>` (how many were left out) or `unknown`
+(the cluster did not say); a complete list has no such header. Without
+`limit` the whole list is returned, as before. `limit` is accepted by
+`/api/nodes`, `/api/namespaces`, `/api/pods`, `/api/deployments`,
+`/api/services`, `/api/resource` and `/api/crds/instances`.
+
 | Method | Path | Parameters | Answer |
 |---|---|---|---|
-| GET | `/api/nodes` | — | `K8sNode[]` (with `unschedulable` and `taints` when set) |
-| GET | `/api/namespaces` | — | `Namespace[]` |
-| GET | `/api/pods` | `?ns=` (empty = all) | `Pod[]` |
-| GET | `/api/deployments` | `?ns=` | `Deployment[]` (with `paused` when set) |
-| GET | `/api/services` | `?ns=` | `Service[]` |
-| GET | `/api/resource` | `?key=<catalog key>&ns=` | generic list of a built-in kind (`configmaps`, `secrets`, `statefulsets`, `ingresses`, `persistentvolumeclaims`, `clusterroles`, …; see `backend/internal/kube/catalog.go`); OpenShift's `routes`, `projects`, `securitycontextconstraints`, `deploymentconfigs`, `buildconfigs`, `builds`, `imagestreams`, `imagestreamtags` (§7.15) list as empty on clusters that do not serve them |
+| GET | `/api/nodes` | `?limit=` | `K8sNode[]` (with `unschedulable` and `taints` when set) |
+| GET | `/api/namespaces` | `?limit=` | `Namespace[]` |
+| GET | `/api/pods` | `?ns=` (empty = all) `&limit=` | `Pod[]` |
+| GET | `/api/deployments` | `?ns=&limit=` | `Deployment[]` (with `paused` when set) |
+| GET | `/api/services` | `?ns=&limit=` | `Service[]` |
+| GET | `/api/count` | `?topic=<resource>[.<group>]&ns=` | `{"count": n}`: how many objects of the resource exist (in `ns`, ignored for cluster-scoped resources). `topic` names the resource as live-update topics do (`pods`, `deployments.apps`, §7.10; `400` when invalid). Counted from the live-update informer's cache when one watches the resource, else from a metadata-only list; a resource the cluster does not serve counts 0 |
+| GET | `/api/resource` | `?key=<catalog key>&ns=&limit=` | generic list of a built-in kind (`configmaps`, `secrets`, `statefulsets`, `ingresses`, `persistentvolumeclaims`, `clusterroles`, …; see `backend/internal/kube/catalog.go`); OpenShift's `routes`, `projects`, `securitycontextconstraints`, `deploymentconfigs`, `buildconfigs`, `builds`, `imagestreams`, `imagestreamtags` (§7.15) list as empty on clusters that do not serve them |
 | GET | `/api/resource/get` | `?key=&ns=&name=` | one object of that kind |
 | GET | `/api/yaml` | `?apiVersion=&kind=&ns=&name=&neat=true` | `{"yaml","resourceVersion"}`; without `apiVersion` only the kinds v0.4 knew; `neat` strips server-maintained fields (`resourceVersion` is still returned beside the YAML) |
 | GET | `/api/events` | `?kind=&ns=&name=&uid=` (`uid` optional: defaults to the current object's UID) | `K8sEvent[]` about that object (that namespace and incarnation), newest first; `count` and `age` follow an event `series` |
 | GET | `/api/logs` | `?ns=&pod=&container=&tail=` (default 300, max 5000) `&previous=&sinceSeconds=` | `string[]` (lines) |
 | GET | `/api/crds` | — | `CrdDefinition[]`; `printerColumns` `[{name, type, description?, priority}]` are the `additionalPrinterColumns` of the listed (first served) version in order, without Name, Namespace and Age; `scale` `{specReplicasPath, statusReplicasPath, labelSelectorPath?}` is that version's `scale` subresource, omitted when it has none (the kind cannot be scaled) |
-| GET | `/api/crds/instances` | `?crd=<name>` | `CustomResource[]`; `extra` maps each printer column to its value, evaluated with full JSONPath (filters, indexes) and formatted by type like `kubectl get` (a `date` as an age); a column without a value is missing; for a CRD with `scale`, `replicas` is the integer at its `specReplicasPath` (omitted when there is none) |
+| GET | `/api/crds/instances` | `?crd=<name>&limit=` | `CustomResource[]`; `extra` maps each printer column to its value, evaluated with full JSONPath (filters, indexes) and formatted by type like `kubectl get` (a `date` as an age); a column without a value is missing; for a CRD with `scale`, `replicas` is the integer at its `specReplicasPath` (omitted when there is none) |
 | GET | `/api/k8s/{path...}` | the Kubernetes API's own query | raw JSON (passthrough, below) |
 
 Secret values are redacted on every read route: `data` and `stringData`
