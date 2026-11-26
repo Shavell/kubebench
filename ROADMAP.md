@@ -147,6 +147,7 @@ and the limitations documented in [docs/security.md](docs/security.md).
 | Record how a kubeconfig was added | Allow removing credentials of clusters added by path, which is refused today | S |
 | Context-aware discovery | Bound discovery calls so that closing a runtime of an unreachable cluster ends promptly | M |
 | Update checks for private repositories | Accept a token for the GitHub release check, for forks and private mirrors | S |
+| KubeVirt plugin | Manage virtual machines next to containers on clusters running KubeVirt (detected like Argo CD): VirtualMachines and their instances, start, stop, restart, pause and live migration, serial and VNC consoles in a tab, and DataVolumes and disk imports with CDI. Operators and admins only for power and console actions, audited like exec | L |
 
 ### UX and i18n
 
