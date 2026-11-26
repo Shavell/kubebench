@@ -94,8 +94,13 @@
       "content": "Paste the kubeconfig or load it from a file.",
       "path": "Enter the path of the kubeconfig file on the server.",
       "address": "Enter an http:// or https:// address.",
-      "fileTooLarge": "{{name}} is too large to be a kubeconfig."
-    }
+      "fileTooLarge": "{{name}} is too large to be a kubeconfig.",
+      "namespace": "\"{{namespace}}\" is not a namespace name.",
+      "tooManyNamespaces": "Enter at most {{max}} namespaces."
+    },
+    "allowedNamespaces": "Allowed namespaces",
+    "allowedNamespacesHelp": "Offered in the namespace filter when the cluster's credential may not list namespaces. Empty: the kubeconfig context's namespace. This only shapes the list; what users may do is still decided by their KubeBench role and the cluster's RBAC.",
+    "allowedNamespacesPlaceholder": "team-a, team-b"
   },
   "add": {
     "title": "Add cluster",

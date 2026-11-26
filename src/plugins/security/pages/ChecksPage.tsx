@@ -99,7 +99,7 @@ export function ChecksPage() {
       {checks.loading && !checks.data ? (
         <div className="page-loading">{t('catalog.loading')}</div>
       ) : checks.error ? (
-        <Unavailable code={checks.errorCode} reason={checks.error} title={t('catalog.unavailable')} />
+        <Unavailable code={checks.errorCode} reasonCode={checks.errorReason} reason={checks.error} title={t('catalog.unavailable')} />
       ) : rows.length === 0 ? (
         <EmptyState icon="checklist" title={t('catalog.empty')} />
       ) : (

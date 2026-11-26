@@ -91,7 +91,7 @@ export function WorkloadsSidebar() {
   return (
     <>
       {/* Above the long tree, where a failed count query stays visible. */}
-      <SidebarErrors errors={queries.map((q) => q.error)} />
+      <SidebarErrors errors={queries} />
       <Tree
         nodes={tree}
         selectedId={activeTabId}

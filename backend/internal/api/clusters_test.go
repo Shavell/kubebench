@@ -48,6 +48,39 @@ func TestClusterListAndUpdate(t *testing.T) {
 	expect(t, e.do(http.MethodPatch, "/api/clusters/1", "admin", map[string]any{"name": "dev"}), http.StatusConflict, plugin.CodeConflict)
 }
 
+// The allowed namespaces (§7.16) are validated, stored and listed; [] clears them.
+func TestClusterAllowedNamespaces(t *testing.T) {
+	e := newTestEnv(t, nil)
+	if c := decode[[]clusterView](t, e.do(http.MethodGet, "/api/clusters", "bob", nil))[0]; c.AllowedNamespaces == nil || len(c.AllowedNamespaces) != 0 {
+		t.Fatalf("unset = %#v", c.AllowedNamespaces)
+	}
+	expect(t, e.do(http.MethodPatch, "/api/clusters/1", "admin",
+		map[string]any{"allowedNamespaces": []string{" team-a", "team-b", "team-a", ""}}), http.StatusOK, "")
+	c := decode[[]clusterView](t, e.do(http.MethodGet, "/api/clusters", "bob", nil))[0]
+	if strings.Join(c.AllowedNamespaces, ",") != "team-a,team-b" {
+		t.Fatalf("stored = %v", c.AllowedNamespaces)
+	}
+	if rows := e.audit(); !strings.Contains(rows[0].Detail, `"allowedNamespaces":["team-a","team-b"]`) {
+		t.Fatalf("audit row = %+v", rows[0])
+	}
+	rec := e.do(http.MethodPatch, "/api/clusters/1", "admin", map[string]any{"allowedNamespaces": []string{"Team_A"}})
+	if body := decode[plugin.ErrorBody](t, expectRec(t, rec, http.StatusBadRequest, plugin.CodeBadRequest)); body.Reason != "field.not_namespace" {
+		t.Fatalf("invalid name: %+v", body)
+	}
+	many := make([]string, 21)
+	for i := range many {
+		many[i] = "ns" + strings.Repeat("a", i+1)
+	}
+	expect(t, e.do(http.MethodPatch, "/api/clusters/1", "admin", map[string]any{"allowedNamespaces": many}),
+		http.StatusBadRequest, plugin.CodeBadRequest)
+	expect(t, e.do(http.MethodPatch, "/api/clusters/1", "bob", map[string]any{"allowedNamespaces": []string{}}),
+		http.StatusForbidden, plugin.CodeAdminRequired)
+	expect(t, e.do(http.MethodPatch, "/api/clusters/1", "admin", map[string]any{"allowedNamespaces": []string{}}), http.StatusOK, "")
+	if c := decode[[]clusterView](t, e.do(http.MethodGet, "/api/clusters", "bob", nil))[0]; len(c.AllowedNamespaces) != 0 {
+		t.Fatalf("cleared = %v", c.AllowedNamespaces)
+	}
+}
+
 func TestDeleteActiveCluster(t *testing.T) {
 	e := newTestEnv(t, nil)
 	expect(t, e.do(http.MethodDelete, "/api/clusters?name=test", "admin", nil), http.StatusOK, "")

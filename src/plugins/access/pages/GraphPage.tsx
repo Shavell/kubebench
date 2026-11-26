@@ -26,7 +26,7 @@ export function GraphPage() {
 
   const body = () => {
     if (query.loading && !graph) return <div className="page-loading">{t('graph.loading')}</div>
-    if (!graph) return <Unavailable code={query.errorCode} reason={query.error} title={t('graph.unavailable')} />
+    if (!graph) return <Unavailable code={query.errorCode} reasonCode={query.errorReason} reason={query.error} title={t('graph.unavailable')} />
     if (!graph.bindings.length) return <EmptyState icon="type-hierarchy" title={t('graph.empty')} hint={t('graph.emptyHint')} />
     return (
       <div className="page__scroll access-page">

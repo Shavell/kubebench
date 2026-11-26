@@ -51,7 +51,7 @@ export function ProjectsPage() {
 
   const body = () => {
     if (projects.error) {
-      return <Unavailable code={projects.errorCode} reason={projects.error} title={t('projects.unavailable')} onRetry={refreshData} />
+      return <Unavailable code={projects.errorCode} reasonCode={projects.errorReason} reason={projects.error} title={t('projects.unavailable')} onRetry={refreshData} />
     }
     if (!projects.data) return <div className="page-loading">{t('projects.loading')}</div>
     if (projects.data.length === 0) return <EmptyState icon="project" title={t('projects.empty')} />

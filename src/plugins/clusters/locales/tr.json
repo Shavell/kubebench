@@ -94,8 +94,13 @@
       "content": "Kubeconfig içeriğini yapıştırın veya bir dosyadan yükleyin.",
       "path": "Sunucudaki kubeconfig dosyasının yolunu girin.",
       "address": "http:// veya https:// ile başlayan bir adres girin.",
-      "fileTooLarge": "{{name}} bir kubeconfig olamayacak kadar büyük."
-    }
+      "fileTooLarge": "{{name}} bir kubeconfig olamayacak kadar büyük.",
+      "namespace": "\"{{namespace}}\" bir namespace adı değil.",
+      "tooManyNamespaces": "En fazla {{max}} namespace girin."
+    },
+    "allowedNamespaces": "İzinli namespace'ler",
+    "allowedNamespacesHelp": "Kümenin kimlik bilgisi namespace'leri listeleyemediğinde namespace filtresinde sunulur. Boş: kubeconfig bağlamının namespace'i. Yalnızca listeyi belirler; kullanıcıların neler yapabileceğine yine KubeBench rolleri ve kümenin RBAC'i karar verir.",
+    "allowedNamespacesPlaceholder": "team-a, team-b"
   },
   "add": {
     "title": "Cluster ekle",

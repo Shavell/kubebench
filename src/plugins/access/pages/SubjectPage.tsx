@@ -69,7 +69,7 @@ export function SubjectPage({ tab }: { tab: TabDescriptor }) {
     return (
       <div className="page">
         <Toolbar title={title}>{actions}</Toolbar>
-        <Unavailable code={query.errorCode} reason={query.error} title={t('subject.unavailable')} />
+        <Unavailable code={query.errorCode} reasonCode={query.errorReason} reason={query.error} title={t('subject.unavailable')} />
       </div>
     )
   }

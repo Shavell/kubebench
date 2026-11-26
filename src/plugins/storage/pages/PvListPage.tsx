@@ -69,7 +69,7 @@ export function PvListPage() {
 
   const body = () => {
     if (query.loading && !query.data) return <div className="page-loading">{t('pvs.loading')}</div>
-    if (query.error) return <Unavailable code={query.errorCode} reason={query.error} title={t('pvs.unavailable')} />
+    if (query.error) return <Unavailable code={query.errorCode} reasonCode={query.errorReason} reason={query.error} title={t('pvs.unavailable')} />
     const rows = query.data ?? []
     if (rows.length === 0) return <EmptyState icon="save-all" title={t('pvs.empty')} />
     return (

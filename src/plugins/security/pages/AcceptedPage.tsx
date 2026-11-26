@@ -71,7 +71,7 @@ export function AcceptedPage() {
       {query.loading && !query.data ? (
         <div className="page-loading">{t('accepted.loading')}</div>
       ) : query.error ? (
-        <Unavailable code={query.errorCode} reason={query.error} title={t('accepted.unavailable')} />
+        <Unavailable code={query.errorCode} reasonCode={query.errorReason} reason={query.error} title={t('accepted.unavailable')} />
       ) : !query.data?.length ? (
         <EmptyState icon="pass" title={t('accepted.empty')} hint={t('accepted.emptyHint')} />
       ) : (

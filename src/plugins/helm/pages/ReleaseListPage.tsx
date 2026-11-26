@@ -96,7 +96,7 @@ export function ReleaseListPage() {
         </Button>
       </Toolbar>
       {query.error ? (
-        <Unavailable code={query.errorCode} reason={query.error} title={t('releases.unavailable')} onRetry={refreshData} />
+        <Unavailable code={query.errorCode} reasonCode={query.errorReason} reason={query.error} title={t('releases.unavailable')} onRetry={refreshData} />
       ) : query.loading && !query.data ? (
         <div className="page-loading">{t('releases.loading')}</div>
       ) : all.length === 0 ? (

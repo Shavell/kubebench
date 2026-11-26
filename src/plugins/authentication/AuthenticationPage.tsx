@@ -29,7 +29,7 @@ export function AuthenticationPage() {
     >
       <PageSection title={t('providers.title')}>
         {settings.error ? (
-          <Unavailable compact code={settings.errorCode} reason={settings.error} onRetry={refreshData} />
+          <Unavailable compact code={settings.errorCode} reasonCode={settings.errorReason} reason={settings.error} onRetry={refreshData} />
         ) : settings.data ? (
           <ProvidersSection settings={settings.data} />
         ) : (

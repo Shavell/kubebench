@@ -188,7 +188,7 @@ export function ResourceYamlEditor({ tabId, target }: { tabId: string; target: O
 
   const body = () => {
     if (!editing && live.error) {
-      return <Unavailable code={live.errorCode} reason={live.error} title={t('yaml.loadFailed', { name: target.name })} onRetry={refreshData} />
+      return <Unavailable code={live.errorCode} reasonCode={live.errorReason} reason={live.error} title={t('yaml.loadFailed', { name: target.name })} onRetry={refreshData} />
     }
     if (!editing && !live.data) return <div className="page-loading">{t('yaml.loading', { name: target.name })}</div>
     if (mode === 'review') {

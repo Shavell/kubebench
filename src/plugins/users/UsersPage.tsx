@@ -141,7 +141,7 @@ export function UsersPage() {
   ]
 
   const renderBody = () => {
-    if (users.error) return <Unavailable code={users.errorCode} reason={users.error} onRetry={refreshData} />
+    if (users.error) return <Unavailable code={users.errorCode} reasonCode={users.errorReason} reason={users.error} onRetry={refreshData} />
     if (!users.data) return <div className="users__loading">{t('table.loading')}</div>
     if (users.data.length === 0) return <EmptyState icon="organization" title={t('table.empty')} />
     return <Table columns={columns} rows={users.data} rowKey={(u) => String(u.id)} />

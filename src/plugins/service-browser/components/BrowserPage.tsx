@@ -38,7 +38,7 @@ function ObjectBrowser({ kind, namespace, name }: { kind: BrowserKind; namespace
   )
   const [choice, setChoice] = useState<{ port: number; scheme: Scheme } | null>(null)
 
-  if (ports.error) return <Unavailable code={ports.errorCode} reason={ports.error} onRetry={refreshData} />
+  if (ports.error) return <Unavailable code={ports.errorCode} reasonCode={ports.errorReason} reason={ports.error} onRetry={refreshData} />
   if (!ports.data) return <div className="page-loading">{t('page.loadingPorts')}</div>
   if (ports.data.length === 0) {
     return <EmptyState icon="plug" title={t('page.noPorts')} hint={t('page.noPortsHint')} />
@@ -70,7 +70,7 @@ function IngressBrowser({ namespace, name }: { namespace: string; name: string }
   const routes = usePluginQuery(() => serviceBrowserData().listIngressRoutes(namespace, name), [namespace, name])
   const [choice, setChoice] = useState<{ key: string; scheme: Scheme } | null>(null)
 
-  if (routes.error) return <Unavailable code={routes.errorCode} reason={routes.error} onRetry={refreshData} />
+  if (routes.error) return <Unavailable code={routes.errorCode} reasonCode={routes.errorReason} reason={routes.error} onRetry={refreshData} />
   if (!routes.data) return <div className="page-loading">{t('ingress.loading')}</div>
   if (routes.data.length === 0) {
     return <EmptyState icon="plug" title={t('ingress.noRoutes')} hint={t('ingress.noRoutesHint')} />
@@ -112,7 +112,7 @@ function RouteBrowser({ namespace, name }: { namespace: string; name: string }) 
   const route = usePluginQuery(() => serviceBrowserData().getRoute(namespace, name), [namespace, name])
   const [scheme, setScheme] = useState<Scheme | null>(null)
 
-  if (route.error) return <Unavailable code={route.errorCode} reason={route.error} onRetry={refreshData} />
+  if (route.error) return <Unavailable code={route.errorCode} reasonCode={route.errorReason} reason={route.error} onRetry={refreshData} />
   if (!route.data) return <div className="page-loading">{t('route.loading')}</div>
 
   const r = route.data

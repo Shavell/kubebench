@@ -39,7 +39,7 @@ function ReleaseValues({ release }: { release: HelmReleaseDetail }) {
         <Checkbox checked={all} onChange={setAll} label={t('release.values.all')} />
       </div>
       {values.error ? (
-        <Unavailable compact code={values.errorCode} reason={values.error} />
+        <Unavailable compact code={values.errorCode} reasonCode={values.errorReason} reason={values.error} />
       ) : values.data === null ? (
         <div className="page-loading">{t('release.values.loading')}</div>
       ) : (

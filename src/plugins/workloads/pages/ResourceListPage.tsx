@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNamespaceNames } from '@/core/namespaceNames'
 import { useLayoutStore } from '@/core/store/layoutStore'
 import { useContextStore } from '@/core/store/contextStore'
 import { useProviderQuery, useProviders } from '@/data/DataContext'
@@ -135,7 +136,7 @@ export function ResourceListPage({ tab }: { tab: TabDescriptor }) {
   const nsFilter = listNamespace(localNs, globalNamespace)
   const label = richLabel(resource)
 
-  const { data: namespaces } = useProviderQuery((p) => p.cluster.listNamespaces(), [], { topics: ['namespaces'] })
+  const { names: namespaceNames } = useNamespaceNames()
 
   type AnyRow = Pod | K8sNode | Namespace | Deployment | Service
   const query = useProviderQuery<AnyRow[]>(
@@ -185,7 +186,7 @@ export function ResourceListPage({ tab }: { tab: TabDescriptor }) {
           value={localNs}
           onChange={setLocalNs}
           globalNamespace={globalNamespace}
-          namespaces={(namespaces ?? []).map((ns) => ns.name)}
+          namespaces={namespaceNames}
         />
       )}
       {resource === 'Pods' && (
@@ -210,7 +211,7 @@ export function ResourceListPage({ tab }: { tab: TabDescriptor }) {
     if (query.error) {
       return (
         <Unavailable
-          code={query.errorCode}
+          code={query.errorCode} reasonCode={query.errorReason}
           reason={query.error}
           title={t('list.loadFailed', { resource: label })}
         />

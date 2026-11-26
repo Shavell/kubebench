@@ -32,9 +32,11 @@ export interface QueryState<T> {
   error: string | null
   /** ApiError code of the last failure (e.g. `capability_unavailable`), when known. */
   errorCode: string | null
+  /** Reason code of the last failure (e.g. `kubernetes.forbidden_namespace`), when the server gave one. */
+  errorReason: string | null
 }
 
-const LOADING: QueryState<never> = { data: null, loading: true, error: null, errorCode: null }
+const LOADING: QueryState<never> = { data: null, loading: true, error: null, errorCode: null, errorReason: null }
 
 function sameDeps(a: DependencyList, b: DependencyList): boolean {
   return a.length === b.length && a.every((value, i) => Object.is(value, b[i]))
@@ -74,11 +76,11 @@ export function useQuery<T>(query: () => Promise<T>, deps: DependencyList, scope
     let cancelled = false
     setState((s) => ({
       deps,
-      value: sameDeps(s.deps, deps) ? { ...s.value, loading: true, error: null, errorCode: null } : LOADING,
+      value: sameDeps(s.deps, deps) ? { ...s.value, loading: true, error: null, errorCode: null, errorReason: null } : LOADING,
     }))
     query()
       .then((data) => {
-        if (!cancelled) setState({ deps, value: { data, loading: false, error: null, errorCode: null } })
+        if (!cancelled) setState({ deps, value: { data, loading: false, error: null, errorCode: null, errorReason: null } })
       })
       .catch((err: unknown) => {
         if (cancelled) return
@@ -89,6 +91,7 @@ export function useQuery<T>(query: () => Promise<T>, deps: DependencyList, scope
             loading: false,
             error: errorMessage(err),
             errorCode: isApiError(err) ? err.code : null,
+            errorReason: (isApiError(err) && err.reason) || null,
           },
         })
       })

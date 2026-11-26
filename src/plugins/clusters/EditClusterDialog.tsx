@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { refreshSession } from '@/core/session/refreshSession'
 import { isApiError } from '@/data/apiClient'
 import { refreshData, useProviders } from '@/data/DataContext'
-import { MAX_CLUSTER_NAME_LENGTH } from '@/data/rules'
+import { MAX_ALLOWED_NAMESPACES, MAX_CLUSTER_NAME_LENGTH, normalizeAllowedNamespaces } from '@/data/rules'
 import type { ClusterEntry, ClusterEnvironment, ClusterUpdate } from '@/data/types'
 import { Button } from '@/shared/Button'
 import { Dialog } from '@/shared/Dialog'
@@ -28,6 +28,9 @@ export function EditClusterDialog({ cluster, onClose }: { cluster: ClusterEntry 
   const [name, setName] = useState(cluster.name)
   const [environment, setEnvironment] = useState<ClusterEnvironment>(cluster.environment ?? '')
   const [readOnly, setReadOnly] = useState(Boolean(cluster.readOnly))
+  // Offered when the credential cannot list namespaces (design §7.16).
+  const storedNamespaces = cluster.allowedNamespaces ?? []
+  const [namespacesText, setNamespacesText] = useState(storedNamespaces.join(', '))
   // Cloud credentials (design §7.12) apply to kubeconfigs that sign in to EKS, GKE or AKS.
   const stored = cluster.cloudCredentials
   const cloudSignIn = Boolean(cluster.cloudAuth || stored)
@@ -45,14 +48,22 @@ export function EditClusterDialog({ cluster, onClose }: { cluster: ClusterEntry 
         ? t('form.errors.nameTaken')
         : null
   const credentialIssues = credentialProblems(t, credentials)
+  const allowed = normalizeAllowedNamespaces(namespacesText.split(/[\s,]+/))
+  const namespacesError =
+    allowed.invalid !== undefined
+      ? t('form.errors.namespace', { namespace: allowed.invalid })
+      : allowed.names.length > MAX_ALLOWED_NAMESPACES
+        ? t('form.errors.tooManyNamespaces', { max: MAX_ALLOWED_NAMESPACES })
+        : null
 
   const submit = async () => {
     setAttempted(true)
-    if (nameError || Object.keys(credentialIssues).length > 0) return
+    if (nameError || namespacesError || Object.keys(credentialIssues).length > 0) return
     const update: ClusterUpdate = {}
     if (trimmed !== cluster.name) update.name = trimmed
     if (environment !== (cluster.environment ?? '')) update.environment = environment
     if (readOnly !== Boolean(cluster.readOnly)) update.readOnly = readOnly
+    if (allowed.names.join(',') !== storedNamespaces.join(',')) update.allowedNamespaces = allowed.names
     const nextCredentials = toCredentials(credentials)
     // "Server identity" only changes something when credentials are stored.
     if (nextCredentials || (nextCredentials === null && stored)) update.credentials = nextCredentials
@@ -89,7 +100,7 @@ export function EditClusterDialog({ cluster, onClose }: { cluster: ClusterEntry 
           <Button variant="secondary" onClick={onClose} disabled={busy}>
             {t('actions.cancel')}
           </Button>
-          <Button type="submit" busy={busy} disabled={Boolean(nameError)}>
+          <Button type="submit" busy={busy} disabled={Boolean(nameError || namespacesError)}>
             {t('edit.submit')}
           </Button>
         </>
@@ -124,6 +135,15 @@ export function EditClusterDialog({ cluster, onClose }: { cluster: ClusterEntry 
         label={t('form.readOnly')}
         description={t('form.readOnlyHelp')}
       />
+      <Field label={t('form.allowedNamespaces')} help={t('form.allowedNamespacesHelp')} error={namespacesError}>
+        <TextInput
+          value={namespacesText}
+          onChange={setNamespacesText}
+          placeholder={t('form.allowedNamespacesPlaceholder')}
+          monospace
+          disabled={busy}
+        />
+      </Field>
       {cloudSignIn && (
         <CloudCredentialsFields
           draft={credentials}

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNamespaceNames } from '@/core/namespaceNames'
 import { useTranslation } from 'react-i18next'
 import { ALL_NAMESPACES, useContextStore } from '@/core/store/contextStore'
 import { useProviderQuery } from '@/data/DataContext'
@@ -29,14 +30,13 @@ export function NewSessionDialog({ initial, onClose, onOpen }: NewSessionDialogP
   const [pod, setPod] = useState(initial?.pod ?? '')
   const [container, setContainer] = useState(initial?.container ?? '')
 
-  const namespaces = useProviderQuery((p) => p.cluster.listNamespaces(), [])
-  const pods = useProviderQuery((p) => p.cluster.listPods(namespace), [namespace])
+    const pods = useProviderQuery((p) => p.cluster.listPods(namespace), [namespace])
   const podList = [...(pods.data ?? [])].sort((a, b) => a.name.localeCompare(b.name))
   const selectedPod = podList.find((p) => p.name === pod) ?? podList[0]
   const containers = selectedPod?.containers.map((c) => c.name) ?? []
   const selectedContainer = containers.includes(container) ? container : (containers[0] ?? '')
 
-  const namespaceNames = (namespaces.data ?? []).map((n) => n.name)
+  const { names: namespaceNames } = useNamespaceNames()
   if (!namespaceNames.includes(namespace)) namespaceNames.unshift(namespace)
   const podError = pods.error ?? (!pods.loading && podList.length === 0 ? t('shell.noPods') : undefined)
 

@@ -59,7 +59,7 @@ export function StorageSidebar() {
           else CREATE_NODES[node.id]?.()
         }}
       />
-      <SidebarErrors errors={[overview.error]} />
+      <SidebarErrors errors={[overview]} />
     </>
   )
 }

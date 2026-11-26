@@ -2,7 +2,8 @@ import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { PLATFORM_NS } from '@/core/locales'
 import { errorMessage, type ApiErrorCode } from '@/data/apiClient'
-import { errorCodeOf, errorTextKeys } from './apiErrorText'
+import { errorCodeOf, errorReasonOf, errorTextKeys } from './apiErrorText'
+import { isKubernetesForbidden } from './forbidden'
 import { Button } from './Button'
 import { Icon } from './Icon'
 import './Unavailable.css'
@@ -13,11 +14,16 @@ export interface UnavailableProps {
    * (`capability_unavailable`, `plugin_unavailable`, `forbidden_role`, …).
    */
   code?: ApiErrorCode | null
+  /**
+   * Reason code of the failure, e.g. `QueryState.errorReason`; a Kubernetes
+   * 403 (`kubernetes.forbidden*`) shows the "no permission" explanation.
+   */
+  reasonCode?: string | null
   /** A thrown value; supplies the code and reason when those props are not given. */
   error?: unknown
   /** The specific reason, usually the server's message (e.g. "Argo CD CRDs are not installed"). */
   reason?: string | null
-  /** Overrides the title derived from the code. */
+  /** Overrides the title derived from the code, except for a Kubernetes 403, which always reads "no permission". */
   title?: string
   /** Overrides the hint derived from the code. */
   hint?: string
@@ -36,6 +42,7 @@ export interface UnavailableProps {
  */
 export function Unavailable({
   code,
+  reasonCode,
   error,
   reason,
   title,
@@ -45,13 +52,17 @@ export function Unavailable({
   compact = false,
 }: UnavailableProps) {
   const { t } = useTranslation(PLATFORM_NS)
-  const keys = errorTextKeys(code ?? errorCodeOf(error))
+  const reasonOfFailure = reasonCode ?? errorReasonOf(error)
+  const keys = errorTextKeys(code ?? errorCodeOf(error), reasonOfFailure)
+  // A Kubernetes 403 reads the same everywhere (design §7.16): "no
+  // permission", with what exactly is denied as the detail.
+  const forbidden = isKubernetesForbidden(reasonOfFailure)
   const detail = reason ?? (error === undefined ? null : errorMessage(error))
 
   return (
     <div className={clsx('kb-unavailable', compact && 'kb-unavailable--compact')} role="status">
       <Icon name={icon ?? keys.icon} size={compact ? 24 : 40} className="kb-unavailable__icon" />
-      <div className="kb-unavailable__title">{title ?? t(keys.title)}</div>
+      <div className="kb-unavailable__title">{forbidden ? t(keys.title) : (title ?? t(keys.title))}</div>
       <div className="kb-unavailable__hint">{hint ?? t(keys.hint)}</div>
       {detail && <div className="kb-unavailable__reason">{detail}</div>}
       {onRetry && (

@@ -66,11 +66,16 @@ func (p *Plugin) Start(ctx context.Context, host plugin.Host) error {
 
 // Detect needs the release Secrets: Helm keeps every release in Secrets
 // labelled owner=helm, so listing them in all namespaces covers both
-// reading releases and RBAC. The router runs it after the runtime's
-// capability probe and caches it for a minute.
+// reading releases and RBAC. A namespace-scoped credential that may list
+// them in some namespaces (the capability probe's HelmNamespaces, §7.16)
+// counts as well: its releases are listed per namespace. The router runs
+// Detect after the runtime's capability probe and caches it for a minute.
 func (p *Plugin) Detect(ctx context.Context, rt *kube.Runtime) plugin.Status {
 	_, err := rt.CS.CoreV1().Secrets("").List(ctx, metav1.ListOptions{LabelSelector: "owner=helm", Limit: 1})
 	if err != nil {
+		if len(rt.Caps().HelmNamespaces) > 0 {
+			return plugin.Status{Available: true}
+		}
 		return plugin.Unavailable(reasonUnavailable, reason.Params{"detail": err.Error()})
 	}
 	return plugin.Status{Available: true}

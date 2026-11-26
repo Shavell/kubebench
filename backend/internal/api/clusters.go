@@ -5,10 +5,12 @@ import (
 	"errors"
 	"net/http"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
@@ -42,6 +44,9 @@ type clusterView struct {
 	// identity). The credentials themselves are never returned.
 	CloudAuth        string `json:"cloudAuth,omitempty"`
 	CloudCredentials string `json:"cloudCredentials,omitempty"`
+	// AllowedNamespaces is the admin's namespace list for credentials
+	// that cannot list namespaces (§7.16); [] = detected.
+	AllowedNamespaces []string `json:"allowedNamespaces"`
 }
 
 func describeCluster(uc *store.UserCluster, activeID *int64) clusterView {
@@ -50,6 +55,10 @@ func describeCluster(uc *store.UserCluster, activeID *int64) clusterView {
 		ID: c.ID, Name: c.Name, Source: c.Source, Address: c.Address, Context: c.Context,
 		Active:   activeID != nil && *activeID == c.ID,
 		ReadOnly: c.ReadOnly, Environment: c.Environment, Role: uc.Role,
+		AllowedNamespaces: c.Namespaces(),
+	}
+	if view.AllowedNamespaces == nil {
+		view.AllowedNamespaces = []string{}
 	}
 	switch c.Source {
 	case store.SourceInCluster:
@@ -109,6 +118,9 @@ func (s *Server) handleAddCluster(w http.ResponseWriter, r *http.Request, c *cal
 		Context string `json:"context"`
 		// Per-cluster cloud credentials (§7.12), write-only.
 		Credentials json.RawMessage `json:"credentials"`
+		// The namespaces the UI offers when the credential cannot list
+		// them (§7.16).
+		AllowedNamespaces []string `json:"allowedNamespaces"`
 	}
 	if strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
 		if err := decodeJSON(w, r, &body); err != nil {
@@ -126,7 +138,12 @@ func (s *Server) handleAddCluster(w http.ResponseWriter, r *http.Request, c *cal
 		return
 	}
 
-	cluster := store.Cluster{Name: body.Name, Context: body.Context}
+	allowed, err := normalizeNamespaces(body.AllowedNamespaces)
+	if err != nil {
+		writeErr(w, err)
+		return
+	}
+	cluster := store.Cluster{Name: body.Name, Context: body.Context, AllowedNamespaces: store.JoinNamespaces(allowed)}
 	switch {
 	case body.Content != "":
 		cluster.Source, cluster.Kubeconfig = store.SourceKubeconfig, body.Content
@@ -276,6 +293,27 @@ func serverSideReferences(cluster *clientcmdapi.Cluster, user *clientcmdapi.Auth
 	return refs
 }
 
+// normalizeNamespaces validates a cluster's allowed namespaces (§7.16):
+// namespace names, blanks dropped, duplicates removed, at most
+// kube.MaxProbeNamespaces. The result is never nil.
+func normalizeNamespaces(names []string) ([]string, error) {
+	out := []string{}
+	for _, name := range names {
+		name = strings.TrimSpace(name)
+		if name == "" || slices.Contains(out, name) {
+			continue
+		}
+		if len(validation.IsDNS1123Label(name)) > 0 {
+			return nil, badRequest(reason.NotNamespace, reason.Params{"value": name})
+		}
+		out = append(out, name)
+	}
+	if len(out) > kube.MaxProbeNamespaces {
+		return nil, badRequest(reasonNamespaceCount, reason.Params{"max": kube.MaxProbeNamespaces})
+	}
+	return out, nil
+}
+
 func validateClusterName(name string) error {
 	if name == "" || len(name) > 63 {
 		return badRequest(reasonClusterName, nil)
@@ -328,6 +366,8 @@ func (s *Server) handleUpdateCluster(w http.ResponseWriter, r *http.Request, c *
 		// Per-cluster cloud credentials (§7.12): an object replaces them,
 		// null removes them, absent leaves them.
 		Credentials json.RawMessage `json:"credentials"`
+		// Replaces the allowed namespaces (§7.16); [] clears them.
+		AllowedNamespaces *[]string `json:"allowedNamespaces"`
 	}
 	if err := decodeJSON(w, r, &body); err != nil {
 		writeErr(w, err)
@@ -345,6 +385,11 @@ func (s *Server) handleUpdateCluster(w http.ResponseWriter, r *http.Request, c *
 	if body.Environment != nil {
 		changes["environment"] = *body.Environment
 	}
+	var namespacesErr error
+	if body.AllowedNamespaces != nil {
+		allowed, err := normalizeNamespaces(*body.AllowedNamespaces)
+		update.AllowedNamespaces, changes["allowedNamespaces"], namespacesErr = &allowed, allowed, err
+	}
 	credentials, removeCredentials, credErr := decodeCredentials(body.Credentials, cluster)
 	switch {
 	case credentials != "":
@@ -361,6 +406,10 @@ func (s *Server) handleUpdateCluster(w http.ResponseWriter, r *http.Request, c *
 	}
 	if len(changes) == 0 {
 		writeErr(w, badRequest(reasonClusterNothing, nil))
+		return
+	}
+	if namespacesErr != nil {
+		writeErr(w, namespacesErr)
 		return
 	}
 	if update.Name != nil {

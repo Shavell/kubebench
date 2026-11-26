@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { orderNamespaces, toggled } from './namespaceOrder.ts'
+import { orderNamespaces, startNamespace, toggled } from './namespaceOrder.ts'
 
 describe('orderNamespaces', () => {
   const names = ['shop', 'default', 'kube-system', 'monitoring', 'cert-manager']
@@ -28,5 +28,21 @@ describe('toggled', () => {
   it('adds or removes', () => {
     assert.deepEqual(toggled(['a'], 'b'), ['a', 'b'])
     assert.deepEqual(toggled(['a', 'b'], 'a'), ['b'])
+  })
+})
+
+describe('startNamespace', () => {
+  it("starts in the cluster's default namespace the first time", () => {
+    assert.equal(startNamespace('team-a', undefined), 'team-a')
+  })
+
+  it('keeps the last choice on the cluster, all namespaces included', () => {
+    assert.equal(startNamespace('team-a', 'team-b'), 'team-b')
+    assert.equal(startNamespace('team-a', ''), '')
+  })
+
+  it('starts on all namespaces without a default', () => {
+    assert.equal(startNamespace('', undefined), '')
+    assert.equal(startNamespace(undefined, undefined), '')
   })
 })

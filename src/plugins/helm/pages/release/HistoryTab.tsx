@@ -103,7 +103,7 @@ function ValuesComparison({ release }: { release: HelmReleaseDetail }) {
         <RevisionSelect history={history} value={to} onChange={setTo} label={t('release.compare.to')} />
       </div>
       {values.error ? (
-        <Unavailable compact code={values.errorCode} reason={values.error} />
+        <Unavailable compact code={values.errorCode} reasonCode={values.errorReason} reason={values.error} />
       ) : values.data === null ? (
         <div className="helm-muted">{t('release.values.loading')}</div>
       ) : values.data.left === values.data.right ? (

@@ -66,7 +66,7 @@ export function SubjectsPage() {
 
   const body = () => {
     if (query.loading && !query.data) return <div className="page-loading">{t('subjects.loading')}</div>
-    if (query.error) return <Unavailable code={query.errorCode} reason={query.error} title={t('subjects.unavailable')} />
+    if (query.error) return <Unavailable code={query.errorCode} reasonCode={query.errorReason} reason={query.error} title={t('subjects.unavailable')} />
     if (!rows.length) return <EmptyState icon="organization" title={t('subjects.empty')} hint={t('subjects.emptyHint')} />
     return (
       <div className="page__scroll">

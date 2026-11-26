@@ -93,7 +93,7 @@ export function RiskyRolesPage() {
 
   const body = () => {
     if (query.loading && !query.data) return <div className="page-loading">{t('risky.loading')}</div>
-    if (query.error) return <Unavailable code={query.errorCode} reason={query.error} title={t('risky.unavailable')} />
+    if (query.error) return <Unavailable code={query.errorCode} reasonCode={query.errorReason} reason={query.error} title={t('risky.unavailable')} />
     return (
       <div className="page__scroll access-page">
         <div className="access-tiles">

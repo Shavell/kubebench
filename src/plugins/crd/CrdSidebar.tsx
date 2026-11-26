@@ -14,7 +14,8 @@ import {
 export function CrdSidebar() {
   const { t } = useTranslation(NS)
   const activeTabId = useLayoutStore((s) => s.activeTabId)
-  const { data: crds, error } = useProviderQuery((p) => p.crd.listCrds(), [], { topics: ['customresourcedefinitions.apiextensions.k8s.io'] })
+  const crdsQuery = useProviderQuery((p) => p.crd.listCrds(), [], { topics: ['customresourcedefinitions.apiextensions.k8s.io'] })
+  const crds = crdsQuery.data
 
   // Tree node ids equal the ids of the tabs they open, so the open tab is highlighted.
   const groups = new Map<string, TreeNode[]>()
@@ -56,7 +57,7 @@ export function CrdSidebar() {
           }
         }}
       />
-      <SidebarErrors errors={[error]} />
+      <SidebarErrors errors={[crdsQuery]} />
     </>
   )
 }

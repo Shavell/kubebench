@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
+import { useNamespaceNames } from '@/core/namespaceNames'
 import { useTranslation } from 'react-i18next'
 import type { TabDescriptor } from '@/core/plugin/types'
 import { ALL_NAMESPACES, useContextStore } from '@/core/store/contextStore'
-import { useProviderQuery } from '@/data/DataContext'
 import { usePluginQuery } from '@/data/pluginData'
 import { Field, recordFromPairs, Select, TextInput, type KeyValuePair } from '@/shared/form'
 import { Unavailable } from '@/shared/Unavailable'
@@ -96,7 +96,7 @@ export function PvcWizard({ tab }: { tab: TabDescriptor }) {
   const [prefilled, setPrefilled] = useState(false)
   const set = <K extends keyof PvcForm>(key: K, value: PvcForm[K]) => setForm((f) => ({ ...f, [key]: value }))
 
-  const namespaces = useProviderQuery((p) => p.cluster.listNamespaces(), [])
+  const namespaces = useNamespaceNames()
   const overview = usePluginQuery(() => storageData().overview(), [])
   const volumes = usePluginQuery(() => storageData().listPvs(), [])
   const claims = usePluginQuery(() => storageData().listPvcs(form.namespace), [form.namespace])
@@ -163,7 +163,7 @@ export function PvcWizard({ tab }: { tab: TabDescriptor }) {
     setForm((f) => ({ ...f, snapshot: name, ...(snap?.restoreSize ? splitSize(snap.restoreSize) : {}) }))
   }
 
-  const namespaceOptions = (namespaces.data ?? []).map((n) => ({ value: n.name, label: n.name }))
+  const namespaceOptions = namespaces.names.map((name) => ({ value: name, label: name }))
   if (!namespaceOptions.some((o) => o.value === form.namespace)) namespaceOptions.unshift({ value: form.namespace, label: form.namespace })
   const pick = (label: string) => ({ value: '', label })
 
@@ -232,7 +232,7 @@ export function PvcWizard({ tab }: { tab: TabDescriptor }) {
       )}
       {form.source === 'restore' &&
         (snapshots.error ? (
-          <Unavailable compact code={snapshots.errorCode} reason={snapshots.error} title={t('snapshots.unavailable')} />
+          <Unavailable compact code={snapshots.errorCode} reasonCode={snapshots.errorReason} reason={snapshots.error} title={t('snapshots.unavailable')} />
         ) : (
           <Field label={t('fields.snapshot')} help={t('wizard.pvc.restoreHelp')} error={wizard.problemOf('dataSource.name')} required>
             <Select

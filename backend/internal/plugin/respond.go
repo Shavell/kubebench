@@ -89,7 +89,9 @@ func WriteError(w http.ResponseWriter, status int, code string, err error) {
 
 // WriteK8sError reports a client-go error with code "kubernetes". Kubernetes
 // API errors keep their status so RBAC denials and missing objects show up
-// verbatim; failures to reach the cluster become 502/504.
+// as such; failures to reach the cluster become 502/504. A 403 carries a
+// forbidden reason (ForbiddenReason), so the UI can say what the
+// credential may not do.
 //
 // A 401 from the cluster means KubeBench's stored credential was rejected.
 // It is reported as 502: a 401 would tell the browser that its own
@@ -102,6 +104,7 @@ func WriteK8sError(w http.ResponseWriter, err error) {
 		if status = int(apiStatus.Status().Code); status == http.StatusUnauthorized {
 			status = http.StatusBadGateway
 		}
+		err = ForbiddenReason(err)
 	case meta.IsNoMatchError(err):
 		status, code = http.StatusNotFound, CodeNotFound
 	case errors.Is(err, context.DeadlineExceeded):

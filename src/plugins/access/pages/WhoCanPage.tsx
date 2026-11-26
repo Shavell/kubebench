@@ -69,7 +69,7 @@ export function WhoCanPage() {
 
   const results = () => {
     if (query.loading && !query.data) return <div className="page-loading">{t('whoCan.loading')}</div>
-    if (query.error) return <Unavailable compact code={query.errorCode} reason={query.error} title={t('whoCan.unavailable')} />
+    if (query.error) return <Unavailable compact code={query.errorCode} reasonCode={query.errorReason} reason={query.error} title={t('whoCan.unavailable')} />
     const subjects = query.data?.subjects ?? []
     if (!subjects.length) return <EmptyState icon="shield" title={t('whoCan.nobody')} hint={t('whoCan.nobodyHint')} />
     return <Table columns={columns} rows={subjects} rowKey={subjectKey} />

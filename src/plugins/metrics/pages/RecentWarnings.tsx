@@ -44,7 +44,7 @@ export function RecentWarnings() {
   }, [query.data])
 
   const body = () => {
-    if (query.error) return <Unavailable compact code={query.errorCode} reason={query.error} title={t('overview.warnings.unavailable')} />
+    if (query.error) return <Unavailable compact code={query.errorCode} reasonCode={query.errorReason} reason={query.error} title={t('overview.warnings.unavailable')} />
     if (query.loading && !query.data) return <div className="metrics-warnings__empty">{t('overview.warnings.loading')}</div>
     if (shown.length === 0) {
       return (
