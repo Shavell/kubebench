@@ -99,10 +99,15 @@ func (t Target) AuditTarget() string {
 // arrived (e.g. "/static/app.js"), and returns it with a leading slash.
 // Dot segments and encoded slashes or backslashes are refused: the path
 // is appended to the proxy subresource's path on the API server and must
-// not climb out of it.
+// not climb out of it. A path starting with two slashes is refused as
+// well: the path is recorded as the frame's location, and on its own
+// "//host/..." would read as a URL of another host.
 func CleanPath(escaped string) (string, error) {
 	if !strings.HasPrefix(escaped, "/") {
 		escaped = "/" + escaped
+	}
+	if len(escaped) > 1 && (escaped[1] == '/' || escaped[1] == '\\') {
+		return "", fmt.Errorf("the path must not start with two slashes")
 	}
 	lower := strings.ToLower(escaped)
 	if strings.Contains(lower, "%2f") || strings.Contains(lower, "%5c") || strings.Contains(escaped, `\`) {

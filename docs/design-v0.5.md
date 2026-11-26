@@ -1983,7 +1983,8 @@ admin or operator, whatever the read-only flag.
   `/proxy/{token}/`) forwards to
   `<server>/api/v1/namespaces/<ns>/<services|pods>/<scheme>:<name>:<port>/proxy/<path>?<query>`.
   The path is outside `/api` so that relative links work; it may contain
-  no dot segments or encoded slashes/backslashes (`400`). Errors of the
+  no dot segments, no leading `//` and no encoded slashes/backslashes
+  (`400`). Errors of the
   proxy itself are short `text/plain` pages for the frame, not JSON.
 
 **Grants** (`svcproxy.Grants`, in memory): 256 random bits (base64url);
