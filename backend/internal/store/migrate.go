@@ -247,7 +247,7 @@ CREATE UNIQUE INDEX idx_auth_group_mappings
 
 // migrateV8 adds a cluster's allowed namespaces (docs/design-v0.5.md
 // §7.16): the namespaces the UI offers when the cluster's credential
-// cannot list namespaces, comma-separated ('' = none set). They only
+// cannot list namespaces, comma-separated (empty when none is set). They only
 // shape the UI; they grant and deny nothing.
 func migrateV8(tx *sql.Tx) error {
 	_, err := tx.Exec(`ALTER TABLE clusters ADD COLUMN allowed_namespaces TEXT NOT NULL DEFAULT '';`)
