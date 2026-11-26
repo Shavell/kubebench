@@ -94,8 +94,13 @@
       "content": "Fügen Sie die kubeconfig ein oder laden Sie sie aus einer Datei.",
       "path": "Geben Sie den Pfad der kubeconfig-Datei auf dem Server ein.",
       "address": "Geben Sie eine http://- oder https://-Adresse ein.",
-      "fileTooLarge": "{{name}} ist zu groß für eine kubeconfig."
-    }
+      "fileTooLarge": "{{name}} ist zu groß für eine kubeconfig.",
+      "namespace": "\"{{namespace}}\" ist kein Namespace-Name.",
+      "tooManyNamespaces": "Geben Sie höchstens {{max}} Namespaces ein."
+    },
+    "allowedNamespaces": "Erlaubte Namespaces",
+    "allowedNamespacesHelp": "Werden im Namespace-Filter angeboten, wenn die Zugangsdaten des Clusters keine Namespaces auflisten dürfen. Leer: der Namespace des kubeconfig-Kontexts. Bestimmt nur die Liste; was Benutzer tun dürfen, entscheiden weiterhin ihre KubeBench-Rolle und das RBAC des Clusters.",
+    "allowedNamespacesPlaceholder": "team-a, team-b"
   },
   "add": {
     "title": "Cluster hinzufügen",

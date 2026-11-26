@@ -37,7 +37,7 @@ export function AccessSidebar() {
           if (target) openListTab(target)
         }}
       />
-      <SidebarErrors errors={[subjects.error, risky.error]} />
+      <SidebarErrors errors={[subjects, risky]} />
     </>
   )
 }

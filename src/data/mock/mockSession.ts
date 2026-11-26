@@ -42,7 +42,18 @@ export function mockServerInfo(): ServerInfo {
       readOnly,
     },
     // The OpenShift resource types are served by the OpenShift mock cluster only.
-    capabilities: { crds: true, helm: true, exec: true, optionalResources: mockOptionalResources(cluster.platform) },
+    capabilities: {
+      crds: true,
+      helm: true,
+      exec: true,
+      optionalResources: mockOptionalResources(cluster.platform),
+      // The mock's credential may do everything cluster-wide (design §7.16).
+      listNamespaces: true,
+      namespaces: cluster.allowedNamespaces ?? [],
+      defaultNamespace: '',
+      execNamespaces: [],
+      helmNamespaces: [],
+    },
     // The mock has no server side for runtime-loaded plugins.
     features: { pathKubeconfig: true, externalPlugins: false, ambientCloudIdentity: true },
     clusterError: '',

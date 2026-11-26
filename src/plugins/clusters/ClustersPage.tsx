@@ -165,7 +165,7 @@ export function ClustersPage() {
   ]
 
   const renderBody = () => {
-    if (clusters.error) return <Unavailable code={clusters.errorCode} reason={clusters.error} onRetry={refreshData} />
+    if (clusters.error) return <Unavailable code={clusters.errorCode} reasonCode={clusters.errorReason} reason={clusters.error} onRetry={refreshData} />
     if (!clusters.data) return <div className="clusters__loading">{t('table.loading')}</div>
     if (clusters.data.length === 0) {
       return (

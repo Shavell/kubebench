@@ -49,7 +49,7 @@ export function ReleaseDetailPage({ tab }: { tab: TabDescriptor }) {
       return <EmptyState icon="trash" title={t('release.gone', { name: qualifiedName })} hint={t('release.goneHint')} />
     }
     if (query.error) {
-      return <Unavailable code={query.errorCode} reason={query.error} title={t('release.unavailable')} onRetry={refreshData} />
+      return <Unavailable code={query.errorCode} reasonCode={query.errorReason} reason={query.error} title={t('release.unavailable')} onRetry={refreshData} />
     }
     return <div className="page-loading">{t('release.loading', { name: qualifiedName })}</div>
   }

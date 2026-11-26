@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	authv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
@@ -39,6 +38,19 @@ type Capabilities struct {
 	// OptionalResources are the keys of OptionalResources the cluster
 	// serves (OpenShift's resource types, §7.15).
 	OptionalResources []string `json:"optionalResources"`
+
+	// Namespace access (§7.16). ListNamespaces: the credential may list
+	// namespaces. Namespaces: what the UI offers when it may not (the
+	// cluster's allowed namespaces, else the detected ones).
+	// DefaultNamespace: where the UI starts on the cluster ("" = all
+	// namespaces). ExecNamespaces and HelmNamespaces: when Exec or Helm are
+	// allowed only in some of the probed namespaces, those (empty =
+	// cluster-wide).
+	ListNamespaces   bool     `json:"listNamespaces"`
+	Namespaces       []string `json:"namespaces"`
+	DefaultNamespace string   `json:"defaultNamespace"`
+	ExecNamespaces   []string `json:"execNamespaces,omitempty"`
+	HelmNamespaces   []string `json:"helmNamespaces,omitempty"`
 }
 
 // Runtime is the connection to one cluster. Its exported fields are set at
@@ -350,30 +362,18 @@ func (r *Runtime) probeCapabilities() {
 	}
 
 	// Helm needs the release secrets; probing a list in all namespaces
-	// covers both the SDK availability and RBAC.
-	if _, err := r.CS.CoreV1().Secrets("").List(ctx, metav1.ListOptions{
+	// covers both the SDK availability and RBAC. Without it, and for exec,
+	// probeNamespaces checks the cluster's namespaces one by one (§7.16).
+	_, helmErr := r.CS.CoreV1().Secrets("").List(ctx, metav1.ListOptions{
 		LabelSelector: "owner=helm", Limit: 1,
-	}); err == nil {
-		caps.Helm = true
-	}
-
-	ssar := &authv1.SelfSubjectAccessReview{
-		Spec: authv1.SelfSubjectAccessReviewSpec{
-			ResourceAttributes: &authv1.ResourceAttributes{
-				Verb: "create", Resource: "pods", Subresource: "exec",
-			},
-		},
-	}
-	if res, err := r.CS.AuthorizationV1().SelfSubjectAccessReviews().Create(
-		ctx, ssar, metav1.CreateOptions{},
-	); err == nil && res.Status.Allowed {
-		caps.Exec = true
-	}
+	})
+	probeNamespaces(ctx, r.CS, &r.Cluster, helmErr == nil, &caps)
 	caps.OptionalResources = servedOptional(r.CS.Discovery())
 
 	r.mu.Lock()
 	r.caps = caps
 	r.mu.Unlock()
-	log.Printf("[capabilities] cluster=%s crds=%v helm=%v exec=%v optional=%v",
-		r.Cluster.Name, caps.CRDs, caps.Helm, caps.Exec, caps.OptionalResources)
+	log.Printf("[capabilities] cluster=%s crds=%v helm=%v%v exec=%v%v namespaces=%v optional=%v",
+		r.Cluster.Name, caps.CRDs, caps.Helm, caps.HelmNamespaces, caps.Exec, caps.ExecNamespaces,
+		caps.ListNamespaces, caps.OptionalResources)
 }

@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { useProviderQuery } from '@/data/DataContext'
+import { useNamespaceNames } from '@/core/namespaceNames'
 import { CodeEditor } from '@/shared/editor/CodeEditor'
 import { Checkbox, Field, Select, TextInput } from '@/shared/form'
 import { NS } from '../../i18n'
@@ -14,8 +14,8 @@ export function ValuesStep({
   change: (patch: Partial<InstallSession>) => void
 }) {
   const { t } = useTranslation(NS)
-  const namespaces = useProviderQuery((p) => p.cluster.listNamespaces(), [])
-  const names = (namespaces.data ?? []).map((ns) => ns.name)
+  const namespaces = useNamespaceNames()
+  const names = namespaces.names
   const exists = names.includes(session.namespace)
   const nameProblem = nameError(session.name)
   const namespaceProblem = namespaceError(session.namespace)
@@ -39,7 +39,7 @@ export function ValuesStep({
             label={t('install.values.namespace')}
             required
             error={session.namespace && namespaceProblem ? t('install.values.namespaceInvalid') : undefined}
-            help={namespaces.data && !exists && !namespaceProblem ? t('install.values.namespaceNew') : undefined}
+            help={namespaces.listed && !namespaces.loading && !exists && !namespaceProblem ? t('install.values.namespaceNew') : undefined}
           >
             {names.length > 0 && !session.createNamespace ? (
               <Select

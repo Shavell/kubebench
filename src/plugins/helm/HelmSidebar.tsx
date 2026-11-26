@@ -55,7 +55,7 @@ export function HelmSidebar() {
           else if (node.id === INSTALL_TAB_ID) openInstallTab()
         }}
       />
-      <SidebarErrors errors={[releasesQuery.error, reposQuery.error]} />
+      <SidebarErrors errors={[releasesQuery, reposQuery]} />
     </>
   )
 }

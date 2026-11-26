@@ -1,5 +1,6 @@
 import { ApiError } from '../apiClient'
 import { reasonError } from '../reasonError'
+import { MAX_ALLOWED_NAMESPACES, normalizeAllowedNamespaces } from '../rules'
 import type { InventoryProvider } from '../providers'
 import type { CloudCredentialProvider, ClusterEnvironment, ClusterEntry } from '../types'
 import { delay, delayReject } from './delay'
@@ -24,6 +25,8 @@ interface StoredCluster {
   /** The cloud whose identity signs in (design §7.12) and the stored per-cluster credentials. */
   cloudAuth?: CloudCredentialProvider
   cloudCredentials?: CloudCredentialProvider
+  /** Namespaces offered when the credential cannot list them (design §7.16). */
+  allowedNamespaces?: string[]
 }
 
 const DEFAULT_CLUSTERS: StoredCluster[] = [
@@ -105,6 +108,7 @@ function toEntry(c: StoredCluster): ClusterEntry {
     platform: mockPlatform(c.id),
     cloudAuth: c.cloudAuth,
     cloudCredentials: c.cloudCredentials,
+    allowedNamespaces: c.allowedNamespaces ?? [],
   }
 }
 
@@ -168,6 +172,14 @@ export function createMockInventory(): InventoryProvider {
         readOnly: update.readOnly ?? target.readOnly,
       })
       if (update.credentials !== undefined) target.cloudCredentials = update.credentials?.provider
+      if (update.allowedNamespaces !== undefined) {
+        const { names, invalid } = normalizeAllowedNamespaces(update.allowedNamespaces)
+        if (invalid !== undefined) return delayReject(reasonError(400, 'bad_request', 'field.not_namespace', { value: invalid }))
+        if (names.length > MAX_ALLOWED_NAMESPACES) {
+          return delayReject(reasonError(400, 'bad_request', 'clusters.too_many_namespaces', { max: MAX_ALLOWED_NAMESPACES }))
+        }
+        target.allowedNamespaces = names
+      }
       save(clusters)
       return delay(undefined)
     },

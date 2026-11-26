@@ -52,6 +52,13 @@ of it: a request still needs the stored credential to allow it. The
 ServiceAccount or kubeconfig decides the ceiling; KubeBench's roles narrow
 it per user.
 
+**Allowed namespaces are not a boundary.** A cluster's *allowed
+namespaces* (an admin setting, for credentials that cannot list
+namespaces) only choose what the namespace pickers offer. KubeBench does
+not refuse requests for other namespaces because of it: to confine users
+to namespaces, give the cluster a credential whose Kubernetes RBAC is
+confined to them (design §7.16).
+
 Every route declares its access level in one table (`routes.go`, plugin
 `Routes`), and the router checks session, role, read-only flag and plugin
 state before any handler or cluster call ([api.md](api.md#access-levels)).

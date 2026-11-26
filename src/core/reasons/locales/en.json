@@ -111,13 +111,14 @@
     "invalid_name": "a cluster name is 1-63 characters",
     "no_access": "you have no access to cluster \"{{name}}\"",
     "not_found": "cluster \"{{name}}\" not found",
-    "nothing_to_update": "nothing to update: send name, readOnly, environment and/or credentials",
+    "nothing_to_update": "nothing to update: send name, readOnly, environment, credentials and/or allowedNamespaces",
     "oidc_incomplete": "the kubeconfig's oidc auth provider lacks {{field}}",
     "path_disabled": "adding clusters by server-side path is disabled (KUBEBENCH_ALLOW_PATH_KUBECONFIG); paste the kubeconfig instead",
     "path_written": "{{path}} is inside {{dir}}, which KubeBench writes with content from requests; add a kubeconfig of the server's own instead",
     "read_kubeconfig": "cannot read the kubeconfig {{path}}: {{detail}}",
     "server_side_references": "the kubeconfig uses {{references}}, which this server does not allow in pasted kubeconfigs (KUBEBENCH_ALLOW_KUBECONFIG_EXEC); embed the credentials as *-data fields or a token",
     "source_required": "kubeconfig content, path or API address is required",
+    "too_many_namespaces": "at most {{max}} allowed namespaces",
     "unknown_context": "context \"{{context}}\" is not in the kubeconfig"
   },
   "drain": {
@@ -201,6 +202,11 @@
     "upload_invalid": "invalid chart: {{detail}}",
     "upload_not_found": "upload {{id}} does not exist or has expired; upload the chart again",
     "upload_version": "an uploaded chart has its own version; chart.version must be empty"
+  },
+  "kubernetes": {
+    "forbidden": "{{detail}}",
+    "forbidden_cluster": "no permission to {{verb}} {{resource}} at the cluster scope (Kubernetes RBAC of {{user}})",
+    "forbidden_namespace": "no permission to {{verb}} {{resource}} in namespace \"{{namespace}}\" (Kubernetes RBAC of {{user}})"
   },
   "logs": {
     "invalid_selector": "invalid selector: {{detail}}",

@@ -79,7 +79,7 @@ export function PvcListPage() {
 
   const body = () => {
     if (query.loading && !query.data) return <div className="page-loading">{t('pvcs.loading')}</div>
-    if (query.error) return <Unavailable code={query.errorCode} reason={query.error} title={t('pvcs.unavailable')} />
+    if (query.error) return <Unavailable code={query.errorCode} reasonCode={query.errorReason} reason={query.error} title={t('pvcs.unavailable')} />
     const rows = query.data ?? []
     if (rows.length === 0) return <EmptyState icon="save" title={t('pvcs.empty')} hint={ns ? t('pvcs.emptyNamespaceHint', { namespace: ns }) : undefined} />
     return (

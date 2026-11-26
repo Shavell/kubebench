@@ -27,7 +27,7 @@ export function CustomResourceListPage({ tab }: { tab: TabDescriptor }) {
   const [wide, setWide] = useState(false)
 
   const { data: crds } = useProviderQuery((p) => p.crd.listCrds(), [], { topics: ['customresourcedefinitions.apiextensions.k8s.io'] })
-  const { data, loading, error, errorCode } = useProviderQuery(
+  const { data, loading, error, errorCode, errorReason } = useProviderQuery(
     (p) => p.crd.listCustomResources(crdName),
     [crdName],
     // A CRD's name (<plural>.<group>) is the watch topic of its resources.
@@ -84,7 +84,7 @@ export function CustomResourceListPage({ tab }: { tab: TabDescriptor }) {
   }
 
   const content = error ? (
-    <Unavailable code={errorCode} reason={error} title={t('instances.unavailable')} />
+    <Unavailable code={errorCode} reasonCode={errorReason} reason={error} title={t('instances.unavailable')} />
   ) : rows.length === 0 ? (
     <EmptyState icon="inbox" title={t('instances.empty')} />
   ) : (

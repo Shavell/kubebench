@@ -85,7 +85,11 @@ parameters:
 `error` for a code it does not know. Reasons are `<group>.<name>` and stable
 across releases; parameters named `detail` carry a message from elsewhere
 (Kubernetes, Helm, the network), untranslated. Messages of the Kubernetes
-API itself (`code: kubernetes`) have no reason. The same pair explains
+API itself (`code: kubernetes`) have no reason, except a `403`:
+`kubernetes.forbidden_namespace` (`verb`, `resource`, `namespace`,
+`user`), `kubernetes.forbidden_cluster` (`verb`, `resource`, `user`) or
+`kubernetes.forbidden` (`detail`, another wording), so the UI can say what
+the cluster's credential may not do (design §7.16). The same pair explains
 status objects: `reasonCode`/`reasonParams` next to `reason` in plugin
 statuses (`GET /api/plugins`), live-update topic statuses (`event: status`
 of `/api/watch`) and the security report's `skipped`;
@@ -162,13 +166,24 @@ capability probe and provider detection:
                            "support": {"status": "supported", "endDate": "2027-02-28", "basis": "kubernetes"},
                            "detected": true}},
   "permissions": {"role": "admin", "canRead": true, "canWrite": true, "canExec": true, "isAdmin": true, "readOnly": false},
-  "capabilities": {"crds": true, "helm": true, "exec": true, "optionalResources": []},
+  "capabilities": {"crds": true, "helm": true, "exec": true, "optionalResources": [],
+                   "listNamespaces": true, "namespaces": [], "defaultNamespace": ""},
   "features": {"pathKubeconfig": true, "externalPlugins": true, "ambientCloudIdentity": false},
   "clusterError": ""
 }
 ```
 
 Without a usable cluster, `cluster` is `null` and `clusterError` says why.
+
+Namespace access (design §7.16): `listNamespaces` is whether the cluster's
+credential may list namespaces; `namespaces` are the namespaces the UI
+offers when it may not (the cluster's `allowedNamespaces`, else the
+kubeconfig context's namespace); `defaultNamespace` is where the UI starts
+(`""` = all namespaces). When exec or Helm are allowed only in some of
+those namespaces, `execNamespaces` / `helmNamespaces` list them (absent =
+cluster-wide), e.g. for a ServiceAccount bound to `edit` in `team-a`:
+`{"exec": true, "execNamespaces": ["team-a"], "helm": true, "helmNamespaces": ["team-a"],
+"listNamespaces": false, "namespaces": ["team-a"], "defaultNamespace": "team-a"}`.
 
 On OpenShift (§7.15) `capabilities.optionalResources` lists the OpenShift
 catalog keys the cluster serves (`routes`, `projects`,
@@ -215,10 +230,10 @@ an EUS subscription needs: the status stays `end-of-life`) or `ended`;
 
 | Method | Path | Level | Parameters | Answer |
 |---|---|---|---|---|
-| GET | `/api/clusters` | authed | — | `ClusterEntry[]`: `{"id","name","source","active","context"?,"server"?,"address"?,"error"?,"readOnly","environment","role","platform"}`; admins also get `kubeconfigPath`, `cloudAuth` and `cloudCredentials` (the provider only, never the secrets). Listing never connects to a cluster |
+| GET | `/api/clusters` | authed | — | `ClusterEntry[]`: `{"id","name","source","active","context"?,"server"?,"address"?,"error"?,"readOnly","environment","role","platform","allowedNamespaces"}`; admins also get `kubeconfigPath`, `cloudAuth` and `cloudCredentials` (the provider only, never the secrets). Listing never connects to a cluster |
 | POST | `/api/clusters/activate` | authed | `?name=` | `{"ok":true}`; `403` without an assignment, `400` for address bookmarks or a cluster that cannot be reached |
-| POST | `/api/clusters` | admin | `{"name", "content"? \| "path"? \| "address"?, "context"?, "credentials"?}` (the v0.4 query form `?name=&path=&address=&context=` still works) | `{"ok":true,"id"}`; `path` needs `features.pathKubeconfig`, else `403`, and a path inside a directory KubeBench writes from requests (the plugins' data directories such as the Helm cache, the external plugins directory) is refused with `403`; pasted kubeconfigs that run exec plugins or read server files are refused with `403` unless `KUBEBENCH_ALLOW_KUBECONFIG_EXEC=true` (EKS, GKE and AKS stanzas and the `oidc` auth provider are handled in process; an `oidc` provider's `idp-certificate-authority` file counts as a server file); auth providers other than `oidc`, and an `oidc` provider without issuer, client ID or token, are refused with `400` for every source; pasted EKS, GKE and AKS kubeconfigs without credentials of their own (none, or an AWS `profile`) are refused with `403` unless `features.ambientCloudIdentity` (`KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY`) |
-| PATCH | `/api/clusters/{id}` | admin | `{"name"?, "readOnly"?, "environment"?: ""\|"development"\|"staging"\|"production", "credentials"?: object\|null}` | `{"ok":true}`; removing the credentials of an EKS, GKE or AKS kubeconfig, or replacing them with an AWS `profile`, is refused with `403` unless `features.ambientCloudIdentity` |
+| POST | `/api/clusters` | admin | `{"name", "content"? \| "path"? \| "address"?, "context"?, "credentials"?, "allowedNamespaces"?: [names]}` (the v0.4 query form `?name=&path=&address=&context=` still works) | `{"ok":true,"id"}`; `path` needs `features.pathKubeconfig`, else `403`, and a path inside a directory KubeBench writes from requests (the plugins' data directories such as the Helm cache, the external plugins directory) is refused with `403`; pasted kubeconfigs that run exec plugins or read server files are refused with `403` unless `KUBEBENCH_ALLOW_KUBECONFIG_EXEC=true` (EKS, GKE and AKS stanzas and the `oidc` auth provider are handled in process; an `oidc` provider's `idp-certificate-authority` file counts as a server file); auth providers other than `oidc`, and an `oidc` provider without issuer, client ID or token, are refused with `400` for every source; pasted EKS, GKE and AKS kubeconfigs without credentials of their own (none, or an AWS `profile`) are refused with `403` unless `features.ambientCloudIdentity` (`KUBEBENCH_ALLOW_AMBIENT_CLOUD_IDENTITY`) |
+| PATCH | `/api/clusters/{id}` | admin | `{"name"?, "readOnly"?, "environment"?: ""\|"development"\|"staging"\|"production", "credentials"?: object\|null, "allowedNamespaces"?: [names]}` | `{"ok":true}`; `allowedNamespaces` (design §7.16) are namespace names (at most 20, `[]` clears them) offered when the credential cannot list namespaces: a UI list, not a security boundary; removing the credentials of an EKS, GKE or AKS kubeconfig, or replacing them with an AWS `profile`, is refused with `403` unless `features.ambientCloudIdentity` |
 | DELETE | `/api/clusters` | admin | `?name=` | `{"ok":true}`; sessions' active cluster and assignments go with it |
 
 Cloud `credentials` (§7.12) are one of

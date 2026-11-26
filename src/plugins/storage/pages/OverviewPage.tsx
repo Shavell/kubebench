@@ -68,7 +68,7 @@ export function OverviewPage() {
     return (
       <div className="page">
         <Toolbar title={t('overview.title')}>{actions}</Toolbar>
-        <Unavailable code={overview.errorCode} reason={overview.error} title={t('overview.unavailable')} />
+        <Unavailable code={overview.errorCode} reasonCode={overview.errorReason} reason={overview.error} title={t('overview.unavailable')} />
       </div>
     )
   }
@@ -145,7 +145,7 @@ export function OverviewPage() {
           {drivers.loading && !drivers.data ? (
             <div className="storage-muted">{t('csi.loading')}</div>
           ) : drivers.error ? (
-            <Unavailable compact code={drivers.errorCode} reason={drivers.error} title={t('csi.unavailable')} />
+            <Unavailable compact code={drivers.errorCode} reasonCode={drivers.errorReason} reason={drivers.error} title={t('csi.unavailable')} />
           ) : drivers.data && drivers.data.length === 0 ? (
             <EmptyState icon="plug" title={t('csi.empty')} />
           ) : (

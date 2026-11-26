@@ -69,7 +69,7 @@ export function UpgradePage({ tab }: { tab: TabDescriptor }) {
   }, [session.values, currentValues.data, update])
 
   if (!release.data) {
-    if (release.error) return <Unavailable code={release.errorCode} reason={release.error} onRetry={refreshData} />
+    if (release.error) return <Unavailable code={release.errorCode} reasonCode={release.errorReason} reason={release.error} onRetry={refreshData} />
     return <div className="page-loading">{t('release.loading', { name: `${namespace}/${name}` })}</div>
   }
   const current = release.data
@@ -190,7 +190,7 @@ export function UpgradePage({ tab }: { tab: TabDescriptor }) {
               </div>
               <div className="helm-pane__editor">
                 {session.values === null && currentValues.error ? (
-                  <Unavailable compact code={currentValues.errorCode} reason={currentValues.error} />
+                  <Unavailable compact code={currentValues.errorCode} reasonCode={currentValues.errorReason} reason={currentValues.error} />
                 ) : session.values === null ? (
                   <div className="page-loading">{t('release.values.loading')}</div>
                 ) : (

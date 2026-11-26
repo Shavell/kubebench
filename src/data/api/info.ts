@@ -23,6 +23,8 @@ const isObject = (value: unknown): value is Json =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 const str = (value: unknown): string => (typeof value === 'string' ? value : '')
 const bool = (value: unknown): boolean => value === true
+const strings = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
 
 const ENVIRONMENTS: readonly ClusterEnvironment[] = ['', 'development', 'staging', 'production']
 const CLUSTER_ROLES: readonly ClusterRole[] = ['admin', 'operator', 'viewer']
@@ -80,9 +82,13 @@ function parseServerInfo(body: unknown): ServerInfo {
       crds: bool(capabilities.crds),
       helm: bool(capabilities.helm),
       exec: bool(capabilities.exec),
-      optionalResources: Array.isArray(capabilities.optionalResources)
-        ? capabilities.optionalResources.filter((key): key is string => typeof key === 'string')
-        : [],
+      optionalResources: strings(capabilities.optionalResources),
+      // Servers before design §7.16 do not report it: assume namespaces can be listed.
+      listNamespaces: capabilities.listNamespaces !== false,
+      namespaces: strings(capabilities.namespaces),
+      defaultNamespace: str(capabilities.defaultNamespace),
+      execNamespaces: strings(capabilities.execNamespaces),
+      helmNamespaces: strings(capabilities.helmNamespaces),
     },
     features: {
       pathKubeconfig: bool(features.pathKubeconfig),

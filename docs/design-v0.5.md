@@ -197,8 +197,12 @@ that emits them (`backend/internal/reason`); the UI translates them from
 `src/core/reasons/locales` (namespace `reasons`, keys are the codes) and
 shows `error` for unknown codes; a test requires a string with the same
 placeholders for every defined code in every UI language, English equal
-to the server's. Kubernetes API errors (`kubernetes`) carry no reason, and
-a `detail` parameter holds text from elsewhere, untranslated. Status
+to the server's. Kubernetes API errors (`kubernetes`) carry no reason,
+except a `403` (v0.8.3, §7.16): `kubernetes.forbidden_namespace`
+(`verb`, `resource`, `namespace`, `user`), `kubernetes.forbidden_cluster`
+(`verb`, `resource`, `user`), parsed from the API server's RBAC message, or
+`kubernetes.forbidden` (`detail`) for another wording. A `detail`
+parameter holds text from elsewhere, untranslated. Status
 objects explain themselves the same way: plugin `Status`
 (`reasonCode`/`reasonParams`, set by `plugin.Unavailable`), watch topic
 statuses, `/api/info` (`clusterErrorReason`/`clusterErrorParams`), the
@@ -476,11 +480,15 @@ does every mapping change (target `mapping/<group>`).
               "platform": {"provider": "k3s", "cloud": "", "version": "v1.35.5+k3s1",
                            "support": {"status": "supported", "endDate": "2027-02-28", "basis": "kubernetes"}, "detected": true}},
   "permissions": {"role": "admin", "canRead": true, "canWrite": true, "canExec": true, "isAdmin": true, "readOnly": false},
-  "capabilities": {"crds": true, "helm": true, "exec": true},
+  "capabilities": {"crds": true, "helm": true, "exec": true, "optionalResources": [],
+                   "listNamespaces": true, "namespaces": [], "defaultNamespace": ""},
   "features": {"pathKubeconfig": true, "externalPlugins": true, "ambientCloudIdentity": false},
   "clusterError": ""
 }
 ```
+
+The namespace fields of `capabilities` (and `execNamespaces`,
+`helmNamespaces`) are described in §7.16.
 
 `permissions.role` is `admin` | `operator` | `viewer` (effective role on the
 active cluster). `/api/info` waits (≤3 s) for the runtime's capability probe
@@ -520,8 +528,9 @@ route answers `409 no_cluster` instead. Without any usable cluster,
 - `GET /api/clusters` entries gain `"readOnly"`, `"environment"`, `"role"`
   (the caller's effective role on it) and `"platform"` (§7.12; admins also
   `"cloudAuth"`, `"cloudCredentials"`).
-- `PATCH /api/clusters/{id}` (admin) `{"name"?, "readOnly"?, "environment"?, "credentials"?}` (§7.12).
-- `POST /api/clusters` (admin) `{"name", "content"? | "path"? | "address"?, "context"?, "credentials"?}`
+- `GET /api/clusters` entries also carry `"allowedNamespaces"` (§7.16, `[]` when unset).
+- `PATCH /api/clusters/{id}` (admin) `{"name"?, "readOnly"?, "environment"?, "credentials"?, "allowedNamespaces"?}` (§7.12, §7.16).
+- `POST /api/clusters` (admin) `{"name", "content"? | "path"? | "address"?, "context"?, "credentials"?, "allowedNamespaces"?}`
   → `{"ok": true, "id"}`. With `path` it is rejected with `403 forbidden`
   unless `features.pathKubeconfig`. Unless `KUBEBENCH_ALLOW_KUBECONFIG_EXEC`
   is set, pasted kubeconfigs whose selected context reads server-side files
@@ -2341,6 +2350,61 @@ privileged one, a DeploymentConfig, a BuildConfig with three Builds, an
 ImageStream and its tag), its security report has the SCC findings and
 its RBAC the `system:openshift:scc:*` grants; the other mock clusters
 serve none of it.
+
+### 7.16 Namespace-scoped credentials (v0.8.3)
+
+A cluster may be added with a credential that can only use some
+namespaces (a tenant ServiceAccount bound to `edit` in `team-a`): it cannot
+list namespaces, nodes or anything in all namespaces. KubeBench then
+works in the namespaces the credential may use instead of failing on
+cluster-wide requests.
+
+**Probe** (`kube/namespaces.go`, part of the capability probe, cached per
+runtime and rebuilt with it when the cluster record changes):
+`listNamespaces` is whether listing namespaces succeeds. `namespaces` are
+the cluster's allowed namespaces when set, else the detected ones: the
+kubeconfig context's `namespace` (in the cluster, KubeBench's own
+ServiceAccount namespace); at most 20 (`kube.MaxProbeNamespaces`).
+`defaultNamespace` is the kubeconfig context's namespace, else, when
+namespaces cannot be listed, the first of `namespaces`; `""` means all
+namespaces. Exec (`create pods/exec`) is asked by SelfSubjectAccessReview
+cluster-wide first; when denied, in each of `namespaces` plus the default
+namespace, and `exec` is true when it is allowed in any of them, listed
+in `execNamespaces` (empty = cluster-wide). Helm likewise: listing the
+release Secrets in all namespaces, else `list secrets` per namespace
+(`helmNamespaces`); the Helm plugin's Detect accepts a credential with
+`helmNamespaces`. CRDs stay a cluster-wide capability. The probe is
+bounded (one namespace list, at most 2 × 21 reviews) and runs once per
+runtime.
+
+**Allowed namespaces** (`clusters.allowed_namespaces`, schema v8): an
+admin setting per cluster (`allowedNamespaces` of `POST`/`PATCH
+/api/clusters`, the cluster's Edit dialog): namespace names, blanks and
+duplicates dropped, at most 20 (`field.not_namespace`,
+`clusters.too_many_namespaces`); `[]` clears it. It replaces the detected
+namespaces in `capabilities.namespaces`. It is a UI list, **not a security
+boundary**: requests outside it are still sent, and what a user may do is
+decided by their KubeBench role (§3) and the credential's Kubernetes
+RBAC.
+
+**UI**. The namespace filter starts in the user's last choice on the
+cluster (kept in the browser per user and cluster,
+`core/store/namespaceStart.ts`), else in `defaultNamespace`, else all
+namespaces. When `listNamespaces` is false the pickers
+(`useNamespaceNames`, `core/namespaceNames.ts`: the status bar, the list
+pages' filters, the terminal, Helm install, new resources, PVC wizard,
+topology) offer `namespaces` plus the current one without asking the API,
+and the status bar picker accepts a typed namespace name. A list whose
+request is refused with a `kubernetes.forbidden*` reason shows one "No
+permission" state (`<Unavailable reasonCode>`), with the denied verb,
+resource and namespace as its detail; sidebars sum such refusals of their
+count queries up as one quiet notice (`SidebarErrors` given the queries).
+`permissions` stay KubeBench's roles: buttons are not hidden by the
+credential's RBAC, whose refusals explain themselves as above.
+
+**Mock**: the mock credential may do everything (`listNamespaces` true,
+`namespaces` = the mock cluster's allowed namespaces, which its Edit
+dialog stores like the server).
 
 ## 8. Distribution
 

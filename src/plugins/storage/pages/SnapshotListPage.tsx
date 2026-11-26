@@ -67,7 +67,7 @@ export function SnapshotListPage() {
 
   const body = () => {
     if (query.loading && !query.data) return <div className="page-loading">{t('snapshots.loading')}</div>
-    if (query.error) return <Unavailable code={query.errorCode} reason={query.error} title={t('snapshots.unavailable')} />
+    if (query.error) return <Unavailable code={query.errorCode} reasonCode={query.errorReason} reason={query.error} title={t('snapshots.unavailable')} />
     const rows = query.data ?? []
     if (rows.length === 0) return <EmptyState icon="history" title={t('snapshots.empty')} />
     return (

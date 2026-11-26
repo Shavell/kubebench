@@ -102,12 +102,17 @@
       "generic": {
         "title": "Bir sorun oluştu",
         "hint": "Tekrar deneyin. Sorun devam ederse sunucu loglarını kontrol edin."
+      },
+      "kubernetesForbidden": {
+        "title": "Yetki yok",
+        "hint": "KubeBench'in bu küme için kullandığı kimlik bilgisi bunu yapamaz. Durum çubuğundan kullanabileceği bir namespace seçin veya bir yöneticiden Kubernetes RBAC yetkilerini genişletmesini isteyin."
       }
     },
     "copy": {
       "name": "Adı kopyala",
       "yaml": "YAML'ı kopyala"
-    }
+    },
+    "sidebarForbidden": "Bazı sayılar gizlendi: KubeBench'in bu kümedeki kimlik bilgisi bunları burada listeleyemiyor."
   },
   "editor": {
     "loading": "Düzenleyici yükleniyor…",
@@ -313,7 +318,9 @@
     "unhide": "Listede yeniden göster",
     "showHidden_one": "Gizlenenleri göster ({{count}})",
     "showHidden_other": "Gizlenenleri göster ({{count}})",
-    "keysHint": "Alt+P sabitle · Alt+H gizle"
+    "keysHint": "Alt+P sabitle · Alt+H gizle",
+    "useTyped": "\"{{namespace}}\" namespace'ini kullan",
+    "notListable": "KubeBench'in bu kümedeki kimlik bilgisi namespace'leri listeleyemiyor. Kullanabileceği bir namespace'in adını yazın."
   },
   "palette": {
     "kubectl": {

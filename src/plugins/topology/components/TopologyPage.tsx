@@ -1,7 +1,8 @@
 import { useMemo } from 'react'
+import { useNamespaceNames } from '@/core/namespaceNames'
 import { useTranslation } from 'react-i18next'
 import type { TabDescriptor } from '@/core/plugin/types'
-import { refreshData, useProviderQuery } from '@/data/DataContext'
+import { refreshData } from '@/data/DataContext'
 import { Button } from '@/shared/Button'
 import { EmptyState } from '@/shared/EmptyState'
 import { Checkbox, Select } from '@/shared/form'
@@ -45,7 +46,7 @@ function TopologyView({ tab }: { tab: TabDescriptor }) {
   const namespace = String(tab.props?.namespace ?? 'default')
   const focus = (tab.props?.focus as TopologyFocus | null) ?? null
   const { options, setOption } = useTopologyOptions()
-  const namespaces = useProviderQuery((p) => p.cluster.listNamespaces(), [])
+  const { names: namespaceNames } = useNamespaceNames()
   const data = useTopologyData(namespace)
 
   const full = useMemo(() => buildGraph(namespace, data.snapshot, options), [namespace, data.snapshot, options])
@@ -59,10 +60,10 @@ function TopologyView({ tab }: { tab: TabDescriptor }) {
 
   const showNamespace = () => openTopology(namespace)
   const nsOptions = useMemo(() => {
-    const names = new Set((namespaces.data ?? []).map((n) => n.name))
+    const names = new Set(namespaceNames)
     names.add(namespace)
     return [...names].sort().map((name) => ({ value: name, label: name }))
-  }, [namespaces.data, namespace])
+  }, [namespaceNames, namespace])
 
   const body = () => {
     if (data.errors.length === LIST_NAMES.length) {

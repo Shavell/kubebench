@@ -136,7 +136,7 @@ export function FindingsPage() {
 
   const body = () => {
     if (query.loading && !query.data) return <div className="page-loading">{t('findings.loading')}</div>
-    if (query.error) return <Unavailable code={query.errorCode} reason={query.error} title={t('findings.unavailable')} />
+    if (query.error) return <Unavailable code={query.errorCode} reasonCode={query.errorReason} reason={query.error} title={t('findings.unavailable')} />
     if (!report) return <EmptyState icon="shield" title={t('overview.noReport')} hint={t('overview.noReportHint')} />
     return (
       <div className="security-split">

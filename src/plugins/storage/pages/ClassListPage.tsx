@@ -18,7 +18,7 @@ export function ClassListPage() {
 
   const body = () => {
     if (query.loading && !query.data) return <div className="page-loading">{t('classes.loading')}</div>
-    if (!query.data) return <Unavailable code={query.errorCode} reason={query.error} title={t('classes.unavailable')} />
+    if (!query.data) return <Unavailable code={query.errorCode} reasonCode={query.errorReason} reason={query.error} title={t('classes.unavailable')} />
     const { classes, defaultClass } = query.data
     if (classes.length === 0) return <EmptyState icon="layers" title={t('classes.empty')} hint={t('classes.emptyHint')} />
     return (

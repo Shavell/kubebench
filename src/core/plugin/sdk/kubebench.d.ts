@@ -119,6 +119,8 @@ export interface QueryState<T> {
   error: string | null
   /** Machine code of the last failure (ApiError.code), e.g. "forbidden". */
   errorCode: string | null
+  /** Reason code of the last failure, e.g. "kubernetes.forbidden_namespace" (design §3.3). */
+  errorReason: string | null
 }
 
 /** What a query reads, so that live updates refresh it when that changes. */

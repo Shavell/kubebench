@@ -20,13 +20,13 @@ export function RolloutHistory({ deployment }: { deployment: ObjectKey }) {
   const { t } = useWorkloadsTranslation()
   const write = usePermission('write')
   const [target, setTarget] = useState<RolloutRevision | null>(null)
-  const { data, error, errorCode } = useProviderQuery(
+  const { data, error, errorCode, errorReason } = useProviderQuery(
     (p) => p.workloadOps.deploymentHistory(deployment.namespace, deployment.name),
     [deployment.namespace, deployment.name],
   )
 
   if (error) {
-    return <Unavailable compact code={errorCode} reason={error} title={t('workloadOps.rollout.loadFailed')} />
+    return <Unavailable compact code={errorCode} reasonCode={errorReason} reason={error} title={t('workloadOps.rollout.loadFailed')} />
   }
   if (!data) return <p className="ops-muted">{t('workloadOps.rollout.loading')}</p>
   if (data.revisions.length === 0) return <p className="ops-muted">{t('workloadOps.rollout.empty')}</p>

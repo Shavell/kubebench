@@ -82,7 +82,7 @@ export function ArgoSidebar() {
           else if (node.id === APPLICATION_SETS_TAB_ID) openApplicationSetsTab()
         }}
       />
-      <SidebarErrors errors={[apps.error]} />
+      <SidebarErrors errors={[apps]} />
     </>
   )
 }

@@ -17,6 +17,7 @@ var migrations = []func(tx *sql.Tx) error{
 	migrateV5,
 	migrateV6,
 	migrateV7,
+	migrateV8,
 }
 
 func (s *Store) migrate() error {
@@ -241,6 +242,15 @@ CREATE TABLE auth_group_mappings (
 );
 CREATE UNIQUE INDEX idx_auth_group_mappings
   ON auth_group_mappings(group_name COLLATE NOCASE, source, cluster);`)
+	return err
+}
+
+// migrateV8 adds a cluster's allowed namespaces (docs/design-v0.5.md
+// §7.16): the namespaces the UI offers when the cluster's credential
+// cannot list namespaces, comma-separated (empty when none is set). They only
+// shape the UI; they grant and deny nothing.
+func migrateV8(tx *sql.Tx) error {
+	_, err := tx.Exec(`ALTER TABLE clusters ADD COLUMN allowed_namespaces TEXT NOT NULL DEFAULT '';`)
 	return err
 }
 
