@@ -226,4 +226,4 @@ packages, snapshot release). Contribution rules: [CONTRIBUTING.md](CONTRIBUTING.
 
 ## License
 
-KubeBench is free software, licensed under the [GNU General Public License v3.0](LICENSE) (`GPL-3.0-only`). Contributions are accepted under the same license with a [Developer Certificate of Origin](CONTRIBUTING.md#developer-certificate-of-origin) sign-off.
+KubeBench is free software, licensed under the [GNU General Public License v3.0](LICENSE) (`GPL-3.0-only`). Outside contributions need a signed [Contributor License Agreement](CLA.md) and a [Developer Certificate of Origin](CONTRIBUTING.md#developer-certificate-of-origin) sign-off on each commit; see [CONTRIBUTING.md](CONTRIBUTING.md#contributor-license-agreement).

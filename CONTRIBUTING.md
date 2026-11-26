@@ -209,12 +209,37 @@ Report security issues privately, not in a pull request: see
 ## License
 
 KubeBench is licensed under the [GNU General Public License v3.0](LICENSE)
-(`GPL-3.0-only`). By contributing you agree that your contribution is
-licensed under the same terms (inbound = outbound).
+(`GPL-3.0-only`). Contributions are accepted under the terms below.
+
+## Contributor License Agreement
+
+Before a contribution from outside the project can be merged, its author
+signs the [KubeBench Individual Contributor License Agreement](CLA.md)
+(CLA) once. You keep the copyright in your work; the CLA lets the
+maintainer distribute your contribution under the GPL and under other
+licenses, such as a commercial license, so that the whole of KubeBench
+can be offered under the same terms.
+
+To sign, comment on your first pull request:
+
+```
+I have read the KubeBench CLA (CLA.md) and I hereby sign it.
+```
+
+The maintainer records the signature; you do not need to sign again for
+later pull requests. If you contribute on behalf of an employer, make
+sure you have its permission (CLA §3.2), or ask the maintainer about a
+corporate agreement.
 
 ## Developer Certificate of Origin
 
-Every commit must carry a `Signed-off-by:` line (`git commit -s`), which
-certifies the [Developer Certificate of Origin 1.1](https://developercertificate.org/):
-you wrote the change or otherwise have the right to submit it under the
-project's license.
+Every commit of a contribution from outside the project also carries a
+`Signed-off-by:` line (`git commit -s`), which certifies the
+[Developer Certificate of Origin 1.1](https://developercertificate.org/):
+you wrote the change or otherwise have the right to submit it. The DCO
+records, commit by commit, where the code comes from; the CLA defines the
+license you grant.
+
+The maintainer's own commits and those of automation (Dependabot) need
+neither the CLA nor the sign-off: the maintainer holds the rights to that
+work already.
