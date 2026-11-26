@@ -3,14 +3,17 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"slices"
 	"strings"
 	"testing"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	dynamicfake "k8s.io/client-go/dynamic/fake"
@@ -201,6 +204,26 @@ func TestEditEndpoint(t *testing.T) {
 	if r := rows[0]; r.Username != "alice" || r.Action != "POST /api/resource/edit" || r.Target != "configmap/shop/cm1" ||
 		r.Status != 200 || r.Detail != `{"configured":1}` {
 		t.Fatalf("edit row = %+v", r)
+	}
+
+	// An edit sent with a resourceVersion the object no longer has is a
+	// conflict with its own reason (the fake cluster checks no
+	// preconditions; this reactor answers like the API server).
+	dyn.PrependReactor("patch", "configmaps", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		if strings.Contains(string(action.(k8stesting.PatchAction).GetPatch()), `"resourceVersion":"3"`) {
+			return true, nil, apierrors.NewConflict(schema.GroupResource{Resource: "configmaps"}, "cm1", errors.New("the object has been modified"))
+		}
+		return false, nil, nil
+	})
+	stale := retuned
+	stale.ResourceVersion = "3"
+	for _, dry := range []string{"&dryRun=true", ""} {
+		rec = e.do(http.MethodPost, target+dry, "alice", stale)
+		expect(t, rec, http.StatusOK, "")
+		if res := decode[applyResponse](t, rec).Results; len(res) != 1 || res[0].Code != plugin.CodeConflict ||
+			res[0].Reason != "edit.changed_on_server" || res[0].Params["name"] != "shop/cm1" {
+			t.Fatalf("stale edit%s = %+v", dry, res)
+		}
 	}
 
 	// Refusals before anything is sent.
@@ -442,6 +465,11 @@ func TestYAMLEndpoint(t *testing.T) {
 	neat := yamlOf("/api/yaml?apiVersion=apps/v1&kind=Deployment&ns=shop&name=web&neat=true")
 	if strings.Contains(neat, "status") || strings.Contains(neat, "resourceVersion") || !strings.Contains(neat, "replicas: 2") {
 		t.Fatalf("neat YAML:\n%s", neat)
+	}
+	// The resourceVersion comes with the YAML, also when neat leaves it out.
+	rec := e.do(http.MethodGet, "/api/yaml?apiVersion=apps/v1&kind=Deployment&ns=shop&name=web&neat=true", "bob", nil)
+	if v := decode[map[string]string](t, rec)["resourceVersion"]; v != "9" {
+		t.Fatalf("resourceVersion = %q, want 9", v)
 	}
 	// Without apiVersion, the kinds v0.4 knew by name still work (a typed Pod here).
 	if pod := yamlOf("/api/yaml?kind=Pod&ns=default&name=web-1&neat=true"); !strings.HasPrefix(pod, "apiVersion: v1\nkind: Pod\n") || strings.Contains(pod, "creationTimestamp") {

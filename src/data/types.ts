@@ -405,6 +405,12 @@ export interface ObjectRef {
 export type ApplyAction = 'created' | 'configured' | 'unchanged'
 
 /** The outcome of one object of POST /api/resource/apply. */
+/** An object's YAML with the resourceVersion it was read at (also when `neat` leaves it out). */
+export interface YamlDocument {
+  yaml: string
+  resourceVersion?: string
+}
+
 export interface ApplyResult {
   apiVersion: string
   kind: string
@@ -416,8 +422,10 @@ export interface ApplyResult {
   error?: string
   /**
    * §3.3 code of `error`: `conflict` means fields the manifest changes are
-   * owned by another field manager (a forced apply takes them over);
-   * `not_found` a kind the cluster does not serve.
+   * owned by another field manager (a forced apply takes them over), or,
+   * for an edit (reason `edit.changed_on_server`), that the object changed
+   * on the server since editing started; `not_found` a kind the cluster
+   * does not serve.
    */
   code?: string
   /** Reason code and parameters of `error` when KubeBench explains it itself (§3.3). */

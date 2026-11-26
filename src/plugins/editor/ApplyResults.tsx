@@ -4,7 +4,7 @@ import type { ApplyResult } from '@/data/types'
 import { Badge, type BadgeTone } from '@/shared/Badge'
 import { Button } from '@/shared/Button'
 import { Icon } from '@/shared/Icon'
-import { outcomeHasConflict, summarize, type ApplyOutcome } from './applyRunner'
+import { outcomeChangedOnServer, outcomeHasConflict, summarize, type ApplyOutcome } from './applyRunner'
 import { useEditorTranslation } from './i18n'
 import './editor.css'
 
@@ -20,18 +20,23 @@ const objectName = (r: ApplyResult) => (r.namespace ? `${r.namespace}/${r.name}`
 /**
  * The outcome of a dry run or apply, one row per object. A server-side
  * apply conflict (another field manager owns a field the manifest changes)
- * gets an explanation and the Force apply button.
+ * gets an explanation and the Force apply button; an edit of an object
+ * that changed on the server since editing started gets the ways to go on
+ * (`onChanged`).
  */
 export function ApplyResults({
   outcome,
   onForce,
   forcing,
+  onChanged,
   onDismiss,
 }: {
   outcome: ApplyOutcome
   /** Applies again with force; omitted where forcing makes no sense. */
   onForce?: () => void
   forcing?: boolean
+  /** For an edit: compare it with the object's current version, or discard it and reload. */
+  onChanged?: { review: () => void; reload: () => void; busy: boolean }
   onDismiss: () => void
 }) {
   const { t } = useEditorTranslation()
@@ -87,6 +92,22 @@ export function ApplyResults({
             )
           })}
         </ul>
+      )}
+
+      {onChanged && outcomeChangedOnServer(outcome) && (
+        <div className="kb-apply__conflict">
+          <Icon name="warning" size={14} />
+          <div className="kb-apply__conflict-text">
+            <strong>{t('apply.changedTitle')}</strong>
+            <span>{t('apply.changedHint')}</span>
+          </div>
+          <Button variant="secondary" icon="discard" disabled={onChanged.busy} onClick={onChanged.reload}>
+            {t('apply.changedReload')}
+          </Button>
+          <Button icon="diff" busy={onChanged.busy} onClick={onChanged.review}>
+            {t('apply.changedReview')}
+          </Button>
+        </div>
       )}
 
       {onForce && outcomeHasConflict(outcome) && (

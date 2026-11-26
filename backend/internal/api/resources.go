@@ -56,12 +56,16 @@ func (s *Server) handleYAML(w http.ResponseWriter, r *http.Request, c *call) {
 		writeErr(w, required("kind", "name"))
 		return
 	}
-	text, err := c.rt.ObjectYAML(r.Context(), ref, neat)
+	text, version, err := c.rt.ObjectYAMLVersion(r.Context(), ref, neat)
 	if err != nil {
 		writeClusterErr(w, err)
 		return
 	}
-	plugin.WriteJSON(w, map[string]string{"yaml": text})
+	out := map[string]string{"yaml": text}
+	if version != "" {
+		out["resourceVersion"] = version
+	}
+	plugin.WriteJSON(w, out)
 }
 
 // handleEvents lists the events about one object; kind keeps objects of

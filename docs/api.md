@@ -245,7 +245,7 @@ All `read` unless stated.
 | GET | `/api/services` | `?ns=` | `Service[]` |
 | GET | `/api/resource` | `?key=<catalog key>&ns=` | generic list of a built-in kind (`configmaps`, `secrets`, `statefulsets`, `ingresses`, `persistentvolumeclaims`, `clusterroles`, …; see `backend/internal/kube/catalog.go`); OpenShift's `routes`, `projects`, `securitycontextconstraints`, `deploymentconfigs`, `buildconfigs`, `builds`, `imagestreams`, `imagestreamtags` (§7.15) list as empty on clusters that do not serve them |
 | GET | `/api/resource/get` | `?key=&ns=&name=` | one object of that kind |
-| GET | `/api/yaml` | `?apiVersion=&kind=&ns=&name=&neat=true` | `{"yaml"}`; without `apiVersion` only the kinds v0.4 knew; `neat` strips server-maintained fields |
+| GET | `/api/yaml` | `?apiVersion=&kind=&ns=&name=&neat=true` | `{"yaml","resourceVersion"}`; without `apiVersion` only the kinds v0.4 knew; `neat` strips server-maintained fields (`resourceVersion` is still returned beside the YAML) |
 | GET | `/api/events` | `?kind=&ns=&name=` | `K8sEvent[]` about that object |
 | GET | `/api/logs` | `?ns=&pod=&container=&tail=` (default 300, max 5000) `&previous=&sinceSeconds=` | `string[]` (lines) |
 | GET | `/api/crds` | — | `CrdDefinition[]` |
@@ -311,7 +311,7 @@ fields (counts, capacity, requests, limits) are always present.
 | Method | Path | Level | Parameters | Answer |
 |---|---|---|---|---|
 | POST | `/api/resource/apply` | write, dry-run | `?ns=&force=&dryRun=`; body YAML or JSON, any number of documents, ≤ 4 MiB | `{"results":[{"apiVersion","kind","namespace"?,"name","action"?:"created"\|"configured"\|"unchanged","error"?,"code"?,"reason"?,"params"?,"warnings"?,"warningReasons"?}]}` (server-side apply, field manager `kubebench`) |
-| POST | `/api/resource/edit` | write, dry-run | `?apiVersion=&kind=` or `?key=`, `&ns=&name=&dryRun=`; body `{"original","edited"}` | as apply, one result (sent as a JSON merge patch) |
+| POST | `/api/resource/edit` | write, dry-run | `?apiVersion=&kind=` or `?key=`, `&ns=&name=&dryRun=`; body `{"original","edited","resourceVersion"?}` | as apply, one result (sent as a JSON merge patch with `resourceVersion` — or the original's `metadata.resourceVersion` — as precondition: an object changed since fails with `code: conflict`, `reason: edit.changed_on_server`) |
 | DELETE | `/api/resource` | write | `?apiVersion=&kind=` or `?key=`, `&ns=&name=&propagation=Background\|Foreground\|Orphan&gracePeriod=` | `{"ok":true}`; namespaces use `DELETE /api/namespaces` |
 | PATCH | `/api/resource/metadata` | write | the same object parameters; body `{"labels":{…},"annotations":{…}}` (`null` removes a key) | `{"ok":true}` |
 | POST | `/api/secrets/reveal` | exec | `?ns=&name=` | the Secret with its `data` (base64), `Cache-Control: no-store` |

@@ -110,10 +110,13 @@ func (s *Server) handleApply(w http.ResponseWriter, r *http.Request, c *call) {
 }
 
 // editRequest is the body of POST /api/resource/edit: the object's YAML
-// (or JSON) as editing started from, and as edited.
+// (or JSON) as editing started from, and as edited, and the
+// resourceVersion the original was read at (GET /api/yaml), which the
+// edit is sent with as a precondition.
 type editRequest struct {
-	Original string `json:"original"`
-	Edited   string `json:"edited"`
+	Original        string `json:"original"`
+	Edited          string `json:"edited"`
+	ResourceVersion string `json:"resourceVersion,omitempty"`
 }
 
 // handleEdit applies an edit of one existing object as the merge patch
@@ -150,7 +153,7 @@ func (s *Server) handleEdit(w http.ResponseWriter, r *http.Request, c *call) {
 			return
 		}
 	}
-	res, err := c.rt.EditObject(r.Context(), obj, []byte(body.Original), []byte(body.Edited), dryRun)
+	res, err := c.rt.EditObject(r.Context(), obj, []byte(body.Original), []byte(body.Edited), body.ResourceVersion, dryRun)
 	var refused *kube.EditError
 	switch {
 	case errors.As(err, &refused) && refused.Redacted:
@@ -190,11 +193,13 @@ func toApplyResult(res kube.ApplyResult) applyResult {
 }
 
 // applyErrorCode is the §3.3 code of a failed object: conflict for a
-// server-side apply conflict (the UI then offers to force the apply),
-// not_found for a kind the cluster does not serve, kubernetes otherwise.
+// server-side apply conflict (the UI then offers to force the apply) and
+// for an edit of an object that changed since it was read (the reason
+// tells them apart), not_found for a kind the cluster does not serve,
+// kubernetes otherwise.
 func applyErrorCode(err error) string {
 	switch {
-	case kube.IsApplyConflict(err):
+	case kube.IsApplyConflict(err), kube.IsStaleEdit(err):
 		return plugin.CodeConflict
 	case meta.IsNoMatchError(err):
 		return plugin.CodeNotFound

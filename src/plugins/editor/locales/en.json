@@ -30,7 +30,9 @@
     "discardTitle": "Discard your changes?",
     "discardMessage": "Your edits of {{name}} were not applied and will be lost.",
     "discard": "Discard",
-    "applied": "{{name}} applied"
+    "applied": "{{name}} applied",
+    "rebasedHint": "Your text is now compared with the current version on the server. Apply sends the differences shown, so it also undoes the changes made on the server that your text does not have.",
+    "reloadMessage": "Your edits of {{name}} are discarded and the editor starts again from its current version on the server."
   },
   "apply": {
     "dryRunTitle": "Dry run",
@@ -64,7 +66,11 @@
     "conflictHint": "The manifest changes fields another field manager (a controller, kubectl, a GitOps tool) set; see the error above. Force apply overwrites them and makes KubeBench their owner, but their manager may set them back.",
     "force": "Force apply",
     "forceTitle": "Force apply {{name}}?",
-    "forceMessage": "The fields other field managers own are overwritten with the values of your manifest, and KubeBench becomes their owner."
+    "forceMessage": "The fields other field managers own are overwritten with the values of your manifest, and KubeBench becomes their owner.",
+    "changedTitle": "Changed on the server",
+    "changedHint": "The object was changed (by a controller, another user or a tool) after you started editing, so nothing was applied. Review your changes against its current version, or discard them and reload.",
+    "changedReview": "Review against the server",
+    "changedReload": "Discard and reload"
   },
   "newResource": {
     "title": "New resource",

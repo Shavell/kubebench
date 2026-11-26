@@ -25,9 +25,12 @@ interface YamlSession {
   mode: Mode
   /** Viewing option; editing always starts from the neat YAML. */
   neat: boolean
-  /** The neat YAML editing started from, and the edited text. */
+  /** The neat YAML editing started from, its resourceVersion, and the edited text. */
   base: string
+  baseVersion?: string
   draft: string
+  /** The base was replaced by the server's current version after the edit was refused as stale. */
+  rebased?: boolean
   outcome: ApplyOutcome | null
 }
 
@@ -48,10 +51,11 @@ export function ResourceYamlEditor({ tabId, target }: { tabId: string; target: O
   const write = usePermission('write')
   const setTabDirty = useLayoutStore((s) => s.setTabDirty)
   const [session, update] = useTabSession(tabId, newSession)
-  const { mode, neat, base, draft, outcome } = session
+  const { mode, neat, base, baseVersion, draft, rebased, outcome } = session
   const { busy, runEdit } = useApplyRunner()
   const [starting, setStarting] = useState(false)
   const [discarding, setDiscarding] = useState(false)
+  const [reloading, setReloading] = useState(false)
 
   const editing = mode !== 'view'
   const dirty = editing && draft !== base
@@ -65,8 +69,8 @@ export function ResourceYamlEditor({ tabId, target }: { tabId: string; target: O
   const startEditing = async () => {
     setStarting(true)
     try {
-      const text = await cluster.getYaml(target, { neat: true })
-      update({ mode: 'edit', base: text, draft: text, outcome: null })
+      const doc = await cluster.getYamlDocument(target, { neat: true })
+      update({ mode: 'edit', base: doc.yaml, baseVersion: doc.resourceVersion, draft: doc.yaml, rebased: false, outcome: null })
     } catch (err) {
       notify.error(err)
     } finally {
@@ -74,18 +78,43 @@ export function ResourceYamlEditor({ tabId, target }: { tabId: string; target: O
     }
   }
 
-  const stopEditing = () => update({ mode: 'view', base: '', draft: '', outcome: null })
+  const stopEditing = () => update({ mode: 'view', base: '', baseVersion: undefined, draft: '', rebased: false, outcome: null })
 
-  const dryRun = async () => update({ outcome: await runEdit(target, base, draft, true) })
+  const dryRun = async () => update({ outcome: await runEdit(target, base, draft, true, baseVersion) })
+
+  /**
+   * After an edit was refused because the object changed on the server:
+   * start again from its current version, keeping the text (to review it
+   * against that version) or discarding it.
+   */
+  const rebase = async (keepDraft: boolean) => {
+    setStarting(true)
+    try {
+      const doc = await cluster.getYamlDocument(target, { neat: true })
+      update({
+        mode: keepDraft ? 'review' : 'edit',
+        base: doc.yaml,
+        baseVersion: doc.resourceVersion,
+        draft: keepDraft ? draft : doc.yaml,
+        rebased: keepDraft,
+        outcome: null,
+      })
+      refreshData()
+    } catch (err) {
+      notify.error(err)
+    } finally {
+      setStarting(false)
+    }
+  }
 
   const apply = async () => {
-    const result = await runEdit(target, base, draft, false)
+    const result = await runEdit(target, base, draft, false, baseVersion)
     if (outcomeFailed(result)) {
       update({ outcome: result })
       return
     }
     notify.success(t('yaml.applied', { name: target.name }), { detail: summarize(result.results, false) })
-    update({ mode: 'view', base: '', draft: '', outcome: result })
+    update({ mode: 'view', base: '', baseVersion: undefined, draft: '', rebased: false, outcome: result })
   }
 
   const shownText = editing ? draft : (live.data ?? '')
@@ -165,7 +194,7 @@ export function ResourceYamlEditor({ tabId, target }: { tabId: string; target: O
     if (mode === 'review') {
       return (
         <DiffEditor
-          original={live.data ?? base}
+          original={base}
           modified={draft}
           readOnly={false}
           onChange={(text) => update({ draft: text })}
@@ -191,11 +220,27 @@ export function ResourceYamlEditor({ tabId, target }: { tabId: string; target: O
       {editing && (
         <div className={isSecret ? 'kb-yaml__banner kb-yaml__banner--warning' : 'kb-yaml__banner'}>
           <Icon name={isSecret ? 'warning' : 'info'} size={14} />
-          <span>{isSecret ? t('yaml.secretHint') : mode === 'review' ? t('yaml.reviewHint') : t('yaml.editHintBanner')}</span>
+          <span>
+            {isSecret
+              ? t('yaml.secretHint')
+              : mode === 'review'
+                ? rebased
+                  ? t('yaml.rebasedHint')
+                  : t('yaml.reviewHint')
+                : t('yaml.editHintBanner')}
+          </span>
         </div>
       )}
       <div className="kb-yaml__editor">{body()}</div>
-      {outcome && <ApplyResults outcome={outcome} onDismiss={() => update({ outcome: null })} />}
+      {outcome && (
+        <ApplyResults
+          outcome={outcome}
+          onChanged={
+            editing ? { review: () => void rebase(true), reload: () => (dirty ? setReloading(true) : void rebase(false)), busy: starting } : undefined
+          }
+          onDismiss={() => update({ outcome: null })}
+        />
+      )}
       <DiscardDialog
         open={discarding}
         title={t('yaml.discardTitle')}
@@ -203,6 +248,14 @@ export function ResourceYamlEditor({ tabId, target }: { tabId: string; target: O
         confirmLabel={t('yaml.discard')}
         onConfirm={stopEditing}
         onClose={() => setDiscarding(false)}
+      />
+      <DiscardDialog
+        open={reloading}
+        title={t('yaml.discardTitle')}
+        message={t('yaml.reloadMessage', { name: target.name })}
+        confirmLabel={t('apply.changedReload')}
+        onConfirm={() => void rebase(false)}
+        onClose={() => setReloading(false)}
       />
     </div>
   )

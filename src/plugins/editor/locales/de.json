@@ -30,7 +30,9 @@
     "discardTitle": "Änderungen verwerfen?",
     "discardMessage": "Ihre Änderungen an {{name}} wurden nicht angewendet und gehen verloren.",
     "discard": "Verwerfen",
-    "applied": "{{name}} angewendet"
+    "applied": "{{name}} angewendet",
+    "rebasedHint": "Ihr Text wird jetzt mit der aktuellen Version auf dem Server verglichen. „Anwenden“ sendet die angezeigten Unterschiede und macht damit auch die Änderungen auf dem Server rückgängig, die Ihr Text nicht enthält.",
+    "reloadMessage": "Ihre Änderungen an {{name}} werden verworfen, und der Editor beginnt erneut mit der aktuellen Version auf dem Server."
   },
   "apply": {
     "dryRunTitle": "Probelauf",
@@ -64,7 +66,11 @@
     "conflictHint": "Das Manifest ändert Felder, die ein anderer Field Manager (ein Controller, kubectl, ein GitOps-Tool) gesetzt hat; siehe den Fehler oben. Erzwungenes Anwenden überschreibt sie und macht KubeBench zu ihrem Besitzer, ihr Manager kann sie jedoch zurücksetzen.",
     "force": "Anwenden erzwingen",
     "forceTitle": "Anwenden von {{name}} erzwingen?",
-    "forceMessage": "Die Felder, die anderen Field Managern gehören, werden mit den Werten Ihres Manifests überschrieben, und KubeBench wird ihr Besitzer."
+    "forceMessage": "Die Felder, die anderen Field Managern gehören, werden mit den Werten Ihres Manifests überschrieben, und KubeBench wird ihr Besitzer.",
+    "changedTitle": "Auf dem Server geändert",
+    "changedHint": "Das Objekt wurde geändert (von einem Controller, einem anderen Benutzer oder einem Werkzeug), nachdem Sie mit dem Bearbeiten begonnen haben; daher wurde nichts angewendet. Vergleichen Sie Ihre Änderungen mit der aktuellen Version, oder verwerfen Sie sie und laden Sie neu.",
+    "changedReview": "Mit dem Server vergleichen",
+    "changedReload": "Verwerfen und neu laden"
   },
   "newResource": {
     "title": "Neue Ressource",

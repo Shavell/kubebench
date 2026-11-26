@@ -54,6 +54,7 @@ var (
 	reasonOriginalEmpty      = reason.Define("edit.original_empty", "the original manifest is empty")
 	reasonOriginalOther      = reason.Define("edit.original_other_object", "the original manifest describes {{kind}} {{name}}, not the edited {{edited}}; create other objects with New resource")
 	reasonEditRedacted       = reason.Define("edit.secret_placeholder", "Secret {{name}}: {{field}} is set to a redaction placeholder; leave the placeholder unchanged to keep the value, or enter the real value")
+	reasonEditStale          = reason.Define("edit.changed_on_server", "{{kind}} {{name}} changed on the server since you started editing; reload it and apply your changes to the current version")
 	reasonEditAnnotation     = reason.Define("edit.secret_annotation_placeholder", "Secret {{name}}: the {{annotation}} annotation holds a redaction placeholder; remove the annotation")
 	// The credential kinds' (credentials.go) counterparts of the Secret refusals.
 	reasonManifestCredential           = reason.Define("manifest.credential_placeholder", "document {{document}}: {{kind}} {{name}}: {{field}} holds a redaction placeholder, not its value; use the real value")

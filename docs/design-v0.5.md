@@ -994,10 +994,17 @@ and `new-resource` with `{namespace?, kind?}` (see 7.2);
   are not part of the patch, so a Secret's labels can be edited without
   revealing it; a value changed to a placeholder is `400 redacted_secret`,
   likewise for the credentials of §7.15's kinds.
+  Optional `"resourceVersion"` in the body (from `GET /api/yaml`; else the
+  original's `metadata.resourceVersion`, if any) goes into the patch as a
+  precondition, so an object that changed on the server since editing
+  started is not overwritten (a merge patch replaces lists such as
+  containers, env or tolerations whole): its result fails with `code:
+  conflict`, reason `edit.changed_on_server` (dry runs too).
   Answers like apply with one result (`configured` or `unchanged`; nothing
   is sent without changes); audit target `<kind>/<ns>/<name>`, detail the
   outcome count.
-- `GET /api/yaml?apiVersion=&kind=&ns=&name=&neat=true` (read). With
+- `GET /api/yaml?apiVersion=&kind=&ns=&name=&neat=true` (read) →
+  `{"yaml","resourceVersion"}` (the version also when neat strips it). With
   `apiVersion`, any kind the cluster serves (RESTMapper; a namespaced kind
   needs `ns`); without it, the kinds v0.4 knew by name (`kind`, `name`
   required). managedFields are always stripped; `neat=true` also strips
@@ -1027,9 +1034,13 @@ and `new-resource` with `{namespace?, kind?}` (see 7.2);
   included.
 - UI, editor plugin (core): the `yaml` tab kind with `{ref: {apiVersion,
   kind, namespace, name}}` shows the object full or neat, copies and
-  downloads it, and edits it: Edit → Review changes (DiffEditor, live neat
-  ↔ edited) → Dry run → Apply through `POST /api/resource/edit`, with the
-  result. The `new-resource` tab applies with server-side apply, where a
+  downloads it, and edits it: Edit → Review changes (DiffEditor, the neat
+  YAML editing started from ↔ edited) → Dry run → Apply through
+  `POST /api/resource/edit`, with the result. The edit carries the
+  resourceVersion it started from; when the object changed on the server
+  meanwhile, the result offers "Review against the server" (the editor
+  starts again from the current version, keeping the user's text, and the
+  diff shows what Apply would send) or "Discard and reload". The `new-resource` tab applies with server-side apply, where a
   conflict offers "Force apply" (ConfirmDialog). Without `ref` it keeps the v0.4
   `{text, readOnly}` behaviour. The `new-resource` tab kind
   (`{namespace?, kind?}`): templates for the namespace, import of files
