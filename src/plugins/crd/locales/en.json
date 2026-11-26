@@ -28,6 +28,7 @@
     "empty": "No custom resources",
     "unavailable": "Custom resources are unavailable",
     "viewYaml": "View YAML",
-    "allColumns": "Show all columns"
+    "allColumns": "Show all columns",
+    "scale": "Scale…"
   }
 }

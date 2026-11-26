@@ -1124,7 +1124,9 @@ All write unless noted; audited.
 - Namespaces: `POST /api/namespaces` `{"name","labels"?}`; `DELETE /api/namespaces?name=`.
 - UI: node actions (cordon/uncordon, drain dialog with results, taints
   editor), rollout history + rollback, pause/resume, restart/scale for
-  StatefulSet/DaemonSet/ReplicaSet, multi-select bulk delete on pod lists,
+  StatefulSet/DaemonSet/ReplicaSet, Scale for custom resources whose CRD
+  has a `scale` subresource (CRD plugin row menu, shared scale dialog
+  `src/shared/ScaleDialog.tsx`), multi-select bulk delete on pod lists,
   force delete, debug container (opens a terminal), CronJob trigger/suspend,
   namespace create/delete (type-to-confirm).
 
@@ -1164,6 +1166,14 @@ Details settled by the implementation:
   `apiVersion`, a kind without a `scale` subresource, and `404 not_found`
   for one the cluster does not serve); scale goes through the `scale`
   subresource, so RBAC needs `patch` on `<resource>/scale` only. `/api/deployments/scale|restart` keep working.
+- Scalable custom resources: `GET /api/crds` entries carry `scale`
+  `{specReplicasPath, statusReplicasPath, labelSelectorPath?}` when the
+  listed (first served) version has a `scale` subresource
+  (`spec.versions[].subresources.scale`; v1beta1: `spec.subresources.scale`),
+  omitted otherwise; `GET /api/crds/instances` entries of such a CRD carry
+  `replicas`, the integer at `specReplicasPath` (omitted without one). The
+  CRD plugin offers Scale (`write`) only for these and scales through
+  `POST /api/workloads/scale` with `apiVersion=<group>/<listed version>`.
 - `DELETE /api/pods?force=true` deletes with grace period 0. Bulk delete
   takes 1–200 items (mock mode too; the list's Delete button is disabled
   beyond 200 selected Pods, with the reason as tooltip) and answers `{"results":[{"namespace","name","error"?}]}`

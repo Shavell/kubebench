@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { openYamlTab } from '@/core/plugin/editorTabs'
 import { resourceActionItems } from '@/core/plugin/resourceActions'
+import { usePermission } from '@/core/permissions'
 import { useProviderQuery, useProviders } from '@/data/DataContext'
 import type { TabDescriptor } from '@/core/plugin/types'
 import { CORE_NS } from '@/i18n'
@@ -13,6 +14,7 @@ import { Table, type Column } from '@/shared/Table'
 import { Toolbar } from '@/shared/Toolbar'
 import { EmptyState } from '@/shared/EmptyState'
 import { Unavailable } from '@/shared/Unavailable'
+import { ScaleDialog } from '@/shared/ScaleDialog'
 import type { CustomResource } from '@/data/types'
 import { NS } from '../i18n'
 import { printerColumns, printerSortValue } from '../printerColumns'
@@ -25,6 +27,8 @@ export function CustomResourceListPage({ tab }: { tab: TabDescriptor }) {
   const providers = useProviders()
   // Like `kubectl get -o wide`: printer columns of priority > 0 on request.
   const [wide, setWide] = useState(false)
+  const [scaling, setScaling] = useState<CustomResource | null>(null)
+  const write = usePermission('write')
 
   const { data: crds } = useProviderQuery((p) => p.crd.listCrds(), [], { topics: ['customresourcedefinitions.apiextensions.k8s.io'] })
   const { data, loading, error, errorCode, errorReason } = useProviderQuery(
@@ -68,7 +72,11 @@ export function CustomResourceListPage({ tab }: { tab: TabDescriptor }) {
     openYamlTab({ apiVersion: `${crd.group}/${crd.versions[0]}`, kind: crd.kind, namespace: r.namespace, name: r.name })
   }
 
-  // YAML, copy name/YAML and the actions other plugins contribute for this kind (design §6.4).
+  // Scale (write) for kinds whose listed version has a scale subresource, like the workloads' Scale….
+  // POST /api/workloads/scale takes namespaced objects only (ns is required).
+  const canScale = !!crd?.scale && crd.scope === 'Namespaced' && write.allowed
+
+  // YAML, copy name/YAML, Scale and the actions other plugins contribute for this kind (design §6.4).
   const rowMenu = (r: CustomResource, e: React.MouseEvent) => {
     const ref = {
       kind: crd?.kind ?? r.crdName,
@@ -78,6 +86,7 @@ export function CustomResourceListPage({ tab }: { tab: TabDescriptor }) {
     }
     showContextMenu(e, [
       { label: t('instances.viewYaml'), icon: 'file-code', onClick: () => viewYaml(r) },
+      ...(canScale ? [{ label: t('instances.scale'), icon: 'arrow-both', onClick: () => setScaling(r) }] : []),
       ...(ref.apiVersion ? copyMenuItems({ ...ref, apiVersion: ref.apiVersion }, providers.cluster) : []),
       ...resourceActionItems(ref),
     ])
@@ -105,6 +114,15 @@ export function CustomResourceListPage({ tab }: { tab: TabDescriptor }) {
         {hasWide && <Checkbox className="crd-toolbar-check" checked={wide} onChange={setWide} label={t('instances.allColumns')} />}
       </Toolbar>
       {content}
+      {scaling && crd && (
+        <ScaleDialog
+          kind={crd.kind}
+          apiVersion={`${crd.group}/${crd.versions[0]}`}
+          target={{ namespace: scaling.namespace ?? '', name: scaling.name }}
+          replicas={scaling.replicas ?? null}
+          onClose={() => setScaling(null)}
+        />
+      )}
     </div>
   )
 }
