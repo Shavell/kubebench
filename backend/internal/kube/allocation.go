@@ -6,7 +6,6 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"kubebench/internal/reason"
 )
@@ -106,23 +105,23 @@ func nodeCapacity(nodes []corev1.Node) usage {
 }
 
 func (r *Runtime) Overview(ctx context.Context) (*ClusterOverview, error) {
-	nodes, err := r.CS.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	nodes, _, err := r.nodeItems(ctx, 0)
 	if err != nil {
 		return nil, err
 	}
-	pods, err := r.CS.CoreV1().Pods("").List(ctx, metav1.ListOptions{})
+	pods, _, err := r.podItems(ctx, "", 0)
 	if err != nil {
 		return nil, err
 	}
-	namespaces, err := r.CS.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
+	namespaces, _, err := r.namespaceItems(ctx, 0)
 	if err != nil {
 		return nil, err
 	}
-	capacity := nodeCapacity(nodes.Items)
+	capacity := nodeCapacity(nodes)
 	out := &ClusterOverview{
-		NodeCount:      len(nodes.Items),
-		PodCount:       len(pods.Items),
-		NamespaceCount: len(namespaces.Items),
+		NodeCount:      len(nodes),
+		PodCount:       len(pods),
+		NamespaceCount: len(namespaces),
 		ClusterUsage: ClusterUsage{
 			CPUCapacityCores: int(math.Round(capacity.cpu)),
 			MemoryCapacityGi: int(math.Round(capacity.memMi / 1024)),
@@ -134,13 +133,13 @@ func (r *Runtime) Overview(ctx context.Context) (*ClusterOverview, error) {
 		why := reason.MessageOf(err)
 		out.UsageUnavailable = &why
 	}
-	for i := range nodes.Items {
-		if MapNode(&nodes.Items[i]).Status == "Ready" {
+	for i := range nodes {
+		if MapNode(&nodes[i]).Status == "Ready" {
 			out.ReadyNodes++
 		}
 	}
-	for i := range pods.Items {
-		if pods.Items[i].Status.Phase == corev1.PodRunning {
+	for i := range pods {
+		if pods[i].Status.Phase == corev1.PodRunning {
 			out.RunningPods++
 		}
 	}
@@ -148,25 +147,25 @@ func (r *Runtime) Overview(ctx context.Context) (*ClusterOverview, error) {
 }
 
 func (r *Runtime) Allocation(ctx context.Context) (*ClusterAllocation, error) {
-	nodes, err := r.CS.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	nodes, _, err := r.nodeItems(ctx, 0)
 	if err != nil {
 		return nil, err
 	}
-	pods, err := r.CS.CoreV1().Pods("").List(ctx, metav1.ListOptions{})
+	pods, _, err := r.podItems(ctx, "", 0)
 	if err != nil {
 		return nil, err
 	}
 
 	var allocCPU, allocMemMi float64
-	for i := range nodes.Items {
-		alloc := nodes.Items[i].Status.Allocatable
+	for i := range nodes {
+		alloc := nodes[i].Status.Allocatable
 		allocCPU += CPUCores(alloc.Cpu())
 		allocMemMi += MemoryMi(alloc.Memory())
 	}
 
 	var reqCPU, limCPU, reqMemMi, limMemMi float64
-	for i := range pods.Items {
-		pod := &pods.Items[i]
+	for i := range pods {
+		pod := &pods[i]
 		if pod.Status.Phase == corev1.PodSucceeded || pod.Status.Phase == corev1.PodFailed {
 			continue
 		}
@@ -192,7 +191,7 @@ func (r *Runtime) Allocation(ctx context.Context) (*ClusterAllocation, error) {
 			Limits:      round1(limMemMi / 1024),
 		},
 	}
-	if m, err := r.measureUsage(ctx, nodeCapacity(nodes.Items)); err == nil {
+	if m, err := r.measureUsage(ctx, nodeCapacity(nodes)); err == nil {
 		cpu, mem := round1(m.cpuCores), round1(m.memMi/1024)
 		out.CPU.Usage, out.Memory.Usage = &cpu, &mem
 	} else {

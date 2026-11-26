@@ -1,7 +1,9 @@
 import clsx from 'clsx'
+import { useContext } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useRegistryRevision } from '@/core/plugin/useRegistry'
 import { useSideGroupStore } from '@/core/store/sideGroupStore'
+import { QueryActivityContext } from '@/data/DataContext'
 import { Icon } from '@/shared/Icon'
 import { ResizeHandle } from '@/shared/ResizeHandle'
 import { showContextMenu } from '@/shared/contextMenu'
@@ -13,10 +15,13 @@ import './SideEditorGroup.css'
 /**
  * The side editor group (design §7.14) to the right of the editor area,
  * shown while it has tabs; its left edge resizes it. Every tab stays
- * mounted (inactive ones hidden), so a browser page keeps its state.
+ * mounted (inactive ones hidden), so a browser page keeps its state; the
+ * queries of hidden ones wait for live updates until shown.
  */
 export function SideEditorGroup() {
   useRegistryRevision()
+  // False while the editors are hidden under a maximized panel.
+  const shown = useContext(QueryActivityContext)
   const { t } = useTranslation()
   const tabs = useSideGroupStore((s) => s.tabs)
   const activeTabId = useSideGroupStore((s) => s.activeTabId)
@@ -63,7 +68,9 @@ export function SideEditorGroup() {
       <div className="side-group__body">
         {tabs.map((tab) => (
           <div key={tab.id} className="side-group__page" hidden={tab.id !== activeTabId}>
-            <TabContent tab={tab} />
+            <QueryActivityContext value={shown && tab.id === activeTabId}>
+              <TabContent tab={tab} />
+            </QueryActivityContext>
           </div>
         ))}
       </div>

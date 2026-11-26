@@ -1,4 +1,4 @@
-import { apiGet } from '../apiClient'
+import { apiGet, apiGetList } from '../apiClient'
 import type { CrdProvider } from '../providers'
 import { rejectUnavailable } from './unavailable'
 
@@ -11,6 +11,6 @@ export function createApiCrd(available: boolean): CrdProvider {
   }
   return {
     listCrds: () => apiGet('/crds'),
-    listCustomResources: (crd) => apiGet('/crds/instances', { crd }),
+    listCustomResources: (crd, options) => apiGetList('/crds/instances', { crd, limit: options?.limit }),
   }
 }

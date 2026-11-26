@@ -1,5 +1,6 @@
 import { useLayoutStore } from '@/core/store/layoutStore'
 import { useProviderQuery } from '@/data/DataContext'
+import type { DataProviders } from '@/data/providers'
 import { SidebarErrors } from '@/shared/SidebarErrors'
 import { Tree, type TreeNode } from '@/shared/Tree'
 import { useWorkloadsTranslation, WORKLOADS_NS } from './i18n'
@@ -54,12 +55,14 @@ export function WorkloadsSidebar() {
   const { t } = useWorkloadsTranslation()
   const activeTabId = useLayoutStore((s) => s.activeTabId)
 
-  // Counts for the rich types (nice to keep the familiar badges).
-  const podsQuery = useProviderQuery((p) => p.cluster.listPods(), [], { topics: ['pods'] })
-  const nodesQuery = useProviderQuery((p) => p.cluster.listNodes(), [], { topics: ['nodes'] })
-  const deploymentsQuery = useProviderQuery((p) => p.cluster.listDeployments(), [], { topics: ['deployments'] })
-  const servicesQuery = useProviderQuery((p) => p.cluster.listServices(), [], { topics: ['services'] })
-  const namespacesQuery = useProviderQuery((p) => p.cluster.listNamespaces(), [], { topics: ['namespaces'] })
+  // Counts for the rich types (nice to keep the familiar badges): counted
+  // by the server (GET /api/count), not by listing every object.
+  const count = (topic: string) => (p: DataProviders) => p.cluster.countResource(topic)
+  const podsQuery = useProviderQuery(count('pods'), [], { topics: ['pods'] })
+  const nodesQuery = useProviderQuery(count('nodes'), [], { topics: ['nodes'] })
+  const deploymentsQuery = useProviderQuery(count('deployments'), [], { topics: ['deployments'] })
+  const servicesQuery = useProviderQuery(count('services'), [], { topics: ['services'] })
+  const namespacesQuery = useProviderQuery(count('namespaces'), [], { topics: ['namespaces'] })
   const queries = [podsQuery, nodesQuery, deploymentsQuery, servicesQuery, namespacesQuery]
 
   const rich = (resource: string, count: number | undefined): TreeNode => ({
@@ -71,9 +74,9 @@ export function WorkloadsSidebar() {
 
   // Build each group's children: rich entries first, then catalog entries.
   const richByGroup: Partial<Record<ResourceGroup, TreeNode[]>> = {
-    cluster: [rich('Nodes', nodesQuery.data?.length), rich('Namespaces', namespacesQuery.data?.length)],
-    workloads: [rich('Pods', podsQuery.data?.length), rich('Deployments', deploymentsQuery.data?.length)],
-    network: [rich('Services', servicesQuery.data?.length)],
+    cluster: [rich('Nodes', nodesQuery.data ?? undefined), rich('Namespaces', namespacesQuery.data ?? undefined)],
+    workloads: [rich('Pods', podsQuery.data ?? undefined), rich('Deployments', deploymentsQuery.data ?? undefined)],
+    network: [rich('Services', servicesQuery.data ?? undefined)],
   }
 
   // Optional types (OpenShift's) only where the cluster serves them; a

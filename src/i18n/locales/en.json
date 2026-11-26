@@ -185,5 +185,11 @@
       "orPassword": "or with your username and password",
       "directoryHint": "Your directory account: user, DOMAIN\\user or user@domain"
     }
+  },
+  "lists": {
+    "truncated": "Showing the first {{loaded}} objects; {{remaining}} more are not loaded.",
+    "truncatedUnknown": "Showing the first {{loaded}} objects; more are not loaded.",
+    "loadedOnly": "Search, sorting and filters apply to the loaded objects only.",
+    "loadMore": "Load {{page}} more"
   }
 }

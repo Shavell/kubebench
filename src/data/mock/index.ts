@@ -1,5 +1,6 @@
 import { ApiError } from '../apiClient'
 import type { DataProviders } from '../providers'
+import type { ListOptions, ListResult } from '../types'
 import { deployments, namespaces, nodes, pods, services, syncDeploymentPods } from './mockCluster'
 import { crds, customResources } from './mockCrds'
 import { delay, delayReject } from './delay'
@@ -37,14 +38,43 @@ const servedByMock = (key: string) =>
 const byNamespace = <T extends { namespace: string }>(items: T[], namespace?: string) =>
   namespace ? items.filter((i) => i.namespace === namespace) : items
 
+/** A list cut at `limit` as the server cuts it (design §4.4, "Lists"). */
+function limited<T>(items: readonly T[], options?: ListOptions): ListResult<T> {
+  const limit = options?.limit
+  if (!limit || items.length <= limit) return [...items]
+  const out: ListResult<T> = items.slice(0, limit)
+  out.truncated = { remaining: items.length - limit }
+  return out
+}
+
+/** How many mock objects a live-update topic's resource has (GET /api/count). */
+function mockCount(topic: string, namespace?: string): number {
+  const resource = topic.split('.')[0]
+  switch (resource) {
+    case 'pods':
+      return byNamespace(pods, namespace).length
+    case 'deployments':
+      return byNamespace(deployments, namespace).length
+    case 'services':
+      return byNamespace(services, namespace).length
+    case 'nodes':
+      return nodes.length
+    case 'namespaces':
+      return namespaces.length
+  }
+  const items = servedByMock(resource) ? (genericMock[resource] ?? []) : []
+  return namespace ? items.filter((o) => !o.metadata?.namespace || o.metadata.namespace === namespace).length : items.length
+}
+
 export function createMockProviders(): DataProviders {
   return {
     cluster: {
-      listNodes: () => delay(nodes),
-      listNamespaces: () => delay(namespaces),
-      listPods: (ns) => delay(byNamespace(pods, ns)),
-      listDeployments: (ns) => delay(byNamespace(deployments, ns)),
-      listServices: (ns) => delay(byNamespace(services, ns)),
+      listNodes: (options) => delay(limited(nodes, options)),
+      listNamespaces: (options) => delay(limited(namespaces, options)),
+      listPods: (ns, options) => delay(limited(byNamespace(pods, ns), options)),
+      listDeployments: (ns, options) => delay(limited(byNamespace(deployments, ns), options)),
+      listServices: (ns, options) => delay(limited(byNamespace(services, ns), options)),
+      countResource: (topic, ns) => delay(mockCount(topic, ns)),
       getResourceYaml: (kind, ns, name) => {
         switch (kind) {
           case 'Pod': {
@@ -90,10 +120,10 @@ export function createMockProviders(): DataProviders {
         }
         return delay(podLogs(podName, container, options))
       },
-      listResource: (key, ns) => {
+      listResource: (key, ns, options) => {
         // Like a live cluster, one that does not serve a type lists none.
         const items = servedByMock(key) ? (genericMock[key] ?? []) : []
-        return delay(ns ? items.filter((o) => o.metadata?.namespace === ns) : items)
+        return delay(limited(ns ? items.filter((o) => o.metadata?.namespace === ns) : items, options))
       },
       getResource: (key, ns, name) => {
         const found = (genericMock[key] ?? []).find(
@@ -146,8 +176,8 @@ export function createMockProviders(): DataProviders {
     },
     crd: {
       listCrds: () => delay(crds),
-      listCustomResources: (crdName) =>
-        delay(customResources.filter((cr) => cr.crdName === crdName)),
+      listCustomResources: (crdName, options) =>
+        delay(limited(customResources.filter((cr) => cr.crdName === crdName), options)),
     },
     inventory: createMockInventory(),
     users: createMockUsers(),

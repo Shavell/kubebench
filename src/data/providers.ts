@@ -26,6 +26,8 @@ import type {
   Deployment,
   K8sNode,
   KubeObject,
+  ListOptions,
+  ListResult,
   MetricKind,
   MetricPoint,
   MetricsSourceInfo,
@@ -67,16 +69,25 @@ import type {
  */
 
 export interface ClusterProvider {
-  listNodes(): Promise<K8sNode[]>
-  listNamespaces(): Promise<Namespace[]>
-  listPods(namespace?: string): Promise<Pod[]>
-  listDeployments(namespace?: string): Promise<Deployment[]>
-  listServices(namespace?: string): Promise<Service[]>
+  // The lists take `options.limit` (design §4.4, "Lists"): at most that many
+  // objects, with `truncated` on the result when more exist.
+  listNodes(options?: ListOptions): Promise<ListResult<K8sNode>>
+  listNamespaces(options?: ListOptions): Promise<ListResult<Namespace>>
+  listPods(namespace?: string, options?: ListOptions): Promise<ListResult<Pod>>
+  listDeployments(namespace?: string, options?: ListOptions): Promise<ListResult<Deployment>>
+  listServices(namespace?: string, options?: ListOptions): Promise<ListResult<Service>>
+  /**
+   * How many objects of a resource exist, without listing them (GET
+   * /api/count): `topic` names it as live updates do (`pods`,
+   * `deployments.apps`); `namespace` limits it to one (ignored for
+   * cluster-scoped resources).
+   */
+  countResource(topic: string, namespace?: string): Promise<number>
   getResourceYaml(kind: string, namespace: string | null, name: string): Promise<string>
   listEvents(kind: string, namespace: string | null, name: string): Promise<K8sEvent[]>
   getPodLogs(namespace: string, pod: string, container: string, options?: PodLogOptions): Promise<string[]>
   /** Generic list for any catalog resource key (configmaps, secrets, …). */
-  listResource(key: string, namespace?: string): Promise<KubeObject[]>
+  listResource(key: string, namespace?: string, options?: ListOptions): Promise<ListResult<KubeObject>>
   getResource(key: string, namespace: string | null, name: string): Promise<KubeObject>
   /** Runs one command in a container and returns its output lines. */
   execCommand(namespace: string, pod: string, container: string, command: string): Promise<string[]>
@@ -125,7 +136,7 @@ export interface ClusterProvider {
 
 export interface CrdProvider {
   listCrds(): Promise<CrdDefinition[]>
-  listCustomResources(crdName: string): Promise<CustomResource[]>
+  listCustomResources(crdName: string, options?: ListOptions): Promise<ListResult<CustomResource>>
 }
 
 export interface MetricsProvider {

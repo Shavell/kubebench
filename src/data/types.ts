@@ -812,3 +812,22 @@ export interface SignInPreview {
   existingSource: AuthSource | ''
   lastSignIn: string | null
 }
+
+/** Options of the list capabilities that the list views use (design §4.4, "Lists"). */
+export interface ListOptions {
+  /** At most this many objects (the server's `limit`); absent = all. */
+  limit?: number
+}
+
+/** How a list read with a limit was cut. */
+export interface ListTruncation {
+  /** How many objects were left out; null when the cluster did not say. */
+  remaining: number | null
+}
+
+/**
+ * A list as the list capabilities return it: the objects, and `truncated`
+ * when a limit left objects out (absent for a complete list).
+ */
+export type ListResult<T> = T[] & { truncated?: ListTruncation }
+

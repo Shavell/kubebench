@@ -40,6 +40,20 @@ Fixes from a compatibility check against Headlamp.
 
 ### Changed
 
+- Lists are read from the API server's watch cache in pages of 500
+  instead of one unbounded quorum read from etcd; list routes accept an
+  optional `limit` and report a cut list in `X-KubeBench-List-Remaining`.
+- List views (Pods, Deployments, Services, Nodes, Namespaces, catalog
+  lists, custom resources) load up to 2,000 rows and offer "Load 2,000
+  more", with a notice that search, sorting and filters apply to the
+  loaded rows.
+- Live updates are paced: views that cannot be seen (a background browser
+  tab, hidden side-group pages, editors under a maximized panel) refresh
+  once when shown, a view never re-reads while its read is running, and
+  continuous changes back off to one refresh every 5 s.
+- The explorer's badges are counted on the server (new `GET /api/count`)
+  instead of listing every Pod, Deployment, Service, Node and Namespace;
+  detail pages read only their own kind in their namespace.
 - The capability probe checks exec and Helm per namespace when the
   credential lacks them cluster-wide, so a ServiceAccount bound to one
   namespace keeps its terminal and Helm there.
@@ -51,6 +65,8 @@ Fixes from a compatibility check against Headlamp.
 
 ### Fixed
 
+- A custom resource list no longer flashes its loading line on every
+  refresh.
 - YAML editor: an edit of an object that changed on the server since
   editing started is refused ("changed on the server") instead of
   silently overwriting the other change; the editor offers to review

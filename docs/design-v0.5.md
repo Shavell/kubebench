@@ -579,6 +579,33 @@ route answers `409 no_cluster` instead. Without any usable cluster,
   `/api/resource/get`, `/api/yaml`): `data`, `stringData` and kubectl's
   `last-applied-configuration` annotation, which repeats them. So are the
   credentials of the OpenShift kinds that hold them inline (§7.15).
+- **Lists**. The list routes of the views (`/api/nodes`,
+  `/api/namespaces`, `/api/pods`, `/api/deployments`, `/api/services`,
+  `/api/resource`, `/api/crds/instances`) and the overview/allocation
+  read the API server's watch cache (`resourceVersion=0`, as informers do)
+  instead of a quorum read from etcd: a view may lag the latest write by
+  moments, which the next live update corrects. They read in pages of 500
+  (`limit`/`continue`; a watch cache that cannot page answers at once; an
+  expired continue token restarts the list once, unpaged). `limit=N`
+  returns at most N objects and stops reading pages once it has them; a
+  cut list keeps its JSON array body and sets
+  `X-KubeBench-List-Remaining: <n>|unknown`. Without `limit` lists are
+  complete, so existing clients see no change.
+  The list views (the rich and catalog lists, a CRD's objects) ask for
+  2,000 rows (`ListOptions.limit`; the result's `truncated` says how many
+  were left out) and show a notice above the table when cut: how many are
+  loaded and left out, that search, sorting and filters apply to the
+  loaded rows only, and "Load 2,000 more" (the limit grows by 2,000 until
+  the resource or namespace changes). Other readers (topology, overview,
+  pickers) read complete lists.
+- **Counts**. `GET /api/count?topic=&ns=` returns `{"count"}`:
+  from the cache of the live-update informer of that resource when one
+  runs live (§7.10; it holds names and namespaces), else from a paged
+  metadata-only list (which stops after the first page when the cluster
+  reports `remainingItemCount`). The explorer's badges use it
+  (`cluster.countResource`) instead of listing every Pod, Deployment,
+  Service, Node and Namespace of the cluster, and a detail page reads only
+  the list of its object's kind, in its namespace.
 
 ### 4.5 Kubernetes read passthrough (for external plugins)
 
@@ -1601,13 +1628,25 @@ start lazily and stop when unused. Frontend: scoped invalidation
   streams (beyond it the topic is polled). `GET /api/watch/status` (read) lists the
   informers `{resource, mode, reason?, subscribers, idleSince?}` and the
   subscriber count, for diagnostics. Lists are still served by direct API
-  calls, not from the informer caches.
+  calls (from the API server's watch cache, §4.4), not from the informer
+  caches, which hold metadata only; counts are (`GET /api/count`).
 - **Frontend**: queries declare `scope: {topics, namespace?}`
   (`useQuery`/`useProviderQuery`/`usePluginQuery`, SDK
   `data.usePluginQuery`). `refreshData()` re-runs every query (mutations);
   `refreshTopics(changes)` only the queries of a changed topic in that
   namespace (the TS signature keeps `refreshData()` argument-free because
-  it is used as an event handler). The stream subscribes to the union of
+  it is used as an event handler). Refreshes are paced
+  (`src/data/invalidation.ts`): a query that cannot be seen (a hidden page
+  of the side editor group, the editors under a maximized panel, or a
+  browser tab in the background, `document.visibilityState`) is only
+  marked stale and refreshes once when shown; a live refresh never
+  overlaps a running read of the same query (changes meanwhile make one
+  more refresh after it); live refreshes of one query that follow each
+  other within 10 s wait 1 s, 2 s, 4 s, then 5 s (and at least as long as
+  its last read took), so a namespace that changes all the time re-lists a
+  view about every 5 s instead of after every 500 ms batch. `refreshData()`
+  refreshes visible queries at once (hidden ones when shown); timer
+  refreshes of polled topics are paced like live ones. The stream subscribes to the union of
   the mounted queries' topics (`live.watch` provider; the mock reports all
   topics live), opens a replacement before closing the old stream when
   topics are added, refreshes a topic once its informer synced and every

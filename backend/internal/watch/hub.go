@@ -4,12 +4,14 @@ import (
 	"cmp"
 	"log"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/metadata"
+	"k8s.io/client-go/tools/cache"
 
 	"kubebench/internal/reason"
 )
@@ -320,4 +322,35 @@ func (h *Hub) Stats() (informers []InformerStats, subscribers int) {
 	}
 	slices.SortFunc(informers, func(a, b InformerStats) int { return cmp.Compare(a.Resource, b.Resource) })
 	return informers, len(h.subs)
+}
+
+// Count counts the objects of topic's resource in namespace ("" = all;
+// ignored for cluster-scoped resources) from the cache of its informer, when one runs live; ok is false
+// otherwise (no subscriber watches the resource, its informer is starting
+// or polling, or the topic does not resolve), and callers list instead.
+func (h *Hub) Count(topic, namespace string) (n int, ok bool) {
+	gvr, err := h.resolve(topic)
+	if err != nil {
+		return 0, false
+	}
+	h.mu.Lock()
+	var store cache.Store
+	if inf := h.informers[gvr]; !h.closed && inf != nil && inf.mode == ModeLive {
+		store = inf.store
+	}
+	h.mu.Unlock()
+	if store == nil {
+		return 0, false
+	}
+	if namespace == "" {
+		return len(store.ListKeys()), true
+	}
+	prefix := namespace + "/"
+	for _, key := range store.ListKeys() {
+		// Cluster-scoped objects have no namespace in their keys.
+		if strings.HasPrefix(key, prefix) || !strings.Contains(key, "/") {
+			n++
+		}
+	}
+	return n, true
 }

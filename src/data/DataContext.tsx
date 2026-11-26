@@ -1,8 +1,8 @@
-import { createContext, useContext, useEffect, useState, type DependencyList } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, type DependencyList } from 'react'
 import { errorMessage, isApiError } from './apiClient'
 import type { DataProviders } from './providers'
 import * as invalidation from './invalidation'
-import type { QueryScope } from './invalidation'
+import type { QueryHandle, QueryScope } from './invalidation'
 import type { WatchChange } from './types'
 
 export type { QueryScope } from './invalidation'
@@ -18,6 +18,14 @@ export function refreshTopics(changes: readonly WatchChange[]): void {
 }
 
 export const DataContext = createContext<DataProviders | null>(null)
+
+/**
+ * Whether the queries below can be seen: a container that keeps hidden
+ * pages mounted (the side editor group, the editors behind a maximized
+ * panel) provides false for them, so live updates mark them stale instead
+ * of re-reading (see ./invalidation). Default: shown.
+ */
+export const QueryActivityContext = createContext(true)
 
 export function useProviders(): DataProviders {
   const providers = useContext(DataContext)
@@ -43,18 +51,29 @@ function sameDeps(a: DependencyList, b: DependencyList): boolean {
 }
 
 /**
- * Re-renders with a new version whenever the invalidation bus refreshes a
- * query of `scope` (see ./invalidation).
+ * Registers the query with the invalidation bus (see ./invalidation) and
+ * re-renders with a new version whenever the bus refreshes it. The handle
+ * reports the query's reads, which paces live refreshes.
  */
-function useRefreshVersion(scope: QueryScope | undefined): number {
+function useRefreshVersion(scope: QueryScope | undefined): { version: number; handle: { current: QueryHandle | null } } {
   const [version, setVersion] = useState(0)
+  const handle = useRef<QueryHandle | null>(null)
+  const active = useContext(QueryActivityContext)
   const topics = scope?.topics?.join(',') ?? ''
   const namespace = scope?.namespace
   useEffect(() => {
     const refresh = () => setVersion((v) => v + 1)
-    return invalidation.registerQuery({ topics: topics ? topics.split(',') : undefined, namespace }, refresh)
+    const registered = invalidation.registerQuery({ topics: topics ? topics.split(',') : undefined, namespace }, refresh)
+    handle.current = registered
+    return () => {
+      registered.unregister()
+      if (handle.current === registered) handle.current = null
+    }
   }, [topics, namespace])
-  return version
+  useEffect(() => {
+    handle.current?.setActive(active)
+  }, [active, topics, namespace])
+  return { version, handle }
 }
 
 /**
@@ -68,7 +87,7 @@ function useRefreshVersion(scope: QueryScope | undefined): number {
  * old rows with its new columns).
  */
 export function useQuery<T>(query: () => Promise<T>, deps: DependencyList, scope?: QueryScope): QueryState<T> {
-  const version = useRefreshVersion(scope)
+  const { version, handle } = useRefreshVersion(scope)
   // `deps` names the inputs the state was loaded for.
   const [state, setState] = useState<{ deps: DependencyList; value: QueryState<T> }>({ deps, value: LOADING })
 
@@ -78,12 +97,17 @@ export function useQuery<T>(query: () => Promise<T>, deps: DependencyList, scope
       deps,
       value: sameDeps(s.deps, deps) ? { ...s.value, loading: true, error: null, errorCode: null, errorReason: null } : LOADING,
     }))
+    const reads = handle.current
+    reads?.begin()
     query()
       .then((data) => {
-        if (!cancelled) setState({ deps, value: { data, loading: false, error: null, errorCode: null, errorReason: null } })
+        if (cancelled) return
+        reads?.end()
+        setState({ deps, value: { data, loading: false, error: null, errorCode: null, errorReason: null } })
       })
       .catch((err: unknown) => {
         if (cancelled) return
+        reads?.end()
         setState({
           deps,
           value: {

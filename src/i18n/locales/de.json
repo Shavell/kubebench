@@ -185,5 +185,11 @@
       "orPassword": "oder mit Benutzername und Kennwort",
       "directoryHint": "Ihr Verzeichniskonto: benutzer, DOMÄNE\\benutzer oder benutzer@domäne"
     }
+  },
+  "lists": {
+    "truncated": "Die ersten {{loaded}} Objekte werden angezeigt; {{remaining}} weitere sind nicht geladen.",
+    "truncatedUnknown": "Die ersten {{loaded}} Objekte werden angezeigt; weitere sind nicht geladen.",
+    "loadedOnly": "Suche, Sortierung und Filter gelten nur für die geladenen Objekte.",
+    "loadMore": "{{page}} weitere laden"
   }
 }

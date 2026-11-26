@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -21,64 +22,84 @@ import (
 	"k8s.io/kubectl/pkg/scheme"
 )
 
-func (r *Runtime) ListNodes(ctx context.Context) ([]NodeInfo, error) {
-	list, err := r.CS.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+// ListNodes lists the nodes for a view: at most limit (0 = all), see pagedList.
+func (r *Runtime) ListNodes(ctx context.Context, limit int) ([]NodeInfo, *Truncated, error) {
+	items, cut, err := r.nodeItems(ctx, limit)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	out := []NodeInfo{}
-	for i := range list.Items {
-		out = append(out, MapNode(&list.Items[i]))
+	out := make([]NodeInfo, 0, len(items))
+	for i := range items {
+		out = append(out, MapNode(&items[i]))
 	}
-	return out, nil
+	return out, cut, nil
 }
 
-func (r *Runtime) ListNamespaces(ctx context.Context) ([]NamespaceInfo, error) {
-	list, err := r.CS.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
+// ListNamespaces lists the namespaces for a view: at most limit (0 = all).
+func (r *Runtime) ListNamespaces(ctx context.Context, limit int) ([]NamespaceInfo, *Truncated, error) {
+	items, cut, err := r.namespaceItems(ctx, limit)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	out := []NamespaceInfo{}
-	for i := range list.Items {
-		out = append(out, MapNamespace(&list.Items[i]))
+	out := make([]NamespaceInfo, 0, len(items))
+	for i := range items {
+		out = append(out, MapNamespace(&items[i]))
 	}
-	return out, nil
+	return out, cut, nil
 }
 
-func (r *Runtime) ListPods(ctx context.Context, namespace string) ([]PodInfo, error) {
-	list, err := r.CS.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+// ListPods lists the pods of namespace ("" = all) for a view: at most
+// limit (0 = all).
+func (r *Runtime) ListPods(ctx context.Context, namespace string, limit int) ([]PodInfo, *Truncated, error) {
+	items, cut, err := r.podItems(ctx, namespace, limit)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	out := []PodInfo{}
-	for i := range list.Items {
-		out = append(out, MapPod(&list.Items[i]))
+	out := make([]PodInfo, 0, len(items))
+	for i := range items {
+		out = append(out, MapPod(&items[i]))
 	}
-	return out, nil
+	return out, cut, nil
 }
 
-func (r *Runtime) ListDeployments(ctx context.Context, namespace string) ([]DeploymentInfo, error) {
-	list, err := r.CS.AppsV1().Deployments(namespace).List(ctx, metav1.ListOptions{})
+// ListDeployments lists the Deployments of namespace ("" = all) for a
+// view: at most limit (0 = all).
+func (r *Runtime) ListDeployments(ctx context.Context, namespace string, limit int) ([]DeploymentInfo, *Truncated, error) {
+	items, cut, err := pagedList(ctx, limit, func(ctx context.Context, opts metav1.ListOptions) ([]appsv1.Deployment, metav1.ListMeta, error) {
+		l, err := r.CS.AppsV1().Deployments(namespace).List(ctx, opts)
+		if err != nil {
+			return nil, metav1.ListMeta{}, err
+		}
+		return l.Items, l.ListMeta, nil
+	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	out := []DeploymentInfo{}
-	for i := range list.Items {
-		out = append(out, MapDeployment(&list.Items[i]))
+	out := make([]DeploymentInfo, 0, len(items))
+	for i := range items {
+		out = append(out, MapDeployment(&items[i]))
 	}
-	return out, nil
+	return out, cut, nil
 }
 
-func (r *Runtime) ListServices(ctx context.Context, namespace string) ([]ServiceInfo, error) {
-	list, err := r.CS.CoreV1().Services(namespace).List(ctx, metav1.ListOptions{})
+// ListServices lists the Services of namespace ("" = all) for a view: at
+// most limit (0 = all).
+func (r *Runtime) ListServices(ctx context.Context, namespace string, limit int) ([]ServiceInfo, *Truncated, error) {
+	items, cut, err := pagedList(ctx, limit, func(ctx context.Context, opts metav1.ListOptions) ([]corev1.Service, metav1.ListMeta, error) {
+		l, err := r.CS.CoreV1().Services(namespace).List(ctx, opts)
+		if err != nil {
+			return nil, metav1.ListMeta{}, err
+		}
+		return l.Items, l.ListMeta, nil
+	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	out := []ServiceInfo{}
-	for i := range list.Items {
-		out = append(out, MapService(&list.Items[i]))
+	out := make([]ServiceInfo, 0, len(items))
+	for i := range items {
+		out = append(out, MapService(&items[i]))
 	}
-	return out, nil
+	return out, cut, nil
 }
 
 // ListEvents lists the events in namespace ("" = all) about objects of the
@@ -268,4 +289,37 @@ func runOneShot(ctx context.Context, executor remotecommand.Executor) ([]string,
 		}
 	}
 	return strings.Split(strings.TrimRight(output, "\n"), "\n"), nil
+}
+
+// nodeItems lists Nodes for pagedList's callers: at most limit (0 = all).
+func (r *Runtime) nodeItems(ctx context.Context, limit int) ([]corev1.Node, *Truncated, error) {
+	return pagedList(ctx, limit, func(ctx context.Context, opts metav1.ListOptions) ([]corev1.Node, metav1.ListMeta, error) {
+		l, err := r.CS.CoreV1().Nodes().List(ctx, opts)
+		if err != nil {
+			return nil, metav1.ListMeta{}, err
+		}
+		return l.Items, l.ListMeta, nil
+	})
+}
+
+// namespaceItems lists Namespaces for pagedList's callers: at most limit (0 = all).
+func (r *Runtime) namespaceItems(ctx context.Context, limit int) ([]corev1.Namespace, *Truncated, error) {
+	return pagedList(ctx, limit, func(ctx context.Context, opts metav1.ListOptions) ([]corev1.Namespace, metav1.ListMeta, error) {
+		l, err := r.CS.CoreV1().Namespaces().List(ctx, opts)
+		if err != nil {
+			return nil, metav1.ListMeta{}, err
+		}
+		return l.Items, l.ListMeta, nil
+	})
+}
+
+// podItems lists Pods for pagedList's callers: at most limit (0 = all).
+func (r *Runtime) podItems(ctx context.Context, namespace string, limit int) ([]corev1.Pod, *Truncated, error) {
+	return pagedList(ctx, limit, func(ctx context.Context, opts metav1.ListOptions) ([]corev1.Pod, metav1.ListMeta, error) {
+		l, err := r.CS.CoreV1().Pods(namespace).List(ctx, opts)
+		if err != nil {
+			return nil, metav1.ListMeta{}, err
+		}
+		return l.Items, l.ListMeta, nil
+	})
 }

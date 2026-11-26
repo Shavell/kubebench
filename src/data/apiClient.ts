@@ -8,7 +8,7 @@
  * status 0.
  */
 import { reasonText } from '@/core/reasons'
-import type { ReasonParams } from './types'
+import type { ListResult, ReasonParams } from './types'
 
 /** Machine codes the backend uses (§3.3), plus `network` for transport failures. */
 export type ApiErrorCode =
@@ -152,6 +152,11 @@ function failureMessage(res: Response, payload: unknown): string {
 }
 
 export async function apiFetch<T>(path: string, init: ApiRequestInit = {}): Promise<T> {
+  return (await apiFetchWithHeaders<T>(path, init)).payload
+}
+
+/** apiFetch, with the response headers. */
+async function apiFetchWithHeaders<T>(path: string, init: ApiRequestInit = {}): Promise<{ payload: T; headers: Headers }> {
   const { body, params, headers, ...rest } = init
   const requestHeaders = new Headers(headers)
   requestHeaders.set('Accept', 'application/json')
@@ -175,7 +180,7 @@ export async function apiFetch<T>(path: string, init: ApiRequestInit = {}): Prom
 
   const payload = await readBody(res)
   if (!res.ok) throw refusal(path, res, payload)
-  return payload as T
+  return { payload: payload as T, headers: res.headers }
 }
 
 /** The reason code and parameters of an error body, if it has them. */
@@ -217,6 +222,22 @@ export async function apiRefusal(path: string, params?: QueryParams): Promise<Ap
     return null
   }
   return refusal(path, res, await readBody(res))
+}
+
+/**
+ * GET of a list route that takes `limit` (design §4.4, "Lists"): the array,
+ * with `truncated` when the server left objects out
+ * (`X-KubeBench-List-Remaining`: a count, or `unknown`).
+ */
+export async function apiGetList<T>(path: string, params?: QueryParams): Promise<ListResult<T>> {
+  const { payload, headers } = await apiFetchWithHeaders<T[]>(path, { method: 'GET', params })
+  const out: ListResult<T> = payload
+  const remaining = headers.get('X-KubeBench-List-Remaining')
+  if (remaining !== null) {
+    const n = Number(remaining)
+    out.truncated = { remaining: remaining !== '' && Number.isInteger(n) && n >= 0 ? n : null }
+  }
+  return out
 }
 
 export function apiGet<T>(path: string, params?: QueryParams, init?: ApiRequestInit): Promise<T> {

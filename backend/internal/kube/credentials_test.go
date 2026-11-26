@@ -72,7 +72,7 @@ func TestCredentialsAreRedactedOnEveryReadPath(t *testing.T) {
 		{"buildconfigs", "build.openshift.io/v1", "BuildConfig", "api", []string{"23 bytes, redacted", "allowEnv", "hook"}},
 		{"builds", "build.openshift.io/v1", "Build", "api-1", []string{"23 bytes, redacted", "GitHub WebHook"}},
 	} {
-		list, err := rt.ListGeneric(ctx, tc.key, "shop")
+		list, _, err := rt.ListGeneric(ctx, tc.key, "shop", 0)
 		if err != nil || len(list) != 1 {
 			t.Fatalf("%s: ListGeneric = %v, %v", tc.key, list, err)
 		}

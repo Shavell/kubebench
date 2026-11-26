@@ -1,0 +1,19 @@
+.kb-list-truncated {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 12px 6px;
+  padding: 4px 8px;
+  border-left: 3px solid var(--vscode-notificationsInfoIcon-foreground);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--vscode-foreground);
+}
+.kb-list-truncated .codicon {
+  color: var(--vscode-notificationsInfoIcon-foreground);
+}
+.kb-list-truncated__text {
+  flex: 1;
+  min-width: 200px;
+}

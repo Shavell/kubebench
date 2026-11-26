@@ -33,6 +33,9 @@ type informer struct {
 	// (an aggregated API without PartialObjectMetadata support): the
 	// informer then lists whole objects and strips them. Only run uses it.
 	full bool
+	// store is the informer's cache while it is synced and running: names
+	// and namespaces to count (Hub.Count); nil otherwise.
+	store cache.Store
 }
 
 // startInformer creates the informer of gvr and starts its goroutine.
@@ -150,10 +153,18 @@ func (h *Hub) run(ctx context.Context, inf *informer) {
 		si.RunWithContext(runCtx)
 	}()
 	if cache.WaitForCacheSync(runCtx.Done(), si.HasSynced) {
+		h.setStore(inf, si.GetStore())
 		h.setMode(inf, ModeLive, nil, false)
 		h.opts.Logf("[watch] cluster=%s informer %s synced", h.opts.Cluster, gvrName(inf.gvr))
 	}
 	<-ran
+	h.setStore(inf, nil)
+}
+
+func (h *Hub) setStore(inf *informer, store cache.Store) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	inf.store = store
 }
 
 // probe lists the metadata of one object of inf's resource: a denial
