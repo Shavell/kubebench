@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -16,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/remotecommand"
+	utilexec "k8s.io/client-go/util/exec"
 	"k8s.io/kubectl/pkg/scheme"
 )
 
@@ -227,34 +229,43 @@ func (r *Runtime) ScaleDeployment(ctx context.Context, namespace, name string, r
 	return err
 }
 
-// Exec runs one command through sh -c and returns combined output lines.
-func (r *Runtime) Exec(ctx context.Context, namespace, pod, container, command string) ([]string, error) {
-	req := r.CS.CoreV1().RESTClient().Post().
-		Resource("pods").Namespace(namespace).Name(pod).SubResource("exec").
-		VersionedParams(&corev1.PodExecOptions{
-			Container: container,
-			Command:   []string{"sh", "-c", command},
-			Stdout:    true,
-			Stderr:    true,
-		}, scheme.ParameterCodec)
+// execTimeout bounds a one-shot Exec.
+const execTimeout = 20 * time.Second
 
-	executor, err := remotecommand.NewSPDYExecutor(r.Config, "POST", req.URL())
+// Exec runs one command through sh -c and returns combined output lines.
+// A command that ran and exited non-zero is an answer, not an error: its
+// output (or, when it printed nothing, "command terminated with exit code
+// N") is returned. Failing to run it (pod or container missing, RBAC, the
+// upgrade refused, the time limit) is returned as the error.
+func (r *Runtime) Exec(ctx context.Context, namespace, pod, container, command string) ([]string, error) {
+	executor, err := r.execExecutor(&corev1.PodExecOptions{
+		Container: container,
+		Command:   []string{"sh", "-c", command},
+		Stdout:    true,
+		Stderr:    true,
+	}, namespace, pod)
 	if err != nil {
 		return nil, err
 	}
-	var stdout, stderr bytes.Buffer
-	execCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	execCtx, cancel := context.WithTimeout(ctx, execTimeout)
 	defer cancel()
-	err = executor.StreamWithContext(execCtx, remotecommand.StreamOptions{
+	return runOneShot(execCtx, executor)
+}
+
+func runOneShot(ctx context.Context, executor remotecommand.Executor) ([]string, error) {
+	var stdout, stderr bytes.Buffer
+	err := executor.StreamWithContext(ctx, remotecommand.StreamOptions{
 		Stdout: &stdout, Stderr: &stderr,
 	})
-	output := stdout.String()
-	if stderr.Len() > 0 {
-		output += stderr.String()
+	output := stdout.String() + stderr.String()
+	if err != nil {
+		var exit utilexec.ExitError
+		if !errors.As(err, &exit) {
+			return nil, err
+		}
+		if output == "" {
+			output = err.Error()
+		}
 	}
-	if err != nil && output == "" {
-		output = err.Error()
-	}
-	lines := strings.Split(strings.TrimRight(output, "\n"), "\n")
-	return lines, nil
+	return strings.Split(strings.TrimRight(output, "\n"), "\n"), nil
 }

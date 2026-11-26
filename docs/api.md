@@ -349,7 +349,7 @@ fields (counts, capacity, requests, limits) are always present.
 
 | Method | Path | Level | Parameters | Protocol |
 |---|---|---|---|---|
-| POST | `/api/exec` | exec | `?ns=&pod=&container=&cmd=` | one-shot command → `string[]` (output lines) |
+| POST | `/api/exec` | exec | `?ns=&pod=&container=&cmd=` | one-shot command (`sh -c`, 20 s, WebSocket with SPDY fallback) → `string[]` (stdout then stderr lines). A non-zero exit still answers `200` with the output (or `command terminated with exit code N`); failing to run the command answers the Kubernetes error (`404`, `403`, `502`, `504` on the time limit) |
 | GET | `/api/exec/ws` | exec | `?ns=&pod=&container=&command=<shell>` | WebSocket terminal (§7.1); audited once as `exec.session` |
 | GET | `/api/logs/stream` | read | `?ns=&pod=&container=&tail=&previous=&timestamps=&sinceSeconds=` or `?ns=&selector=<labels>` (≤ 10 pods) | Server-Sent Events |
 | GET | `/api/watch` | read | `?topics=pods,deployments,applications.argoproj.io,kubebench:notes` (1–32) | Server-Sent Events (§7.10) |

@@ -22,15 +22,21 @@ type ExecTarget struct {
 // speaks the WebSocket protocol (Kubernetes 1.30+) and falls back to SPDY
 // when the API server, or a proxy in front of it, refuses that upgrade.
 func (r *Runtime) TerminalExecutor(t ExecTarget) (remotecommand.Executor, error) {
+	return r.execExecutor(&corev1.PodExecOptions{
+		Container: t.Container,
+		Command:   t.Command,
+		Stdin:     true,
+		Stdout:    true,
+		TTY:       true,
+	}, t.Namespace, t.Pod)
+}
+
+// execExecutor returns the executor of opts in the pod: WebSocket with
+// the SPDY fallback, for interactive sessions and one-shot commands alike.
+func (r *Runtime) execExecutor(opts *corev1.PodExecOptions, namespace, pod string) (remotecommand.Executor, error) {
 	u := r.CS.CoreV1().RESTClient().Post().
-		Resource("pods").Namespace(t.Namespace).Name(t.Pod).SubResource("exec").
-		VersionedParams(&corev1.PodExecOptions{
-			Container: t.Container,
-			Command:   t.Command,
-			Stdin:     true,
-			Stdout:    true,
-			TTY:       true,
-		}, scheme.ParameterCodec).URL()
+		Resource("pods").Namespace(namespace).Name(pod).SubResource("exec").
+		VersionedParams(opts, scheme.ParameterCodec).URL()
 
 	spdy, err := remotecommand.NewSPDYExecutor(r.Config, http.MethodPost, u)
 	if err != nil {
