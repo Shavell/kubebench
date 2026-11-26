@@ -14,3 +14,4 @@
 - [ ] Live mode shows real data or an "unavailable" state with a reason, never mock data
 - [ ] User-facing changes have an entry under `[Unreleased]` in `CHANGELOG.md` and updated docs
 - [ ] Chart, packaging or workflow changes pass `make chart-lint` and `make lint`, and `make manifests` output is committed
+- [ ] Contributors from outside the project: I have signed the [CLA](https://github.com/Shavell/kubebench/blob/main/CLA.md) (see CONTRIBUTING.md) and every commit has a `Signed-off-by:` line (`git commit -s`)
