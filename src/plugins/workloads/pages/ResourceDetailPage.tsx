@@ -42,7 +42,7 @@ function ResourceDetail({ tab }: { tab: TabDescriptor }) {
   /** Shown until the object turns up: why its list failed, else a loading line. */
   const pending = (query: QueryState<unknown>) =>
     query.error ? (
-      <Unavailable code={query.errorCode} reason={query.error} title={t('detail.loadFailed', { name })} />
+      <Unavailable code={query.errorCode} reasonCode={query.errorReason} reason={query.error} title={t('detail.loadFailed', { name })} />
     ) : (
       <div className="page-loading">{t('detail.loading', { name })}</div>
     )

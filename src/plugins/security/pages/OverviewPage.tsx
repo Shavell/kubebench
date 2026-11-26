@@ -69,7 +69,7 @@ export function OverviewPage() {
     return (
       <div className="page">
         {toolbar(null)}
-        <Unavailable code={query.errorCode} reason={query.error} title={t('overview.unavailable')} />
+        <Unavailable code={query.errorCode} reasonCode={query.errorReason} reason={query.error} title={t('overview.unavailable')} />
       </div>
     )
   }

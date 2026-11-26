@@ -102,12 +102,17 @@
       "generic": {
         "title": "Ein Fehler ist aufgetreten",
         "hint": "Versuchen Sie es erneut. Wenn das Problem weiterhin besteht, prüfen Sie die Serverprotokolle."
+      },
+      "kubernetesForbidden": {
+        "title": "Keine Berechtigung",
+        "hint": "Die Zugangsdaten, die KubeBench für diesen Cluster verwendet, dürfen das nicht. Wählen Sie in der Statusleiste einen Namespace, den sie verwenden dürfen, oder bitten Sie einen Administrator, ihr Kubernetes-RBAC zu erweitern."
       }
     },
     "copy": {
       "name": "Namen kopieren",
       "yaml": "YAML kopieren"
-    }
+    },
+    "sidebarForbidden": "Einige Zahlen sind ausgeblendet: Die Zugangsdaten von KubeBench für diesen Cluster dürfen sie hier nicht auflisten."
   },
   "editor": {
     "loading": "Editor wird geladen…",
@@ -313,7 +318,9 @@
     "unhide": "Wieder in der Liste anzeigen",
     "showHidden_one": "Ausgeblendete anzeigen ({{count}})",
     "showHidden_other": "Ausgeblendete anzeigen ({{count}})",
-    "keysHint": "Alt+P anheften · Alt+H ausblenden"
+    "keysHint": "Alt+P anheften · Alt+H ausblenden",
+    "useTyped": "Namespace \"{{namespace}}\" verwenden",
+    "notListable": "Die Zugangsdaten von KubeBench für diesen Cluster dürfen keine Namespaces auflisten. Geben Sie den Namen eines Namespace ein, den sie verwenden dürfen."
   },
   "palette": {
     "kubectl": {

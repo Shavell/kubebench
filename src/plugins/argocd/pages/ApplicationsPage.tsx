@@ -68,7 +68,7 @@ export function ApplicationsPage() {
 
   const body = () => {
     if (query.error) {
-      return <Unavailable code={query.errorCode} reason={query.error} title={t('applications.unavailable')} onRetry={refreshData} />
+      return <Unavailable code={query.errorCode} reasonCode={query.errorReason} reason={query.error} title={t('applications.unavailable')} onRetry={refreshData} />
     }
     if (!query.data) return <div className="page-loading">{t('applications.loading')}</div>
     if (total === 0) return <EmptyState icon="layers" title={t('applications.empty')} hint={t('applications.emptyHint')} />

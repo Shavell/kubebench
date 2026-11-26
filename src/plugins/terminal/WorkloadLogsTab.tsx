@@ -38,7 +38,7 @@ export function WorkloadLogsTab({ tab }: { tab: TabDescriptor }) {
 
   if (!namespace || (!given && !workload)) return <Unavailable code="bad_request" reason={t('workloadLogs.badTarget')} />
   if (resolved.error) {
-    return <Unavailable code={resolved.errorCode} reason={resolved.error} title={t('workloadLogs.loadFailed', { title })} />
+    return <Unavailable code={resolved.errorCode} reasonCode={resolved.errorReason} reason={resolved.error} title={t('workloadLogs.loadFailed', { title })} />
   }
   if (resolved.data === null && resolved.loading) return <div className="page-loading">{t('workloadLogs.resolving')}</div>
   if (!resolved.data) return <Unavailable icon="search-stop" title={t('workloadLogs.noSelector', { title })} />

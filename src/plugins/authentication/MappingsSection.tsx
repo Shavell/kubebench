@@ -83,7 +83,7 @@ export function MappingsSection() {
 
   const clusterNames = (clusters.data ?? []).map((c) => c.name)
   const renderBody = () => {
-    if (mappings.error) return <Unavailable compact code={mappings.errorCode} reason={mappings.error} onRetry={refreshData} />
+    if (mappings.error) return <Unavailable compact code={mappings.errorCode} reasonCode={mappings.errorReason} reason={mappings.error} onRetry={refreshData} />
     if (!mappings.data) return <div className="auth__loading">{t('page.loading')}</div>
     if (mappings.data.length === 0) return <EmptyState icon="organization" title={t('mappings.empty')} />
     return <Table columns={columns} rows={mappings.data} rowKey={(m) => String(m.id)} />

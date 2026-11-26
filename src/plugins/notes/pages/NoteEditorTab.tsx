@@ -24,6 +24,6 @@ function StoredNoteEditor({ tabId, id }: { tabId: string; id: number }) {
   const { t } = useNotesTranslation()
   const note = useNotesQuery((notes) => notes.get(id), [id])
   if (note.data) return <NoteEditor tabId={tabId} note={note.data} />
-  if (note.error) return <Unavailable code={note.errorCode} reason={note.error} onRetry={refreshData} />
+  if (note.error) return <Unavailable code={note.errorCode} reasonCode={note.errorReason} reason={note.error} onRetry={refreshData} />
   return <EmptyState icon="loading" title={t('editor.loading')} />
 }

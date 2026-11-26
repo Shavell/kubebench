@@ -45,7 +45,7 @@ export function SecuritySidebar() {
           if (page) openSecurityTab(page.tab)
         }}
       />
-      <SidebarErrors errors={[report.error, accepted.error]} />
+      <SidebarErrors errors={[report, accepted]} />
     </>
   )
 }

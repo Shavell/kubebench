@@ -29,14 +29,14 @@ export function GenericDetailPage({ tab }: { tab: TabDescriptor }) {
   const descriptor = catalogByKey.get(key)
   const closeTab = useLayoutStore((s) => s.closeTab)
 
-  const { data, error, errorCode } = useProviderQuery(
+  const { data, error, errorCode, errorReason } = useProviderQuery(
     (p) => p.cluster.getResource(key, namespace, name),
     [key, namespace, name],
     { topics: [topicOf(descriptor, key)], namespace: namespace ?? undefined },
   )
 
   if (!descriptor) return <div className="page-loading">{t('list.unknownResource', { key })}</div>
-  if (error) return <Unavailable code={errorCode} reason={error} title={t('detail.loadFailed', { name })} />
+  if (error) return <Unavailable code={errorCode} reasonCode={errorReason} reason={error} title={t('detail.loadFailed', { name })} />
   if (!data) return <div className="page-loading">{t('detail.loading', { name })}</div>
 
   const obj = data as KubeObject

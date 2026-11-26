@@ -124,7 +124,7 @@ export function RepoListPage() {
         />
       )}
       {query.error ? (
-        <Unavailable code={query.errorCode} reason={query.error} title={t('repos.unavailable')} onRetry={refreshData} />
+        <Unavailable code={query.errorCode} reasonCode={query.errorReason} reason={query.error} title={t('repos.unavailable')} onRetry={refreshData} />
       ) : query.loading && !query.data ? (
         <div className="page-loading">{t('repos.loading')}</div>
       ) : (query.data ?? []).length === 0 ? (

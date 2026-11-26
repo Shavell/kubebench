@@ -60,7 +60,7 @@ export function ApplicationDetailPage({ tab }: { tab: TabDescriptor }) {
     if (query.error) {
       return (
         <Unavailable
-          code={query.errorCode}
+          code={query.errorCode} reasonCode={query.errorReason}
           reason={query.error}
           title={t('detail.unavailable', { name: qualifiedName })}
           onRetry={refreshData}

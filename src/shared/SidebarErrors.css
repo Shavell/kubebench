@@ -23,3 +23,10 @@
   flex-shrink: 0;
   margin-top: 1px;
 }
+
+/* Refusals of the cluster's RBAC: expected with a namespace-scoped credential, so not alarming (§7.16). */
+.kb-sidebar-errors__item--quiet {
+  color: var(--vscode-descriptionForeground);
+  border-color: var(--vscode-panel-border);
+  background: transparent;
+}

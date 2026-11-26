@@ -100,7 +100,7 @@ function RepoChart({ session, change }: { session: InstallSession; change: (patc
         )}
       </div>
       {results.error ? (
-        <Unavailable compact code={results.errorCode} reason={results.error} />
+        <Unavailable compact code={results.errorCode} reasonCode={results.errorReason} reason={results.error} />
       ) : results.data && results.data.length === 0 ? (
         <div className="helm-summary helm-muted">{t('install.repo.noResults')}</div>
       ) : (

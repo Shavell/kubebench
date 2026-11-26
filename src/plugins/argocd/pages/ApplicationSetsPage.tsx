@@ -75,7 +75,7 @@ export function ApplicationSetsPage() {
 
   const body = () => {
     if (query.error) {
-      return <Unavailable code={query.errorCode} reason={query.error} title={t('applicationSets.unavailable')} onRetry={refreshData} />
+      return <Unavailable code={query.errorCode} reasonCode={query.errorReason} reason={query.error} title={t('applicationSets.unavailable')} onRetry={refreshData} />
     }
     if (!query.data) return <div className="page-loading">{t('applicationSets.loading')}</div>
     if (query.data.length === 0) return <EmptyState icon="files" title={t('applicationSets.empty')} />

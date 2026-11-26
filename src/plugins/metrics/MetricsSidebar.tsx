@@ -10,8 +10,10 @@ import { NODE_TAB_PREFIX, openNodeMetricsTab, openOverviewTab, OVERVIEW_TAB_ID }
 export function MetricsSidebar() {
   const { t } = useTranslation(NS)
   const activeTabId = useLayoutStore((s) => s.activeTabId)
-  const { data: nodes, error: nodesError } = useProviderQuery((p) => p.cluster.listNodes(), [])
-  const { data: sources, error: sourcesError } = useProviderQuery((p) => p.metrics.listSources(), [])
+  const nodesQuery = useProviderQuery((p) => p.cluster.listNodes(), [])
+  const nodes = nodesQuery.data
+  const sourcesQuery = useProviderQuery((p) => p.metrics.listSources(), [])
+  const sources = sourcesQuery.data
 
   // Tree node ids equal the ids of the tabs they open, so the open tab is highlighted.
   const tree: TreeNode[] = [
@@ -52,7 +54,7 @@ export function MetricsSidebar() {
           }
         }}
       />
-      <SidebarErrors errors={[nodesError, sourcesError]} />
+      <SidebarErrors errors={[nodesQuery, sourcesQuery]} />
     </>
   )
 }

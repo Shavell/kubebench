@@ -102,12 +102,17 @@
       "generic": {
         "title": "Something went wrong",
         "hint": "Try again. If the problem persists, check the server logs."
+      },
+      "kubernetesForbidden": {
+        "title": "No permission",
+        "hint": "The credential KubeBench uses for this cluster may not do this. Choose a namespace it may use in the status bar, or ask an administrator to extend its Kubernetes RBAC."
       }
     },
     "copy": {
       "name": "Copy name",
       "yaml": "Copy YAML"
-    }
+    },
+    "sidebarForbidden": "Some counts are hidden: KubeBench's credential for this cluster may not list them here."
   },
   "editor": {
     "loading": "Loading editor…",
@@ -313,7 +318,9 @@
     "unhide": "Show in the list again",
     "showHidden_one": "Show hidden ({{count}})",
     "showHidden_other": "Show hidden ({{count}})",
-    "keysHint": "Alt+P pin · Alt+H hide"
+    "keysHint": "Alt+P pin · Alt+H hide",
+    "useTyped": "Use namespace \"{{namespace}}\"",
+    "notListable": "KubeBench's credential for this cluster may not list namespaces. Type the name of a namespace it may use."
   },
   "palette": {
     "kubectl": {

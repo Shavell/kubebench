@@ -1,6 +1,7 @@
 import { PLATFORM_NS } from '@/core/locales'
 import { errorMessage, isApiError, type ApiErrorCode } from '@/data/apiClient'
 import { i18n } from '@/i18n'
+import { isKubernetesForbidden } from './forbidden'
 
 /**
  * Friendly wording for ApiError codes (design §3.3). Each entry names the
@@ -30,6 +31,9 @@ const CODES: Record<string, { key: string; icon: string }> = {
 
 const GENERIC = { key: 'generic', icon: 'error' }
 
+/** A Kubernetes 403 (see ./forbidden): "no permission", whatever the code. */
+const K8S_FORBIDDEN = { key: 'kubernetesForbidden', icon: 'lock' }
+
 export interface ErrorTextKeys {
   /** i18n key (platform namespace) of the one-line explanation. */
   title: string
@@ -38,15 +42,23 @@ export interface ErrorTextKeys {
   icon: string
 }
 
-/** i18n keys and icon for an ApiError code; null/unknown codes get the generic wording. */
-export function errorTextKeys(code: ApiErrorCode | null | undefined): ErrorTextKeys {
-  const entry = (code && CODES[code]) || GENERIC
+/**
+ * i18n keys and icon for an ApiError code (and its reason code, which can
+ * be more specific); null/unknown codes get the generic wording.
+ */
+export function errorTextKeys(code: ApiErrorCode | null | undefined, reason?: string | null): ErrorTextKeys {
+  const entry = isKubernetesForbidden(reason) ? K8S_FORBIDDEN : (code && CODES[code]) || GENERIC
   return { title: `ui.errors.${entry.key}.title`, hint: `ui.errors.${entry.key}.hint`, icon: entry.icon }
 }
 
 /** The ApiError code of a thrown value, if it is an ApiError. */
 export function errorCodeOf(err: unknown): ApiErrorCode | null {
   return isApiError(err) ? err.code : null
+}
+
+/** The reason code of a thrown value, if it is an ApiError the server explained. */
+export function errorReasonOf(err: unknown): string | null {
+  return (isApiError(err) && err.reason) || null
 }
 
 /**
@@ -58,6 +70,6 @@ export function describeError(err: unknown): { message: string; detail?: string 
   const code = errorCodeOf(err)
   const raw = errorMessage(err)
   if (!code || !CODES[code]) return { message: raw }
-  const message = i18n.t(errorTextKeys(code).title, { ns: PLATFORM_NS })
+  const message = i18n.t(errorTextKeys(code, errorReasonOf(err)).title, { ns: PLATFORM_NS })
   return raw && raw !== message ? { message, detail: raw } : { message }
 }

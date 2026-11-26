@@ -52,7 +52,7 @@ export function ResourceNotesTab({ tab }: { tab: TabDescriptor }) {
         <NotePlacement resource={object} clusterName={cluster?.name ?? ''} global={false} />
       </div>
       {notes.error ? (
-        <Unavailable code={notes.errorCode} reason={notes.error} onRetry={refreshData} />
+        <Unavailable code={notes.errorCode} reasonCode={notes.errorReason} reason={notes.error} onRetry={refreshData} />
       ) : notes.data === null ? (
         <EmptyState icon="loading" title={t('resource.loading')} />
       ) : notes.data.items.length === 0 ? (

@@ -23,7 +23,7 @@ export function ManifestTab({ release }: { release: HelmReleaseDetail }) {
         <RevisionSelect history={release.history} value={revision} onChange={setRevision} label={t('release.manifest.revision')} />
       </div>
       {manifest.error ? (
-        <Unavailable compact code={manifest.errorCode} reason={manifest.error} />
+        <Unavailable compact code={manifest.errorCode} reasonCode={manifest.errorReason} reason={manifest.error} />
       ) : manifest.data === null ? (
         <div className="page-loading">{t('release.manifest.loading')}</div>
       ) : (
