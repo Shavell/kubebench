@@ -27,6 +27,7 @@
     "loading": "Loading {{crd}}…",
     "empty": "No custom resources",
     "unavailable": "Custom resources are unavailable",
-    "viewYaml": "View YAML"
+    "viewYaml": "View YAML",
+    "allColumns": "Show all columns"
   }
 }

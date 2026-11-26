@@ -248,8 +248,8 @@ All `read` unless stated.
 | GET | `/api/yaml` | `?apiVersion=&kind=&ns=&name=&neat=true` | `{"yaml"}`; without `apiVersion` only the kinds v0.4 knew; `neat` strips server-maintained fields |
 | GET | `/api/events` | `?kind=&ns=&name=` | `K8sEvent[]` about that object |
 | GET | `/api/logs` | `?ns=&pod=&container=&tail=` (default 300, max 5000) `&previous=&sinceSeconds=` | `string[]` (lines) |
-| GET | `/api/crds` | — | `CrdDefinition[]` |
-| GET | `/api/crds/instances` | `?crd=<name>` | `CustomResource[]` |
+| GET | `/api/crds` | — | `CrdDefinition[]`; `printerColumns` `[{name, type, description?, priority}]` are the `additionalPrinterColumns` of the listed (first served) version in order, without Name, Namespace and Age |
+| GET | `/api/crds/instances` | `?crd=<name>` | `CustomResource[]`; `extra` maps each printer column to its value, evaluated with full JSONPath (filters, indexes) and formatted by type like `kubectl get` (a `date` as an age); a column without a value is missing |
 | GET | `/api/k8s/{path...}` | the Kubernetes API's own query | raw JSON (passthrough, below) |
 
 Secret values are redacted on every read route: `data` and `stringData`

@@ -27,6 +27,7 @@
     "loading": "{{crd}} yükleniyor…",
     "empty": "Özel kaynak bulunamadı",
     "unavailable": "Özel kaynaklar kullanılamıyor",
-    "viewYaml": "YAML'ı görüntüle"
+    "viewYaml": "YAML'ı görüntüle",
+    "allColumns": "Tüm sütunları göster"
   }
 }

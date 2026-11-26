@@ -334,6 +334,20 @@ export interface CrdDefinition {
   scope: 'Namespaced' | 'Cluster'
   shortNames: string[]
   age: string
+  /**
+   * additionalPrinterColumns of the listed (first served) version, in order:
+   * the keys of `CustomResource.extra`. Name, Namespace and Age are left out.
+   */
+  printerColumns: PrinterColumn[]
+}
+
+/** One CRD printer column. Like `kubectl get`, priority 0 shows by default, higher ones with -o wide. */
+export interface PrinterColumn {
+  name: string
+  /** integer, number, string, boolean or date (the value is then an age). */
+  type: string
+  description?: string
+  priority: number
 }
 
 export interface CustomResource {
@@ -342,7 +356,10 @@ export interface CustomResource {
   crdName: string
   status: string
   age: string
-  /** CRD-specific columns shown in the list, e.g. { Secret: "shop-tls" }. */
+  /**
+   * Printer column values by column name, formatted like `kubectl get` (a date as
+   * an age), e.g. { Secret: "shop-tls" }. A column without a value is missing.
+   */
   extra: Record<string, string>
 }
 
