@@ -73,7 +73,10 @@ The full threat model and a hardening checklist for operators are in
   vulnerabilities in `go.mod` and `package-lock.json`) and dependency
   review of pull requests. CodeQL and govulncheck also run weekly, and so
   does a Trivy scan of the latest release image. Findings appear in the
-  repository's **Security > Code scanning**.
+  repository's **Security > Code scanning**; every open alert is fixed or
+  dismissed by a maintainer with a reason and a comment, and an open
+  CodeQL alert of high severity or worse blocks merging into `main`
+  ([triage](docs/releasing.md#continuous-integration)).
 - **OpenSSF Scorecard** rates the repository's supply-chain practices
   weekly: [scorecard.dev](https://scorecard.dev/viewer/?uri=github.com/Shavell/kubebench).
 - **Repository settings**: secret scanning with push protection,
