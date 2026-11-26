@@ -185,5 +185,11 @@
       "orPassword": "veya kullanıcı adı ve parolanızla",
       "directoryHint": "Dizin hesabınız: kullanıcı, ETKİ_ALANI\\kullanıcı veya kullanıcı@alanadı"
     }
+  },
+  "lists": {
+    "truncated": "İlk {{loaded}} nesne gösteriliyor; {{remaining}} nesne daha yüklenmedi.",
+    "truncatedUnknown": "İlk {{loaded}} nesne gösteriliyor; diğerleri yüklenmedi.",
+    "loadedOnly": "Arama, sıralama ve filtreler yalnızca yüklenen nesnelere uygulanır.",
+    "loadMore": "{{page}} tane daha yükle"
   }
 }

@@ -12,6 +12,8 @@ import { showContextMenu } from '@/shared/contextMenu'
 import { copyMenuItems } from '@/shared/copyActions'
 import { Table, type Column } from '@/shared/Table'
 import { Toolbar } from '@/shared/Toolbar'
+import { useListLimit } from '@/shared/listLimit'
+import { ListTruncatedNotice } from '@/shared/ListTruncatedNotice'
 import { EmptyState } from '@/shared/EmptyState'
 import { Unavailable } from '@/shared/Unavailable'
 import { ScaleDialog } from '@/shared/ScaleDialog'
@@ -31,15 +33,17 @@ export function CustomResourceListPage({ tab }: { tab: TabDescriptor }) {
   const write = usePermission('write')
 
   const { data: crds } = useProviderQuery((p) => p.crd.listCrds(), [], { topics: ['customresourcedefinitions.apiextensions.k8s.io'] })
+  const { limit, loadMore } = useListLimit(crdName)
   const { data, loading, error, errorCode, errorReason } = useProviderQuery(
-    (p) => p.crd.listCustomResources(crdName),
-    [crdName],
+    (p) => p.crd.listCustomResources(crdName, { limit }),
+    [crdName, limit],
     // A CRD's name (<plural>.<group>) is the watch topic of its resources.
     { topics: [crdName] },
   )
 
   const crd = crds?.find((c) => c.name === crdName)
-  if (loading) return <div className="page-loading">{t('instances.loading', { crd: crdName })}</div>
+  // A refresh keeps showing the rows it replaces.
+  if (loading && !data) return <div className="page-loading">{t('instances.loading', { crd: crdName })}</div>
 
   const rows = data ?? []
   // The CRD's printer columns; their headers are the CRD's own column names.
@@ -113,6 +117,7 @@ export function CustomResourceListPage({ tab }: { tab: TabDescriptor }) {
       <Toolbar title={`${crd?.kind ?? crdName} · ${crdName}`}>
         {hasWide && <Checkbox className="crd-toolbar-check" checked={wide} onChange={setWide} label={t('instances.allColumns')} />}
       </Toolbar>
+      {!error && <ListTruncatedNotice truncated={data?.truncated} loaded={rows.length} onLoadMore={loadMore} />}
       {content}
       {scaling && crd && (
         <ScaleDialog

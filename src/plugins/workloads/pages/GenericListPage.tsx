@@ -7,6 +7,8 @@ import type { TabDescriptor } from '@/core/plugin/types'
 import type { KubeObject } from '@/data/types'
 import { formatNumber } from '@/i18n/format'
 import { ListFilterBar } from '@/shared/ListFilterBar'
+import { useListLimit } from '@/shared/listLimit'
+import { ListTruncatedNotice } from '@/shared/ListTruncatedNotice'
 import { Table } from '@/shared/Table'
 import { Toolbar } from '@/shared/Toolbar'
 import { EmptyState } from '@/shared/EmptyState'
@@ -40,9 +42,10 @@ function CatalogListPage({ tab }: { tab: TabDescriptor }) {
   const nsFilter = descriptor?.namespaced ? listNamespace(localNs, globalNamespace) : undefined
 
   const { names: namespaceNames } = useNamespaceNames()
+  const { limit, loadMore } = useListLimit(`${key}/${nsFilter ?? ''}`)
   const query = useProviderQuery(
-    (p) => (descriptor ? p.cluster.listResource(key, nsFilter) : Promise.resolve([])),
-    [key, nsFilter],
+    (p) => (descriptor ? p.cluster.listResource(key, nsFilter, { limit }) : Promise.resolve([])),
+    [key, nsFilter, limit],
     // Catalog keys are resource names, i.e. watch topics (group-qualified where ambiguous).
     { topics: [topicOf(descriptor, key)], namespace: nsFilter },
   )
@@ -129,6 +132,7 @@ function CatalogListPage({ tab }: { tab: TabDescriptor }) {
         </ListFilterBar>
         <NewResourceButton kind={descriptor.kind} namespace={nsFilter} />
       </Toolbar>
+      {!query.error && <ListTruncatedNotice truncated={query.data?.truncated} loaded={all.length} onLoadMore={loadMore} />}
       {body()}
       <ResourceDialogs />
       <WorkloadOpsDialogs />

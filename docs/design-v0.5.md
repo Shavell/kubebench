@@ -591,6 +591,13 @@ route answers `409 no_cluster` instead. Without any usable cluster,
   cut list keeps its JSON array body and sets
   `X-KubeBench-List-Remaining: <n>|unknown`. Without `limit` lists are
   complete, so existing clients see no change.
+  The list views (the rich and catalog lists, a CRD's objects) ask for
+  2,000 rows (`ListOptions.limit`; the result's `truncated` says how many
+  were left out) and show a notice above the table when cut: how many are
+  loaded and left out, that search, sorting and filters apply to the
+  loaded rows only, and "Load 2,000 more" (the limit grows by 2,000 until
+  the resource or namespace changes). Other readers (topology, overview,
+  pickers) read complete lists.
 - **Counts**. `GET /api/count?topic=&ns=` returns `{"count"}`:
   from the cache of the live-update informer of that resource when one
   runs live (§7.10; it holds names and namespaces), else from a paged

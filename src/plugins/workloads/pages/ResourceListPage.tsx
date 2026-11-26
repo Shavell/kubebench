@@ -4,10 +4,12 @@ import { useLayoutStore } from '@/core/store/layoutStore'
 import { useContextStore } from '@/core/store/contextStore'
 import { useProviderQuery, useProviders } from '@/data/DataContext'
 import type { TabDescriptor } from '@/core/plugin/types'
-import type { Deployment, K8sNode, Namespace, Pod, Service } from '@/data/types'
+import type { Deployment, K8sNode, ListResult, Namespace, Pod, Service } from '@/data/types'
 import { formatNumber } from '@/i18n/format'
 import { Badge } from '@/shared/Badge'
 import { ListFilterBar } from '@/shared/ListFilterBar'
+import { useListLimit } from '@/shared/listLimit'
+import { ListTruncatedNotice } from '@/shared/ListTruncatedNotice'
 import { Table } from '@/shared/Table'
 import { Toolbar } from '@/shared/Toolbar'
 import { EmptyState } from '@/shared/EmptyState'
@@ -139,24 +141,26 @@ export function ResourceListPage({ tab }: { tab: TabDescriptor }) {
   const { names: namespaceNames } = useNamespaceNames()
 
   type AnyRow = Pod | K8sNode | Namespace | Deployment | Service
-  const query = useProviderQuery<AnyRow[]>(
+  const { limit, loadMore } = useListLimit(`${resource}/${nsFilter ?? ''}`)
+  const query = useProviderQuery<ListResult<AnyRow>>(
     (p) => {
+      const options = { limit }
       switch (resource) {
         case 'Pods':
-          return p.cluster.listPods(nsFilter)
+          return p.cluster.listPods(nsFilter, options)
         case 'Deployments':
-          return p.cluster.listDeployments(nsFilter)
+          return p.cluster.listDeployments(nsFilter, options)
         case 'Services':
-          return p.cluster.listServices(nsFilter)
+          return p.cluster.listServices(nsFilter, options)
         case 'Nodes':
-          return p.cluster.listNodes()
+          return p.cluster.listNodes(options)
         case 'Namespaces':
-          return p.cluster.listNamespaces()
+          return p.cluster.listNamespaces(options)
         default:
           return Promise.resolve([])
       }
     },
-    [resource, nsFilter],
+    [resource, nsFilter, limit],
     // The resources of this page ('Pods', …) are their watch topics in lower case.
     { topics: [resource.toLowerCase()], namespace: nsFilter },
   )
@@ -288,6 +292,7 @@ export function ResourceListPage({ tab }: { tab: TabDescriptor }) {
         {isNamespaced && <NewResourceButton kind={KINDS[resource]} namespace={nsFilter} />}
         <ListOpsActions resource={resource} rows={rows} selection={podSelection} />
       </Toolbar>
+      {!query.error && <ListTruncatedNotice truncated={query.data?.truncated} loaded={all.length} onLoadMore={loadMore} />}
       {body()}
       <ResourceDialogs />
       <DeletePodDialog pod={deleting} onClose={() => setDeleting(null)} />
