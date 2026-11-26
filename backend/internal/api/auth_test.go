@@ -63,8 +63,11 @@ func TestSecureCookieModes(t *testing.T) {
 		{"auto over tls", nil, true, "", true},
 		{"auto ignores an untrusted proxy header", nil, false, "https", false},
 		{"auto behind a trusted proxy", map[string]string{"KUBEBENCH_TRUST_PROXY": "true"}, false, "https", true},
+		{"auto behind a trusted proxy over http", map[string]string{"KUBEBENCH_TRUST_PROXY": "true"}, false, "http", false},
+		{"auto takes the first proxy hop", map[string]string{"KUBEBENCH_TRUST_PROXY": "true"}, false, "HTTPS, http", true},
 		{"forced on", map[string]string{"KUBEBENCH_SECURE_COOKIES": "true"}, false, "", true},
 		{"forced off", map[string]string{"KUBEBENCH_SECURE_COOKIES": "false"}, true, "", false},
+		{"forced off behind a trusted proxy", map[string]string{"KUBEBENCH_SECURE_COOKIES": "false", "KUBEBENCH_TRUST_PROXY": "true"}, true, "https", false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			e := newTestEnv(t, tc.env)

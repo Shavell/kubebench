@@ -179,17 +179,13 @@ func (s *Server) sessionCookie(r *http.Request, value string, maxAge int) *http.
 }
 
 // secureRequest decides the cookie's Secure flag (KUBEBENCH_SECURE_COOKIES):
-// in auto mode a request counts as secure when it arrived over TLS or, from
-// a trusted proxy, with X-Forwarded-Proto: https.
+// always in mode "true", never in mode "false", and in auto mode when the
+// request arrived over TLS or, from a trusted proxy, with
+// X-Forwarded-Proto: https. Every cookie KubeBench sets takes its Secure
+// flag from here.
 func (s *Server) secureRequest(r *http.Request) bool {
-	switch s.cfg.SecureCookies {
-	case config.CookiesSecure:
-		return true
-	case config.CookiesPlain:
-		return false
-	}
-	if r.TLS != nil {
-		return true
-	}
-	return s.cfg.TrustProxy && strings.EqualFold(firstHeaderValue(r.Header.Get("X-Forwarded-Proto")), "https")
+	mode := s.cfg.SecureCookies
+	overTLS := r.TLS != nil ||
+		(s.cfg.TrustProxy && strings.EqualFold(firstHeaderValue(r.Header.Get("X-Forwarded-Proto")), "https"))
+	return mode == config.CookiesSecure || (mode != config.CookiesPlain && overTLS)
 }
