@@ -23,6 +23,11 @@ type Cluster struct {
 	// Credentials are per-cluster cloud credentials (cloudauth.Credentials
 	// as JSON, "" for none), never serialized.
 	Credentials string `json:"-"`
+	// AllowedNamespaces are the namespaces the UI offers when the
+	// credential cannot list namespaces (§7.16), comma-separated ("" =
+	// detect them); see Namespaces. A UI list, not a security boundary.
+	// A string keeps the struct comparable.
+	AllowedNamespaces string `json:"-"`
 }
 
 // UserCluster is a cluster visible to a user with the user's effective
@@ -40,12 +45,12 @@ type Assignment struct {
 	Role        string // ClusterRoleViewer | ClusterRoleOperator
 }
 
-const clusterColumns = `c.id, c.name, c.source, c.kubeconfig, c.context, c.address, c.read_only, c.environment, c.credentials`
+const clusterColumns = `c.id, c.name, c.source, c.kubeconfig, c.context, c.address, c.read_only, c.environment, c.credentials, c.allowed_namespaces`
 
 func scanCluster(row interface{ Scan(...any) error }, extra ...any) (*Cluster, error) {
 	var c Cluster
 	var kubeconfig, context, address sql.NullString
-	dest := append([]any{&c.ID, &c.Name, &c.Source, &kubeconfig, &context, &address, &c.ReadOnly, &c.Environment, &c.Credentials}, extra...)
+	dest := append([]any{&c.ID, &c.Name, &c.Source, &kubeconfig, &context, &address, &c.ReadOnly, &c.Environment, &c.Credentials, &c.AllowedNamespaces}, extra...)
 	if err := row.Scan(dest...); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
@@ -58,9 +63,10 @@ func scanCluster(row interface{ Scan(...any) error }, extra ...any) (*Cluster, e
 
 func (s *Store) AddCluster(c Cluster) (int64, error) {
 	res, err := s.db.Exec(
-		`INSERT INTO clusters (name, source, kubeconfig, context, address, read_only, environment, credentials)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO clusters (name, source, kubeconfig, context, address, read_only, environment, credentials, allowed_namespaces)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		c.Name, c.Source, c.Kubeconfig, c.Context, c.Address, boolInt(c.ReadOnly), c.Environment, c.Credentials,
+		c.AllowedNamespaces,
 	)
 	if err != nil {
 		return 0, conflictErr(err, reasonClusterExists, reason.Params{"name": c.Name})
@@ -126,6 +132,8 @@ type ClusterUpdate struct {
 	ReadOnly    *bool
 	Environment *string
 	Credentials *string // "" removes them
+	// AllowedNamespaces replaces the list; an empty list clears it.
+	AllowedNamespaces *[]string
 }
 
 func (s *Store) UpdateCluster(id int64, u ClusterUpdate) error {
@@ -142,6 +150,9 @@ func (s *Store) UpdateCluster(id int64, u ClusterUpdate) error {
 	}
 	if u.Credentials != nil {
 		sets, args = append(sets, "credentials = ?"), append(args, *u.Credentials)
+	}
+	if u.AllowedNamespaces != nil {
+		sets, args = append(sets, "allowed_namespaces = ?"), append(args, JoinNamespaces(*u.AllowedNamespaces))
 	}
 	if len(sets) == 0 {
 		_, err := s.GetCluster(id)
@@ -233,3 +244,16 @@ func (s *Store) SetAssignments(userID int64, assignments []Assignment) error {
 		return nil
 	})
 }
+
+// Namespaces returns the cluster's allowed namespaces as a list (nil when
+// none are set).
+func (c Cluster) Namespaces() []string {
+	if c.AllowedNamespaces == "" {
+		return nil
+	}
+	return strings.Split(c.AllowedNamespaces, ",")
+}
+
+// JoinNamespaces is the stored form of an allowed-namespaces list. Names
+// are validated by the caller (a namespace name has no comma).
+func JoinNamespaces(names []string) string { return strings.Join(names, ",") }

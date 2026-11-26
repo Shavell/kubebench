@@ -100,6 +100,12 @@ func TestDetect(t *testing.T) {
 	if st := p.Detect(context.Background(), rt); st.Available || !strings.Contains(st.Reason, "release Secrets") {
 		t.Fatalf("Detect without access = %+v", st)
 	}
+	// A namespace-scoped credential that may read releases in some
+	// namespaces (§7.16).
+	rt.ProbeForTest()(kube.Capabilities{Helm: true, HelmNamespaces: []string{"team-a"}})
+	if st := p.Detect(context.Background(), rt); !st.Available {
+		t.Fatalf("Detect with namespaced access = %+v", st)
+	}
 }
 
 func TestUploads(t *testing.T) {
