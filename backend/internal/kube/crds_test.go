@@ -187,7 +187,7 @@ func TestCrdScaleSubresource(t *testing.T) {
 		t.Fatalf("JSON = %s", body)
 	}
 
-	items, err := rt.ListCustomResources(ctx, "widgets.compat.example.com")
+	items, _, err := rt.ListCustomResources(ctx, "widgets.compat.example.com", 0)
 	if err != nil || len(items) != 2 {
 		t.Fatalf("ListCustomResources = %v, %v", items, err)
 	}
@@ -224,7 +224,7 @@ func TestCrdWithoutScaleSubresource(t *testing.T) {
 	if body, _ := json.Marshal(crds[0]); strings.Contains(string(body), `"scale"`) {
 		t.Fatalf("JSON = %s", body)
 	}
-	items, err := rt.ListCustomResources(ctx, "widgets.compat.example.com")
+	items, _, err := rt.ListCustomResources(ctx, "widgets.compat.example.com", 0)
 	if err != nil || len(items) != 1 || items[0].Replicas != nil {
 		t.Fatalf("ListCustomResources = %+v, %v", items, err)
 	}
