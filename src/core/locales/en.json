@@ -112,7 +112,19 @@
       "name": "Copy name",
       "yaml": "Copy YAML"
     },
-    "sidebarForbidden": "Some counts are hidden: KubeBench's credential for this cluster may not list them here."
+    "sidebarForbidden": "Some counts are hidden: KubeBench's credential for this cluster may not list them here.",
+    "scale": {
+      "title": "Scale {{kind}} {{name}}",
+      "replicas": "Replicas",
+      "current": "Currently {{count}}.",
+      "invalid": "Enter a whole number from 0 to {{max}}.",
+      "toZero": "With 0 replicas every Pod stops.",
+      "managedBy": "{{owner}} manages this object and will undo the change; scale it instead.",
+      "submit": "Scale",
+      "scaled_one": "{{kind}} {{name}} scaled to {{count}} replica.",
+      "scaled_other": "{{kind}} {{name}} scaled to {{count}} replicas.",
+      "currentUnknown": "The current replica count is not known."
+    }
   },
   "editor": {
     "loading": "Loading editor…",

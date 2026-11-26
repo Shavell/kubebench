@@ -364,16 +364,7 @@
     },
     "workload": {
       "restarted": "{{kind}} {{name}} is restarting its Pods.",
-      "scale": "Scale…",
-      "scaleTitle": "Scale {{kind}} {{name}}",
-      "replicas": "Replicas",
-      "currentReplicas": "Currently {{count}}.",
-      "replicasInvalid": "Enter a whole number from 0 to {{max}}.",
-      "scaleToZero": "With 0 replicas every Pod stops.",
-      "managedBy": "{{owner}} manages this object and will undo the change; scale it instead.",
-      "scaleSubmit": "Scale",
-      "scaled_one": "{{kind}} {{name}} scaled to {{count}} replica.",
-      "scaled_other": "{{kind}} {{name}} scaled to {{count}} replicas."
+      "scale": "Scale…"
     },
     "pods": {
       "forceDelete": "Force delete",
