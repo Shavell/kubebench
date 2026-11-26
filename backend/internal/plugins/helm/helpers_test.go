@@ -65,6 +65,16 @@ func newHarness(t *testing.T) *harness {
 }
 
 // Handle implements plugin.Router.
+// uploadPath is the archive file of upload id.
+func (h *harness) uploadPath(id string) string {
+	h.t.Helper()
+	path, err := h.p.env.uploadPath(id)
+	if err != nil {
+		h.t.Fatal(err)
+	}
+	return path
+}
+
 func (h *harness) Handle(method, path string, access plugin.Access, fn plugin.HandlerFunc) {
 	pattern := method + " " + path
 	h.access[pattern] = access

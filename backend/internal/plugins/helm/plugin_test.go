@@ -125,16 +125,16 @@ func TestUploads(t *testing.T) {
 
 	// Uploads expire after a day: they can no longer be used and are swept.
 	old := time.Now().Add(-uploadTTL - time.Minute)
-	if err := os.Chtimes(h.p.env.uploadPath(id), old, old); err != nil {
+	if err := os.Chtimes(h.uploadPath(id), old, old); err != nil {
 		t.Fatal(err)
 	}
 	fails(t, h.do(http.MethodGet, "/charts/values?uploadId="+id, nil), http.StatusNotFound, plugin.CodeNotFound)
 	fresh := h.upload(testChart("demo", "0.2.0"))
 	h.p.env.removeExpiredUploads(time.Now())
-	if _, err := os.Stat(h.p.env.uploadPath(id)); !os.IsNotExist(err) {
+	if _, err := os.Stat(h.uploadPath(id)); !os.IsNotExist(err) {
 		t.Fatalf("expired upload kept: %v", err)
 	}
-	if _, err := os.Stat(h.p.env.uploadPath(fresh)); err != nil {
+	if _, err := os.Stat(h.uploadPath(fresh)); err != nil {
 		t.Fatalf("fresh upload swept: %v", err)
 	}
 }
