@@ -12,6 +12,7 @@ import { ChangePasswordScreen } from '@/core/shell/ChangePasswordScreen'
 import { LoginScreen } from '@/core/shell/LoginScreen'
 import { Shell } from '@/core/shell/Shell'
 import { createWorkbenchPlugin } from '@/core/shell/workbenchPlugin'
+import { initNamespace } from '@/core/store/namespaceStart'
 import { createUpdatesPlugin } from '@/core/updates/updatesPlugin'
 import { DataContext } from '@/data/DataContext'
 import { dataMode } from '@/data/mode'
@@ -65,6 +66,7 @@ export async function startApp(root: Root, options: StartOptions, attempt = 0): 
     }
 
     const { providers } = session
+    initNamespace()
     registerSessionPlugins(providers, options)
     installGlobalSdk(providers)
     const pluginStatus = usePluginStatusStore.getState()

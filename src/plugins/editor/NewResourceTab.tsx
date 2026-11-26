@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState, type DragEvent } from 'react'
+import { useNamespaceNames } from '@/core/namespaceNames'
 import { usePermission } from '@/core/permissions'
 import { openYamlTab } from '@/core/plugin/editorTabs'
 import type { TabDescriptor } from '@/core/plugin/types'
 import { ALL_NAMESPACES, useContextStore } from '@/core/store/contextStore'
 import { useLayoutStore } from '@/core/store/layoutStore'
-import { useProviderQuery } from '@/data/DataContext'
 import { Button } from '@/shared/Button'
 import { ConfirmDialog } from '@/shared/ConfirmDialog'
 import { CodeEditor } from '@/shared/editor/CodeEditor'
@@ -65,7 +65,7 @@ export function NewResourceTab({ tab }: { tab: TabDescriptor }) {
   const [dropping, setDropping] = useState(false)
   const [forcing, setForcing] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
-  const namespaces = useProviderQuery((p) => p.cluster.listNamespaces(), [])
+  const { names: listedNamespaces } = useNamespaceNames()
 
   const dirty = text !== baseline
   useEffect(() => setTabDirty(tab.id, dirty), [tab.id, dirty, setTabDirty])
@@ -139,7 +139,7 @@ export function NewResourceTab({ tab }: { tab: TabDescriptor }) {
     ...(files.length > 0 ? [{ value: '', label: t('newResource.importedOption'), disabled: true }] : []),
     ...TEMPLATES.map((tpl) => ({ value: tpl.id, label: t(`newResource.templates.${tpl.id}`) })),
   ]
-  const namespaceNames = (namespaces.data ?? []).map((ns) => ns.name)
+  const namespaceNames = [...listedNamespaces]
   if (!namespaceNames.includes(namespace)) namespaceNames.unshift(namespace)
   const conflict = outcome?.results.find((r) => r.code === 'conflict')
 

@@ -104,6 +104,19 @@ export interface LiveCapabilities {
   exec: boolean
   /** Catalog keys of the optional (OpenShift) resource types the cluster serves (design §7.15). */
   optionalResources: string[]
+  /** The cluster's credential may list namespaces (design §7.16). */
+  listNamespaces: boolean
+  /**
+   * The namespaces to offer when it may not: the cluster's allowed
+   * namespaces, else the detected ones (the kubeconfig context's).
+   */
+  namespaces: string[]
+  /** The namespace the UI starts in on the cluster; '' = all namespaces. */
+  defaultNamespace: string
+  /** When exec is allowed only in some namespaces, those; empty = cluster-wide. */
+  execNamespaces: string[]
+  /** When Helm is usable only in some namespaces, those; empty = cluster-wide. */
+  helmNamespaces: string[]
 }
 
 export interface ServerFeatures {
@@ -237,6 +250,11 @@ export interface ClusterEntry {
   cloudAuth?: CloudCredentialProvider
   /** Admins only: the provider of stored per-cluster credentials (absent = the server's identity). */
   cloudCredentials?: CloudCredentialProvider
+  /**
+   * The namespaces the UI offers when the credential cannot list
+   * namespaces (design §7.16); empty = detected. Not a security boundary.
+   */
+  allowedNamespaces?: string[]
 }
 
 /** Fields an admin can change on a cluster (PATCH /api/clusters/{id}). */
@@ -246,6 +264,8 @@ export interface ClusterUpdate {
   environment?: ClusterEnvironment
   /** Replaces the per-cluster cloud credentials; null removes them (design §7.12). */
   credentials?: CloudCredentials | null
+  /** Replaces the allowed namespaces; [] clears them (design §7.16). */
+  allowedNamespaces?: string[]
 }
 
 export interface Namespace {

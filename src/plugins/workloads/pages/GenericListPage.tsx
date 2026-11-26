@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNamespaceNames } from '@/core/namespaceNames'
 import { useLayoutStore } from '@/core/store/layoutStore'
 import { useContextStore } from '@/core/store/contextStore'
 import { useProviderQuery, useProviders } from '@/data/DataContext'
@@ -38,7 +39,7 @@ function CatalogListPage({ tab }: { tab: TabDescriptor }) {
 
   const nsFilter = descriptor?.namespaced ? listNamespace(localNs, globalNamespace) : undefined
 
-  const { data: namespaces } = useProviderQuery((p) => p.cluster.listNamespaces(), [], { topics: ['namespaces'] })
+  const { names: namespaceNames } = useNamespaceNames()
   const query = useProviderQuery(
     (p) => (descriptor ? p.cluster.listResource(key, nsFilter) : Promise.resolve([])),
     [key, nsFilter],
@@ -73,7 +74,7 @@ function CatalogListPage({ tab }: { tab: TabDescriptor }) {
     if (query.error) {
       return (
         <Unavailable
-          code={query.errorCode}
+          code={query.errorCode} reasonCode={query.errorReason}
           reason={query.error}
           title={t('list.loadFailed', { resource: label })}
         />
@@ -122,7 +123,7 @@ function CatalogListPage({ tab }: { tab: TabDescriptor }) {
               value={localNs}
               onChange={setLocalNs}
               globalNamespace={globalNamespace}
-              namespaces={(namespaces ?? []).map((ns) => ns.name)}
+              namespaces={namespaceNames}
             />
           )}
         </ListFilterBar>

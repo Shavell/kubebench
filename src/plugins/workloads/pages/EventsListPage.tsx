@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useNamespaceNames } from '@/core/namespaceNames'
 import { useLayoutStore } from '@/core/store/layoutStore'
 import { useContextStore } from '@/core/store/contextStore'
 import { useProviderQuery, useProviders } from '@/data/DataContext'
@@ -47,7 +48,7 @@ export function EventsListPage({ tab }: { tab: TabDescriptor }) {
   const [grouped, setGrouped] = useState(false)
 
   const nsFilter = listNamespace(localNs, globalNamespace)
-  const { data: namespaces } = useProviderQuery((p) => p.cluster.listNamespaces(), [], { topics: ['namespaces'] })
+  const { names: namespaceNames } = useNamespaceNames()
   // Ages are relative to when the list was read.
   const query = useProviderQuery(
     async (p) => ({ items: await p.cluster.listResource(KEY, nsFilter), readAt: Date.now() }),
@@ -87,7 +88,7 @@ export function EventsListPage({ tab }: { tab: TabDescriptor }) {
   const body = () => {
     // A failed request must not pass for an empty list (live mode never shows stand-in data).
     if (query.error) {
-      return <Unavailable code={query.errorCode} reason={query.error} title={t('list.loadFailed', { resource: label })} />
+      return <Unavailable code={query.errorCode} reasonCode={query.errorReason} reason={query.error} title={t('list.loadFailed', { resource: label })} />
     }
     if (rows.length === 0) {
       return (
@@ -130,7 +131,7 @@ export function EventsListPage({ tab }: { tab: TabDescriptor }) {
             value={localNs}
             onChange={setLocalNs}
             globalNamespace={globalNamespace}
-            namespaces={(namespaces ?? []).map((ns) => ns.name)}
+            namespaces={namespaceNames}
           />
         </ListFilterBar>
         <Checkbox

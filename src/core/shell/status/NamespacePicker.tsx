@@ -7,7 +7,8 @@ import { fold } from '@/core/palette/match'
 import { ALL_NAMESPACES, useContextStore } from '@/core/store/contextStore'
 import { orderNamespaces } from '@/core/store/namespaceOrder'
 import { useNamespacePrefs } from '@/core/store/namespacePrefsStore'
-import { useProviderQuery } from '@/data/DataContext'
+import { useNamespaceNames } from '@/core/namespaceNames'
+import { isNamespaceName } from '@/data/rules'
 import { Checkbox } from '@/shared/form'
 import { Icon } from '@/shared/Icon'
 import { cssRect, cssViewport } from '@/shared/zoom'
@@ -38,7 +39,9 @@ export function NamespacePicker({ anchor, onClose }: NamespacePickerProps) {
   const namespace = useContextStore((s) => s.namespace)
   const setNamespace = useContextStore((s) => s.setNamespace)
   const prefs = useNamespacePrefs()
-  const { data, loading, error } = useProviderQuery((p) => p.cluster.listNamespaces(), [], { topics: ['namespaces'] })
+  // A credential that may not list namespaces gets the cluster's allowed
+  // (or detected) namespaces, and any typed name (design §7.16).
+  const { names, loading, error, listed } = useNamespaceNames([namespace])
   const [query, setQuery] = useState('')
   const [showHidden, setShowHidden] = useState(false)
   const [active, setActive] = useState(0)
@@ -46,7 +49,6 @@ export function NamespacePicker({ anchor, onClose }: NamespacePickerProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const listId = useId()
 
-  const names = (data ?? []).map((ns) => ns.name)
   const ordered = orderNamespaces(names, prefs, { includeHidden: showHidden, keep: namespace })
   const hiddenSet = new Set(prefs.hidden)
   const hiddenCount = names.filter((name) => hiddenSet.has(name)).length
@@ -71,6 +73,10 @@ export function NamespacePicker({ anchor, onClose }: NamespacePickerProps) {
       heading: i === 0 && pinned.length > 0 ? t('namespaces.othersGroup') : undefined,
     })),
   ]
+  const typed = query.trim()
+  if (!listed && isNamespaceName(typed) && !names.includes(typed)) {
+    entries.push({ value: typed, label: t('namespaces.useTyped', { namespace: typed }), pinned: false, hidden: false })
+  }
   const activeIndex = Math.min(active, entries.length - 1)
 
   // Above the anchor, kept inside the window.
@@ -138,7 +144,16 @@ export function NamespacePicker({ anchor, onClose }: NamespacePickerProps) {
     }
   }
 
-  const status = loading && !data ? t('namespaces.loading') : error ? error : entries.length === 0 ? t('namespaces.noMatch') : null
+  const status =
+    loading && names.length === 0
+      ? t('namespaces.loading')
+      : error
+        ? error
+        : !listed
+          ? t('namespaces.notListable')
+          : entries.length === 0
+            ? t('namespaces.noMatch')
+            : null
 
   return createPortal(
     <div ref={panelRef} className="ns-picker" role="dialog" aria-label={t('statusBar.namespace.tooltip')}>

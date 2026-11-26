@@ -34,3 +34,12 @@ export function orderNamespaces(
 export function toggled(list: readonly string[], name: string): string[] {
   return list.includes(name) ? list.filter((n) => n !== name) : [...list, name]
 }
+
+/**
+ * The namespace filter a session starts with (design §7.16): the one the
+ * user last chose on the cluster (`remembered`, '' = all namespaces), else
+ * the cluster's default namespace, else all namespaces ('').
+ */
+export function startNamespace(defaultNamespace: string | undefined, remembered: string | undefined): string {
+  return remembered ?? defaultNamespace ?? ''
+}
