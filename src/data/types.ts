@@ -359,6 +359,18 @@ export interface CrdDefinition {
    * the keys of `CustomResource.extra`. Name, Namespace and Age are left out.
    */
   printerColumns: PrinterColumn[]
+  /**
+   * The listed version's scale subresource; absent when it has none (the kind
+   * cannot be scaled). Scale with `scaleWorkload(kind, ns, name, n, "<group>/<versions[0]>")`.
+   */
+  scale?: CrdScale
+}
+
+/** A CRD version's scale subresource: JSON paths such as ".spec.replicas". */
+export interface CrdScale {
+  specReplicasPath: string
+  statusReplicasPath: string
+  labelSelectorPath?: string
 }
 
 /** One CRD printer column. Like `kubectl get`, priority 0 shows by default, higher ones with -o wide. */
@@ -381,6 +393,8 @@ export interface CustomResource {
    * an age), e.g. { Secret: "shop-tls" }. A column without a value is missing.
    */
   extra: Record<string, string>
+  /** Desired replicas, the integer at the CRD's `scale.specReplicasPath`; absent without one. */
+  replicas?: number
 }
 
 export interface MetricPoint {

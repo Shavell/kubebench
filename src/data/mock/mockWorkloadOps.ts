@@ -4,6 +4,7 @@ import type { WorkloadOpsProvider } from '../providers'
 import { MAX_BULK_DELETE, type KubeObject, type Pod, type PodDeleteResult } from '../types'
 import { delay, delayReject } from './delay'
 import { deployments, namespaces, nodes, pods, services, syncDeploymentPods } from './mockCluster'
+import { scaleMockCustomResource } from './mockCrds'
 import { drainMockNode } from './mockDrain'
 import { genericMock } from './mockGeneric'
 import { mockPauseDeployment, mockRollback, mockRolloutHistory } from './mockRollouts'
@@ -134,9 +135,24 @@ export function createMockWorkloadOps(): WorkloadOpsProvider {
         }
         refresh(pods.filter((p) => p.namespace === ns && p.controlledBy === `${kind}/${name}`))
       }),
-    scaleWorkload: (kind, ns, name, replicas) =>
+    scaleWorkload: (kind, ns, name, replicas, apiVersion) =>
       run(() => {
         if (replicas < 0) throw reasonError(400, 'bad_request', 'workload.replicas_negative')
+        if (apiVersion && apiVersion !== 'apps/v1') {
+          // Custom resources: the kind must be served and have a scale subresource.
+          switch (scaleMockCustomResource(apiVersion, kind, ns, name, replicas)) {
+            case 'not_served':
+              throw new ApiError(404, 'not_found', `no matches for kind "${kind}" in version "${apiVersion}"`)
+            case 'no_scale':
+              throw reasonError(400, 'bad_request', 'workload.scale_kind', { kind })
+            case 'not_found':
+              throw notFound(kind.toLowerCase(), name)
+          }
+          return
+        }
+        if (kind !== 'Deployment' && kind !== 'StatefulSet' && kind !== 'ReplicaSet') {
+          throw reasonError(400, 'bad_request', 'workload.scale_kind', { kind })
+        }
         if (kind === 'Deployment') {
           const d = deployments.find((x) => x.namespace === ns && x.name === name)
           if (!d) throw notFound('deployments.apps', name)
