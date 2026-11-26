@@ -14,6 +14,7 @@ import (
 	"sync"
 	"unicode/utf8"
 
+	"kubebench/internal/logsafe"
 	"kubebench/internal/plugin"
 	"kubebench/internal/reason"
 	"kubebench/internal/store"
@@ -194,7 +195,8 @@ func (s *Server) writeAudit(e store.AuditEntry) {
 	e.Target = truncate(e.Target, maxAuditTarget)
 	e.Detail = truncate(e.Detail, maxAuditDetail)
 	if err := s.store.InsertAudit(e); err != nil {
-		log.Printf("[audit] %s %s by %s: %v", e.Action, e.Target, e.Username, err)
+		// Action, target and username come from the request: escape line breaks.
+		log.Printf("[audit] %s %s by %s: %s", logsafe.Text(e.Action), logsafe.Text(e.Target), logsafe.Text(e.Username), logsafe.Text(err.Error()))
 	}
 }
 

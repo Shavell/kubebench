@@ -55,7 +55,11 @@ func (e *environment) saveUpload(archive []byte, now time.Time) (*Upload, error)
 		return nil, err
 	}
 	id := hex.EncodeToString(raw[:])
-	if err := os.WriteFile(e.uploadPath(id), archive, 0o600); err != nil {
+	path, err := e.uploadPath(id)
+	if err != nil {
+		return nil, err
+	}
+	if err := os.WriteFile(path, archive, 0o600); err != nil {
 		return nil, err
 	}
 	return &Upload{UploadID: id, Chart: chartInfo(ch), ExpiresAt: timestamp(now.Add(uploadTTL))}, nil
@@ -63,7 +67,10 @@ func (e *environment) saveUpload(archive []byte, now time.Time) (*Upload, error)
 
 // loadUpload loads an uploaded chart that has not expired yet.
 func (e *environment) loadUpload(id string) (*chart.Chart, error) {
-	path := e.uploadPath(id)
+	path, err := e.uploadPath(id)
+	if err != nil {
+		return nil, err
+	}
 	info, err := os.Stat(path)
 	if errors.Is(err, fs.ErrNotExist) || (err == nil && time.Since(info.ModTime()) > uploadTTL) {
 		return nil, notFound(reasonUploadNotFound, reason.Params{"id": id})
@@ -74,8 +81,20 @@ func (e *environment) loadUpload(id string) (*chart.Chart, error) {
 	return loader.Load(path)
 }
 
-func (e *environment) uploadPath(id string) string {
-	return filepath.Join(e.uploads, id+".tgz")
+// uploadPath is the archive file of upload id inside the uploads directory.
+// id comes from the request: it must be an id saveUpload hands out (32
+// lowercase hex digits), so it has no separator or dot and the joined path
+// cannot leave the directory. The containment check repeats that guarantee
+// at the place the path is built.
+func (e *environment) uploadPath(id string) (string, error) {
+	if !uploadIDPattern.MatchString(id) {
+		return "", badRequest(reasonUploadID, nil)
+	}
+	path := filepath.Join(e.uploads, id+".tgz")
+	if rel, err := filepath.Rel(e.uploads, path); err != nil || rel != filepath.Base(path) {
+		return "", badRequest(reasonUploadID, nil)
+	}
+	return path, nil
 }
 
 // sweepUploads removes uploads older than uploadTTL every uploadSweep until

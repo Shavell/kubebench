@@ -38,18 +38,26 @@ export function reasonParamText(
   params: Record<string, unknown> | null | undefined,
   translator?: ReasonTranslator,
 ): Record<string, string> {
-  // Parameter names come from the server: write them into an object without
-  // a prototype and skip the names that would reach Object.prototype.
-  const out: Record<string, string> = Object.create(null)
+  // Parameter names come from the server: collect the pairs instead of
+  // writing computed properties, drop the names that mean something to
+  // JavaScript objects, and build an object without a prototype from them
+  // (Object.fromEntries defines own properties, it never assigns through
+  // a setter such as __proto__).
+  const entries: [string, string][] = []
   for (const [name, value] of Object.entries(params ?? {})) {
     if (UNSAFE_KEYS.has(name)) continue
-    if (typeof value === 'string') out[name] = value
-    else if (typeof value === 'number') out[name] = String(value)
-    else if (isReasonMessage(value)) {
-      out[name] = translator ? localizeReason(translator, value.reason, value.params, value.error) : value.error
-    } else out[name] = JSON.stringify(value)
+    entries.push([name, paramValueText(value, translator)])
   }
-  return out
+  return Object.setPrototypeOf(Object.fromEntries(entries), null) as Record<string, string>
+}
+
+function paramValueText(value: unknown, translator: ReasonTranslator | undefined): string {
+  if (typeof value === 'string') return value
+  if (typeof value === 'number') return String(value)
+  if (isReasonMessage(value)) {
+    return translator ? localizeReason(translator, value.reason, value.params, value.error) : value.error
+  }
+  return JSON.stringify(value)
 }
 
 /**

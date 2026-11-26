@@ -55,3 +55,9 @@ test('server-chosen parameter names cannot reach Object.prototype', () => {
   assert.deepEqual(Object.keys(out), ['ok'])
   assert.equal(({} as Record<string, unknown>).polluted, undefined)
 })
+
+test('parameter names shared with Object.prototype stay plain values', () => {
+  const out = reasonParamText({ toString: 'a', hasOwnProperty: 2, valueOf: { error: 'nested' } })
+  assert.deepEqual({ ...out }, { toString: 'a', hasOwnProperty: '2', valueOf: 'nested' })
+  assert.equal(Object.getPrototypeOf(out), null)
+})
