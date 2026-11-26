@@ -111,6 +111,7 @@ func newRuntime(cluster store.Cluster, opts Options) (*Runtime, error) {
 	rt.opts = opts
 	rt.Sampler.start()
 	go rt.watchProm(rt.stop)
+	go rt.watchCRDs(rt.stop, c.meta)
 	go rt.probeCapabilities()
 	go rt.detectCloudOnce()
 	return rt, nil

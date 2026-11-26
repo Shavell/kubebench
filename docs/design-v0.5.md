@@ -689,10 +689,13 @@ func WriteK8sError(w http.ResponseWriter, err error) // maps apierrors → statu
   `ResolveKind(apiVersion, kind) (gvr, namespaced, error)`,
   `ResolveResource(group, resource)`, `Cluster` (store.Cluster incl. ID),
   `Caps()` and `WaitProbed(ctx)` (the capability probe), `RawGet` (the
-  §4.5 passthrough). `ResolveKind`/`ResolveResource` reset the mapper and
-  retry once on a no-match error (e.g. a CRD installed since the last
-  discovery), at most once per 10 s per runtime, so plugins should prefer
-  them over `Mapper()`.
+  §4.5 passthrough). The runtime watches CustomResourceDefinitions
+  (metadata only) and resets the mapper on every add, change or delete
+  (again 3 s later, as discovery lags the CRD), so e.g. a removed CRD
+  version is not served from the cache. `ResolveKind`/`ResolveResource`
+  also reset the mapper and retry once on a no-match error (e.g. a CRD
+  installed while the runtime could not watch CRDs), at most once per 10 s
+  per runtime, so plugins should prefer them over `Mapper()`.
   `kube.NewRuntimeForTest(cluster, cs, dyn)` builds one around fake clients
   without background work.
 - `WriteK8sError` reports a Kubernetes `401` as `502` (§3.3); a no-match
