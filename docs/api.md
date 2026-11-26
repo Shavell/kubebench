@@ -270,8 +270,8 @@ All `read` unless stated.
 | GET | `/api/yaml` | `?apiVersion=&kind=&ns=&name=&neat=true` | `{"yaml","resourceVersion"}`; without `apiVersion` only the kinds v0.4 knew; `neat` strips server-maintained fields (`resourceVersion` is still returned beside the YAML) |
 | GET | `/api/events` | `?kind=&ns=&name=&uid=` (`uid` optional: defaults to the current object's UID) | `K8sEvent[]` about that object (that namespace and incarnation), newest first; `count` and `age` follow an event `series` |
 | GET | `/api/logs` | `?ns=&pod=&container=&tail=` (default 300, max 5000) `&previous=&sinceSeconds=` | `string[]` (lines) |
-| GET | `/api/crds` | — | `CrdDefinition[]`; `printerColumns` `[{name, type, description?, priority}]` are the `additionalPrinterColumns` of the listed (first served) version in order, without Name, Namespace and Age |
-| GET | `/api/crds/instances` | `?crd=<name>` | `CustomResource[]`; `extra` maps each printer column to its value, evaluated with full JSONPath (filters, indexes) and formatted by type like `kubectl get` (a `date` as an age); a column without a value is missing |
+| GET | `/api/crds` | — | `CrdDefinition[]`; `printerColumns` `[{name, type, description?, priority}]` are the `additionalPrinterColumns` of the listed (first served) version in order, without Name, Namespace and Age; `scale` `{specReplicasPath, statusReplicasPath, labelSelectorPath?}` is that version's `scale` subresource, omitted when it has none (the kind cannot be scaled) |
+| GET | `/api/crds/instances` | `?crd=<name>` | `CustomResource[]`; `extra` maps each printer column to its value, evaluated with full JSONPath (filters, indexes) and formatted by type like `kubectl get` (a `date` as an age); a column without a value is missing; for a CRD with `scale`, `replicas` is the integer at its `specReplicasPath` (omitted when there is none) |
 | GET | `/api/k8s/{path...}` | the Kubernetes API's own query | raw JSON (passthrough, below) |
 
 Secret values are redacted on every read route: `data` and `stringData`
@@ -351,7 +351,7 @@ fields (counts, capacity, requests, limits) are always present.
 | POST | `/api/deployments/rollback` | write | `?ns=&name=&revision=` | `{"ok":true}`; `409` while paused or for the current revision |
 | POST | `/api/deployments/pause` | write | `?ns=&name=&paused=true\|false` (default true) | `{"ok":true}` |
 | POST | `/api/workloads/restart` | write | `?kind=Deployment\|StatefulSet\|DaemonSet&ns=&name=` | `{"ok":true}` |
-| POST | `/api/workloads/scale` | write | `?kind=Deployment\|StatefulSet\|ReplicaSet&ns=&name=&replicas=`, or `?apiVersion=&kind=` for any kind with a `scale` subresource (discovered, e.g. an Argo Rollout) | `{"ok":true}`; `400` for a kind without a scale subresource |
+| POST | `/api/workloads/scale` | write | `?kind=Deployment\|StatefulSet\|ReplicaSet&ns=&name=&replicas=`, or `?apiVersion=&kind=` for any kind with a `scale` subresource (discovered, e.g. an Argo Rollout; the CRD plugin's Scale sends `apiVersion=<group>/<listed version>`) | `{"ok":true}`; `400` for a kind without a scale subresource |
 | POST | `/api/nodes/cordon` | write | `?name=&unschedulable=true\|false` (default true) | `{"ok":true}` |
 | POST | `/api/nodes/drain` | write | `?name=&ignoreDaemonSets=true&deleteEmptyDirData=false&force=false&gracePeriod=-1&timeoutSeconds=120` | `{"node","cordoned","completed","evicted","failed","blockedByPDB","skipped","errors"}` (`DrainResult`) |
 | PUT | `/api/nodes/taints` | write | `?name=`; body `{"taints":[{"key","value","effect"}]}` | `{"taints":[…]}` |

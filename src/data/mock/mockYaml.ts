@@ -138,7 +138,7 @@ export function customResourceYaml(cr: CustomResource, apiVersion: string, kind:
 kind: ${kind}
 metadata:
   name: ${cr.name}${cr.namespace ? `\n  namespace: ${cr.namespace}` : ''}
-spec:
+spec:${cr.replicas === undefined ? '' : `\n  replicas: ${cr.replicas}`}
 ${extras}
 status:
   conditions:

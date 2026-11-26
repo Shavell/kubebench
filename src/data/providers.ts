@@ -49,7 +49,6 @@ import type {
   PodKey,
   RestartableKind,
   RolloutHistory,
-  ScalableKind,
   UpdateMode,
   UpdateStatus,
   AuthSettings,
@@ -236,7 +235,13 @@ export interface WorkloadOpsProvider {
   rollbackDeployment(namespace: string, name: string, revision: number): Promise<void>
   pauseDeployment(namespace: string, name: string, paused: boolean): Promise<void>
   restartWorkload(kind: RestartableKind, namespace: string, name: string): Promise<void>
-  scaleWorkload(kind: ScalableKind, namespace: string, name: string, replicas: number): Promise<void>
+  /**
+   * Scales through the scale subresource. Without apiVersion kind is a
+   * ScalableKind (apps/v1); with it, any kind whose API has a `scale`
+   * subresource, e.g. a custom resource (`bad_request` with reason
+   * `workload.scale_kind` otherwise, `not_found` for a kind not served).
+   */
+  scaleWorkload(kind: string, namespace: string, name: string, replicas: number, apiVersion?: string): Promise<void>
   /** Deletes at once (grace period 0), without waiting for the containers to stop. */
   forceDeletePod(namespace: string, name: string): Promise<void>
   /** Deletes 1 to MAX_BULK_DELETE Pods (else `bad_request`); one result per Pod, in order. */

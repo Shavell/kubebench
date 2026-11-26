@@ -36,8 +36,8 @@ export function createApiWorkloadOps(): WorkloadOpsProvider {
     restartWorkload: async (kind, ns, name) => {
       await apiPost('/workloads/restart', undefined, { kind, ns, name })
     },
-    scaleWorkload: async (kind, ns, name, replicas) => {
-      await apiPost('/workloads/scale', undefined, { kind, ns, name, replicas })
+    scaleWorkload: async (kind, ns, name, replicas, apiVersion) => {
+      await apiPost('/workloads/scale', undefined, { apiVersion, kind, ns, name, replicas })
     },
     forceDeletePod: async (ns, name) => {
       await apiDelete('/pods', { ns, name, force: true })

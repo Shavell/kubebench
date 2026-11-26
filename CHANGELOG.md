@@ -33,6 +33,10 @@ Fixes from a compatibility check against Headlamp.
   (`KUBEBENCH_REQUEST_TIMEOUT`, `0` = no limit) with a 504 instead of
   hanging on an unresponsive API server; log streams, live updates,
   terminals, exec, drain and Helm operations are not affected.
+- Custom resources whose CRD has a scale subresource can be scaled from
+  the custom resource list (row menu → Scale…, needs write permission);
+  `GET /api/crds` reports each CRD's `scale` paths and
+  `GET /api/crds/instances` the desired `replicas`.
 
 ### Changed
 

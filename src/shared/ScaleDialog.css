@@ -1,0 +1,23 @@
+/* The scale dialog (ScaleDialog.tsx). */
+
+.kb-scale__muted {
+  margin: 0;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.kb-scale__warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--status-pending);
+  border-radius: 3px;
+  font-size: 12px;
+  line-height: 1.45;
+  background: color-mix(in srgb, var(--status-pending) 12%, transparent);
+}
+.kb-scale__warning .codicon {
+  margin-top: 1px;
+  color: var(--status-pending);
+}

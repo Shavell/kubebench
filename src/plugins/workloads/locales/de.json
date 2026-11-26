@@ -364,16 +364,7 @@
     },
     "workload": {
       "restarted": "Die Pods von {{kind}} {{name}} werden neu gestartet.",
-      "scale": "Skalieren…",
-      "scaleTitle": "{{kind}} {{name}} skalieren",
-      "replicas": "Replikate",
-      "currentReplicas": "Aktuell {{count}}.",
-      "replicasInvalid": "Geben Sie eine ganze Zahl von 0 bis {{max}} ein.",
-      "scaleToZero": "Mit 0 Replikaten werden alle Pods beendet.",
-      "managedBy": "{{owner}} verwaltet dieses Objekt und macht die Änderung rückgängig; skalieren Sie stattdessen {{owner}}.",
-      "scaleSubmit": "Skalieren",
-      "scaled_one": "{{kind}} {{name}} auf {{count}} Replikat skaliert.",
-      "scaled_other": "{{kind}} {{name}} auf {{count}} Replikate skaliert."
+      "scale": "Skalieren…"
     },
     "pods": {
       "forceDelete": "Löschen erzwingen",

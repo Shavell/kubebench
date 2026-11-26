@@ -112,7 +112,19 @@
       "name": "Adı kopyala",
       "yaml": "YAML'ı kopyala"
     },
-    "sidebarForbidden": "Bazı sayılar gizlendi: KubeBench'in bu kümedeki kimlik bilgisi bunları burada listeleyemiyor."
+    "sidebarForbidden": "Bazı sayılar gizlendi: KubeBench'in bu kümedeki kimlik bilgisi bunları burada listeleyemiyor.",
+    "scale": {
+      "title": "Ölçekle: {{kind}} {{name}}",
+      "replicas": "Replika sayısı",
+      "current": "Şu an {{count}}.",
+      "invalid": "0 ile {{max}} arasında bir tam sayı girin.",
+      "toZero": "0 replikada tüm Pod'lar durur.",
+      "managedBy": "Bu nesneyi {{owner}} yönetiyor ve değişikliği geri alacak; onun yerine onu ölçekleyin.",
+      "submit": "Ölçekle",
+      "scaled_one": "{{kind}} {{name}}, {{count}} replikaya ölçeklendi.",
+      "scaled_other": "{{kind}} {{name}}, {{count}} replikaya ölçeklendi.",
+      "currentUnknown": "Mevcut replika sayısı bilinmiyor."
+    }
   },
   "editor": {
     "loading": "Düzenleyici yükleniyor…",

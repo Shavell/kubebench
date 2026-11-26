@@ -112,7 +112,19 @@
       "name": "Namen kopieren",
       "yaml": "YAML kopieren"
     },
-    "sidebarForbidden": "Einige Zahlen sind ausgeblendet: Die Zugangsdaten von KubeBench für diesen Cluster dürfen sie hier nicht auflisten."
+    "sidebarForbidden": "Einige Zahlen sind ausgeblendet: Die Zugangsdaten von KubeBench für diesen Cluster dürfen sie hier nicht auflisten.",
+    "scale": {
+      "title": "{{kind}} {{name}} skalieren",
+      "replicas": "Replikate",
+      "current": "Aktuell {{count}}.",
+      "invalid": "Geben Sie eine ganze Zahl von 0 bis {{max}} ein.",
+      "toZero": "Mit 0 Replikaten werden alle Pods beendet.",
+      "managedBy": "{{owner}} verwaltet dieses Objekt und macht die Änderung rückgängig; skalieren Sie stattdessen {{owner}}.",
+      "submit": "Skalieren",
+      "scaled_one": "{{kind}} {{name}} auf {{count}} Replikat skaliert.",
+      "scaled_other": "{{kind}} {{name}} auf {{count}} Replikate skaliert.",
+      "currentUnknown": "Die aktuelle Anzahl der Replikate ist nicht bekannt."
+    }
   },
   "editor": {
     "loading": "Editor wird geladen…",

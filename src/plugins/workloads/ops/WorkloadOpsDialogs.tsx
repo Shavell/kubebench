@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { ScaleDialog } from '@/shared/ScaleDialog'
 import { CreateNamespaceDialog } from './CreateNamespaceDialog'
 import { DebugContainerDialog } from './DebugContainerDialog'
 import { DeleteNamespaceDialog } from './DeleteNamespaceDialog'
@@ -8,7 +9,6 @@ import { DrainResultDialog } from './DrainResultDialog'
 import { ForceDeletePodDialog } from './ForceDeletePodDialog'
 import { closeOpsDialog, openOpsDialog, useOpsDialog } from './opsDialogs'
 import { RolloutHistoryDialog } from './RolloutHistoryDialog'
-import { ScaleDialog } from './ScaleDialog'
 import { TaintsDialog } from './TaintsDialog'
 
 /**

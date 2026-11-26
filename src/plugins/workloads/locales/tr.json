@@ -364,16 +364,7 @@
     },
     "workload": {
       "restarted": "{{kind}} {{name}}, Pod'larını yeniden başlatıyor.",
-      "scale": "Ölçekle…",
-      "scaleTitle": "Ölçekle: {{kind}} {{name}}",
-      "replicas": "Replika sayısı",
-      "currentReplicas": "Şu an {{count}}.",
-      "replicasInvalid": "0 ile {{max}} arasında bir tam sayı girin.",
-      "scaleToZero": "0 replikada tüm Pod'lar durur.",
-      "managedBy": "Bu nesneyi {{owner}} yönetiyor ve değişikliği geri alacak; onun yerine onu ölçekleyin.",
-      "scaleSubmit": "Ölçekle",
-      "scaled_one": "{{kind}} {{name}}, {{count}} replikaya ölçeklendi.",
-      "scaled_other": "{{kind}} {{name}}, {{count}} replikaya ölçeklendi."
+      "scale": "Ölçekle…"
     },
     "pods": {
       "forceDelete": "Zorla sil",
